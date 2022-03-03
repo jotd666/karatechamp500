@@ -395,8 +395,11 @@ bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
 
 for i in range(1,13):
     imgname = "backgrounds/{:04d}.png".format(i)
-
-    bitplanelib.palette_image2raw(imgname,"{}/back_{:02d}.bin".format(sprites_dir,i),
+    img = Image.open(imgname)
+    for x in range(24,176+24):
+        for y in range(64):
+            img.putpixel((x,y),(0,0,0))
+    bitplanelib.palette_image2raw(img,"{}/back_{:02d}.bin".format(sprites_dir,i),
             palette,palette_precision_mask=0xF0)
 
 process_fonts(dump_fonts)

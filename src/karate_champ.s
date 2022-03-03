@@ -747,6 +747,7 @@ draw_background_pic
 	clr.w	d1
 	moveq.w	#3,d7
 	lea		screen_data,a2
+	moveq.l	#-1,d3
 .loop
 	clr.w	d0
 	clr.w	d1
@@ -755,14 +756,14 @@ draw_background_pic
 	add.w	#SCREEN_PLANE_SIZE,a2
 	add.w	#BACK_IMAGE_SIZE,a0
 	dbf		d7,.loop
-	rts	
+	rts
     
 PANEL_PLANE_SIZE = (176/8+2)*64
 
 draw_panel
 	lea	panel,a0
 	move.w	#176/8+2,d2
-	move.w	#-1,d3
+	moveq.l	#-1,d3
 	move.w	#64,d4
 	moveq.w	#3,d7
 	lea		screen_data,a4
@@ -3230,8 +3231,7 @@ panel:
 ; mask plane generated manually
 panel_mask:
 	REPT	64
-	dc.w	$00FF
-	REPT	10
+	REPT	11
 	dc.w	$FFFF
 	ENDR
 	dc.w	$0000
