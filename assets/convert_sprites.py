@@ -43,8 +43,6 @@ def extract_block(img,x,y):
     return tuple(img.getpixel((x+i,y+j)) for j in range(tile_height) for i in range(tile_width))
 
 
-def process_background_pic(level_index):
-    img = Image.open("backgrounds/{:04d}.png".format(level_index))
 
 def process_maps():
     tile_dict = {}
@@ -212,40 +210,6 @@ def process_maps():
 
         f.write("\tdc.w\t-2\n") # end of levels
 
-        if dump_maps: # for scratch project
-            # save 3 lists, x,y,type
-            with open("tiles/x_list.txt","w") as fx, open("tiles/y_list.txt","w") as fy, open("tiles/type_list.txt","w") as ft:
-                for x,y,t in objects:
-                    fx.write("{}\n".format(x))
-                    fy.write("{}\n".format(y))
-                    ft.write("{}\n".format(t))
-
-        with open(os.path.join(source_dir,"blocks.s"),"w") as f:
-            f.write("; each block is 16 bytes (2 planes, 8 bytes per plane)\n")
-            f.write("tiles:\n")
-            for i in range(tile_id):
-                f.write("\tincbin\ttile_{:02d}.bin\n".format(i))
-            f.write("""
-; provide direct top left rocket id
-ROCKET_TOP_LEFT_TILEID = {}
-BASE_TOP_LEFT_TILEID = {}
-""".format(rocket_tiles[0],base_tiles[0]))
-            f.write("\ntile_type_table:")
-
-            nb_tiles = tile_id
-            for i in range(nb_tiles):
-                if i % 8 == 0:
-                    f.write("\n\tdc.b\t")
-                tk = special_tiles.get(i)
-                if tk:
-                    if i:
-                        tk += special_tiles_pos[i]
-                else:
-                    tk = "STANDARD_TILE"
-                f.write(tk)
-                if i % 8 != 7 and i != nb_tiles-1:
-                    f.write(",")
-            f.write("\n")
 
 def process_tiles(json_file):
     with open(json_file) as f:
@@ -427,13 +391,13 @@ bitplanelib.palette_dump(palette,os.path.join(source_dir,"palette.s"),as_copperl
 
 # status panel
 bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
-        palette,palette_precision_mask=0xF0)
+        palette,palette_precision_mask=0xF0,blit_pad=True)
 
-#process_maps()
+for i in range(1,13):
+    imgname = "backgrounds/{:04d}.png".format(i)
 
-
-#bitplanelib.palette_dump(game_palette,os.path.join(source_dir,"objects_palette.s"),as_copperlist=False)
-
+    bitplanelib.palette_image2raw(imgname,"{}/back_{:02d}.bin".format(sprites_dir,i),
+            palette,palette_precision_mask=0xF0)
 
 process_fonts(dump_fonts)
 

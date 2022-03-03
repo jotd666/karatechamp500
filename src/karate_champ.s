@@ -458,18 +458,23 @@ intro:
 
 .new_level  
     bsr clear_screen
-    bsr draw_score    
+    ;;bsr draw_score    
     bsr init_level
     lea _custom,a5
     move.w  #$7FFF,(intena,a5)
 
     bsr wait_bof
     
-    bsr draw_score
+    ;;bsr draw_score
+    bsr hide_sprites
+	
+	bsr	draw_background_pic
+	bsr	draw_panel
     ;;tst.b   next_level_is_bonus_level
-    bra.b   .normal_level
 
-    bsr init_player     ; at least reset 3 stars
+    bra.b   .normal_level
+	
+;;    bsr init_player     ; at least reset 3 stars
 
     bsr wait_bof
 
@@ -733,7 +738,49 @@ init_level:
     
     rts
 
+BACK_IMAGE_SIZE = (224/8)*256
+
+draw_background_pic
+	lea	pl1,a0
+	move.w	#224/8,d2
+	clr.w	d0
+	clr.w	d1
+	moveq.w	#3,d7
+	lea		screen_data,a2
+.loop
+	clr.w	d0
+	clr.w	d1
+	move.l	a2,a1
+    bsr blit_plane_any
+	add.w	#SCREEN_PLANE_SIZE,a2
+	add.w	#BACK_IMAGE_SIZE,a0
+	dbf		d7,.loop
+	rts	
     
+PANEL_PLANE_SIZE = (176/8+2)*64
+
+draw_panel
+	lea	panel,a0
+	move.w	#176/8+2,d2
+	move.w	#-1,d3
+	move.w	#64,d4
+	moveq.w	#3,d7
+	lea		screen_data,a4
+	lea		panel_mask,a3
+	lea		_custom,a5
+.loop
+	moveq.w	#0,d1
+	move.w	#24,d0
+	move.l	a4,a1
+	move.l	a1,a2  
+	movem.l d2-d7/a2-a4,-(a7)
+    bsr blit_plane_any_internal_cookie_cut	
+	movem.l (a7)+,d2-d7/a2-a4
+	add.w	#SCREEN_PLANE_SIZE,a4
+	add.w	#PANEL_PLANE_SIZE,a0
+	dbf		d7,.loop
+	rts
+		
 ; draw score with titles and extra 0
 draw_score:
     lea p1_string(pc),a0
@@ -1608,11 +1655,7 @@ level2_interrupt:
 .no_invincible
     cmp.b   #$52,d0
     bne.b   .no_infinite_lives
-    eor.b   #1,infinite_lives_cheat_flag
-    move.b  infinite_lives_cheat_flag(pc),d0
-    beq.b   .y
-    move.w  #$F,d0
-.y
+
     and.w   #$FF,d0
     or.w  #$0F0,d0
     move.w  d0,_custom+color
@@ -2071,7 +2114,7 @@ blit_plane
 
 blit_plane_cookie_cut
     movem.l d2-d7/a2-a5,-(a7)
-    lea $DFF000,A5
+    lea _custom,A5
 	move.l d2,d3	;masking of first/last word    
     move.w  #4,d2       ; 16 pixels + 2 shift bytes
     move.w  #16,d4      ; 16 pixels height   
@@ -3045,7 +3088,10 @@ play_fx
     
 
     
-   
+
+background_pics:
+	dc.l	pl1   ;,pl2,pl3,pl4,pl5,pl6,pl7,pl8,pl9,pl10,pl11,pl12
+	   
        
 ;base addr, len, per, vol, channel<<8 + pri, loop timer, number of repeats (or -1), current repeat, current vbl
 
@@ -3121,8 +3167,6 @@ bitplanes:
 ;   dc.l  $00f00000
 ;   dc.l  $00f20000
 
-tunnel_color_reg = color+38
-
 colors:
    dc.w color,0     ; fix black (so debug can flash color0)
 sprites:
@@ -3169,6 +3213,9 @@ end_color_copper:
 empty_16x16_bob
     ds.b    64*4,0
 
+pl1:
+	incbin	"back_01.bin"
+	
 credit_raw
     incbin  "credit.raw"
     even
@@ -3178,6 +3225,18 @@ credit_raw_end
 music:
     ;incbin  "amidar_music_conv.mod"
     
+panel:
+	incbin	"panel.bin"
+; mask plane generated manually
+panel_mask:
+	REPT	64
+	dc.w	$00FF
+	REPT	10
+	dc.w	$FFFF
+	ENDR
+	dc.w	$0000
+	ENDR
+	
 empty_sprite
     dc.l    0,0
 
