@@ -1,4 +1,4 @@
-import os,bitplanelib,json
+import os,bitplanelib,json,subprocess
 from PIL import Image
 
 import collections
@@ -8,15 +8,13 @@ sprites_dir = "../sprites"
 source_dir = "../src"
 
 # debug options to get output as "modern" format (png/txt)
-# to see what's being done or to create assets for Scratch game :)
-dump_tiles = False
+# to see what's being done
+dump_tiles = True
 dump_fonts = True
-dump_maps = True
-hide_enemies = False
+
 
 outdir = "tiles"
 
-ALPHA_TRANSPARENT = (255,255,255,0)
 
 def compute_palette():
     common = set()
@@ -42,6 +40,20 @@ def compute_palette():
 def extract_block(img,x,y):
     return tuple(img.getpixel((x+i,y+j)) for j in range(tile_height) for i in range(tile_width))
 
+
+def process_backgrounds():
+    for i in range(1,13):
+        imgname = "backgrounds/{:04d}.png".format(i)
+        img = Image.open(imgname)
+        for x in range(24,176+24):
+            for y in range(64):
+                img.putpixel((x,y),(0,0,0))
+        outfile = "{}/back_{:02d}.bin".format(sprites_dir,i)
+        bitplanelib.palette_image2raw(img,outfile,
+                palette,palette_precision_mask=0xF0)
+        # compress the bitmaps
+        subprocess.check_call(["propack","p",outfile,outfile+".rnc"])
+        os.remove(outfile)
 
 
 def process_maps():
@@ -212,6 +224,7 @@ def process_maps():
 
 
 def process_tiles(json_file):
+    rval = dict()
     with open(json_file) as f:
         tiles = json.load(f)
 
@@ -221,8 +234,12 @@ def process_tiles(json_file):
 
     game_palette_8 = [tuple(x) for x in tiles["palette"]]
 
+    player_palette = game_palette_8[:4]
+
     master_blit_pad = tiles.get("blit_pad",True)
     master_generate_mask = tiles.get("generate_mask",False)
+    master_mask_color = tiles.get("mask_color_index",0)
+    create_mirror_objects = tiles.get("create_mirror_objects",False)
 
     x_offset = tiles["x_offset"]
     y_offset = tiles["y_offset"]
@@ -254,6 +271,7 @@ def process_tiles(json_file):
 
 
         nb_frames = object.get("frames",1)
+        frame_list = []
         for i in range(nb_frames):
             if horizontal:
                 x = i*(width+gap)+start_x
@@ -281,7 +299,7 @@ def process_tiles(json_file):
                     raise Exception("{} (frame #{}) width (as sprite) should 16, found {}".format(name,i,x_size))
                 if sprite_palette:
 
-                    bitplanelib.palette_dump(sprite_palette,"../{}/{}.s".format("src",name))
+                    bitplanelib.palette_dump(sprite_palette,"{}/{}.s".format(source_dir,name))
                 else:
                     sprite_palette_offset = 16+(sprite_number//2)*4
                     sprite_palette = game_palette[sprite_palette_offset:sprite_palette_offset+4]
@@ -305,10 +323,57 @@ def process_tiles(json_file):
                 namei = "{}_{}".format(name,i) if nb_frames!=1 else name
 
                 print("processing bob {}, mask {}...".format(name,generate_mask))
-                bitplanelib.palette_image2raw(img,"{}/{}.bin".format(sprites_dir,name_dict.get(namei,namei)),used_palette,
-                palette_precision_mask=0xF0,generate_mask=generate_mask)
+                bn = name_dict.get(namei,namei)
+                if create_mirror_objects:
+                    bitplanelib.palette_image2raw(img,"{}/{}_right.bin".format(sprites_dir,bn),used_palette,
+                    palette_precision_mask=0xF0,generate_mask=generate_mask,mask_color_index=master_mask_color)
 
-    return game_palette_8
+                    img_mirror = Image.new("RGB",img.size)
+                    for x in range(img.size[0]):
+                        for y in range(img.size[1]):
+                            img_mirror.putpixel((x-img.size[0],y),img.getpixel((x,y)))
+
+                    bitplanelib.palette_image2raw(img_mirror,"{}/{}_left.bin".format(sprites_dir,bn),used_palette,
+                    palette_precision_mask=0xF0,generate_mask=generate_mask,mask_color_index=master_mask_color)
+                else:
+                    bitplanelib.palette_image2raw(img,"{}/{}.bin".format(sprites_dir,bn),used_palette,
+                    palette_precision_mask=0xF0,generate_mask=generate_mask,mask_color_index=master_mask_color)
+
+                frame_list.append(bn)
+        rval[name] = frame_list
+    radix = os.path.splitext(os.path.basename(json_file))[0]
+    with open("{}/{}_frames.s".format(source_dir,radix),"w") as f:
+        for name,frame_list in sorted(rval.items()):
+            if create_mirror_objects:
+                f.write("{}_left_frames:\n".format(name))
+                for frame in frame_list:
+                    f.write("\tdc.l\t{}_left\n".format(frame))
+                f.write("\tdc.l\t{}\n".format(0))
+                f.write("{}_right_frames:\n".format(name))
+                for frame in frame_list:
+                    f.write("\tdc.l\t{}_right\n".format(frame))
+                f.write("\tdc.l\t{}\n".format(0))
+            else:
+                f.write("{}_frames:\n".format(name))
+                for frame in frame_list:
+                    f.write("\tdc.l\t{}\n".format(frame))
+                f.write("\tdc.l\t{}\n".format(0))
+    with open("{}/{}_bobs.s".format(source_dir,radix),"w") as f:
+        for name,frame_list in sorted(rval.items()):
+            if create_mirror_objects:
+                for frame in frame_list:
+                    f.write("{}_right:\n".format(frame))
+                    f.write("\tincbin\t{}_right.bin\n".format(frame))
+                for frame in frame_list:
+                    f.write("{}_left:\n".format(frame))
+                    f.write("\tincbin\t{}_left.bin\n".format(frame))
+                f.write("\n")
+            else:
+                for frame in frame_list:
+                    f.write("{}:\n".format(frame))
+                    f.write("\tincbin\t{}.bin\n".format(frame))
+                f.write("\n")
+    return rval
 
 def process_fonts(dump=False):
     json_file = "fonts.json"
@@ -327,15 +392,6 @@ def process_fonts(dump=False):
     sprites = Image.open(sprite_page)
 
 
-
-    name_dict = {"letter_row_0_{}".format(i):chr(ord('A')+i) for i in range(0,16)}
-    name_dict.update({"letter_row_1_{}".format(i):chr(ord('P')+i) for i in range(0,11)})
-    name_dict["letter_row_1_11"] = "exclamation"
-    name_dict.update({"digit_row_0_{}".format(i):chr(ord('0')+i) for i in range(0,10)})
-    name_dict["digit_row_0_10"] = "slash"
-    name_dict["digit_row_0_11"] = "dash"
-    name_dict["digit_row_0_12"] = "quote"
-    name_dict["digit_row_0_13"] = "quote2"
     # we first did that to get the palette but we need to control
     # the order of the palette
 
@@ -393,14 +449,9 @@ bitplanelib.palette_dump(palette,os.path.join(source_dir,"palette.s"),as_copperl
 bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
         palette,palette_precision_mask=0xF0,blit_pad=True)
 
-for i in range(1,13):
-    imgname = "backgrounds/{:04d}.png".format(i)
-    img = Image.open(imgname)
-    for x in range(24,176+24):
-        for y in range(64):
-            img.putpixel((x,y),(0,0,0))
-    bitplanelib.palette_image2raw(img,"{}/back_{:02d}.bin".format(sprites_dir,i),
-            palette,palette_precision_mask=0xF0)
+#process_backgrounds()
 
-process_fonts(dump_fonts)
+process_tiles("player.json")
+
+#process_fonts(dump_fonts)
 

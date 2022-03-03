@@ -46,12 +46,13 @@ INTERRUPTS_ON_MASK = $E038
     ULONG   character_id
 	UWORD	xpos
 	UWORD	ypos
+	UWORD	previous_xpos
+	UWORD	previous_ypos
     UWORD   h_speed
     UWORD   v_speed
 	UWORD	direction   ; sprite orientation
 	UWORD	previous_direction   ; previous sprite orientation
     UWORD   frame
-    UWORD   turn_lock
 	LABEL	Character_SIZEOF
 
 	STRUCTURE	Player,0
@@ -59,26 +60,6 @@ INTERRUPTS_ON_MASK = $E038
     UWORD   prepost_turn
     LABEL   Player_SIZEOF
     
-	STRUCTURE	Enemy,0
-	STRUCT      BaseCharacter2,Character_SIZEOF
-	STRUCT      palette,SpritePalette_SIZEOF
-    APTR     frame_table
-    APTR     copperlist_address
-    APTR     color_register
-    UWORD   speed_table_index
-    UWORD   previous_xpos
-    UWORD   previous_ypos
-    UWORD   score_frame
-	UWORD	respawn_delay
-    UWORD    mode_timer     ; number of 1/50th to stay in the current mode (thief only)
-    UWORD    mode           ; current mode
-    UWORD    previous_mode           ; previous mode
-    UWORD    score_display_timer
-    UWORD    fall_hang_timer
-    UWORD    fall_hang_toggle
-	UBYTE	 fright_mode
-	UBYTE	 pad
-	LABEL	 Enemy_SIZEOF
     
     ;Exec Library Base Offsets
 
@@ -105,7 +86,7 @@ DIRECT_GAME_START
 
 ; 
 ;START_SCORE = 1000/10
-;START_LEVEL = 2
+;START_LEVEL = 10
 
 ; temp if nonzero, then records game input, intro music doesn't play
 ; and when one life is lost, blitzes and a0 points to move record table
@@ -153,11 +134,14 @@ ORIGINAL_TICKS_PER_SEC = 60
 
 
 NB_BYTES_PER_LINE = 40
-BOB_16X16_PLANE_SIZE = 64
+NB_BYTES_PER_BACKBUFFER_LINE = 28
+BOB_16X16_PLANE_SIZE = 4*16
+BOB_48X48_PLANE_SIZE = 8*48		; 64x48 pixels
 BOB_8X8_PLANE_SIZE = 16
 NB_LINES = 256
-SCREEN_PLANE_SIZE = 40*NB_LINES
-NB_PLANES   = 4
+SCREEN_PLANE_SIZE = NB_BYTES_PER_LINE*NB_LINES
+BACKBUFFER_PLANE_SIZE = NB_BYTES_PER_BACKBUFFER_LINE*NB_LINES
+NB_PLANES = 4
 
 
 ; messages from update routine to display routine
@@ -233,8 +217,17 @@ mul\1_table
 	endr
     ENDM
     
-ADD_XY_TO_A1:MACRO
+ADD_XY_TO_A1_40:MACRO
     lea mul40_table(pc),\1
+    add.w   d1,d1
+    lsr.w   #3,d0
+    move.w  (\1,d1.w),d1
+    add.w   d0,a1       ; plane address
+    add.w   d1,a1       ; plane address
+    ENDM
+
+ADD_XY_TO_A1_28:MACRO
+    lea mul28_table(pc),\1
     add.w   d1,d1
     lsr.w   #3,d0
     move.w  (\1,d1.w),d1
@@ -457,8 +450,7 @@ intro:
     bsr init_new_play
 
 .new_level  
-    bsr clear_screen
-    ;;bsr draw_score    
+    bsr clear_screen  
     bsr init_level
     lea _custom,a5
     move.w  #$7FFF,(intena,a5)
@@ -470,11 +462,12 @@ intro:
 	
 	bsr	draw_background_pic
 	bsr	draw_panel
+	
     ;;tst.b   next_level_is_bonus_level
 
     bra.b   .normal_level
 	
-;;    bsr init_player     ; at least reset 3 stars
+    bsr init_player     ; at least reset 3 stars
 
     bsr wait_bof
 
@@ -738,23 +731,34 @@ init_level:
     
     rts
 
-BACK_IMAGE_SIZE = (224/8)*256
 
 draw_background_pic
-	lea	pl1,a0
-	move.w	#224/8,d2
+	move.w	level_number(pc),d0
+	cmp.w	loaded_level(pc),d0
+	beq.b	.unpacked
+	move.w	d0,loaded_level
+	add.w	d0,d0
+	add.w	d0,d0
+	lea	background_pics(pc),a0
+	move.l	(a0,d0.w),a0
+	lea	backbuffer,a1
+	bsr	Unpack
+.unpacked
+	lea	backbuffer,a0
+	move.w	#NB_BYTES_PER_BACKBUFFER_LINE,d2
 	clr.w	d0
 	clr.w	d1
-	moveq.w	#3,d7
+	moveq.w	#NB_PLANES-1,d7
 	lea		screen_data,a2
 	moveq.l	#-1,d3
+	move.w	#256,d4
 .loop
 	clr.w	d0
 	clr.w	d1
 	move.l	a2,a1
     bsr blit_plane_any
 	add.w	#SCREEN_PLANE_SIZE,a2
-	add.w	#BACK_IMAGE_SIZE,a0
+	add.w	#BACKBUFFER_PLANE_SIZE,a0
 	dbf		d7,.loop
 	rts
     
@@ -765,7 +769,7 @@ draw_panel
 	move.w	#176/8+2,d2
 	moveq.l	#-1,d3
 	move.w	#64,d4
-	moveq.w	#3,d7
+	move.w	#NB_PLANES-1,d7
 	lea		screen_data,a4
 	lea		panel_mask,a3
 	lea		_custom,a5
@@ -784,6 +788,21 @@ draw_panel
 		
 ; draw score with titles and extra 0
 draw_score:
+	move.w	#104,d0
+	move.w	#40,d1
+	clr.l	d2
+	move.w	time_left(pc),d2
+    move.w  #2,d3
+	
+    move.w  #$FFF,d4
+	bsr write_blanked_color_decimal_number
+	
+	
+	bsr		draw_high_score
+
+	rts
+	
+	
     lea p1_string(pc),a0
     move.w  #232,d0
     move.w  #16,d1
@@ -867,22 +886,18 @@ init_enemies
     
 init_player:
 
+	move.w	#30,time_left
+	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
 	
-    ;tst.b   new_life_restart
-    ;bne.b   .no_clear
-    ;clr.l   previous_player_address   ; no previous position
-;.no_clear
+
     lea player(pc),a0
 
-    
-    move.w  #2,xpos(a0)
-	move.w	#10,ypos(a0)
-    
-    ;move.w  #0*4,xpos(a0)
-	;move.w	#192,ypos(a0)
+    clr.l	previous_xpos(a0)
+    move.w  #22,xpos(a0)
+	move.w	#176,ypos(a0)
     
     
-	move.w 	#LEFT,direction(a0)
+	move.w 	#RIGHT,direction(a0)
     
     move.w  #ORIGINAL_TICKS_PER_SEC,D0   
     tst.b   music_played
@@ -1039,6 +1054,13 @@ PLAYER_ONE_Y = 102-14
     
     bra.b   .draw_complete
 .playing
+	bsr	draw_score
+
+	lea	player_1(pc),a4
+
+	bsr	erase_player
+
+	lea	player_1(pc),a4
 
     bsr draw_player
    
@@ -1079,8 +1101,8 @@ stop_sounds
 
 ; < D2: highscore
 draw_high_score
-    move.w  #232+16,d0
-    move.w  #24+32,d1
+    move.w  #136,d0
+    move.w  #16,d1
     move.w  #6,d3
     move.w  #$FFF,d4    
     bra write_color_decimal_number
@@ -1244,6 +1266,11 @@ draw_intro_screen
     
     even
 
+time_left
+	dc.w	0
+time_ticks
+	dc.w	0
+	
 high_score_position
     dc.w    0
 high_score_highlight_y
@@ -1871,6 +1898,16 @@ update_all
     ; for demo mode
     addq.w  #1,record_input_clock
 
+	subq.w	#1,time_ticks
+	bne.b	.no_sec
+	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
+	subq.w	#1,time_left
+	bne.b	.no_sec
+	; out of time
+	blitz
+.no_sec
+
+
     bsr update_player
     
 
@@ -2028,20 +2065,169 @@ update_player
 .out
 
     rts
-    
-    
-; the palette is organized so we only need to blit planes 0, 2 and 3 (not 1)
-; plane 1 contains dots so it avoids to redraw it
-; plane 0 contains the grid, that has been backed up
-; plane 3 contains filled up rectangles, needs backing up too
-draw_player:
-    move.l  previous_player_address(pc),d5
-    bne.b   .not_first_draw
-    moveq.l #-1,d5
-	;;bra.b	.no_erase
+   
+; < A4: player struct   
+erase_player:
+	
+	; compute dest address
+	
+	move.w	xpos(a4),d2
+	move.w	ypos(a4),d3
+	
+	move.l	d2,d0
+	move.l	d3,d1
+	lea		screen_data,a1
+	ADD_XY_TO_A1_40		a0
+	
+
+	; compute source address
+	move.l	a1,-(a7)
+	move.l	d2,d0
+	and.w	#$F0,d0		; multiple of 16
+	move.l	d3,d1
+	lea		backbuffer,a1
+	ADD_XY_TO_A1_28		a0
+	move.l	a1,a0
+	move.l	(a7)+,a1
+	
+    lea _custom,A5
+	
+	; restore background
+	move.w	#6,d2	; width (no shifting)
+	move.w	#48,d4	; height
+	
+
+	REPT	3
+    movem.l d2-d6,-(a7)
+    bsr blit_back_plane
+    movem.l (a7)+,d2-d6
+	
+	add.w	#BACKBUFFER_PLANE_SIZE,a0
+	add.w	#SCREEN_PLANE_SIZE,a1
+	ENDR
+    movem.l d2-d6,-(a7)
+    bsr blit_back_plane
+    movem.l (a7)+,d2-d6
+	
+
+    rts	
 .not_first_draw
+	rts
+	
+; < A5: custom
+; < A0: source
+; < A1: plane pointer
+; < D2: width in bytes
+; < D4: blit height
+; trashes D0-D6
+
+blit_back_plane:
+
+    move.l  #$09f00000,d5    ;A->D copy, ascending mode, no shift
+
+	move.w #NB_BYTES_PER_LINE,d0
+    sub.w   d2,d0       ; blit width
+
+	move.w #NB_BYTES_PER_BACKBUFFER_LINE,d1
+    sub.w   d2,d1       ; blit width
+
+    lsl.w   #6,d4
+    lsr.w   #1,d2
+    add.w   d2,d4       ; blit height
+
+	moveq.l	#-1,d3
+	
+	
+    ; now just wait for blitter ready to write all registers
+	bsr	wait_blit
+    
+    ; blitter registers set
+    move.l  d3,bltafwm(a5)
+	move.l d5,bltcon0(a5)	
+	move.w  d1,bltamod(a5)		;A modulo=bytes to skip between lines
+    move.w  d0,bltdmod(a5)	;D modulo
+	move.l a0,bltapt(a5)	;source graphic top left corner
+	move.l a1,bltdpt(a5)	;destination top left corner
+	move.w  d4,bltsize(a5)	;rectangle size, starts blit
+    rts
+
+; < A4: player structure
+draw_player:
+
     ; first, restore plane 0
     ; restore plane 0 using CPU
+    lea _custom,A5
+	
+	lea	walk_left_frames,a0
+	move.w	time_ticks(pc),d0
+	lsr.w	#4,d0
+	and.w	#3,d0
+	add.w	d0,d0
+	add.w	d0,d0
+	move.l	(a0,d0.w),a0
+	
+	lea		screen_data,a1
+	move.l	a1,a2
+	lea		(BOB_48X48_PLANE_SIZE*2,a0),a3
+		
+	move.w	xpos(a4),D0
+	move.w	ypos(a4),D1
+	move.w	d0,previous_xpos(a4)
+	move.w	d1,previous_ypos(a4)
+    movem.l d2-d7/a2-a4,-(a7)
+	moveq.l #-1,d3	;masking of first/last word    
+    move.w  #8,d2       ; 48 pixels + 2 shift bytes
+    move.w  #48,d4      ; 16 pixels height  
+
+	;;move.l	a3,a0	; temp
+    bsr blit_plane_any_internal_cookie_cut
+    movem.l (a7)+,d2-d7/a2-a4
+	
+	add.w	#BOB_48X48_PLANE_SIZE,a0		; next source plane
+	add.w	#SCREEN_PLANE_SIZE,a2
+	move.l	a2,a1
+	
+	move.w	xpos(a4),D0
+	move.w	ypos(a4),D1
+    movem.l d2-d7/a2-a4,-(a7)
+	moveq.l #-1,d3	;masking of first/last word    
+    move.w  #8,d2       ; 48 pixels + 2 shift bytes
+    move.w  #48,d4      ; 16 pixels height   
+
+	;;move.l	a3,a0	; temp
+
+    bsr blit_plane_any_internal_cookie_cut
+    movem.l (a7)+,d2-d7/a2-a4
+
+	rts
+	
+	; now blit 2 last planes removing parasite bits, not drawing anything
+	add.w	#SCREEN_PLANE_SIZE,a2
+	move.l	a2,a1
+	move.l	a3,a0
+	
+	move.w	xpos(a4),D0
+	move.w	ypos(a4),D1
+    movem.l d2-d7/a2-a4,-(a7)
+	moveq.l #-1,d3	;masking of first/last word    
+    move.w  #8,d2       ; 48 pixels + 2 shift bytes
+    move.w  #48,d4      ; 16 pixels height   
+    bsr blit_plane_any_internal_cookie_cut
+    movem.l (a7)+,d2-d7/a2-a4
+	
+	add.w	#SCREEN_PLANE_SIZE,a2
+	move.l	a2,a1
+	move.l	a3,a0
+	
+	move.w	xpos(a4),D0
+	move.w	ypos(a4),D1
+    movem.l d2-d7/a2-a4,-(a7)
+	moveq.l #-1,d3	;masking of first/last word    
+    move.w  #8,d2       ; 48 pixels + 2 shift bytes
+    move.w  #48,d4      ; 16 pixels height   
+    bsr blit_plane_any_internal_cookie_cut
+    movem.l (a7)+,d2-d7/a2-a4
+	
 	rts
 
     
@@ -2634,7 +2820,7 @@ write_color_string:
 write_string:
     movem.l A0-A2/d1-D2,-(a7)
     clr.w   d2
-    ADD_XY_TO_A1    a2
+    ADD_XY_TO_A1_40    a2
     moveq.l #0,d0
 .loop
     move.b  (a0)+,d2
@@ -2880,7 +3066,8 @@ dosname
             even
 
     include ReadJoyPad.s
-    
+    include	RNC_1C.s
+	
     ; variables
 gfxbase_copperlist
     dc.l    0
@@ -2928,6 +3115,8 @@ previous_valid_direction
 ; 0: level 1
 level_number:
     dc.w    0
+loaded_level:
+	dc.w	-1
 demo_level_number:
     dc.w    0
 enemy_kill_timer
@@ -3043,8 +3232,10 @@ player_one_string_clear
 
     even
 
+	include	player_frames.s
+	
     MUL_TABLE   40
-    MUL_TABLE   26
+    MUL_TABLE   28
 
 
 	STRUCTURE	Sound,0
@@ -3091,9 +3282,34 @@ play_fx
     
 
 background_pics:
-	dc.l	pl1   ;,pl2,pl3,pl4,pl5,pl6,pl7,pl8,pl9,pl10,pl11,pl12
+	dc.l	pl1,pl2,pl3,pl4,pl5,pl6,pl7,pl8,pl9,pl10,pl11,pl12
 	   
-       
+pl1:
+	incbin	"back_01.bin.RNC"
+pl2:
+	incbin	"back_02.bin.RNC"
+pl3:
+	incbin	"back_03.bin.RNC"
+pl4:
+	incbin	"back_04.bin.RNC"
+pl5:
+	incbin	"back_05.bin.RNC"
+pl6:
+	incbin	"back_06.bin.RNC"
+pl7:
+	incbin	"back_07.bin.RNC"
+pl8:
+	incbin	"back_08.bin.RNC"
+pl9:
+	incbin	"back_09.bin.RNC"
+pl10:
+	incbin	"back_10.bin.RNC"
+pl11:
+	incbin	"back_11.bin.RNC"
+pl12:
+	incbin	"back_12.bin.RNC"
+
+	even
 ;base addr, len, per, vol, channel<<8 + pri, loop timer, number of repeats (or -1), current repeat, current vbl
 
 FXFREQBASE = 3579564
@@ -3115,12 +3331,12 @@ game_palette
     include "palette.s"
     
 player:
+player_1:
+    ds.b    Player_SIZEOF
+player_2:
     ds.b    Player_SIZEOF
     even
 
-enemies:
-    ds.b    Enemy_SIZEOF*7
-    even
     
 keyboard_table:
     ds.b    $100,0
@@ -3198,7 +3414,7 @@ enemy_sprites:
     dc.w    sprpt+30,0
 end_color_copper:
    dc.w  diwstrt,$3081            ;  DIWSTRT
-   dc.w  diwstop,$28c1            ;  DIWSTOP
+   dc.w  diwstop,$30c1            ;  DIWSTOP
    ; proper sprite priority: above bitplanes
    dc.w  $0102,$0000            ;  BPLCON1 := 0x0000
    dc.w  $0104,$0024            ;  BPLCON2 := 0x0024
@@ -3214,15 +3430,14 @@ end_color_copper:
 empty_16x16_bob
     ds.b    64*4,0
 
-pl1:
-	incbin	"back_01.bin"
 	
 credit_raw
     incbin  "credit.raw"
     even
 credit_raw_end
 
-  
+	include	"player_bobs.s"
+	
 music:
     ;incbin  "amidar_music_conv.mod"
     
@@ -3245,6 +3460,8 @@ empty_sprite
 
 screen_data:
     ds.b    SCREEN_PLANE_SIZE*NB_PLANES,0
+	
+backbuffer
+	ds.b	BACKBUFFER_PLANE_SIZE*NB_PLANES,0
 
-    
     	

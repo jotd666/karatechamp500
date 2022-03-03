@@ -1,0 +1,32 @@
+{
+"source":"player.png",
+"palette":[[96, 80, 80],
+[240,192,192],
+[240,240,240],
+[0,0,0]
+ ],
+ "mask_color_index":0,
+ "generate_mask":true,
+ "create_mirror_objects":true,
+"x_offset":0,
+"y_offset":0,
+ "width" : 48,
+ "height" : 48,
+ "horizontal" : true,
+ "objects":[
+ {
+   "name":"walk",
+   "start_x":528,
+   "start_y":144,
+   "gap":36,
+   "frames":6
+ },
+ {
+   "name":"round_kick",
+   "start_x":18,
+   "start_y":242,
+   "gap":36,
+   "frames":5
+ }
+ ]
+}
