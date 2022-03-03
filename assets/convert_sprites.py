@@ -12,6 +12,8 @@ source_dir = "../src"
 dump_tiles = True
 dump_fonts = True
 
+c_gray = (192,192,192)
+b_gray = (0xB0,0xB0,0xB0)
 
 outdir = "tiles"
 
@@ -20,6 +22,11 @@ def compute_palette():
     common = set()
     for i in range(1,13):
         img = Image.open("backgrounds/{:04d}.png".format(i))
+        # remove status panel before extracting the palette
+##        for x in range(24,176+24):
+##            for y in range(64):
+##                img.putpixel((x,y),(0,0,0))
+
         p = bitplanelib.palette_extract(img,0xf0)
         common.update(p)
 
@@ -28,12 +35,21 @@ def compute_palette():
     # white to be color 1 and red to be color 3 so we can blit the characters
     # using different bitplanes but using the same source
 
-    palette = [(0,0,0),(240, 240, 240),(0, 0, 240),(240,0,0)]
+    palette = [(0,0,0),(240, 240, 240),(240, 192, 192),(240,0,0)]
 
     # now add the other colors, the order doesn't matter for them
     # but we sort the source to avoid that it changes between runs of
     # this script
+
+    # there are too many colors (1 too much) to do 16 colors. We could go dynamic
+    # or we could merge ccc and bbb as bbb.
+    # I don't know where c gray comes from, I have removed the panel and it still shows
+    # well, doesn't matter
+
+    common.remove(c_gray)
+
     palette += sorted(common - set(palette))
+
 
     return palette
 
@@ -41,186 +57,26 @@ def extract_block(img,x,y):
     return tuple(img.getpixel((x+i,y+j)) for j in range(tile_height) for i in range(tile_width))
 
 
-def process_backgrounds():
+def process_backgrounds(palette):
     for i in range(1,13):
         imgname = "backgrounds/{:04d}.png".format(i)
         img = Image.open(imgname)
         for x in range(24,176+24):
             for y in range(64):
                 img.putpixel((x,y),(0,0,0))
+        for x in range(img.size[0]):
+            for y in range(img.size[1]):
+                # replace 0xCCC by 0xBBB
+                pix = tuple(c & 0xF0 for c in img.getpixel((x,y)))
+                if pix == c_gray:
+                    img.putpixel((x,y),b_gray)
+
         outfile = "{}/back_{:02d}.bin".format(sprites_dir,i)
         bitplanelib.palette_image2raw(img,outfile,
                 palette,palette_precision_mask=0xF0)
         # compress the bitmaps
         subprocess.check_call(["propack","p",outfile,outfile+".rnc"])
         os.remove(outfile)
-
-
-def process_maps():
-    tile_dict = {}
-    tile_id = 0
-    tile_id_png_dict = {}
-    dumped_set = set()
-    max_level = 6
-    objects = []
-    absolute_x = 0
-
-    filled_tile = Image.new("RGB",(tile_width,tile_height))
-    for i in range(tile_width):
-        for j in range(tile_height):
-            filled_tile.putpixel((i,j),(0,0,240))
-
-    with open(os.path.join(source_dir,"tilemap.s"),"w") as f:
-        f.write("level_tiles:\n")
-        for level_index in range(1,max_level+1):
-            f.write("\tdc.l\tlevel{}map\n".format(level_index))
-        f.write("\n")
-        for level_index in range(1,max_level+1):
-            f.write("level{}map:\n".format(level_index))
-            with_ceiling = has_ceiling[level_index-1]
-
-            img = Image.open("scramble_gamemap_l{}.png".format(level_index))
-
-            nb_h_tiles = img.size[0]//tile_width
-            nb_v_tiles = img.size[1]//tile_height
-            tile_id_to_xy = {}
-
-
-            matrix = []
-            for xtile in range(0,nb_h_tiles):
-                x = xtile * tile_width
-                column = [[],[]]
-                cidx = int(not(with_ceiling))
-                for ytile in range(0,nb_v_tiles):
-                    y = ytile * tile_height
-                    # extract 16x16 block
-                    blk = extract_block(img,x,y)
-                    s = set(blk)
-                    is_filler = False
-                    if len(s)==1:
-                        sole_element = next(iter(s))
-                        # test paletized or not paletized black
-                        if sole_element == 0 or sole_element == (0,0,0):
-                            # background: change category
-                            cidx = 1
-                        else:
-                            is_filler = True
-                    else:
-                        tinfo = tile_dict.get(blk)
-                        if not tinfo:
-                            # tile not already found: create
-                            tinfo = tile_id
-                            tile_id += 1
-                            tile_dict[blk] = tinfo
-                            tile_id_to_xy[tinfo] = (x,y)
-                        if tinfo in filling_tiles:
-                            is_filler = True
-                        else:
-                            if not cidx and tinfo in special_tiles:
-                                # force category change
-                                # (level 5 tunnels without any blank space)
-                                cidx = 1
-                            column[cidx].append({"tile_id":tinfo,"y":y,"x":x})
-
-                matrix.append(column)
-
-            for k,(x,y) in tile_id_to_xy.items():
-                outname = "tiles/tile_{:02}.png".format(k)
-                if not outname in dumped_set:
-                    dumped_set.add(outname)
-                    ti = Image.new("RGB",(tile_width,tile_height))
-                    ti.paste(img,(-x,-y))
-                    if dump_tiles:
-                        print("dumping {}".format(outname))
-                        ti.save(outname)
-                    if dump_maps:
-                        tia = Image.new("RGBA",(tile_width,tile_height),ALPHA_TRANSPARENT)
-                        tia.paste(ti)
-                        # black => transparent for level 1,2,3 tiles
-                        if level_index < 4:
-                            for i in range(tia.size[0]):
-                                for j in range(tia.size[1]):
-                                    if tia.getpixel((i,j))[:3] == (0,0,0):
-                                        tia.putpixel((i,j),ALPHA_TRANSPARENT)
-                        # save png image in id => image dict for map rebuild
-                        tile_id_png_dict[k] = tia
-
-                    outname = "{}/tile_{:02}.bin".format(sprites_dir,k)
-
-                    bitplanelib.palette_image2raw(ti,outname,tiles_palette_level_5 if level_index == 5 else tiles_palette,
-                    palette_precision_mask=0xF0)
-
-            # number of ground tiles
-            for c in matrix:
-                # for each x, number of ceiling tiles, y start, tile ids
-                for sc in c:
-                    f.write("\tdc.w\t{}".format(len(sc)))
-                    if sc:
-                        f.write(",{}".format(sc[0]["y"]))
-                        for c in sc:
-                            f.write(",{}".format(c["tile_id"]))
-                    f.write("\n")
-
-            if dump_maps:
-
-                # re-dump maps as png (debug, check if all is okay)
-                screen_nb_tiles = 28
-                x = 0
-                level_dump = Image.new("RGBA",(tile_width*(len(matrix)+screen_nb_tiles),200),(255,255,255,0))
-                ground_tile = tile_id_png_dict[10]  # id for ground tile is 10
-                floor_height = 5 if level_index > 1 else 6
-                y_ground = 200-floor_height*tile_height
-                for i in range(screen_nb_tiles):
-                    level_dump.paste(ground_tile,(x,y_ground))
-                    # draw ground filler (not special filling tile in any case)
-                    for y in range(y_ground+tile_height,200,8):
-                        level_dump.paste(filled_tile,(x,y))
-                    x += tile_width
-
-                def fill_col(y_start,y_end):
-                    for y_fill in range(y_start,y_end,8):
-                        if level_index < 4:
-                            level_dump.paste(filled_tile,(x,y_fill))
-                        else:
-                            level_dump.paste(tile_id_png_dict[filler_tile_table[bool(x % 16)]],(x,y_fill))
-
-                def handle_tile():
-                    if not hide_enemies or tid not in special_tiles_set:
-                        level_dump.paste(tile_id_png_dict[tid],(x,y))
-                    if tid in special_tile_upper_corner:
-                        objects.append((absolute_x,y,special_tile_upper_corner[tid]))
-
-
-                for c in matrix:
-                    # for each x, number of ceiling tiles, y start, tile ids
-                    upper,lower = c
-                    y = 0
-                    for d in upper:
-                        tid = d["tile_id"]
-                        y_start = d["y"]
-                        # fill to y_start
-                        fill_col(y,y_start)
-                        y = y_start
-                        handle_tile()
-                        y += 8
-
-                    for d in lower:
-                        tid = d["tile_id"]
-                        y_start = d["y"]
-                        y = y_start
-                        handle_tile()
-                        y += 8
-                    # fill to end
-                    fill_col(y,200)
-
-                    absolute_x += tile_width
-                    x += tile_width
-
-                level_dump.save("tiles/level_{:02}.png".format(level_index))
-
-            f.write("\tdc.w\t-1\n") # end of level
-
-        f.write("\tdc.w\t-2\n") # end of levels
 
 
 def process_tiles(json_file):
@@ -315,7 +171,7 @@ def process_tiles(json_file):
                 p = bitplanelib.palette_extract(cropped_img,palette_precision_mask=0xF0)
                 # add 16 pixelsblit_pad
                 img_x = x_size+16 if blit_pad else x_size
-                img = Image.new("RGB",(img_x,cropped_img.size[1]))
+                img = Image.new("RGB",(img_x,cropped_img.size[1]),(0,0,0))
                 img.paste(cropped_img)
 
                 used_palette = sprite_palette or game_palette_8
@@ -325,13 +181,18 @@ def process_tiles(json_file):
                 print("processing bob {}, mask {}...".format(name,generate_mask))
                 bn = name_dict.get(namei,namei)
                 if create_mirror_objects:
-                    bitplanelib.palette_image2raw(img,"{}/{}_right.bin".format(sprites_dir,bn),used_palette,
+
+                    contents = bitplanelib.palette_image2raw(img,"{}/{}_right.bin".format(sprites_dir,bn),used_palette,
                     palette_precision_mask=0xF0,generate_mask=generate_mask,mask_color_index=master_mask_color)
+                    if generate_mask and dump_tiles:
+                        sz = len(contents)//3
+                        bitplanelib.bitplanes_raw2planarimage(contents[2*sz:],1,img.size[0],img.size[1],"tiles/{}_mask.png".format(bn))
 
                     img_mirror = Image.new("RGB",img.size)
                     for x in range(img.size[0]):
+                        sx = img.size[0]-x-1
                         for y in range(img.size[1]):
-                            img_mirror.putpixel((x-img.size[0],y),img.getpixel((x,y)))
+                            img_mirror.putpixel((sx,y),img.getpixel((x,y)))
 
                     bitplanelib.palette_image2raw(img_mirror,"{}/{}_left.bin".format(sprites_dir,bn),used_palette,
                     palette_precision_mask=0xF0,generate_mask=generate_mask,mask_color_index=master_mask_color)
@@ -439,7 +300,8 @@ def process_fonts(dump=False):
             used_palette = p
 
             namei = "{}_{}".format(name,i) if nb_frames != 1 else name
-            bitplanelib.palette_image2raw(img,"{}/{}.bin".format(sprites_dir,name_dict.get(namei,namei)),used_palette,palette_precision_mask=0xF0)
+            outfile = "{}/{}.bin".format(sprites_dir,name_dict.get(namei,namei))
+            bitplanelib.palette_image2raw(img,outfile,used_palette,palette_precision_mask=0xF0)
 
 # compute palette from background images
 palette = compute_palette()
@@ -449,7 +311,7 @@ bitplanelib.palette_dump(palette,os.path.join(source_dir,"palette.s"),as_copperl
 bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
         palette,palette_precision_mask=0xF0,blit_pad=True)
 
-#process_backgrounds()
+#process_backgrounds(palette)
 
 process_tiles("player.json")
 

@@ -467,7 +467,7 @@ intro:
 
     bra.b   .normal_level
 	
-    bsr init_player     ; at least reset 3 stars
+    bsr init_players     ; at least reset 3 stars
 
     bsr wait_bof
 
@@ -488,7 +488,7 @@ intro:
     moveq.l #1,d0
 .from_level_start
     bsr init_enemies
-    bsr init_player
+    bsr init_players
     
     bsr wait_bof
 
@@ -884,20 +884,29 @@ init_enemies
     rts
 
     
-init_player:
+init_players:
 
 	move.w	#30,time_left
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
 	
 
-    lea player(pc),a0
+    lea player_1(pc),a0
 
+	move.b	#0,character_id(a0)
     clr.l	previous_xpos(a0)
     move.w  #22,xpos(a0)
 	move.w	#176,ypos(a0)
     
-    
 	move.w 	#RIGHT,direction(a0)
+	
+    lea player_2(pc),a0
+	move.b	#1,character_id(a0)
+
+    clr.l	previous_xpos(a0)
+    move.w  #160,xpos(a0)
+	move.w	#176,ypos(a0)
+    
+	move.w 	#LEFT,direction(a0)
     
     move.w  #ORIGINAL_TICKS_PER_SEC,D0   
     tst.b   music_played
@@ -1058,10 +1067,11 @@ PLAYER_ONE_Y = 102-14
 
 	lea	player_1(pc),a4
 
-	bsr	erase_player
+	;bsr	erase_player
 
 	lea	player_1(pc),a4
-
+    bsr draw_player
+	lea	player_2(pc),a4
     bsr draw_player
    
     
@@ -2153,18 +2163,22 @@ blit_back_plane:
 
 ; < A4: player structure
 draw_player:
-
     ; first, restore plane 0
     ; restore plane 0 using CPU
     lea _custom,A5
 	
 	lea	walk_left_frames,a0
-	move.w	time_ticks(pc),d0
-	lsr.w	#4,d0
-	and.w	#3,d0
-	add.w	d0,d0
-	add.w	d0,d0
-	move.l	(a0,d0.w),a0
+	cmp.w	#LEFT,direction(a4)
+	beq.b	.ok
+	lea	walk_right_frames,a0
+.ok
+	move.l	(a0),a0
+;	move.w	time_ticks(pc),d0
+;	lsr.w	#4,d0
+;	and.w	#3,d0
+;	add.w	d0,d0
+;	add.w	d0,d0
+;	move.l	(a0,d0.w),a0
 	
 	lea		screen_data,a1
 	move.l	a1,a2
@@ -2179,7 +2193,25 @@ draw_player:
     move.w  #8,d2       ; 48 pixels + 2 shift bytes
     move.w  #48,d4      ; 16 pixels height  
 
-	;;move.l	a3,a0	; temp
+    bsr blit_plane_any_internal_cookie_cut
+    movem.l (a7)+,d2-d7/a2-a4
+	
+	tst.b	character_id(a4)
+	beq.b	.white
+	
+	; red
+	
+	; now blit 2 last planes removing parasite bits, not drawing anything
+	add.w	#SCREEN_PLANE_SIZE,a2
+	move.l	a2,a1
+	lea		empty_48x48_bob,a0
+	
+	move.w	xpos(a4),D0
+	move.w	ypos(a4),D1
+    movem.l d2-d7/a2-a4,-(a7)
+	moveq.l #-1,d3	;masking of first/last word    
+    move.w  #8,d2       ; 48 pixels + 2 shift bytes
+    move.w  #48,d4      ; 16 pixels height   
     bsr blit_plane_any_internal_cookie_cut
     movem.l (a7)+,d2-d7/a2-a4
 	
@@ -2193,18 +2225,43 @@ draw_player:
 	moveq.l #-1,d3	;masking of first/last word    
     move.w  #8,d2       ; 48 pixels + 2 shift bytes
     move.w  #48,d4      ; 16 pixels height   
+    bsr blit_plane_any_internal_cookie_cut
+    movem.l (a7)+,d2-d7/a2-a4
+	
+	add.w	#SCREEN_PLANE_SIZE,a2
+	move.l	a2,a1
+	lea		empty_48x48_bob,a0
+	
+	move.w	xpos(a4),D0
+	move.w	ypos(a4),D1
+    movem.l d2-d7/a2-a4,-(a7)
+	moveq.l #-1,d3	;masking of first/last word    
+    move.w  #8,d2       ; 48 pixels + 2 shift bytes
+    move.w  #48,d4      ; 16 pixels height   
+    bsr blit_plane_any_internal_cookie_cut
+    movem.l (a7)+,d2-d7/a2-a4
+	
+	rts
+.white:
+	add.w	#BOB_48X48_PLANE_SIZE,a0		; next source plane
+	add.w	#SCREEN_PLANE_SIZE,a2
+	move.l	a2,a1
+	
+	move.w	xpos(a4),D0
+	move.w	ypos(a4),D1
+    movem.l d2-d7/a2-a4,-(a7)
+	moveq.l #-1,d3	;masking of first/last word    
+    move.w  #8,d2       ; 48 pixels + 2 shift bytes
+    move.w  #48,d4      ; 16 pixels height   
 
-	;;move.l	a3,a0	; temp
 
     bsr blit_plane_any_internal_cookie_cut
     movem.l (a7)+,d2-d7/a2-a4
-
-	rts
 	
 	; now blit 2 last planes removing parasite bits, not drawing anything
 	add.w	#SCREEN_PLANE_SIZE,a2
 	move.l	a2,a1
-	move.l	a3,a0
+	lea		empty_48x48_bob,a0
 	
 	move.w	xpos(a4),D0
 	move.w	ypos(a4),D1
@@ -2217,7 +2274,6 @@ draw_player:
 	
 	add.w	#SCREEN_PLANE_SIZE,a2
 	move.l	a2,a1
-	move.l	a3,a0
 	
 	move.w	xpos(a4),D0
 	move.w	ypos(a4),D1
@@ -3279,37 +3335,6 @@ play_fx
     rts
     
 
-    
-
-background_pics:
-	dc.l	pl1,pl2,pl3,pl4,pl5,pl6,pl7,pl8,pl9,pl10,pl11,pl12
-	   
-pl1:
-	incbin	"back_01.bin.RNC"
-pl2:
-	incbin	"back_02.bin.RNC"
-pl3:
-	incbin	"back_03.bin.RNC"
-pl4:
-	incbin	"back_04.bin.RNC"
-pl5:
-	incbin	"back_05.bin.RNC"
-pl6:
-	incbin	"back_06.bin.RNC"
-pl7:
-	incbin	"back_07.bin.RNC"
-pl8:
-	incbin	"back_08.bin.RNC"
-pl9:
-	incbin	"back_09.bin.RNC"
-pl10:
-	incbin	"back_10.bin.RNC"
-pl11:
-	incbin	"back_11.bin.RNC"
-pl12:
-	incbin	"back_12.bin.RNC"
-
-	even
 ;base addr, len, per, vol, channel<<8 + pri, loop timer, number of repeats (or -1), current repeat, current vbl
 
 FXFREQBASE = 3579564
@@ -3343,8 +3368,38 @@ keyboard_table:
     
 floppy_file
     dc.b    "floppy",0
+
     even
-	
+
+
+
+background_pics:
+	dc.l	pl1,pl2,pl3,pl4,pl5,pl6,pl7,pl8,pl9,pl10,pl11,pl12
+	   
+pl1:
+	incbin	"back_01.bin.RNC"
+pl2:
+	incbin	"back_02.bin.RNC"
+pl3:
+	incbin	"back_03.bin.RNC"
+pl4:
+	incbin	"back_04.bin.RNC"
+pl5:
+	incbin	"back_05.bin.RNC"
+pl6:
+	incbin	"back_06.bin.RNC"
+pl7:
+	incbin	"back_07.bin.RNC"
+pl8:
+	incbin	"back_08.bin.RNC"
+pl9:
+	incbin	"back_09.bin.RNC"
+pl10:
+	incbin	"back_10.bin.RNC"
+pl11:
+	incbin	"back_11.bin.RNC"
+pl12:
+	incbin	"back_12.bin.RNC"
 ; BSS --------------------------------------
     SECTION  S3,BSS
 HWSPR_TAB_XPOS:	
@@ -3428,7 +3483,8 @@ end_color_copper:
    
 
 empty_16x16_bob
-    ds.b    64*4,0
+empty_48x48_bob
+    ds.b    BOB_48X48_PLANE_SIZE,0
 
 	
 credit_raw
