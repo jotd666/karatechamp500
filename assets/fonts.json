@@ -1,0 +1,94 @@
+{
+"source":"fonts.png",
+"x_offset":0,
+"y_offset":0,
+ "width" : 8,
+ "height" : 8,
+ "horizontal" : true,
+ "objects":[
+ {
+   "name":"digits",
+   "frames":10,
+   "start_x":0,
+   "start_y":0
+ },
+ {
+   "name":"letters_1",
+   "frames":22,
+   "start_x":80,
+   "start_y":0
+ },
+ {
+   "name":"letters_2",
+   "frames":4,
+   "start_x":0,
+   "start_y":8
+ },
+ {
+   "name":"dot",
+   "frames":1,
+   "start_x":40,
+   "start_y":8
+ },
+ {
+   "name":"dash",
+   "frames":1,
+   "start_x":48,
+   "start_y":8
+ },
+{
+   "name":"lfoot",
+   "frames":1,
+   "start_x":56,
+   "start_y":8
+ },
+{
+   "name":"colon",
+   "frames":1,
+   "start_x":64,
+   "start_y":8
+ },
+{
+   "name":"rub1",
+   "frames":1,
+   "start_x":72,
+   "start_y":8
+ },
+{
+   "name":"rub2",
+   "frames":1,
+   "start_x":80,
+   "start_y":8
+ },
+{
+   "name":"end1",
+   "frames":1,
+   "start_x":88,
+   "start_y":8
+ },
+{
+   "name":"end2",
+   "frames":1,
+   "start_x":96,
+   "start_y":8
+ },
+ {
+   "name":"rfoot",
+   "frames":1,
+   "start_x":104,
+   "start_y":8
+ },
+{
+   "name":"heart",
+   "frames":1,
+   "start_x":120,
+   "start_y":8
+ },
+{
+   "name":"copyright",
+   "frames":1,
+   "start_x":128,
+   "start_y":8
+ }
+ ]
+}
