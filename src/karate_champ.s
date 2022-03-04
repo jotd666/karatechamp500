@@ -903,7 +903,7 @@ init_players:
 	move.b	#1,character_id(a0)
 
     clr.l	previous_xpos(a0)
-    move.w  #160-32,xpos(a0)
+    move.w  #148,xpos(a0)
 	move.w	#176,ypos(a0)
     
 	move.w 	#LEFT,direction(a0)
@@ -2182,47 +2182,30 @@ draw_player:
 	move.l	a1,a2
 	lea		(BOB_48X48_PLANE_SIZE*2,a0),a3
 		
-
 	; plane 1: clothes data as white
 	move.w	xpos(a4),D0
 	move.w	ypos(a4),D1
 	move.w	d0,previous_xpos(a4)
 	move.w	d1,previous_ypos(a4)
-    movem.l d2-d7/a2-a4,-(a7)
 	moveq.l #-1,d3	;masking of first/last word    
     move.w  #8,d2       ; 48 pixels + 2 shift bytes
     move.w  #48,d4      ; 16 pixels height  
+
     bsr blit_plane_any_internal_cookie_cut
-    movem.l (a7)+,d2-d7/a2-a4
 
 	add.w	#BOB_48X48_PLANE_SIZE,a0		; next source plane
 	add.w	#SCREEN_PLANE_SIZE,a2
 	move.l	a2,a1
-    movem.l d2-d7/a2-a4,-(a7)
-	moveq.l #-1,d3	;masking of first/last word    
-    move.w  #8,d2       ; 48 pixels + 2 shift bytes
-    move.w  #48,d4      ; 16 pixels height  
     bsr blit_plane_any_internal_cookie_cut
-    movem.l (a7)+,d2-d7/a2-a4
 
 	lea		empty_48x48_bob,a0
 	add.w	#SCREEN_PLANE_SIZE,a2
 	move.l	a2,a1
 	
-	move.w	xpos(a4),D0
-	move.w	ypos(a4),D1
-    movem.l d2-d7/a2-a4,-(a7)
-	moveq.l #-1,d3	;masking of first/last word    
-    move.w  #8,d2       ; 48 pixels + 2 shift bytes
-    move.w  #48,d4      ; 16 pixels height   
-
     bsr blit_plane_any_internal_cookie_cut
-    movem.l (a7)+,d2-d7/a2-a4
 
 	add.w	#SCREEN_PLANE_SIZE,a2
 	move.l	a2,a1
-	move.w	xpos(a4),D0
-	move.w	ypos(a4),D1
 
 	tst.b	character_id(a4)
 	beq.b	.white
@@ -2233,12 +2216,7 @@ draw_player:
 	
 .white:
 	
-    movem.l d2-d7/a2-a4,-(a7)
-	moveq.l #-1,d3	;masking of first/last word    
-    move.w  #8,d2       ; 48 pixels + 2 shift bytes
-    move.w  #48,d4      ; 16 pixels height   
     bsr blit_plane_any_internal_cookie_cut
-    movem.l (a7)+,d2-d7/a2-a4	
 	rts
 
     
@@ -2415,10 +2393,10 @@ blit_plane_any_internal:
 ; < D4: height
 ; blit mask set
 ; returns: start of destination in A1 (computed from old A1+X,Y)
-; trashes: nothing
+; trashes: a1
 
 blit_plane_any_internal_cookie_cut:
-    movem.l d0-d7,-(a7)
+    movem.l d0-d7/a2/a4,-(a7)
     ; pre-compute the maximum of shit here
     lea mul40_table(pc),a4
     swap    d1
@@ -2434,6 +2412,7 @@ blit_plane_any_internal_cookie_cut:
     move    d0,d7
     beq.b   .d0_zero
     and.w   #$F,d7
+	beq.b	.no_shifting
     and.w   #$1F0,d0
     lsr.w   #3,d0
 
@@ -2443,7 +2422,7 @@ blit_plane_any_internal_cookie_cut:
     swap    d7
     clr.w   d7
     or.l    d7,d5            ; add shift
-    
+.no_shifting    
     move.w  d0,d7
     add.w   d0,d1
     
@@ -2490,7 +2469,7 @@ blit_plane_any_internal_cookie_cut:
 	move.l a1,bltdpt(a5)	;destination top left corner
 	move.w  d4,bltsize(a5)	;rectangle size, starts blit
     
-    movem.l (a7)+,d0-d7
+    movem.l (a7)+,d0-d7/a2/a4
     rts
 
 

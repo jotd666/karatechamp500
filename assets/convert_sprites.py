@@ -137,7 +137,6 @@ def process_player_tiles(json_file):
             continue
         generate_mask = False  #object.get("generate_mask",master_generate_mask)
 
-        blit_pad = object.get("blit_pad",master_blit_pad)
         gap = object.get("gap",0)
         name = object["name"]
 
@@ -176,11 +175,8 @@ def process_player_tiles(json_file):
 
             p = bitplanelib.palette_extract(cropped_img,palette_precision_mask=0xF0)
             # add 16 pixelsblit_pad
-            img_x = x_size+16 if blit_pad else x_size
-            img = Image.new("RGB",(img_x,cropped_img.size[1]),(0,0,0))
-            img.paste(cropped_img)
-            mask_img = Image.new("RGB",(img_x,cropped_img.size[1]),(0,0,0))
-            mask_img.paste(cropped_mask_img)
+            img = cropped_img
+            mask_img = cropped_mask_img
 
             used_palette = game_palette_8
 
@@ -192,10 +188,10 @@ def process_player_tiles(json_file):
             def create_bob(bob_data,bob_mask_data,outfile):
                 # data, no mask
                 contents = bitplanelib.palette_image2raw(bob_data,None,used_palette,
-                palette_precision_mask=0xF0,generate_mask=False)
+                palette_precision_mask=0xF0,generate_mask=False,blit_pad=True)
                 # append (almost) manually created mask
                 contents += bitplanelib.palette_image2raw(bob_mask_data,None,((0,0,0),(255,255,255)),
-                palette_precision_mask=0xFF,generate_mask=False)
+                palette_precision_mask=0xFF,generate_mask=False,blit_pad=True)
 
                 with open(outfile,"wb") as f:
                     f.write(contents)
@@ -324,7 +320,7 @@ bitplanelib.palette_dump(palette,os.path.join(source_dir,"palette.s"),as_copperl
 bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
         palette,palette_precision_mask=0xF0,blit_pad=True)
 
-process_backgrounds(palette)
+#process_backgrounds(palette)
 
 process_player_tiles("player.json")
 
