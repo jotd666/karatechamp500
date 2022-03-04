@@ -903,7 +903,7 @@ init_players:
 	move.b	#1,character_id(a0)
 
     clr.l	previous_xpos(a0)
-    move.w  #160,xpos(a0)
+    move.w  #160-32,xpos(a0)
 	move.w	#176,ypos(a0)
     
 	move.w 	#LEFT,direction(a0)
@@ -2182,15 +2182,7 @@ draw_player:
 	move.l	a1,a2
 	lea		(BOB_48X48_PLANE_SIZE*2,a0),a3
 		
-	
-	tst.b	character_id(a4)
-	beq.b	.white
-	
-	; red
-	
-	
-	rts
-.white:
+
 	; plane 1: clothes data as white
 	move.w	xpos(a4),D0
 	move.w	ypos(a4),D1
@@ -2214,7 +2206,6 @@ draw_player:
     movem.l (a7)+,d2-d7/a2-a4
 
 	lea		empty_48x48_bob,a0
-	REPT	2
 	add.w	#SCREEN_PLANE_SIZE,a2
 	move.l	a2,a1
 	
@@ -2227,8 +2218,27 @@ draw_player:
 
     bsr blit_plane_any_internal_cookie_cut
     movem.l (a7)+,d2-d7/a2-a4
-	ENDR
+
+	add.w	#SCREEN_PLANE_SIZE,a2
+	move.l	a2,a1
+	move.w	xpos(a4),D0
+	move.w	ypos(a4),D1
+
+	tst.b	character_id(a4)
+	beq.b	.white
 	
+	; red: another layer of clothes plane that activate color 9
+	; (color 9 is fixed as red)
+	lea		(-BOB_48X48_PLANE_SIZE*2,a3),a0
+	
+.white:
+	
+    movem.l d2-d7/a2-a4,-(a7)
+	moveq.l #-1,d3	;masking of first/last word    
+    move.w  #8,d2       ; 48 pixels + 2 shift bytes
+    move.w  #48,d4      ; 16 pixels height   
+    bsr blit_plane_any_internal_cookie_cut
+    movem.l (a7)+,d2-d7/a2-a4	
 	rts
 
     
