@@ -2163,8 +2163,6 @@ blit_back_plane:
 
 ; < A4: player structure
 draw_player:
-    ; first, restore plane 0
-    ; restore plane 0 using CPU
     lea _custom,A5
 	
 	lea	walk_left_frames,a0
@@ -2184,6 +2182,16 @@ draw_player:
 	move.l	a1,a2
 	lea		(BOB_48X48_PLANE_SIZE*2,a0),a3
 		
+	
+	tst.b	character_id(a4)
+	beq.b	.white
+	
+	; red
+	
+	
+	rts
+.white:
+	; plane 1: clothes data as white
 	move.w	xpos(a4),D0
 	move.w	ypos(a4),D1
 	move.w	d0,previous_xpos(a4)
@@ -2192,58 +2200,21 @@ draw_player:
 	moveq.l #-1,d3	;masking of first/last word    
     move.w  #8,d2       ; 48 pixels + 2 shift bytes
     move.w  #48,d4      ; 16 pixels height  
+    bsr blit_plane_any_internal_cookie_cut
+    movem.l (a7)+,d2-d7/a2-a4
 
-    bsr blit_plane_any_internal_cookie_cut
-    movem.l (a7)+,d2-d7/a2-a4
-	
-	tst.b	character_id(a4)
-	beq.b	.white
-	
-	; red
-	
-	; now blit 2 last planes removing parasite bits, not drawing anything
-	add.w	#SCREEN_PLANE_SIZE,a2
-	move.l	a2,a1
-	lea		empty_48x48_bob,a0
-	
-	move.w	xpos(a4),D0
-	move.w	ypos(a4),D1
-    movem.l d2-d7/a2-a4,-(a7)
-	moveq.l #-1,d3	;masking of first/last word    
-    move.w  #8,d2       ; 48 pixels + 2 shift bytes
-    move.w  #48,d4      ; 16 pixels height   
-    bsr blit_plane_any_internal_cookie_cut
-    movem.l (a7)+,d2-d7/a2-a4
-	
 	add.w	#BOB_48X48_PLANE_SIZE,a0		; next source plane
 	add.w	#SCREEN_PLANE_SIZE,a2
 	move.l	a2,a1
-	
-	move.w	xpos(a4),D0
-	move.w	ypos(a4),D1
     movem.l d2-d7/a2-a4,-(a7)
 	moveq.l #-1,d3	;masking of first/last word    
     move.w  #8,d2       ; 48 pixels + 2 shift bytes
-    move.w  #48,d4      ; 16 pixels height   
+    move.w  #48,d4      ; 16 pixels height  
     bsr blit_plane_any_internal_cookie_cut
     movem.l (a7)+,d2-d7/a2-a4
-	
-	add.w	#SCREEN_PLANE_SIZE,a2
-	move.l	a2,a1
+
 	lea		empty_48x48_bob,a0
-	
-	move.w	xpos(a4),D0
-	move.w	ypos(a4),D1
-    movem.l d2-d7/a2-a4,-(a7)
-	moveq.l #-1,d3	;masking of first/last word    
-    move.w  #8,d2       ; 48 pixels + 2 shift bytes
-    move.w  #48,d4      ; 16 pixels height   
-    bsr blit_plane_any_internal_cookie_cut
-    movem.l (a7)+,d2-d7/a2-a4
-	
-	rts
-.white:
-	add.w	#BOB_48X48_PLANE_SIZE,a0		; next source plane
+	REPT	2
 	add.w	#SCREEN_PLANE_SIZE,a2
 	move.l	a2,a1
 	
@@ -2254,35 +2225,9 @@ draw_player:
     move.w  #8,d2       ; 48 pixels + 2 shift bytes
     move.w  #48,d4      ; 16 pixels height   
 
-
     bsr blit_plane_any_internal_cookie_cut
     movem.l (a7)+,d2-d7/a2-a4
-	
-	; now blit 2 last planes removing parasite bits, not drawing anything
-	add.w	#SCREEN_PLANE_SIZE,a2
-	move.l	a2,a1
-	lea		empty_48x48_bob,a0
-	
-	move.w	xpos(a4),D0
-	move.w	ypos(a4),D1
-    movem.l d2-d7/a2-a4,-(a7)
-	moveq.l #-1,d3	;masking of first/last word    
-    move.w  #8,d2       ; 48 pixels + 2 shift bytes
-    move.w  #48,d4      ; 16 pixels height   
-    bsr blit_plane_any_internal_cookie_cut
-    movem.l (a7)+,d2-d7/a2-a4
-	
-	add.w	#SCREEN_PLANE_SIZE,a2
-	move.l	a2,a1
-	
-	move.w	xpos(a4),D0
-	move.w	ypos(a4),D1
-    movem.l d2-d7/a2-a4,-(a7)
-	moveq.l #-1,d3	;masking of first/last word    
-    move.w  #8,d2       ; 48 pixels + 2 shift bytes
-    move.w  #48,d4      ; 16 pixels height   
-    bsr blit_plane_any_internal_cookie_cut
-    movem.l (a7)+,d2-d7/a2-a4
+	ENDR
 	
 	rts
 

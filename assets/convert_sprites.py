@@ -79,7 +79,7 @@ def process_backgrounds(palette):
         os.remove(outfile)
 
 
-def process_tiles(json_file):
+def process_player_tiles(json_file):
     rval = dict()
     with open(json_file) as f:
         tiles = json.load(f)
@@ -104,6 +104,24 @@ def process_tiles(json_file):
 
     sprites = Image.open(sprite_page)
 
+    mask_sprites = Image.new("RGB",sprites.size)
+    sback = tuple(player_palette[3])        # last color of sheet is the pinkish mask
+    # we need to generate mask manually then remove the color so picture conversion
+    # won't generate active bitplanes for it (it has to be index 0 of palette)
+    # that's the cornercase when part of the sprites are black, which is rare, but annoying
+    for x in range(sprites.size[0]):
+        for y in range(sprites.size[1]):
+            p = tuple(0xF0 & c for c in sprites.getpixel((x,y)))
+            if p == sback:
+                mask_sprites.putpixel((x,y),(0,0,0))
+                # remove background color now that we have the mask
+                sprites.putpixel((x,y),(0,0,0))
+            else:
+                mask_sprites.putpixel((x,y),(255,255,255))
+
+    if dump_tiles:
+        mask_sprites.save("tiles/masks.png") # dirty
+
     name_dict = {"scores_{}".format(i):"scores_"+n for i,n in enumerate(["100","200","300"])}
     # we first did that to get the palette but we need to control
     # the order of the palette
@@ -113,7 +131,7 @@ def process_tiles(json_file):
 
         if object.get("ignore"):
             continue
-        generate_mask = object.get("generate_mask",master_generate_mask)
+        generate_mask = False  #object.get("generate_mask",master_generate_mask)
 
         blit_pad = object.get("blit_pad",master_blit_pad)
         gap = object.get("gap",0)
@@ -138,6 +156,7 @@ def process_tiles(json_file):
 
             area = (x, y, x + width, y + height)
             cropped_img = sprites.crop(area)
+            cropped_mask_img = mask_sprites.crop(area)
             if nb_frames == 1:
                 cropped_name = os.path.join(outdir,"{}.png".format(name))
             else:
@@ -146,61 +165,51 @@ def process_tiles(json_file):
 
             # save
             x_size = cropped_img.size[0]
-            sprite_number = object.get("sprite_number")
-            sprite_palette = object.get("sprite_palette")
-            if sprite_palette:
-                sprite_palette = [tuple(x) for x in sprite_palette]
-            if sprite_number is not None:
-                if x_size != 16:
-                    raise Exception("{} (frame #{}) width (as sprite) should 16, found {}".format(name,i,x_size))
-                if sprite_palette:
 
-                    bitplanelib.palette_dump(sprite_palette,"{}/{}.s".format(source_dir,name))
-                else:
-                    sprite_palette_offset = 16+(sprite_number//2)*4
-                    sprite_palette = game_palette[sprite_palette_offset:sprite_palette_offset+4]
-                bin_base = "{}/{}_{}.bin".format(sprites_dir,name,i) if nb_frames != 1 else "{}/{}.bin".format(sprites_dir,name)
-                print("processing sprite {}...".format(name))
-                bitplanelib.palette_image2sprite(cropped_img,bin_base,
-                    sprite_palette,palette_precision_mask=0xF0)
-            else:
-                # blitter object
+            # blitter object
 ##                if x_size % 16:
 ##                    raise Exception("{} (frame #{}) with should be a multiple of 16, found {}".format(name,i,x_size))
 
-                p = bitplanelib.palette_extract(cropped_img,palette_precision_mask=0xF0)
-                # add 16 pixelsblit_pad
-                img_x = x_size+16 if blit_pad else x_size
-                img = Image.new("RGB",(img_x,cropped_img.size[1]),(0,0,0))
-                img.paste(cropped_img)
+            p = bitplanelib.palette_extract(cropped_img,palette_precision_mask=0xF0)
+            # add 16 pixelsblit_pad
+            img_x = x_size+16 if blit_pad else x_size
+            img = Image.new("RGB",(img_x,cropped_img.size[1]),(0,0,0))
+            img.paste(cropped_img)
+            mask_img = Image.new("RGB",(img_x,cropped_img.size[1]),(0,0,0))
+            mask_img.paste(cropped_mask_img)
 
-                used_palette = sprite_palette or game_palette_8
+            used_palette = game_palette_8
 
-                namei = "{}_{}".format(name,i) if nb_frames!=1 else name
+            namei = "{}_{}".format(name,i) if nb_frames!=1 else name
 
-                print("processing bob {}, mask {}...".format(name,generate_mask))
-                bn = name_dict.get(namei,namei)
-                if create_mirror_objects:
+            print("processing bob {}, mask {}...".format(name,generate_mask))
+            bn = name_dict.get(namei,namei)
 
-                    contents = bitplanelib.palette_image2raw(img,"{}/{}_right.bin".format(sprites_dir,bn),used_palette,
-                    palette_precision_mask=0xF0,generate_mask=generate_mask,mask_color_index=master_mask_color)
-                    if generate_mask and dump_tiles:
-                        sz = len(contents)//3
-                        bitplanelib.bitplanes_raw2planarimage(contents[2*sz:],1,img.size[0],img.size[1],"tiles/{}_mask.png".format(bn))
+            def create_bob(bob_data,bob_mask_data,outfile):
+                # data, no mask
+                contents = bitplanelib.palette_image2raw(bob_data,None,used_palette,
+                palette_precision_mask=0xF0,generate_mask=False)
+                # append (almost) manually created mask
+                contents += bitplanelib.palette_image2raw(bob_mask_data,None,((0,0,0),(255,255,255)),
+                palette_precision_mask=0xFF,generate_mask=False)
 
-                    img_mirror = Image.new("RGB",img.size)
-                    for x in range(img.size[0]):
-                        sx = img.size[0]-x-1
-                        for y in range(img.size[1]):
-                            img_mirror.putpixel((sx,y),img.getpixel((x,y)))
+                with open(outfile,"wb") as f:
+                    f.write(contents)
+                return contents
 
-                    bitplanelib.palette_image2raw(img_mirror,"{}/{}_left.bin".format(sprites_dir,bn),used_palette,
-                    palette_precision_mask=0xF0,generate_mask=generate_mask,mask_color_index=master_mask_color)
-                else:
-                    bitplanelib.palette_image2raw(img,"{}/{}.bin".format(sprites_dir,bn),used_palette,
-                    palette_precision_mask=0xF0,generate_mask=generate_mask,mask_color_index=master_mask_color)
+            create_bob(img,mask_img,"{}/{}_right.bin".format(sprites_dir,bn))
 
-                frame_list.append(bn)
+            img_mirror = Image.new("RGB",img.size)
+            mask_img_mirror = Image.new("RGB",img.size)
+            for x in range(img.size[0]):
+                sx = img.size[0]-x-1
+                for y in range(img.size[1]):
+                    img_mirror.putpixel((sx,y),img.getpixel((x,y)))
+                    mask_img_mirror.putpixel((sx,y),mask_img.getpixel((x,y)))
+
+            create_bob(img_mirror,mask_img_mirror,"{}/{}_left.bin".format(sprites_dir,bn))
+
+            frame_list.append(bn)
         rval[name] = frame_list
     radix = os.path.splitext(os.path.basename(json_file))[0]
     with open("{}/{}_frames.s".format(source_dir,radix),"w") as f:
@@ -313,7 +322,7 @@ bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
 
 #process_backgrounds(palette)
 
-process_tiles("player.json")
+process_player_tiles("player.json")
 
 #process_fonts(dump_fonts)
 
