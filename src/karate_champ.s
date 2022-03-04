@@ -48,8 +48,10 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	ypos
 	UWORD	previous_xpos
 	UWORD	previous_ypos
-    UWORD   h_speed
-    UWORD   v_speed
+    UBYTE   right_pressed
+    UBYTE   left_pressed
+    UBYTE   up_pressed
+    UBYTE   down_pressed
 	UWORD	direction   ; sprite orientation
 	UWORD	previous_direction   ; previous sprite orientation
     UWORD   frame
@@ -288,7 +290,7 @@ Start:
 .startup
 
     lea  _custom,a5
-    move.b  #0,controller_joypad_1
+    bsr		_detect_controller_types
     
 
 ; no multitask
@@ -487,7 +489,6 @@ intro:
 .new_life
     moveq.l #1,d0
 .from_level_start
-    bsr init_enemies
     bsr init_players
     
     bsr wait_bof
@@ -877,14 +878,11 @@ hide_sprites:
     dbf d1,.emptyspr
     rts
 
-init_enemies
-    move.b  d0,d4
-	
-
-    rts
 
     
 init_players:
+    ; no moves (zeroes direction flags)
+    clr.l  right_pressed(a4)  
 
 	move.w	#30,time_left
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
@@ -1917,6 +1915,7 @@ update_all
 	blitz
 .no_sec
 
+    lea     player(pc),a4
 
     bsr update_player
     
@@ -1962,9 +1961,6 @@ play_loop_fx
  
     
 update_player
-    lea     player(pc),a4
-    ; no moves (zeroes horiz & vert)
-    clr.l  h_speed(a4)  
 
     move.w  player_killed_timer(pc),d6
     bmi.b   .alive
@@ -2051,29 +2047,38 @@ update_player
     tst.l   d0
     beq.b   .out        ; nothing is currently pressed: optimize
     btst    #JPB_BTN_RED,d0
-    beq.b   .no_jump
+    beq.b   .no_red
  
-.no_jump
+.no_red
     btst    #JPB_BTN_RIGHT,d0
-    beq.b   .no_right
-    move.w  #1,h_speed(a4)
+    sne.b   right_pressed(a4)
     bra.b   .vertical
 .no_right
     btst    #JPB_BTN_LEFT,d0
-    beq.b   .vertical
-    move.w  #-1,h_speed(a4)  
+    sne.b   left_pressed(a4)
 .vertical
     btst    #JPB_BTN_UP,d0
-    beq.b   .no_up
-    move.w  #-1,v_speed(a4)
+    sne.b   up_pressed(a4)
     bra.b   .out
 .no_up
     btst    #JPB_BTN_DOWN,d0
-    beq.b   .no_down
-    move.w  #1,v_speed(a4)
+    sne.b   down_pressed(a4)
 .no_down    
 .out
 
+	; left/right (TODO: no other button is pressed)
+	tst.b	right_pressed(a4)
+	beq.b	.no_right
+	
+	move.w	xpos(a4),d0
+	cmp.w	#X_MAX,d0
+	bcc.b	.no_right
+	; move right
+	add.w	#4,d0
+	move.w	frame(a4),d1
+	addq.w	#4,d1
+	
+	
     rts
    
 ; < A4: player struct   

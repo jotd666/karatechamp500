@@ -57,8 +57,8 @@ def compute_palette():
 
     return palette
 
-def extract_block(img,x,y):
-    return tuple(img.getpixel((x+i,y+j)) for j in range(tile_height) for i in range(tile_width))
+def extract_block(img,x,y,width,height):
+    return tuple(img.getpixel((x+i,y+j)) for j in range(height) for i in range(width))
 
 
 def process_backgrounds(palette):
@@ -87,6 +87,8 @@ def process_player_tiles(json_file):
     rval = dict()
     with open(json_file) as f:
         tiles = json.load(f)
+
+    move_dict = dict()
 
     default_width = tiles["width"]
     default_height = tiles["height"]
@@ -166,6 +168,10 @@ def process_player_tiles(json_file):
                 cropped_name = os.path.join(outdir,"{}_{}.png".format(name,i))
             cropped_img.save(cropped_name)
 
+            blk = extract_block(cropped_img,0,0,width,height)
+            if blk in move_dict:
+                print("already {} : {}".format(name,move_dict[blk]))
+
             # save
             x_size = cropped_img.size[0]
 
@@ -214,7 +220,10 @@ def process_player_tiles(json_file):
     radix = os.path.splitext(os.path.basename(json_file))[0]
     with open("{}/{}_frames.s".format(source_dir,radix),"w") as f:
         for name,frame_list in sorted(rval.items()):
+            f.write("{}_frames:\n".format(name))
             if create_mirror_objects:
+                f.write("\tdc.l\t{0}_left_frames,{0}_right_frames\n".format(name))
+
                 f.write("{}_left_frames:\n".format(name))
                 for frame in frame_list:
                     f.write("\tdc.l\t{}_left\n".format(frame))
@@ -224,7 +233,6 @@ def process_player_tiles(json_file):
                     f.write("\tdc.l\t{}_right\n".format(frame))
                 f.write("\tdc.l\t{}\n".format(0))
             else:
-                f.write("{}_frames:\n".format(name))
                 for frame in frame_list:
                     f.write("\tdc.l\t{}\n".format(frame))
                 f.write("\tdc.l\t{}\n".format(0))

@@ -23,7 +23,21 @@
    "start_x":18,
    "start_y":242,
    "gap":36,
-   "frames":5
+   "frames":9
+ },
+ {
+   "name":"front_kick",
+   "start_x":18,
+   "start_y":338,
+   "gap":36,
+   "frames":9
+ },
+{
+   "name":"low_kick",
+   "start_x":18,
+   "start_y":426,
+   "gap":36,
+   "frames":10
  }
  ]
 }
