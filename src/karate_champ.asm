@@ -11,10 +11,28 @@
 ; 0: slow => 12: super fast. $10 seems a threshold
 ; aggressivity is also increased (probably)
 ;
+; C556-59: 4 bytes looks like counters. When move is completed all 4 values are 8
+
+; C220: player 2 related structure, looks like a copy of C260 / previous values / whatever
+;
+; C240: player 1 structure
+; +2: 0 when not animated, else number of ticks to stay in the current animation frame
+; +7,8: animation related. Bit 7 of C248: facing direction
+; C249 (+$9): player 1 x coord. Ranges $20 (32 top left) to $DF (223 right), starts at 0x30 
+; C24A (+$A): player 1 y coord. $E0 when fighting. Practice:  
+; C24B (+$B): player 1 current move: codes below
+; C24C (+$C): 0,1,2 rough distance
+;
+; C260: player 2 structure
+; C269 (+$9): x coord. starts at 0xD0 
+; C26A (+$A): y coord. $E0 when fighting. Practice: $90
 ; C26B: player 2 current move (see codes below). Also set during "practice"
 ; C26C: player 2 rough distance to player 1 0: far, 1 intermediate, 2 very close
-; C556-59: 4 bytes looks like counters. When move is completed all 4 values are 8
-; C24B: player 1 current move: codes:
+;
+; the codes don't match exact moves, but rather the attack type
+; there is often only one attack type (back kick) but sometimes there are
+; several: example with front kick and weak reverse punch, that only differ
+; by attack distance
 ;
 ; 0x00: not moving, guard
 ; 0x01: moving back
@@ -41,13 +59,15 @@
 ; 0x18: foot sweep (front)
 
 ; TODO:
-; * check values in trainer during practice to see where CPU player is
-; fed with data, find the table
-; same thing when playing (check write to C26B)
+
 ; * find a random routine if there's one
-; * 471C: check in 1P and 2P mode where does it bail out in 2P mode
-; * who calls A725?
-; * figure out how cpu_attacks_player_AB2E works
+; * who calls A725?: jumped with jp (hl) but which one?
+; * figure out how cpu_attacks_player_AB2E works how sequences work (master_cpu_move_table_AB58, random??)
+; * figure out where the joystick is read
+; * figure out the move timing tables and x offsets: each move frame has a different timing
+;   and each move frame has a x-offset associated to it
+; * check & understand ai jump table computer_ai_jump_table_A5B1
+; * understand what B0EE does (multiplication?)
 
 0000: C3 45 B0    jp   $B045
 0003: C3 59 41    jp   $4153
@@ -116,7 +136,7 @@
 004C: 36 B0       ld   (hl),$B0
 004E: 3F          ccf
 004F: B0          or   b
-0050: CD D5 B0    call $B075
+0050: CD D5 B0    call display_error_text_B075
 0053: 9A          sbc  a,d
 0054: A6          and  (hl)
 0055: 1E EE       ld   e,$EE
@@ -135,7 +155,9 @@
 0064: C1          pop  bc
 0065: 8C          adc  a,h
 
-0066: C3 42 B0    jp   $B048
+; periodic interrupt
+0066: C3 42 B0    jp   periodic_interrupt_B048
+
 0069: F0          ret  p
 006A: 84          add  a,h
 006B: 75          ld   (hl),l
@@ -11895,17 +11917,17 @@
 3ACA: FE 02       cp   $08
 3ACC: CA F2 9B    jp   z,$3BF8
 3ACF: FE 0A       cp   $0A
-3AD1: C4 D5 B0    call nz,$B075
+3AD1: C4 D5 B0    call nz,display_error_text_B075
 3AD4: FD E5       push iy
 3AD6: 06 06       ld   b,$0C
-3AD8: 3A 82 60    ld   a,(player_vertical_pos_C028)
+3AD8: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 3ADB: FE 0A       cp   $0A
 3ADD: 3E 02       ld   a,$08
 3ADF: CA E4 9A    jp   z,$3AE4
 3AE2: 3E 03       ld   a,$09
 3AE4: CD 57 B0    call $B05D
 3AE7: A7          and  a
-3AE8: C4 D5 B0    call nz,$B075
+3AE8: C4 D5 B0    call nz,display_error_text_B075
 3AEB: AF          xor  a
 3AEC: CD 5A B0    call $B05A
 3AEF: FD E1       pop  iy
@@ -11922,7 +11944,7 @@
 3B0A: FE 11       cp   $11
 3B0C: CA F8 9B    jp   z,$3BF2
 3B0F: FE 07       cp   $0D
-3B11: C4 D5 B0    call nz,$B075
+3B11: C4 D5 B0    call nz,display_error_text_B075
 3B14: CD AD 9E    call $3EA7
 3B17: CD 3A 4D    call $479A
 3B1A: CD C9 4C    call $4663
@@ -11939,12 +11961,12 @@
 3B33: 06 03       ld   b,$09
 3B35: CD 57 B0    call $B05D
 3B38: A7          and  a
-3B39: C4 D5 B0    call nz,$B075
+3B39: C4 D5 B0    call nz,display_error_text_B075
 3B3C: F1          pop  af
 3B3D: E1          pop  hl
 3B3E: FD E1       pop  iy
 3B40: 47          ld   b,a
-3B41: 3A 82 60    ld   a,(player_vertical_pos_C028)
+3B41: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 3B44: FE 0A       cp   $0A
 3B46: 3E 0B       ld   a,$0B
 3B48: CA 47 9B    jp   z,$3B4D
@@ -11954,17 +11976,17 @@
 3B4F: FD E5       push iy
 3B51: CD 57 B0    call $B05D
 3B54: A7          and  a
-3B55: C4 D5 B0    call nz,$B075
+3B55: C4 D5 B0    call nz,display_error_text_B075
 3B58: 3E 02       ld   a,$08
 3B5A: 06 03       ld   b,$09
 3B5C: CD 57 B0    call $B05D
 3B5F: A7          and  a
-3B60: C4 D5 B0    call nz,$B075
+3B60: C4 D5 B0    call nz,display_error_text_B075
 3B63: 3E 03       ld   a,$09
 3B65: 06 03       ld   b,$09
 3B67: CD 57 B0    call $B05D
 3B6A: A7          and  a
-3B6B: C4 D5 B0    call nz,$B075
+3B6B: C4 D5 B0    call nz,display_error_text_B075
 3B6E: FD E1       pop  iy
 3B70: FD 7E 0D    ld   a,(iy+$07)
 3B73: 32 ED 61    ld   ($C1E7),a
@@ -11976,18 +11998,18 @@
 3B82: FD E5       push iy
 3B84: CD 57 B0    call $B05D
 3B87: A7          and  a
-3B88: C4 D5 B0    call nz,$B075
+3B88: C4 D5 B0    call nz,display_error_text_B075
 3B8B: FD E1       pop  iy
 3B8D: E1          pop  hl
 3B8E: DD 21 87 60 ld   ix,player_2_is_cpu_flags_C02D
-3B92: 3A 82 60    ld   a,(player_vertical_pos_C028)
+3B92: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 3B95: FE 0A       cp   $0A
 3B97: C2 A4 9B    jp   nz,$3BA4
 3B9A: DD CB 00 5C bit  2,(ix+$00)
 3B9E: CA 15 96    jp   z,$3C15
 3BA1: C3 B0 9B    jp   $3BB0
 3BA4: FE 0B       cp   $0B
-3BA6: C4 D5 B0    call nz,$B075
+3BA6: C4 D5 B0    call nz,display_error_text_B075
 3BA9: DD CB 00 5E bit  3,(ix+$00)
 3BAD: CA 15 96    jp   z,$3C15
 3BB0: 44          ld   b,h
@@ -11996,7 +12018,7 @@
 3BB4: FD E5       push iy
 3BB6: CD 57 B0    call $B05D
 3BB9: A7          and  a
-3BBA: C4 D5 B0    call nz,$B075
+3BBA: C4 D5 B0    call nz,display_error_text_B075
 3BBD: FD E1       pop  iy
 3BBF: C1          pop  bc
 3BC0: 78          ld   a,b
@@ -12016,7 +12038,7 @@
 3BE2: FE 11       cp   $11
 3BE4: CA F8 9B    jp   z,$3BF2
 3BE7: FE 10       cp   $10
-3BE9: C4 D5 B0    call nz,$B075
+3BE9: C4 D5 B0    call nz,display_error_text_B075
 3BEC: CD 05 44    call $4405
 3BEF: C3 15 96    jp   $3C15
 3BF2: CD 2D 44    call $4487
@@ -12027,12 +12049,12 @@
 3BFF: 06 03       ld   b,$09
 3C01: CD 57 B0    call $B05D
 3C04: A7          and  a
-3C05: C4 D5 B0    call nz,$B075
+3C05: C4 D5 B0    call nz,display_error_text_B075
 3C08: 3E 02       ld   a,$08
 3C0A: 06 03       ld   b,$09
 3C0C: CD 57 B0    call $B05D
 3C0F: A7          and  a
-3C10: C4 D5 B0    call nz,$B075
+3C10: C4 D5 B0    call nz,display_error_text_B075
 3C13: FD E1       pop  iy
 3C15: AF          xor  a
 3C16: FD E5       push iy
@@ -12045,7 +12067,7 @@
 3C26: FE 19       cp   $13
 3C28: CA 9B 96    jp   z,$3C3B
 3C2B: FE 18       cp   $12
-3C2D: C4 D5 B0    call nz,$B075
+3C2D: C4 D5 B0    call nz,display_error_text_B075
 3C30: 3E 01       ld   a,$01
 3C32: CD D8 B0    call $B072
 3C35: CD B3 44    call $44B9
@@ -12058,7 +12080,7 @@
 3C47: FE 01       cp   $01
 3C49: C2 AD 96    jp   nz,$3CA7
 3C4C: DD 21 A2 96 ld   ix,$3CA8
-3C50: 3A 82 60    ld   a,(player_vertical_pos_C028)
+3C50: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 3C53: FE 0A       cp   $0A
 3C55: CA 57 96    jp   z,$3C5D
 3C58: 11 04 00    ld   de,$0004
@@ -12081,7 +12103,7 @@
 3C7F: CD 59 41    call $4153
 3C82: CD F7 4C    call player_management_routine_46FD
 3C85: A7          and  a
-3C86: C4 D5 B0    call nz,$B075
+3C86: C4 D5 B0    call nz,display_error_text_B075
 3C89: FD 6E 0D    ld   l,(iy+$07)
 3C8C: FD 66 02    ld   h,(iy+$08)
 3C8F: CB BC       res  7,h
@@ -12093,7 +12115,7 @@
 3C9C: 3E 02       ld   a,$08
 3C9E: CD 5A B0    call $B05A
 3CA1: A7          and  a
-3CA2: C4 D5 B0    call nz,$B075
+3CA2: C4 D5 B0    call nz,display_error_text_B075
 3CA5: FD E1       pop  iy
 3CA7: C9          ret
 3CA8: D8          ret  c
@@ -12110,7 +12132,7 @@
 3CB7: DA 7D 96    jp   c,$3CD7
 3CBA: D6 50       sub  $50
 3CBC: 21 1D 97    ld   hl,$3D17
-3CBF: 3A 82 60    ld   a,(player_vertical_pos_C028)
+3CBF: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 3CC2: FE 0A       cp   $0A
 3CC4: CA 6A 96    jp   z,$3CCA
 3CC7: 21 8D 97    ld   hl,$3D27
@@ -12121,12 +12143,13 @@
 3CD4: C3 F7 96    jp   $3CFD
 3CD7: 21 9D 97    ld   hl,$3D37
 3CDA: FE 90       cp   $30
-3CDC: D4 D5 B0    call nc,$B075
+3CDC: D4 D5 B0    call nc,display_error_text_B075
 3CDF: FE 80       cp   $20
 3CE1: DA EC 96    jp   c,$3CE6
 3CE4: D6 80       sub  $20
+; init player X with $30 coord (+$10)
 3CE6: CD 00 97    call $3D00
-3CE9: 3A 82 60    ld   a,(player_vertical_pos_C028)
+3CE9: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 3CEC: FE 0A       cp   $0A
 3CEE: CA F7 96    jp   z,$3CFD
 3CF1: FD CB 02 FE set  7,(iy+$08)
@@ -12136,6 +12159,7 @@
 3CFD: C9          ret
 3CFE: 00          nop
 3CFF: 00          nop
+
 3D00: 87          add  a,a
 3D01: 87          add  a,a
 3D02: 4F          ld   c,a
@@ -12150,6 +12174,7 @@
 3D11: 01 04 00    ld   bc,$0004
 3D14: ED B0       ldir
 3D16: C9          ret
+
 3D17: 23          inc  hl
 3D18: 0A          ld   a,(bc)
 3D19: 40          ld   b,b
@@ -12277,13 +12302,13 @@
 3DB5: 22 22 CD    ld   ($6788),hl
 3DB8: 4B          ld   c,e
 3DB9: B0          or   b
-3DBA: 3A 82 60    ld   a,(player_vertical_pos_C028)
+3DBA: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 3DBD: FE 02       cp   $08
 3DBF: C2 62 97    jp   nz,$3DC8
 3DC2: CD BD B0    call $B0B7
 3DC5: C3 70 97    jp   $3DD0
 3DC8: FE 03       cp   $09
-3DCA: C4 D5 B0    call nz,$B075
+3DCA: C4 D5 B0    call nz,display_error_text_B075
 3DCD: CD BA B0    call $B0BA
 3DD0: 06 13       ld   b,$19
 3DD2: 21 F2 97    ld   hl,$3DF8
@@ -12373,7 +12398,7 @@
 3E5A: 3A 11 63    ld   a,($C911)
 3E5D: E6 DF       and  $7F
 3E5F: FE 80       cp   $20
-3E61: D4 D5 B0    call nc,$B075
+3E61: D4 D5 B0    call nc,display_error_text_B075
 3E64: 87          add  a,a
 3E65: 87          add  a,a
 3E66: 4F          ld   c,a
@@ -12456,7 +12481,7 @@
 3F07: 05          dec  b
 3F08: C2 94 9F    jp   nz,$3F34
 3F0B: DD 21 40 68 ld   ix,$C240
-3F0F: 3A 82 60    ld   a,(player_vertical_pos_C028)
+3F0F: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 3F12: FE 0A       cp   $0A
 3F14: C2 1B 9F    jp   nz,$3F1B
 3F17: DD 21 C0 68 ld   ix,$C260
@@ -12497,6 +12522,7 @@
 3F5E: FD 74 02    ld   (iy+$08),h
 3F61: FD 7E 03    ld   a,(iy+$09)
 3F64: DD 86 08    add  a,(ix+$02)
+; write current x position
 3F67: FD 77 03    ld   (iy+$09),a
 3F6A: FD 7E 0A    ld   a,(iy+$0a)
 3F6D: DD 86 09    add  a,(ix+$03)
@@ -12542,7 +12568,7 @@
 3FD2: DD 66 01    ld   h,(ix+$01)
 3FD5: 7D          ld   a,l
 3FD6: B4          or   h
-3FD7: CC D5 B0    call z,$B075
+3FD7: CC D5 B0    call z,display_error_text_B075
 3FDA: FD 75 0D    ld   (iy+$07),l
 3FDD: FD 74 02    ld   (iy+$08),h
 3FE0: DD E1       pop  ix
@@ -12558,7 +12584,7 @@
 3FF0: DD E1       pop  ix
 3FF2: CD 06 B0    call $B00C
 3FF5: A7          and  a
-3FF6: C4 D5 B0    call nz,$B075
+3FF6: C4 D5 B0    call nz,display_error_text_B075
 3FF9: DD E1       pop  ix
 3FFB: DD CB 01 DE bit  7,(ix+$01)
 3FFF: CA 0A 40    jp   z,$400A
@@ -12708,13 +12734,13 @@
 40C6: E6 F0       and  $F0
 40C8: FE 10       cp   $10
 40CA: CA 4C 41    jp   z,$4146
-40CD: 3A 82 60    ld   a,(player_vertical_pos_C028)
+40CD: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 40D0: FE 0B       cp   $0B
 40D2: CA 4C 41    jp   z,$4146
 40D5: DD 21 46 6D ld   ix,$C74C
 40D9: C3 4C 41    jp   $4146
 40DC: DD 21 46 6D ld   ix,$C74C
-40E0: 3A 82 60    ld   a,(player_vertical_pos_C028)
+40E0: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 40E3: FE 0B       cp   $0B
 40E5: CA 4C 41    jp   z,$4146
 40E8: DD 21 16 6D ld   ix,$C71C
@@ -12756,7 +12782,7 @@
 4141: CD 43 48    call $4249
 4144: DD E1       pop  ix
 4146: 0E 01       ld   c,$01
-4148: 3A 82 60    ld   a,(player_vertical_pos_C028)
+4148: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 414B: FE 0A       cp   $0A
 414D: CA 58 41    jp   z,$4152
 4150: 0E 08       ld   c,$02
@@ -12769,7 +12795,7 @@
 415D: 16 07       ld   d,$0D
 415F: CD 09 B0    call $B003
 4162: A7          and  a
-4163: C4 D5 B0    call nz,$B075
+4163: C4 D5 B0    call nz,display_error_text_B075
 4166: 29          add  hl,hl
 4167: 29          add  hl,hl
 4168: 11 27 02    ld   de,$088D
@@ -12905,7 +12931,7 @@
 4286: CB BA       res  7,d
 4288: CD 06 B0    call $B00C
 428B: A7          and  a
-428C: C4 D5 B0    call nz,$B075
+428C: C4 D5 B0    call nz,display_error_text_B075
 428F: FD 7E 0A    ld   a,(iy+$0a)
 4292: 84          add  a,h
 4293: 5F          ld   e,a
@@ -12922,7 +12948,7 @@
 42A8: E5          push hl
 42A9: FD 22 02 6F ld   ($CF08),iy
 42AD: FD 21 C0 68 ld   iy,$C260
-42B1: 3A 82 60    ld   a,(player_vertical_pos_C028)
+42B1: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 42B4: FE 0A       cp   $0A
 42B6: CA B7 48    jp   z,$42BD
 42B9: FD 21 40 68 ld   iy,$C240
@@ -12934,7 +12960,7 @@
 42CA: 16 07       ld   d,$0D
 42CC: CD 09 B0    call $B003
 42CF: A7          and  a
-42D0: C4 D5 B0    call nz,$B075
+42D0: C4 D5 B0    call nz,display_error_text_B075
 42D3: 29          add  hl,hl
 42D4: 29          add  hl,hl
 42D5: 11 27 02    ld   de,$088D
@@ -13094,7 +13120,7 @@
 4404: FF          rst  $38
 4405: FD E5       push iy
 4407: FD 21 40 68 ld   iy,$C240
-440B: 3A 82 60    ld   a,(player_vertical_pos_C028)
+440B: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 440E: FE 0B       cp   $0B
 4410: CA 1D 44    jp   z,$4417
 4413: FD 21 C0 68 ld   iy,$C260
@@ -13109,7 +13135,7 @@
 442B: FE 07       cp   $0D
 442D: CA 88 44    jp   z,$4422
 4430: A7          and  a
-4431: C4 D5 B0    call nz,$B075
+4431: C4 D5 B0    call nz,display_error_text_B075
 4434: 78          ld   a,b
 4435: FE 06       cp   $0C
 4437: DA 40 44    jp   c,$4440
@@ -13125,7 +13151,7 @@
 4454: FE 02       cp   $08
 4456: CA 57 44    jp   z,$445D
 4459: A7          and  a
-445A: C4 D5 B0    call nz,$B075
+445A: C4 D5 B0    call nz,display_error_text_B075
 445D: CD AD 9E    call $3EA7
 4460: CD C9 4C    call $4663
 4463: CD 37 40    call $409D
@@ -13135,7 +13161,7 @@
 446F: FE 07       cp   $0D
 4471: CA C6 44    jp   z,$446C
 4474: A7          and  a
-4475: C4 D5 B0    call nz,$B075
+4475: C4 D5 B0    call nz,display_error_text_B075
 4478: CD 27 4D    call $478D
 447B: DD 21 1A 4C ld   ix,$461A
 447F: CD 03 B0    call $B009
@@ -13144,7 +13170,7 @@
 4486: C9          ret
 4487: CD F7 4C    call player_management_routine_46FD
 448A: A7          and  a
-448B: C4 D5 B0    call nz,$B075
+448B: C4 D5 B0    call nz,display_error_text_B075
 ; reached when player is hit, same c42B (technique index)
 ; value written with 2 now...
 448E: FD 36 0B 08 ld   (iy+$0b),$02
@@ -13156,7 +13182,7 @@
 449F: CD 59 41    call $4153
 44A2: CD F7 4C    call player_management_routine_46FD
 44A5: A7          and  a
-44A6: C4 D5 B0    call nz,$B075
+44A6: C4 D5 B0    call nz,display_error_text_B075
 44A9: C1          pop  bc
 44AA: FD 6E 0D    ld   l,(iy+$07)
 44AD: FD 66 02    ld   h,(iy+$08)
@@ -13189,7 +13215,7 @@
 44E2: 90          sub  b
 44E3: 6F          ld   l,a
 44E4: 06 1C       ld   b,$16
-44E6: 3A 82 60    ld   a,(player_vertical_pos_C028)
+44E6: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 44E9: FE 0A       cp   $0A
 44EB: CA F0 44    jp   z,$44F0
 44EE: 06 12       ld   b,$18
@@ -13202,7 +13228,7 @@
 44FC: E5          push hl
 44FD: DD E5       push ix
 44FF: 06 1D       ld   b,$17
-4501: 3A 82 60    ld   a,(player_vertical_pos_C028)
+4501: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 4504: FE 0A       cp   $0A
 4506: CA 0B 45    jp   z,$450B
 4509: 06 13       ld   b,$19
@@ -13227,7 +13253,7 @@
 4532: CD 59 41    call $4153
 4535: C9          ret
 4536: DD 21 40 68 ld   ix,$C240
-453A: 3A 82 60    ld   a,(player_vertical_pos_C028)
+453A: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 453D: FE 0A       cp   $0A
 453F: C2 4C 45    jp   nz,$4546
 4542: DD 21 C0 68 ld   ix,$C260
@@ -13253,7 +13279,7 @@
 457B: 7D          ld   a,l
 457C: A4          and  h
 457D: FE FF       cp   $FF
-457F: CC D5 B0    call z,$B075
+457F: CC D5 B0    call z,display_error_text_B075
 4582: A7          and  a
 4583: ED 52       sbc  hl,de
 4585: CA 31 45    jp   z,$4591
@@ -13322,7 +13348,7 @@
 4608: 16 07       ld   d,$0D
 460A: CD 09 B0    call $B003
 460D: A7          and  a
-460E: C4 D5 B0    call nz,$B075
+460E: C4 D5 B0    call nz,display_error_text_B075
 4611: 29          add  hl,hl
 4612: 29          add  hl,hl
 4613: 11 27 02    ld   de,$088D
@@ -13421,7 +13447,7 @@
 4698: DD BE 0A    cp   (ix+$0a)
 469B: C2 7C 4C    jp   nz,$46D6
 469E: DD 21 C0 68 ld   ix,$C260
-46A2: 3A 82 60    ld   a,(player_vertical_pos_C028)
+46A2: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 46A5: FE 0A       cp   $0A
 46A7: CA AE 4C    jp   z,$46AE
 46AA: DD 21 40 68 ld   ix,$C240
@@ -13470,8 +13496,8 @@ player_management_routine_46FD:
 470F: DD 4E 05    ld   c,(ix+$05)
 4712: 3A 87 60    ld   a,(player_2_is_cpu_flags_C02D)
 4715: E6 06       and  $0C
-4717: FE 06       cp   $0C
-4719: CA DB 4D    jp   z,$477B
+4717: FE 06       cp   $0C	; 2 players human?
+4719: CA DB 4D    jp   z,$477B	; 2-player: skip the part below
 
 ; this isn't called in 2p mode
 ; in 2p mode (or dynamically), player_2_is_cpu_flags_C02D is $F
@@ -13492,23 +13518,24 @@ player_management_routine_46FD:
 ; this is not part of the A.I. routine, rather part of the CPU moves
 ; animation speed
 ;
-; TODO: check that if p2 (red) is human and p1 is cpu it goes here or not
 
 471C: 21 87 60    ld   hl,player_2_is_cpu_flags_C02D
-471F: 3A 82 60    ld   a,(player_vertical_pos_C028)	; loads player Y, 0A: ground, 0B: preparing to jump
-4722: CB 56       bit  2,(hl)	; test bit 2 of cpu flags
+471F: 3A 82 60    ld   a,(player_2_attack_flags_C028)	; loads player Y, 0A: ground, 0B: preparing to jump
+4722: CB 56       bit  2,(hl)	; is player 2 human?
 4724: CA 94 4D    jp   z,$4734
-4727: FE 0A       cp   $0A
-4729: CA DB 4D    jp   z,$477B
-472C: FE 0B       cp   $0B
-472E: C4 D5 B0    call nz,$B075
-4731: C3 49 4D    jp   $4743
-4734: CB 5E       bit  3,(hl)	; test bit 3 of cpu flags
-4736: CA D5 B0    jp   z,$B075
+; player 2 is CPU
+4727: FE 0A       cp   $0A		; attack sequence?
+4729: CA DB 4D    jp   z,$477B	; attacking: skip
+472C: FE 0B       cp   $0B		; not attacking / standing guard?
+472E: C4 D5 B0    call nz,display_error_text_B075	; sanity check, has to be 0B
+4731: C3 49 4D    jp   $4743	; the other player is human, skip below
+
+4734: CB 5E       bit  3,(hl)	; is player 1 human?
+4736: CA D5 B0    jp   z,display_error_text_B075	; sanity: if reach here p1 is human
 4739: FE 0B       cp   $0B
-473B: CA DB 4D    jp   z,$477B
+473B: CA DB 4D    jp   z,$477B	; not attacking: skip
 473E: FE 0A       cp   $0A
-4740: C4 D5 B0    call nz,$B075
+4740: C4 D5 B0    call nz,display_error_text_B075
 ; check skill level (just for moves speed, not for A.I)
 4743: 3A 10 63    ld   a,(computer_skill_C910)
 4746: FE 10       cp   $10
@@ -13562,11 +13589,11 @@ player_management_routine_46FD:
 
 
 479A: 00          nop
-479B: 3A 82 60    ld   a,(player_vertical_pos_C028)
+479B: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 479E: FE 0A       cp   $0A
 47A0: CA A2 4D    jp   z,$47A8
 47A3: FE 0B       cp   $0B
-47A5: C4 D5 B0    call nz,$B075
+47A5: C4 D5 B0    call nz,display_error_text_B075
 47A8: CD 27 4D    call $478D
 47AB: 11 00 08    ld   de,$0200
 47AE: A7          and  a
@@ -13603,7 +13630,7 @@ player_management_routine_46FD:
 47EE: CD 5A B0    call $B05A
 47F1: FD E1       pop  iy
 47F3: A7          and  a
-47F4: C4 D5 B0    call nz,$B075
+47F4: C4 D5 B0    call nz,display_error_text_B075
 47F7: CD 15 4B    call $4B15
 47FA: CD 56 4B    call $4B5C
 47FD: FE FF       cp   $FF
@@ -13614,7 +13641,7 @@ player_management_routine_46FD:
 480B: F5          push af
 480C: CD 5E 47    call $4D5E
 480F: A7          and  a
-4810: C4 D5 B0    call nz,$B075
+4810: C4 D5 B0    call nz,display_error_text_B075
 4813: F1          pop  af
 4814: A7          and  a
 4815: CA FD 4D    jp   z,$47F7
@@ -13629,18 +13656,18 @@ player_management_routine_46FD:
 482B: 06 09       ld   b,$03
 482D: CD 57 B0    call $B05D
 4830: A7          and  a
-4831: C4 D5 B0    call nz,$B075
+4831: C4 D5 B0    call nz,display_error_text_B075
 4834: 3E 08       ld   a,$02
 4836: 06 09       ld   b,$03
 4838: CD 57 B0    call $B05D
 483B: A7          and  a
-483C: C4 D5 B0    call nz,$B075
+483C: C4 D5 B0    call nz,display_error_text_B075
 483F: FD E1       pop  iy
 4841: FD E5       push iy
 4843: 3E 96       ld   a,$3C
 4845: CD 5A B0    call $B05A
 4848: A7          and  a
-4849: C4 D5 B0    call nz,$B075
+4849: C4 D5 B0    call nz,display_error_text_B075
 484C: FD E1       pop  iy
 484E: C3 A2 42    jp   $48A8
 4851: CD 16 47    call $4D1C
@@ -13650,7 +13677,7 @@ player_management_routine_46FD:
 485C: CD D2 43    call $4978
 485F: CD 5E 47    call $4D5E
 4862: A7          and  a
-4863: C4 D5 B0    call nz,$B075
+4863: C4 D5 B0    call nz,display_error_text_B075
 4866: FD 6E 0D    ld   l,(iy+$07)
 4869: FD 66 02    ld   h,(iy+$08)
 486C: CB BC       res  7,h
@@ -13664,7 +13691,7 @@ player_management_routine_46FD:
 487F: CA 22 42    jp   z,$4888
 4882: CD 15 4B    call $4B15
 4885: C3 53 42    jp   $4859
-4888: 3A 82 60    ld   a,(player_vertical_pos_C028)
+4888: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 488B: FE 10       cp   $10
 488D: DA A2 42    jp   c,$48A8
 4890: 3E 04       ld   a,$04
@@ -13673,7 +13700,7 @@ player_management_routine_46FD:
 4896: CD 57 B0    call $B05D
 4899: FD E1       pop  iy
 489B: A7          and  a
-489C: C2 D5 B0    jp   nz,$B075
+489C: C2 D5 B0    jp   nz,display_error_text_B075
 489F: 3E 08       ld   a,$02
 48A1: FD E5       push iy
 48A3: CD 12 B0    call $B018
@@ -13685,7 +13712,7 @@ player_management_routine_46FD:
 48B4: CD 51 B0    call $B051
 48B7: 3A 12 63    ld   a,($C918)
 48BA: FE 0C       cp   $06
-48BC: D4 D5 B0    call nc,$B075
+48BC: D4 D5 B0    call nc,display_error_text_B075
 48BF: FE 09       cp   $03
 48C1: DA 6C 42    jp   c,$48C6
 48C4: D6 09       sub  $03
@@ -13716,7 +13743,7 @@ player_management_routine_46FD:
 48FD: FD 77 0A    ld   (iy+$0a),a
 4900: 3A 13 63    ld   a,($C919)
 4903: FE 0D       cp   $07
-4905: D4 D5 B0    call nc,$B075
+4905: D4 D5 B0    call nc,display_error_text_B075
 4908: FD 77 06    ld   (iy+$0c),a
 490B: 4F          ld   c,a
 490C: 87          add  a,a
@@ -13732,7 +13759,7 @@ player_management_routine_46FD:
 4923: FD 77 02    ld   (iy+$08),a
 4926: DD 7E 08    ld   a,(ix+$02)
 4929: FD 77 07    ld   (iy+$0d),a
-492C: 3A 82 60    ld   a,(player_vertical_pos_C028)
+492C: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 492F: D6 10       sub  $10
 4931: 87          add  a,a
 4932: 4F          ld   c,a
@@ -13850,7 +13877,7 @@ player_management_routine_46FD:
 4A00: 01 04 00    ld   bc,$0004
 4A03: DD 09       add  ix,bc
 4A05: C3 37 43    jp   $499D
-4A08: 3A 82 60    ld   a,(player_vertical_pos_C028)
+4A08: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 4A0B: FE 14       cp   $14
 4A0D: C2 71 4A    jp   nz,$4AD1
 4A10: FD CB 02 DE bit  7,(iy+$08)
@@ -14035,7 +14062,7 @@ player_management_routine_46FD:
 4B9B: 3E 08       ld   a,$02
 4B9D: C3 FB 4B    jp   $4BFB
 4BA0: CD 65 46    call $4CC5
-4BA3: 3A 82 60    ld   a,(player_vertical_pos_C028)
+4BA3: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 4BA6: FE 14       cp   $14
 4BA8: C2 E6 4B    jp   nz,$4BEC
 4BAB: FD 7E 03    ld   a,(iy+$09)
@@ -14156,7 +14183,7 @@ player_management_routine_46FD:
 4C99: 87          add  a,a
 4C9A: DD 77 01    ld   (ix+$01),a
 4C9D: DD 77 09    ld   (ix+$03),a
-4CA0: 3A 82 60    ld   a,(player_vertical_pos_C028)
+4CA0: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 4CA3: FE 14       cp   $14
 4CA5: C2 B6 46    jp   nz,$4CBC
 4CA8: DD 7E 00    ld   a,(ix+$00)
@@ -14194,7 +14221,7 @@ player_management_routine_46FD:
 4CF2: 16 07       ld   d,$0D
 4CF4: CD 09 B0    call $B003
 4CF7: A7          and  a
-4CF8: C4 D5 B0    call nz,$B075
+4CF8: C4 D5 B0    call nz,display_error_text_B075
 4CFB: 29          add  hl,hl
 4CFC: 29          add  hl,hl
 4CFD: 11 27 02    ld   de,$088D
@@ -14274,7 +14301,7 @@ player_management_routine_46FD:
 4D96: 3C          inc  a
 4D97: CD 5D B0    call $B057
 4D9A: A7          and  a
-4D9B: C4 D5 B0    call nz,$B075
+4D9B: C4 D5 B0    call nz,display_error_text_B075
 4D9E: 3E 0A       ld   a,$0A
 4DA0: 21 87 60    ld   hl,player_2_is_cpu_flags_C02D
 4DA3: CB 56       bit  2,(hl)
@@ -14282,15 +14309,15 @@ player_management_routine_46FD:
 4DA8: 3C          inc  a
 4DA9: CD 5D B0    call $B057
 4DAC: A7          and  a
-4DAD: C4 D5 B0    call nz,$B075
+4DAD: C4 D5 B0    call nz,display_error_text_B075
 4DB0: 3E 04       ld   a,$04
 4DB2: CD 5D B0    call $B057
 4DB5: A7          and  a
-4DB6: C4 D5 B0    call nz,$B075
+4DB6: C4 D5 B0    call nz,display_error_text_B075
 4DB9: 3E 14       ld   a,$14
 4DBB: CD 5D B0    call $B057
 4DBE: A7          and  a
-4DBF: C4 D5 B0    call nz,$B075
+4DBF: C4 D5 B0    call nz,display_error_text_B075
 4DC2: FD E1       pop  iy
 4DC4: FD E5       push iy
 4DC6: 3E 00       ld   a,$00
@@ -14298,24 +14325,24 @@ player_management_routine_46FD:
 4DCB: FE 10       cp   $10
 4DCD: CA E0 47    jp   z,$4DE0
 4DD0: FE 01       cp   $01
-4DD2: C4 D5 B0    call nz,$B075
+4DD2: C4 D5 B0    call nz,display_error_text_B075
 4DD5: 3E 0F       ld   a,$0F
 4DD7: 06 80       ld   b,$20
 4DD9: CD 57 B0    call $B05D
 4DDC: A7          and  a
-4DDD: C4 D5 B0    call nz,$B075
+4DDD: C4 D5 B0    call nz,display_error_text_B075
 4DE0: FD E1       pop  iy
 4DE2: FD E5       push iy
 4DE4: 3E F0       ld   a,$F0
 4DE6: CD 5A B0    call $B05A
 4DE9: A7          and  a
-4DEA: C4 D5 B0    call nz,$B075
+4DEA: C4 D5 B0    call nz,display_error_text_B075
 4DED: FD E1       pop  iy
 4DEF: 3E 01       ld   a,$01
 4DF1: 06 01       ld   b,$01
 4DF3: CD 57 B0    call $B05D
 4DF6: A7          and  a
-4DF7: C4 D5 B0    call nz,$B075
+4DF7: C4 D5 B0    call nz,display_error_text_B075
 4DFA: CD 51 B0    call $B051
 4DFD: 01 16 0A    ld   bc,$0A1C
 4E00: 11 96 22    ld   de,$883C
@@ -14766,7 +14793,7 @@ player_management_routine_46FD:
 5173: FE 08       cp   $02
 5175: CA AE 51    jp   z,$51AE
 5178: FE 01       cp   $01
-517A: C4 D5 B0    call nz,$B075
+517A: C4 D5 B0    call nz,display_error_text_B075
 517D: FD 7E 18    ld   a,(iy+$12)
 5180: A7          and  a
 5181: C2 4A 51    jp   nz,$514A
@@ -14779,12 +14806,12 @@ player_management_routine_46FD:
 5191: 06 10       ld   b,$10
 5193: CD 57 B0    call $B05D
 5196: A7          and  a
-5197: C4 D5 B0    call nz,$B075
+5197: C4 D5 B0    call nz,display_error_text_B075
 519A: 3E 08       ld   a,$02
 519C: 06 10       ld   b,$10
 519E: CD 57 B0    call $B05D
 51A1: A7          and  a
-51A2: C4 D5 B0    call nz,$B075
+51A2: C4 D5 B0    call nz,display_error_text_B075
 51A5: FD E1       pop  iy
 51A7: FD 36 18 FF ld   (iy+$12),$FF
 51AB: C3 4A 51    jp   $514A
@@ -14827,7 +14854,7 @@ player_management_routine_46FD:
 5207: 3E 40       ld   a,$40
 5209: CD 5A B0    call $B05A
 520C: A7          and  a
-520D: C4 D5 B0    call nz,$B075
+520D: C4 D5 B0    call nz,display_error_text_B075
 5210: FD E1       pop  iy
 5212: FD 35 19    dec  (iy+$13)
 5215: C2 F6 50    jp   nz,$50FC
@@ -14842,7 +14869,7 @@ player_management_routine_46FD:
 522B: 3C          inc  a
 522C: CD 57 B0    call $B05D
 522F: A7          and  a
-5230: C4 D5 B0    call nz,$B075
+5230: C4 D5 B0    call nz,display_error_text_B075
 5233: C3 48 58    jp   $5242
 5236: CD C2 43    call $4968
 5239: DD E5       push ix
@@ -14872,7 +14899,7 @@ player_management_routine_46FD:
 526C: 3E 01       ld   a,$01
 526E: CD 5D B0    call $B057
 5271: A7          and  a
-5272: C4 D5 B0    call nz,$B075
+5272: C4 D5 B0    call nz,display_error_text_B075
 5275: 3E 20       ld   a,$80
 5277: CD AE B0    call $B0AE
 527A: 3A 90 60    ld   a,($C030)
@@ -15099,7 +15126,7 @@ player_management_routine_46FD:
 53F1: 3E 01       ld   a,$01
 53F3: CD 5A B0    call $B05A
 53F6: A7          and  a
-53F7: C4 D5 B0    call nz,$B075
+53F7: C4 D5 B0    call nz,display_error_text_B075
 53FA: 01 96 00    ld   bc,$003C
 53FD: CD 90 B0    call $B030
 5400: 21 02 63    ld   hl,$C908
@@ -15114,19 +15141,19 @@ player_management_routine_46FD:
 5416: 3E 09       ld   a,$03
 5418: CD 5D B0    call $B057
 541B: A7          and  a
-541C: C4 D5 B0    call nz,$B075
+541C: C4 D5 B0    call nz,display_error_text_B075
 541F: 3E 08       ld   a,$02
 5421: CD 5D B0    call $B057
 5424: A7          and  a
-5425: C4 D5 B0    call nz,$B075
+5425: C4 D5 B0    call nz,display_error_text_B075
 5428: 3E 05       ld   a,$05
 542A: CD 5D B0    call $B057
 542D: A7          and  a
-542E: C4 D5 B0    call nz,$B075
+542E: C4 D5 B0    call nz,display_error_text_B075
 5431: 3E 0F       ld   a,$0F
 5433: CD 5D B0    call $B057
 5436: A7          and  a
-5437: C4 D5 B0    call nz,$B075
+5437: C4 D5 B0    call nz,display_error_text_B075
 543A: 3E 00       ld   a,$00
 543C: CD 5A B0    call $B05A
 543F: CD D4 53    call $5974
@@ -15319,11 +15346,11 @@ player_management_routine_46FD:
 5531: 3E 0A       ld   a,$0A
 5533: CD 5D B0    call $B057
 5536: A7          and  a
-5537: C4 D5 B0    call nz,$B075
+5537: C4 D5 B0    call nz,display_error_text_B075
 553A: 3E 0B       ld   a,$0B
 553C: CD 5D B0    call $B057
 553F: A7          and  a
-5540: C4 D5 B0    call nz,$B075
+5540: C4 D5 B0    call nz,display_error_text_B075
 5543: 3E 04       ld   a,$04
 5545: CD 5D B0    call $B057
 5548: 3E 09       ld   a,$03
@@ -15331,15 +15358,15 @@ player_management_routine_46FD:
 554D: 3E 0D       ld   a,$07
 554F: CD 5D B0    call $B057
 5552: A7          and  a
-5553: C4 D5 B0    call nz,$B075
+5553: C4 D5 B0    call nz,display_error_text_B075
 5556: 3E 02       ld   a,$08
 5558: CD 5D B0    call $B057
 555B: A7          and  a
-555C: C4 D5 B0    call nz,$B075
+555C: C4 D5 B0    call nz,display_error_text_B075
 555F: 3E 03       ld   a,$09
 5561: CD 5D B0    call $B057
 5564: A7          and  a
-5565: C4 D5 B0    call nz,$B075
+5565: C4 D5 B0    call nz,display_error_text_B075
 5568: 3E 00       ld   a,$00
 556A: CD 5A B0    call $B05A
 556D: FE 02       cp   $08
@@ -15360,13 +15387,13 @@ player_management_routine_46FD:
 5590: 06 02       ld   b,$08
 5592: CD 57 B0    call $B05D
 5595: A7          and  a
-5596: C4 D5 B0    call nz,$B075
+5596: C4 D5 B0    call nz,display_error_text_B075
 5599: C3 C2 55    jp   $5568
 559C: FE 01       cp   $01
 559E: CA A3 55    jp   z,$55A9
 55A1: FE 08       cp   $02
 55A3: CA 50 5C    jp   z,$5650
-55A6: CD D5 B0    call $B075
+55A6: CD D5 B0    call display_error_text_B075
 55A9: 3E 20       ld   a,$80
 55AB: CD D8 B0    call $B072
 55AE: 3E 0D       ld   a,$07
@@ -15433,7 +15460,7 @@ player_management_routine_46FD:
 5645: 47          ld   b,a
 5646: CD 57 B0    call $B05D
 5649: A7          and  a
-564A: C4 D5 B0    call nz,$B075
+564A: C4 D5 B0    call nz,display_error_text_B075
 564D: CD 51 B0    call $B051
 5650: 3E 20       ld   a,$80
 5652: CD D8 B0    call $B072
@@ -15501,7 +15528,7 @@ player_management_routine_46FD:
 56EC: 06 08       ld   b,$02
 56EE: CD 57 B0    call $B05D
 56F1: A7          and  a
-56F2: C4 D5 B0    call nz,$B075
+56F2: C4 D5 B0    call nz,display_error_text_B075
 56F5: CD 51 B0    call $B051
 56F8: 21 E9 DD    ld   hl,$77E3
 56FB: CD 96 B0    call $B03C
@@ -15512,7 +15539,7 @@ player_management_routine_46FD:
 5708: 3C          inc  a
 5709: CD 5D B0    call $B057
 570C: A7          and  a
-570D: C4 D5 B0    call nz,$B075
+570D: C4 D5 B0    call nz,display_error_text_B075
 5710: 3E 02       ld   a,$08
 5712: 21 87 60    ld   hl,player_2_is_cpu_flags_C02D
 5715: CB 56       bit  2,(hl)
@@ -15520,19 +15547,19 @@ player_management_routine_46FD:
 571A: 3C          inc  a
 571B: CD 5D B0    call $B057
 571E: A7          and  a
-571F: C4 D5 B0    call nz,$B075
+571F: C4 D5 B0    call nz,display_error_text_B075
 5722: 3E 04       ld   a,$04
 5724: CD 5D B0    call $B057
 5727: A7          and  a
-5728: C4 D5 B0    call nz,$B075
+5728: C4 D5 B0    call nz,display_error_text_B075
 572B: 3E D2       ld   a,$78
 572D: CD 5A B0    call $B05A
 5730: A7          and  a
-5731: C4 D5 B0    call nz,$B075
+5731: C4 D5 B0    call nz,display_error_text_B075
 5734: 3E 0C       ld   a,$06
 5736: 32 42 61    ld   ($C148),a
 5739: 32 4D 61    ld   ($C147),a
-573C: 21 8E 60    ld   hl,attack_periodic_counter_C02E
+573C: 21 8E 60    ld   hl,periodic_counter_16bit_C02E
 573F: 56          ld   d,(hl)
 5740: 1E 0C       ld   e,$06
 5742: CD 0C B0    call $B006
@@ -15561,28 +15588,28 @@ player_management_routine_46FD:
 576E: 3E 10       ld   a,$10
 5770: CD 5D B0    call $B057
 5773: A7          and  a
-5774: C4 D5 B0    call nz,$B075
+5774: C4 D5 B0    call nz,display_error_text_B075
 5777: C3 AD 5D    jp   $57A7
 577A: 1F          rra
 577B: DA 2A 5D    jp   c,$578A
 577E: 3E 11       ld   a,$11
 5780: CD 5D B0    call $B057
 5783: A7          and  a
-5784: C4 D5 B0    call nz,$B075
+5784: C4 D5 B0    call nz,display_error_text_B075
 5787: C3 AD 5D    jp   $57A7
 578A: 1F          rra
 578B: DA 3A 5D    jp   c,$579A
 578E: 3E 18       ld   a,$12
 5790: CD 5D B0    call $B057
 5793: A7          and  a
-5794: C4 D5 B0    call nz,$B075
+5794: C4 D5 B0    call nz,display_error_text_B075
 5797: C3 AD 5D    jp   $57A7
 579A: 1F          rra
 579B: DA A7 5D    jp   c,$57AD
 579E: 3E 19       ld   a,$13
 57A0: CD 5D B0    call $B057
 57A3: A7          and  a
-57A4: C4 D5 B0    call nz,$B075
+57A4: C4 D5 B0    call nz,display_error_text_B075
 57A7: 21 4D 61    ld   hl,$C147
 57AA: 35          dec  (hl)
 57AB: 23          inc  hl
@@ -15603,18 +15630,18 @@ player_management_routine_46FD:
 57C8: A7          and  a
 57C9: CA E6 5D    jp   z,$57EC
 57CC: FE 09       cp   $03
-57CE: C4 D5 B0    call nz,$B075
+57CE: C4 D5 B0    call nz,display_error_text_B075
 57D1: 3E 06       ld   a,$0C
 57D3: CD 15 B0    call $B015
 57D6: 3E 96       ld   a,$3C
 57D8: CD 5A B0    call $B05A
 57DB: A7          and  a
-57DC: C4 D5 B0    call nz,$B075
+57DC: C4 D5 B0    call nz,display_error_text_B075
 57DF: 3E 01       ld   a,$01
 57E1: 47          ld   b,a
 57E2: CD 57 B0    call $B05D
 57E5: A7          and  a
-57E6: C4 D5 B0    call nz,$B075
+57E6: C4 D5 B0    call nz,display_error_text_B075
 57E9: CD 51 B0    call $B051
 57EC: 3A 4D 61    ld   a,($C147)
 57EF: A7          and  a
@@ -15632,21 +15659,21 @@ player_management_routine_46FD:
 580B: A7          and  a
 580C: C2 66 5D    jp   nz,$57CC
 580F: C3 F9 5D    jp   $57F3
-5812: C4 D5 B0    call nz,$B075
+5812: C4 D5 B0    call nz,display_error_text_B075
 5815: 3E 0F       ld   a,$0F
 5817: 06 80       ld   b,$20
 5819: CD 57 B0    call $B05D
 581C: A7          and  a
-581D: C4 D5 B0    call nz,$B075
+581D: C4 D5 B0    call nz,display_error_text_B075
 5820: 3E 28       ld   a,$82
 5822: CD 5A B0    call $B05A
 5825: A7          and  a
-5826: C4 D5 B0    call nz,$B075
+5826: C4 D5 B0    call nz,display_error_text_B075
 5829: 3E 01       ld   a,$01
 582B: 47          ld   b,a
 582C: CD 57 B0    call $B05D
 582F: A7          and  a
-5830: C4 D5 B0    call nz,$B075
+5830: C4 D5 B0    call nz,display_error_text_B075
 5833: CD 51 B0    call $B051
 5836: 3A 87 60    ld   a,(player_2_is_cpu_flags_C02D)
 5839: E6 09       and  $03
@@ -15711,18 +15738,18 @@ player_management_routine_46FD:
 58BB: 06 01       ld   b,$01
 58BD: CD 57 B0    call $B05D
 58C0: A7          and  a
-58C1: C4 D5 B0    call nz,$B075
+58C1: C4 D5 B0    call nz,display_error_text_B075
 58C4: CD 51 B0    call $B051
 58C7: 3E 09       ld   a,$03
 58C9: CD D8 B0    call $B072
 58CC: 3E 0A       ld   a,$0A
 58CE: CD 5D B0    call $B057
 58D1: A7          and  a
-58D2: C4 D5 B0    call nz,$B075
+58D2: C4 D5 B0    call nz,display_error_text_B075
 58D5: 3E 0B       ld   a,$0B
 58D7: CD 5D B0    call $B057
 58DA: A7          and  a
-58DB: C4 D5 B0    call nz,$B075
+58DB: C4 D5 B0    call nz,display_error_text_B075
 58DE: 3E 0C       ld   a,$06
 58E0: CD 5D B0    call $B057
 58E3: 06 0D       ld   b,$07
@@ -15730,14 +15757,14 @@ player_management_routine_46FD:
 58E6: 3E 9F       ld   a,$3F
 58E8: CD 5A B0    call $B05A
 58EB: A7          and  a
-58EC: C4 D5 B0    call nz,$B075
+58EC: C4 D5 B0    call nz,display_error_text_B075
 58EF: C1          pop  bc
 58F0: 10 F9       djnz $58E5
 58F2: 3E 01       ld   a,$01
 58F4: 47          ld   b,a
 58F5: CD 57 B0    call $B05D
 58F8: A7          and  a
-58F9: C4 D5 B0    call nz,$B075
+58F9: C4 D5 B0    call nz,display_error_text_B075
 58FC: CD 51 B0    call $B051
 58FF: 3E 04       ld   a,$04
 5901: CD D8 B0    call $B072
@@ -15748,14 +15775,14 @@ player_management_routine_46FD:
 590C: 3E 9F       ld   a,$3F
 590E: CD 5A B0    call $B05A
 5911: A7          and  a
-5912: C4 D5 B0    call nz,$B075
+5912: C4 D5 B0    call nz,display_error_text_B075
 5915: C1          pop  bc
 5916: 10 F9       djnz $590B
 5918: 3E 01       ld   a,$01
 591A: 47          ld   b,a
 591B: CD 57 B0    call $B05D
 591E: A7          and  a
-591F: C4 D5 B0    call nz,$B075
+591F: C4 D5 B0    call nz,display_error_text_B075
 5922: CD 51 B0    call $B051
 5925: 3E 08       ld   a,$02
 5927: CD D8 B0    call $B072
@@ -15766,7 +15793,7 @@ player_management_routine_46FD:
 5932: 3E 9F       ld   a,$3F
 5934: CD 5A B0    call $B05A
 5937: A7          and  a
-5938: C4 D5 B0    call nz,$B075
+5938: C4 D5 B0    call nz,display_error_text_B075
 593B: C1          pop  bc
 593C: 10 F9       djnz $5931
 593E: 21 B3 DD    ld   hl,$77B9
@@ -15784,12 +15811,12 @@ player_management_routine_46FD:
 595E: 3E 50       ld   a,$50
 5960: CD 5A B0    call $B05A
 5963: A7          and  a
-5964: C4 D5 B0    call nz,$B075
+5964: C4 D5 B0    call nz,display_error_text_B075
 5967: 3E 01       ld   a,$01
 5969: 47          ld   b,a
 596A: CD 57 B0    call $B05D
 596D: A7          and  a
-596E: C4 D5 B0    call nz,$B075
+596E: C4 D5 B0    call nz,display_error_text_B075
 5971: CD 51 B0    call $B051
 5974: 47          ld   b,a
 5975: 3A 11 63    ld   a,($C911)
@@ -15827,7 +15854,7 @@ player_management_routine_46FD:
 59BF: DD 34 00    inc  (ix+$00)
 59C2: C3 56 5B    jp   $5B5C
 59C5: CB 5F       bit  3,a
-59C7: CC D5 B0    call z,$B075
+59C7: CC D5 B0    call z,display_error_text_B075
 59CA: DD 21 02 63 ld   ix,$C908
 59CE: 78          ld   a,b
 59CF: FE 08       cp   $02
@@ -15886,7 +15913,7 @@ player_management_routine_46FD:
 5A5B: DD 74 09    ld   (ix+$03),h
 5A5E: C3 DA 5B    jp   $5B7A
 5A61: FE 08       cp   $02
-5A63: C4 D5 B0    call nz,$B075
+5A63: C4 D5 B0    call nz,display_error_text_B075
 5A66: 21 76 60    ld   hl,level_number_C0DC
 5A69: 34          inc  (hl)
 5A6A: DD 21 02 63 ld   ix,$C908
@@ -15937,7 +15964,7 @@ player_management_routine_46FD:
 5AE3: 32 87 60    ld   (player_2_is_cpu_flags_C02D),a
 5AE6: C3 DA 5B    jp   $5B7A
 5AE9: CB 5F       bit  3,a
-5AEB: CC D5 B0    call z,$B075
+5AEB: CC D5 B0    call z,display_error_text_B075
 5AEE: CB 8F       res  1,a
 5AF0: CB 9F       res  3,a
 5AF2: CB D7       set  2,a
@@ -16105,7 +16132,7 @@ player_management_routine_46FD:
 5C87: 3E D2       ld   a,$78
 5C89: CD 5A B0    call $B05A
 5C8C: A7          and  a
-5C8D: C4 D5 B0    call nz,$B075
+5C8D: C4 D5 B0    call nz,display_error_text_B075
 5C90: 3A 10 63    ld   a,(computer_skill_C910)
 5C93: 3D          dec  a
 5C94: 32 43 61    ld   ($C149),a
@@ -16148,7 +16175,7 @@ player_management_routine_46FD:
 5CE7: 3E D2       ld   a,$78
 5CE9: CD 5A B0    call $B05A
 5CEC: A7          and  a
-5CED: C4 D5 B0    call nz,$B075
+5CED: C4 D5 B0    call nz,display_error_text_B075
 5CF0: 3E 01       ld   a,$01
 5CF2: 06 01       ld   b,$01
 5CF4: CD 57 B0    call $B05D
@@ -16432,14 +16459,14 @@ player_management_routine_46FD:
 5E7E: 3E 14       ld   a,$14
 5E80: CD 5A B0    call $B05A
 5E83: A7          and  a
-5E84: C4 D5 B0    call nz,$B075
+5E84: C4 D5 B0    call nz,display_error_text_B075
 5E87: 21 00 5F    ld   hl,$5F00
 5E8A: 16 32       ld   d,$98
 5E8C: CD 93 B0    call display_text_B039
 5E8F: 3E 14       ld   a,$14
 5E91: CD 5A B0    call $B05A
 5E94: A7          and  a
-5E95: C4 D5 B0    call nz,$B075
+5E95: C4 D5 B0    call nz,display_error_text_B075
 5E98: C1          pop  bc
 5E99: 10 77       djnz $5E78
 5E9B: 01 04 14    ld   bc,$1404
@@ -16538,7 +16565,7 @@ player_management_routine_46FD:
 5F66: 3E 09       ld   a,$03
 5F68: CD 5A B0    call $B05A
 5F6B: A7          and  a
-5F6C: C4 D5 B0    call nz,$B075
+5F6C: C4 D5 B0    call nz,display_error_text_B075
 5F6F: CD C3 B0    call $B069
 5F72: E6 06       and  $0C
 5F74: C1          pop  bc
@@ -16554,23 +16581,25 @@ player_management_routine_46FD:
 5F8E: 3E 0A       ld   a,$0A
 5F90: CD 5D B0    call $B057
 5F93: A7          and  a
-5F94: C4 D5 B0    call nz,$B075
+5F94: C4 D5 B0    call nz,display_error_text_B075
 5F97: 3E 0B       ld   a,$0B
 5F99: CD 5D B0    call $B057
 5F9C: A7          and  a
-5F9D: C4 D5 B0    call nz,$B075
+5F9D: C4 D5 B0    call nz,display_error_text_B075
 5FA0: 3E 02       ld   a,$08
 5FA2: CD 5D B0    call $B057
 5FA5: A7          and  a
-5FA6: C4 D5 B0    call nz,$B075
+5FA6: C4 D5 B0    call nz,display_error_text_B075
 5FA9: 3E 03       ld   a,$09
 5FAB: CD 5D B0    call $B057
 5FAE: A7          and  a
-5FAF: C4 D5 B0    call nz,$B075
+5FAF: C4 D5 B0    call nz,display_error_text_B075
 5FB2: CD C3 B0    call $B069
 5FB5: E6 06       and  $0C
 5FB7: 32 4F 61    ld   ($C14F),a
 5FBA: 3E 09       ld   a,$03
+; within this B05A call the computer performs the current technique
+; animation
 5FBC: CD 5A B0    call $B05A
 5FBF: A7          and  a
 5FC0: C2 71 5F    jp   nz,$5FD1
@@ -16585,16 +16614,16 @@ player_management_routine_46FD:
 5FD8: 06 80       ld   b,$20
 5FDA: CD 57 B0    call $B05D
 5FDD: A7          and  a
-5FDE: C4 D5 B0    call nz,$B075
+5FDE: C4 D5 B0    call nz,display_error_text_B075
 5FE1: 3E D2       ld   a,$78
 5FE3: CD 5A B0    call $B05A
 5FE6: A7          and  a
-5FE7: C4 D5 B0    call nz,$B075
+5FE7: C4 D5 B0    call nz,display_error_text_B075
 5FEA: 3E 01       ld   a,$01
 5FEC: 06 01       ld   b,$01
 5FEE: CD 57 B0    call $B05D
 5FF1: A7          and  a
-5FF2: C4 D5 B0    call nz,$B075
+5FF2: C4 D5 B0    call nz,display_error_text_B075
 5FF5: CD 51 B0    call $B051
 5FF8: 3A 4F 61    ld   a,($C14F)
 5FFB: A7          and  a
@@ -16697,7 +16726,7 @@ player_management_routine_46FD:
 6082: FD 77 0A    ld   (iy+$0a),a
 6085: 3E 00       ld   a,$00
 6087: FD 77 0B    ld   (iy+$0b),a
-608A: 21 8E 60    ld   hl,attack_periodic_counter_C02E
+608A: 21 8E 60    ld   hl,periodic_counter_16bit_C02E
 608D: 56          ld   d,(hl)
 608E: 1E 09       ld   e,$03
 6090: CD 0C B0    call $B006
@@ -16708,7 +16737,7 @@ player_management_routine_46FD:
 609E: 3E 00       ld   a,$00
 60A0: CD 5A B0    call $B05A
 60A3: FE 06       cp   $0C
-60A5: C4 D5 B0    call nz,$B075
+60A5: C4 D5 B0    call nz,display_error_text_B075
 60A8: FD 21 39 C9 ld   iy,$6393
 60AC: DD 21 C0 68 ld   ix,$C260
 60B0: DD 6E 0D    ld   l,(ix+$07)
@@ -16745,21 +16774,21 @@ player_management_routine_46FD:
 60F6: FD 7E 03    ld   a,(iy+$09)
 60F9: CD 5A B0    call $B05A
 60FC: A7          and  a
-60FD: C4 D5 B0    call nz,$B075
+60FD: C4 D5 B0    call nz,display_error_text_B075
 6100: FD 21 80 68 ld   iy,$C220
-6104: FD 7E 0A    ld   a,(iy+$0a)
+6104: FD 7E 0A    ld   a,(iy+$0a)		; current practice technique index (decreasing to $FF)
 6107: FE FF       cp   $FF
-6109: CA CC C1    jp   z,$6166
-610C: FD 35 0A    dec  (iy+$0a)
-610F: CD E6 C1    call display_technique_name_61EC
-; right after displaying the technique name in "practice"
+6109: CA CC C1    jp   z,$6166			; practice done
+610C: FD 35 0A    dec  (iy+$0a)			; decrease index
+; 1 player mode - display the technique name in "practice"
+610F: CD E6 C1    call display_practice_technique_name_61EC
 6112: C3 CC C1    jp   $6166
 6115: 06 98       ld   b,$32
 6117: C5          push bc
 6118: 3E 01       ld   a,$01
 611A: CD 5A B0    call $B05A
 611D: A7          and  a
-611E: C4 D5 B0    call nz,$B075
+611E: C4 D5 B0    call nz,display_error_text_B075
 6121: C1          pop  bc
 6122: 05          dec  b
 6123: CA 59 C1    jp   z,$6153
@@ -16790,7 +16819,7 @@ player_management_routine_46FD:
 6168: 06 07       ld   b,$0D
 616A: CD 57 B0    call $B05D
 616D: A7          and  a
-616E: C4 D5 B0    call nz,$B075
+616E: C4 D5 B0    call nz,display_error_text_B075
 6171: C3 3C C0    jp   $6096
 6174: 3E 0B       ld   a,$0B
 6176: 06 07       ld   b,$0D
@@ -16799,7 +16828,7 @@ player_management_routine_46FD:
 617D: 06 0F       ld   b,$0F
 617F: CD 57 B0    call $B05D
 6182: A7          and  a
-6183: C4 D5 B0    call nz,$B075
+6183: C4 D5 B0    call nz,display_error_text_B075
 6186: C3 3C C0    jp   $6096
 6189: 3E 01       ld   a,$01
 618B: CD 5A B0    call $B05A
@@ -16808,7 +16837,7 @@ player_management_routine_46FD:
 6192: FE 03       cp   $09
 6194: CA 23 C1    jp   z,$6189
 6197: FE 06       cp   $0C
-6199: C4 D5 B0    call nz,$B075
+6199: C4 D5 B0    call nz,display_error_text_B075
 619C: CD BD 97    call $3DB7
 619F: 32 CB 68    ld   ($C26B),a
 61A2: AF          xor  a
@@ -16817,7 +16846,7 @@ player_management_routine_46FD:
 61A8: 06 07       ld   b,$0D
 61AA: CD 57 B0    call $B05D
 61AD: A7          and  a
-61AE: C4 D5 B0    call nz,$B075
+61AE: C4 D5 B0    call nz,display_error_text_B075
 61B1: C3 23 C1    jp   $6189
 61B4: FD 21 80 68 ld   iy,$C220
 61B8: FD 7E 0A    ld   a,(iy+$0a)
@@ -16827,13 +16856,15 @@ player_management_routine_46FD:
 61C3: C2 23 C1    jp   nz,$6189
 61C6: 3E C4       ld   a,$64
 61C8: FD 77 03    ld   (iy+$09),a
+; during practice (2 player mode)
+; decrements C22A: number of techniques to mimic
 61CB: FD 35 0A    dec  (iy+$0a)
 61CE: FD 7E 0A    ld   a,(iy+$0a)
 61D1: FE FF       cp   $FF
-61D3: CA E8 C1    jp   z,$61E2
+61D3: CA E8 C1    jp   z,$61E2	; end of practice
 61D6: CD 90 C8    call $6230
 61D9: FD 7E 0A    ld   a,(iy+$0a)
-61DC: CD E6 C1    call display_technique_name_61EC
+61DC: CD E6 C1    call display_practice_technique_name_61EC
 61DF: C3 23 C1    jp   $6189
 61E2: 3E 08       ld   a,$02
 61E4: 06 0F       ld   b,$0F
@@ -16841,24 +16872,13 @@ player_management_routine_46FD:
 61E9: C3 23 C1    jp   $6189
 
 
-; seems to be called with decreasing A
+; called with decreasing A (10 -> 0)
 ; and uses a lookup table to get the proper move names
 ; < a: index in table
-; < iy
-;
-; one sequence is:
-;
-; 07: front kick
-; 06: back kick
-; 05: low kick
-; 04: foot sweep
-; 03: round kick
-; 02: reverse punch
-; 01: lunge punch
-; 00: jumping back kick
+; < iy: table pointer ($C220)
 
 
-display_technique_name_61EC:
+display_practice_technique_name_61EC:
 61EC: 87          add  a,a
 61ED: 87          add  a,a
 61EE: 4F          ld   c,a
@@ -16868,7 +16888,7 @@ display_technique_name_61EC:
 61F5: CB 27       sla  a
 61F7: 4F          ld   c,a
 61F8: 06 00       ld   b,$00
-61FA: DD 21 C1 C9 ld   ix,$6361
+61FA: DD 21 C1 C9 ld   ix,practice_table_end_6361
 61FE: DD 09       add  ix,bc
 6200: DD 6E 00    ld   l,(ix+$00)
 6203: DD 66 01    ld   h,(ix+$01)
@@ -16876,10 +16896,12 @@ display_technique_name_61EC:
 6207: DD E1       pop  ix
 6209: C1          pop  bc
 620A: DD 09       add  ix,bc
-620C: DD 7E 00    ld   a,(ix+$00)
+; practice
+620C: DD 7E 00    ld   a,(ix+$00)		; technique id loaded
 620F: 21 87 60    ld   hl,player_2_is_cpu_flags_C02D
 6212: CB 5E       bit  3,(hl)
 6214: C2 1A C8    jp   nz,$621A
+; computer is showing the moves: load technique in player 2 structure
 6217: 32 CB 68    ld   ($C26B),a
 621A: DD E5       push ix
 621C: DD 7E 01    ld   a,(ix+$01)
@@ -16992,68 +17014,48 @@ display_technique_name_61EC:
 62FC: 1E B8       ld   e,$B2
 62FE: 22 FF 87    ld   ($2DFF),hl
 
-; table of move names words (lunge, front, back ...)
-6301: 11 14 44    ld   de,$4414
-6304: C4 05 08    call nz,$0205
-6307: 69          ld   l,c
-6308: C9          ret
-6309: 03          inc  bc
-630A: 28 E3       jr   z,$62F5
-630C: C9          ret
-630D: 0A          ld   a,(bc)
-630E: 01 F2 C9    ld   bc,$63F8
-6311: 0B          dec  bc
-6312: 81          add  a,c
-6313: 0D          dec  c
-6314: C4 10 84    call nz,$2410
-6317: 44          ld   b,h
-6318: C4 14 02    call nz,$0814
-631B: CC C4 0F    call z,$0F64
-631E: 04          inc  b
-631F: 95          sub  l
-6320: C4 02 48    call nz,$4208
-6323: 71          ld   (hl),c
-6324: C9          ret
-6325: 10 84       djnz $634B
-6327: 44          ld   b,h
-6328: C4 19 24    call nz,$8413
-632B: 54          ld   d,h
-632C: C4 0F 04    call nz,$040F
-632F: 95          sub  l
-6330: C4 03 28    call nz,$8209
-6333: E3          ex   (sp),hl
-6334: C9          ret
-6335: 14          inc  d
-6336: 02          ld   (bc),a
-6337: CC C4 05    call z,$0564
-633A: 08          ex   af,af'
-633B: 69          ld   l,c
-633C: C9          ret
-633D: 0A          ld   a,(bc)
-633E: 01 F2 C9    ld   bc,$63F8
-6341: 02          ld   (bc),a
-6342: 48          ld   c,b
-6343: 71          ld   (hl),c
-6344: C9          ret
-6345: 0F          rrca
-6346: 04          inc  b
-6347: 95          sub  l
-6348: C4 03 28    call nz,$8209
-634B: E3          ex   (sp),hl
-634C: C9          ret
-634D: 10 84       djnz $6373
-634F: 44          ld   b,h
-6350: C4 14 02    call nz,$0814
-6353: CC C4 05    call z,$0564
-6356: 08          ex   af,af'
-6357: 69          ld   l,c
-6358: C9          ret
-6359: 0A          ld   a,(bc)
-635A: 01 F2 C9    ld   bc,$63F8
-635D: 11 14 44    ld   de,$4414
-6360: C4 01 C9    call nz,$6301
-6363: 81          add  a,c
-6364: C9          ret
+
+; practice table of move names words (lunge, front, back ...) and ids
+; and positions to show them so the player(s) can execute them
+;
+; it's more difficult in 2-player mode because some moves are ambiguous
+; ex: lunge punch or foot sweep exist as 2 different moves but there are
+; only 3 sequences of 8 moves so no big surprises after a while
+;
+; format:
+; move_id  ????  text address
+; the sequences are iterated decreasing
+; 
+; one possible sequence is (see <===) front kick, back kick, 
+6301:
+	dc.b	$11 14 44 64	; lunge punch (high, forward)
+	dc.b	$05 02 C3 63	; back kick
+	dc.b	$09 82 E9 63	; foot sweep
+	dc.b	$0A 01 F8 63	; front kick
+	dc.b	$0B 21 07 64	; back round kick
+	dc.b	$10 24 44 64	; lunge punch (high, still)
+	dc.b	$14 08 66 64	; low kick
+	dc.b	$0F 04 35 64	; round kick  <==== first move of sequence #1
+	
+	dc.b	$08 42 D1 63	; jumping back kick
+	dc.b	$10 24 44 64	; lunge punch (high, still)
+	dc.b	$13 84 54 64	; reverse punch
+	dc.b	$0F 04 35 64	; round kick
+	dc.b	$09 82 E9 63	; foot sweep (back)
+	dc.b	$14 08 66 64	; low kick
+	dc.b	$05 02 C3 63	; back kick
+	dc.b	$0A 01 F8 63	; front kick   <==== start of sequence #2
+
+	dc.b	$08 42 D1 63	; jumping back kick
+	dc.b	$0F 04 35 64	; round kick
+	dc.b	$09 82 E9 63	; foot sweep (back)
+	dc.b	$10 24 44 64	; lunge punch
+	dc.b	$14 08 66 64	; low kick
+	dc.b	$05 02 C3 63	; back kick
+	dc.b	$0A 01 F8 63	; front kick
+practice_table_end_6361:
+	dc.b	$11 14 44 64	; lunge punch  <==== start of sequence #3
+
 6365: 41          ld   b,c
 6366: C9          ret
 6367: 0B          dec  bc
@@ -17131,6 +17133,7 @@ display_technique_name_61EC:
 63CD: 18 06       jr   $63DB
 63CF: 14          inc  d
 63D0: FF          rst  $38
+; "JUMPING"
 63D1: 09          add  hl,bc
 63D2: 17          rla
 63D3: 19          add  hl,de
@@ -17216,6 +17219,7 @@ display_technique_name_61EC:
 6440: 18 06       jr   $644E
 6442: 14          inc  d
 6443: FF          rst  $38
+; lunge
 6444: 04          inc  b
 6445: 17          rla
 6446: 15          dec  d
@@ -17290,13 +17294,13 @@ display_technique_name_61EC:
 64B3: FE 03       cp   $09
 64B5: CA AE C4    jp   z,$64AE
 64B8: FE 0A       cp   $0A
-64BA: C4 D5 B0    call nz,$B075
+64BA: C4 D5 B0    call nz,display_error_text_B075
 64BD: 3E 96       ld   a,$3C
 64BF: CD 5A B0    call $B05A
 64C2: FE 03       cp   $09
 64C4: CA AE C4    jp   z,$64AE
 64C7: A7          and  a
-64C8: C4 D5 B0    call nz,$B075
+64C8: C4 D5 B0    call nz,display_error_text_B075
 64CB: 3A CD 61    ld   a,(match_timer_C167)
 64CE: D6 01       sub  $01
 64D0: 27          daa
@@ -17315,7 +17319,7 @@ display_technique_name_61EC:
 64EF: 06 02       ld   b,$08
 64F1: CD 57 B0    call $B05D
 64F4: A7          and  a
-64F5: C4 D5 B0    call nz,$B075
+64F5: C4 D5 B0    call nz,display_error_text_B075
 64F8: CD 51 B0    call $B051
 64FB: 16 32       ld   d,$98
 64FD: 21 0F 05    ld   hl,$050F
@@ -17377,7 +17381,7 @@ display_technique_name_61EC:
 6586: A7          and  a
 6587: CC 83 C5    call z,$6529
 658A: FE 07       cp   $0D
-658C: D4 D5 B0    call nc,$B075
+658C: D4 D5 B0    call nc,display_error_text_B075
 658F: 4F          ld   c,a
 6590: 87          add  a,a
 6591: 81          add  a,c
@@ -17476,7 +17480,7 @@ display_technique_name_61EC:
 665F: 3E 90       ld   a,$30
 6661: CD 5A B0    call $B05A
 6664: A7          and  a
-6665: C4 D5 B0    call nz,$B075
+6665: C4 D5 B0    call nz,display_error_text_B075
 6668: 01 09 08    ld   bc,$0203
 666B: FD 21 E0 61 ld   iy,$C1E0
 666F: FD 7E 0A    ld   a,(iy+$0a)
@@ -17504,7 +17508,7 @@ display_technique_name_61EC:
 66A2: 06 0A       ld   b,$0A
 66A4: CD 57 B0    call $B05D
 66A7: A7          and  a
-66A8: C4 D5 B0    call nz,$B075
+66A8: C4 D5 B0    call nz,display_error_text_B075
 66AB: 3E 96       ld   a,$3C
 66AD: CD 5A B0    call $B05A
 66B0: C5          push bc
@@ -17518,12 +17522,12 @@ display_technique_name_61EC:
 66BD: 06 0A       ld   b,$0A
 66BF: CD 57 B0    call $B05D
 66C2: A7          and  a
-66C3: C4 D5 B0    call nz,$B075
+66C3: C4 D5 B0    call nz,display_error_text_B075
 66C6: 3E 0B       ld   a,$0B
 66C8: 06 0A       ld   b,$0A
 66CA: CD 57 B0    call $B05D
 66CD: A7          and  a
-66CE: C4 D5 B0    call nz,$B075
+66CE: C4 D5 B0    call nz,display_error_text_B075
 66D1: 3A 00 6D    ld   a,(referee_x_pos_C700)
 66D4: D6 10       sub  $10
 66D6: 32 E6 61    ld   ($C1EC),a
@@ -17578,7 +17582,7 @@ display_technique_name_61EC:
 6749: 3E D0       ld   a,$70
 674B: CD 5A B0    call $B05A
 674E: A7          and  a
-674F: C4 D5 B0    call nz,$B075
+674F: C4 D5 B0    call nz,display_error_text_B075
 6752: CD 47 DA    call $7A4D
 6755: CD CB CA    call $6A6B
 6758: 3E 96       ld   a,$3C
@@ -17639,7 +17643,7 @@ display_technique_name_61EC:
 67DF: 47          ld   b,a
 67E0: CD 57 B0    call $B05D
 67E3: A7          and  a
-67E4: C4 D5 B0    call nz,$B075
+67E4: C4 D5 B0    call nz,display_error_text_B075
 67E7: CD 51 B0    call $B051
 67EA: 3E 08       ld   a,$02
 67EC: CD 85 CA    call $6A25
@@ -17660,14 +17664,14 @@ display_technique_name_61EC:
 6811: 06 01       ld   b,$01
 6813: CD 57 B0    call $B05D
 6816: A7          and  a
-6817: C4 D5 B0    call nz,$B075
+6817: C4 D5 B0    call nz,display_error_text_B075
 681A: CD 51 B0    call $B051
 681D: F5          push af
 681E: C5          push bc
 681F: 3E 82       ld   a,$28
 6821: CD 5A B0    call $B05A
 6824: A7          and  a
-6825: C4 D5 B0    call nz,$B075
+6825: C4 D5 B0    call nz,display_error_text_B075
 6828: 3E 0F       ld   a,$0F
 682A: 06 03       ld   b,$09
 682C: CD 57 B0    call $B05D
@@ -17678,14 +17682,14 @@ display_technique_name_61EC:
 6834: CA 9F C2    jp   z,$683F
 6837: FE 05       cp   $05
 6839: CA EA C2    jp   z,$68EA
-683C: CD D5 B0    call $B075
+683C: CD D5 B0    call display_error_text_B075
 683F: 3E 8D       ld   a,$27
 6841: CD D8 B0    call $B072
 6844: 3E 09       ld   a,$03
 6846: 06 03       ld   b,$09
 6848: CD 57 B0    call $B05D
 684B: A7          and  a
-684C: C4 D5 B0    call nz,$B075
+684C: C4 D5 B0    call nz,display_error_text_B075
 684F: CD 86 C6    call clear_text_6C2C
 6852: C1          pop  bc
 6853: 78          ld   a,b
@@ -17713,7 +17717,7 @@ display_technique_name_61EC:
 688B: 06 01       ld   b,$01
 688D: CD 57 B0    call $B05D
 6890: A7          and  a
-6891: C4 D5 B0    call nz,$B075
+6891: C4 D5 B0    call nz,display_error_text_B075
 6894: 3E 09       ld   a,$03
 6896: CD 54 B0    call $B054
 6899: CD 51 B0    call $B051
@@ -17741,7 +17745,7 @@ display_technique_name_61EC:
 68D4: 47          ld   b,a
 68D5: CD 57 B0    call $B05D
 68D8: A7          and  a
-68D9: C4 D5 B0    call nz,$B075
+68D9: C4 D5 B0    call nz,display_error_text_B075
 68DC: 3E 09       ld   a,$03
 68DE: CD 54 B0    call $B054
 68E1: CD 51 B0    call $B051
@@ -17753,7 +17757,7 @@ display_technique_name_61EC:
 68F1: 06 03       ld   b,$09
 68F3: CD 57 B0    call $B05D
 68F6: A7          and  a
-68F7: C4 D5 B0    call nz,$B075
+68F7: C4 D5 B0    call nz,display_error_text_B075
 68FA: CD 86 C6    call clear_text_6C2C
 68FD: C1          pop  bc
 68FE: 78          ld   a,b
@@ -17798,17 +17802,17 @@ display_technique_name_61EC:
 6967: 3E 96       ld   a,$3C
 6969: CD 5A B0    call $B05A
 696C: A7          and  a
-696D: C4 D5 B0    call nz,$B075
+696D: C4 D5 B0    call nz,display_error_text_B075
 6970: 3E 0A       ld   a,$0A
 6972: 06 00       ld   b,$00
 6974: CD 57 B0    call $B05D
 6977: A7          and  a
-6978: C4 D5 B0    call nz,$B075
+6978: C4 D5 B0    call nz,display_error_text_B075
 697B: 3E 0B       ld   a,$0B
 697D: 06 00       ld   b,$00
 697F: CD 57 B0    call $B05D
 6982: A7          and  a
-6983: C4 D5 B0    call nz,$B075
+6983: C4 D5 B0    call nz,display_error_text_B075
 6986: CD CB CA    call $6A6B
 6989: 21 5C CF    ld   hl,$6F56
 698C: CD 96 B0    call $B03C
@@ -17820,7 +17824,7 @@ display_technique_name_61EC:
 699C: 3E 1E       ld   a,$1E
 699E: CD 5A B0    call $B05A
 69A1: A7          and  a
-69A2: C4 D5 B0    call nz,$B075
+69A2: C4 D5 B0    call nz,display_error_text_B075
 69A5: C3 C2 CC    jp   $6668
 69A8: 3A 87 60    ld   a,(player_2_is_cpu_flags_C02D)
 69AB: FE 05       cp   $05
@@ -17854,7 +17858,7 @@ display_technique_name_61EC:
 69DA: CA E9 C3    jp   z,$69E3
 69DD: DA EA CD    jp   c,$67EA
 69E0: D2 B2 CD    jp   nc,$67B8
-69E3: 3A 8E 60    ld   a,(attack_periodic_counter_C02E)
+69E3: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 69E6: CB 5F       bit  3,a
 69E8: C2 EA CD    jp   nz,$67EA
 69EB: C3 B2 CD    jp   $67B8
@@ -18079,12 +18083,12 @@ display_technique_name_61EC:
 6BD5: 3E 0F       ld   a,$0F
 6BD7: CD 5A B0    call $B05A
 6BDA: A7          and  a
-6BDB: C4 D5 B0    call nz,$B075
+6BDB: C4 D5 B0    call nz,display_error_text_B075
 6BDE: CD 86 C6    call clear_text_6C2C
 6BE1: 3E 0F       ld   a,$0F
 6BE3: CD 5A B0    call $B05A
 6BE6: A7          and  a
-6BE7: C4 D5 B0    call nz,$B075
+6BE7: C4 D5 B0    call nz,display_error_text_B075
 6BEA: C1          pop  bc
 6BEB: 10 E4       djnz $6BD1
 6BED: C9          ret
@@ -18242,7 +18246,7 @@ display_scoring_technique_6CE6:
 6D09: DD A6 01    and  (ix+$01)
 6D0C: FE FF       cp   $FF
 6D0E: C2 F0 C6    jp   nz,$6CF0
-6D11: CD D5 B0    call $B075
+6D11: CD D5 B0    call display_error_text_B075
 6D14: FD 6E 00    ld   l,(iy+$00)
 6D17: FD 66 01    ld   h,(iy+$01)
 6D1A: CD 96 B0    call $B03C
@@ -18337,7 +18341,7 @@ display_scoring_technique_6CE6:
 6DCD: 3E 00       ld   a,$00
 6DCF: CD 5A B0    call $B05A
 6DD2: FE 80       cp   $20
-6DD4: C4 D5 B0    call nz,$B075
+6DD4: C4 D5 B0    call nz,display_error_text_B075
 6DD7: FD 21 00 6D ld   iy,referee_x_pos_C700
 6DDB: FD 36 07 E6 ld   (iy+$0d),$EC
 6DDF: FD 36 05 EB ld   (iy+$05),$EB
@@ -18376,7 +18380,7 @@ display_scoring_technique_6CE6:
 6E2F: 3E 96       ld   a,$3C
 6E31: CD 5A B0    call $B05A
 6E34: A7          and  a
-6E35: C4 D5 B0    call nz,$B075
+6E35: C4 D5 B0    call nz,display_error_text_B075
 6E38: CD 51 B0    call $B051
 6E3B: 0D          dec  c
 6E3C: 05          dec  b
@@ -18565,9 +18569,9 @@ display_scoring_technique_6CE6:
 6F89: 3A 11 63    ld   a,($C911)
 6F8C: CB BF       res  7,a
 6F8E: FE 80       cp   $20
-6F90: DC D5 B0    call c,$B075
+6F90: DC D5 B0    call c,display_error_text_B075
 6F93: FE 50       cp   $50
-6F95: D4 D5 B0    call nc,$B075
+6F95: D4 D5 B0    call nc,display_error_text_B075
 6F98: FE 40       cp   $40
 6F9A: D2 AB D9    jp   nc,$73AB
 6F9D: FE 90       cp   $30
@@ -18672,7 +18676,7 @@ display_scoring_technique_6CE6:
 709A: 3E 14       ld   a,$14
 709C: CD 5A B0    call $B05A
 709F: A7          and  a
-70A0: C4 D5 B0    call nz,$B075
+70A0: C4 D5 B0    call nz,display_error_text_B075
 70A3: FD E1       pop  iy
 70A5: DD E1       pop  ix
 70A7: FD 36 11 7D ld   (iy+$11),$D7
@@ -18684,7 +18688,7 @@ display_scoring_technique_6CE6:
 70BB: 3E 14       ld   a,$14
 70BD: CD 5A B0    call $B05A
 70C0: A7          and  a
-70C1: C4 D5 B0    call nz,$B075
+70C1: C4 D5 B0    call nz,display_error_text_B075
 70C4: FD E1       pop  iy
 70C6: DD E1       pop  ix
 70C8: DD 6E 03    ld   l,(ix+$09)
@@ -18700,7 +18704,7 @@ display_scoring_technique_6CE6:
 70E8: 3E 14       ld   a,$14
 70EA: CD 5A B0    call $B05A
 70ED: A7          and  a
-70EE: C4 D5 B0    call nz,$B075
+70EE: C4 D5 B0    call nz,display_error_text_B075
 70F1: FD E1       pop  iy
 70F3: DD E1       pop  ix
 70F5: FD 36 11 7D ld   (iy+$11),$D7
@@ -18712,7 +18716,7 @@ display_scoring_technique_6CE6:
 7109: 3E 14       ld   a,$14
 710B: CD 5A B0    call $B05A
 710E: A7          and  a
-710F: C4 D5 B0    call nz,$B075
+710F: C4 D5 B0    call nz,display_error_text_B075
 7112: FD E1       pop  iy
 7114: DD E1       pop  ix
 7116: DD 6E 0B    ld   l,(ix+$0b)
@@ -18728,7 +18732,7 @@ display_scoring_technique_6CE6:
 7136: 3E 14       ld   a,$14
 7138: CD 5A B0    call $B05A
 713B: A7          and  a
-713C: C4 D5 B0    call nz,$B075
+713C: C4 D5 B0    call nz,display_error_text_B075
 713F: FD E1       pop  iy
 7141: DD E1       pop  ix
 7143: FD 36 11 7D ld   (iy+$11),$D7
@@ -18740,7 +18744,7 @@ display_scoring_technique_6CE6:
 7157: 3E 14       ld   a,$14
 7159: CD 5A B0    call $B05A
 715C: A7          and  a
-715D: C4 D5 B0    call nz,$B075
+715D: C4 D5 B0    call nz,display_error_text_B075
 7160: FD E1       pop  iy
 7162: DD E1       pop  ix
 7164: DD 6E 07    ld   l,(ix+$0d)
@@ -18756,7 +18760,7 @@ display_scoring_technique_6CE6:
 7184: 3E 14       ld   a,$14
 7186: CD 5A B0    call $B05A
 7189: A7          and  a
-718A: C4 D5 B0    call nz,$B075
+718A: C4 D5 B0    call nz,display_error_text_B075
 718D: FD E1       pop  iy
 718F: DD E1       pop  ix
 7191: FD 36 11 7D ld   (iy+$11),$D7
@@ -18768,7 +18772,7 @@ display_scoring_technique_6CE6:
 71A5: 3E 14       ld   a,$14
 71A7: CD 5A B0    call $B05A
 71AA: A7          and  a
-71AB: C4 D5 B0    call nz,$B075
+71AB: C4 D5 B0    call nz,display_error_text_B075
 71AE: FD E1       pop  iy
 71B0: DD E1       pop  ix
 71B2: C3 DA D0    jp   $707A
@@ -18937,7 +18941,7 @@ display_scoring_technique_6CE6:
 733E: 3E 1B       ld   a,$1B
 7340: CD 5A B0    call $B05A
 7343: A7          and  a
-7344: C4 D5 B0    call nz,$B075
+7344: C4 D5 B0    call nz,display_error_text_B075
 7347: DD 21 60 61 ld   ix,$C1C0
 734B: DD 7E 03    ld   a,(ix+$09)
 734E: 32 D7 6D    ld   ($C77D),a
@@ -19076,14 +19080,14 @@ display_scoring_technique_6CE6:
 748E: 3E 82       ld   a,$28
 7490: CD 5A B0    call $B05A
 7493: A7          and  a
-7494: C4 D5 B0    call nz,$B075
+7494: C4 D5 B0    call nz,display_error_text_B075
 7497: FD 21 00 6D ld   iy,referee_x_pos_C700
 749B: FD 36 01 74 ld   (iy+$01),$D4
 749F: FD 36 05 75 ld   (iy+$05),$D5
 74A3: 3E 82       ld   a,$28
 74A5: CD 5A B0    call $B05A
 74A8: A7          and  a
-74A9: C4 D5 B0    call nz,$B075
+74A9: C4 D5 B0    call nz,display_error_text_B075
 74AC: FD 21 00 6D ld   iy,referee_x_pos_C700
 74B0: FD 36 01 6E ld   (iy+$01),$CE
 74B4: FD 36 05 6F ld   (iy+$05),$CF
@@ -19235,7 +19239,7 @@ display_scoring_technique_6CE6:
 7582: DD 66 01    ld   h,(ix+$01)
 7585: E9          jp   (hl)
 7586: FE 50       cp   $50
-7588: C2 D5 B0    jp   nz,$B075
+7588: C2 D5 B0    jp   nz,display_error_text_B075
 758B: 78          ld   a,b
 758C: E6 0F       and  $0F
 758E: 87          add  a,a
@@ -19296,7 +19300,7 @@ display_scoring_technique_6CE6:
 75D2: FE 03       cp   $09
 75D4: CA 67 D5    jp   z,$75CD
 75D7: FE 06       cp   $0C
-75D9: C4 D5 B0    call nz,$B075
+75D9: C4 D5 B0    call nz,display_error_text_B075
 75DC: CD BD 97    call $3DB7
 75DF: 32 4B 68    ld   (current_move_C24B),a
 75E2: AF          xor  a
@@ -19305,7 +19309,7 @@ display_scoring_technique_6CE6:
 75E8: 06 07       ld   b,$0D
 75EA: CD 57 B0    call $B05D
 75ED: A7          and  a
-75EE: C4 D5 B0    call nz,$B075
+75EE: C4 D5 B0    call nz,display_error_text_B075
 75F1: C3 67 D5    jp   $75CD
 75F4: DD 21 58 DC ld   ix,$7652
 75F8: DD E5       push ix
@@ -19314,7 +19318,7 @@ display_scoring_technique_6CE6:
 75FE: 3E 00       ld   a,$00
 7600: CD 5A B0    call $B05A
 7603: FE 06       cp   $0C
-7605: C4 D5 B0    call nz,$B075
+7605: C4 D5 B0    call nz,display_error_text_B075
 7608: C1          pop  bc
 7609: DD E1       pop  ix
 760B: DD 7E 00    ld   a,(ix+$00)
@@ -19327,14 +19331,14 @@ display_scoring_technique_6CE6:
 761A: 06 07       ld   b,$0D
 761C: CD 57 B0    call $B05D
 761F: A7          and  a
-7620: C4 D5 B0    call nz,$B075
+7620: C4 D5 B0    call nz,display_error_text_B075
 7623: C3 FE D5    jp   $75FE
 7626: DD E5       push ix
 7628: 3E 0A       ld   a,$0A
 762A: 06 07       ld   b,$0D
 762C: CD 57 B0    call $B05D
 762F: A7          and  a
-7630: C4 D5 B0    call nz,$B075
+7630: C4 D5 B0    call nz,display_error_text_B075
 7633: DD E1       pop  ix
 7635: DD 23       inc  ix
 7637: DD 23       inc  ix
@@ -19372,7 +19376,7 @@ display_scoring_technique_6CE6:
 767E: DD 66 01    ld   h,(ix+$01)
 7681: E9          jp   (hl)
 7682: FE 50       cp   $50
-7684: C2 D5 B0    jp   nz,$B075
+7684: C2 D5 B0    jp   nz,display_error_text_B075
 7687: 78          ld   a,b
 7688: E6 0F       and  $0F
 768A: 87          add  a,a
@@ -19417,7 +19421,7 @@ display_scoring_technique_6CE6:
 76D3: 3E 00       ld   a,$00
 76D5: CD 5A B0    call $B05A
 76D8: FE 06       cp   $0C
-76DA: C4 D5 B0    call nz,$B075
+76DA: C4 D5 B0    call nz,display_error_text_B075
 76DD: C1          pop  bc
 76DE: DD E1       pop  ix
 76E0: DD 7E 00    ld   a,(ix+$00)
@@ -19430,14 +19434,14 @@ display_scoring_technique_6CE6:
 76EF: 06 07       ld   b,$0D
 76F1: CD 57 B0    call $B05D
 76F4: A7          and  a
-76F5: C4 D5 B0    call nz,$B075
+76F5: C4 D5 B0    call nz,display_error_text_B075
 76F8: C3 79 DC    jp   $76D3
 76FB: DD E5       push ix
 76FD: 3E 0B       ld   a,$0B
 76FF: 06 07       ld   b,$0D
 7701: CD 57 B0    call $B05D
 7704: A7          and  a
-7705: C4 D5 B0    call nz,$B075
+7705: C4 D5 B0    call nz,display_error_text_B075
 7708: DD E1       pop  ix
 770A: DD 23       inc  ix
 770C: DD 23       inc  ix
@@ -19459,7 +19463,7 @@ display_scoring_technique_6CE6:
 7731: FE 03       cp   $09
 7733: CA 86 DD    jp   z,$772C
 7736: FE 06       cp   $0C
-7738: C4 D5 B0    call nz,$B075
+7738: C4 D5 B0    call nz,display_error_text_B075
 773B: CD BD 97    call $3DB7
 773E: 32 CB 68    ld   ($C26B),a
 7741: AF          xor  a
@@ -19468,7 +19472,7 @@ display_scoring_technique_6CE6:
 7747: 06 07       ld   b,$0D
 7749: CD 57 B0    call $B05D
 774C: A7          and  a
-774D: C4 D5 B0    call nz,$B075
+774D: C4 D5 B0    call nz,display_error_text_B075
 7750: C3 86 DD    jp   $772C
 7753: 0A          ld   a,(bc)
 7754: 06 96       ld   b,$3C
@@ -19777,7 +19781,7 @@ display_scoring_technique_6CE6:
 7901: 3E 1E       ld   a,$1E
 7903: CD 5A B0    call $B05A
 7906: A7          and  a
-7907: C4 D5 B0    call nz,$B075
+7907: C4 D5 B0    call nz,display_error_text_B075
 790A: 3E 02       ld   a,$08
 790C: CD 5D B0    call $B057
 790F: 3E 03       ld   a,$09
@@ -19811,7 +19815,7 @@ display_scoring_technique_6CE6:
 7952: 47          ld   b,a
 7953: CD 57 B0    call $B05D
 7956: A7          and  a
-7957: C4 D5 B0    call nz,$B075
+7957: C4 D5 B0    call nz,display_error_text_B075
 795A: CD 51 B0    call $B051
 795D: 0C          inc  c
 795E: 16 96       ld   d,$3C
@@ -27912,7 +27916,7 @@ A350: CB 7F       bit  7,a
 A352: 3E 00       ld   a,$00
 A354: C2 DA A9    jp   nz,$A37A
 A357: 21 87 60    ld   hl,player_2_is_cpu_flags_C02D
-A35A: 3A 82 60    ld   a,(player_vertical_pos_C028)
+A35A: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 A35D: FE 03       cp   $09
 A35F: 3E 00       ld   a,$00
 A361: C2 C6 A9    jp   nz,$A36C
@@ -27934,7 +27938,12 @@ A383: CD 5A B0    call $B05A
 A386: FE 03       cp   $09
 A388: CA DB A9    jp   z,$A37B
 A38B: FE 06       cp   $0C
-A38D: C4 D5 B0    call nz,$B075
+A38D: C4 D5 B0    call nz,display_error_text_B075
+
+; this loops (outside the periodic interrupt)
+; when players are shown and fight. either in the intro/demo
+; or during a real fight
+fight_mainloop_A390:
 A390: CD 4B B0    call $B04B	; load_ix_with_player_structure_B574
 A393: CD 82 A4    call $A428
 A396: CD 47 A9    call $A34D
@@ -27978,17 +27987,23 @@ A3E9: FE 50       cp   $50
 A3EB: CA 10 A4    jp   z,$A410
 A3EE: FD CB 10 4C bit  0,(iy+$10)
 A3F2: C2 10 A4    jp   nz,$A410
+; we enter here when computer is about to decide what attack to do
+; it doesn't enter here when the computer is walking towards the
+; human player
 A3F5: 21 CD A7    ld   hl,$AD67
-A3F8: CD 6E A6    call $ACCE
+A3F8: CD 6E A6    call do_something_ai_related_if_easy_level_ACCE
 A3FB: FE 03       cp   $09
 A3FD: CA DB A9    jp   z,$A37B
 A400: A7          and  a
 A401: CA 03 A4    jp   z,$A409
 A404: FE FF       cp   $FF
-A406: C4 D5 B0    call nz,$B075
+A406: C4 D5 B0    call nz,display_error_text_B075
+; computer is going to attack. iy is alternate computer player structure (C220)
+; the attack move is already loaded in cpu C26B
 A409: FD CB 10 6C set  0,(iy+$10)
-A40D: C3 30 A9    jp   $A390
-A410: 3A 82 60    ld   a,(player_vertical_pos_C028)
+A40D: C3 30 A9    jp   fight_mainloop_A390
+
+A410: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 A413: FE 03       cp   $09
 A415: 3E 0B       ld   a,$0B
 A417: CA 16 A4    jp   z,$A41C
@@ -27996,7 +28011,7 @@ A41A: 3E 0A       ld   a,$0A
 A41C: 06 07       ld   b,$0D
 A41E: CD 57 B0    call $B05D
 A421: A7          and  a
-A422: C4 D5 B0    call nz,$B075
+A422: C4 D5 B0    call nz,display_error_text_B075
 A425: C3 DB A9    jp   $A37B
 
 
@@ -28006,7 +28021,7 @@ A42F: 2A 43 68    ld   hl,($C249)
 A432: D9          exx
 A433: ED 5B CD 68 ld   de,($C267)
 A437: 2A C3 68    ld   hl,($C269)
-A43A: 3A 82 60    ld   a,(player_vertical_pos_C028)
+A43A: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 A43D: FE 03       cp   $09
 A43F: CA 49 A4    jp   z,$A443
 A442: D9          exx
@@ -28035,7 +28050,7 @@ A479: FD 7E 07    ld   a,(iy+$0d)
 A47C: 2F          cpl
 A47D: FD 77 07    ld   (iy+$0d),a
 A480: 21 CB 68    ld   hl,$C26B
-A483: 3A 82 60    ld   a,(player_vertical_pos_C028)
+A483: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 A486: FE 03       cp   $09
 A488: CA 2E A4    jp   z,$A48E
 A48B: 21 4B 68    ld   hl,current_move_C24B
@@ -28078,6 +28093,7 @@ A4DF: CB 3F       srl  a
 A4E1: D2 E5 A4    jp   nc,$A4E5
 A4E4: 3C          inc  a
 A4E5: E1          pop  hl
+; sets attack distance (0,1,2)
 A4E6: 77          ld   (hl),a
 A4E7: FD 7E 07    ld   a,(iy+$0d)
 A4EA: FD BE 03    cp   (iy+$09)
@@ -28142,7 +28158,7 @@ A55C: A5          and  l
 A55D: 38 A5       jr   c,$A504
 A55F: 33          inc  sp
 A560: A5          and  l
-A561: DD 21 B1 A5 ld   ix,$A5B1
+A561: DD 21 B1 A5 ld   ix,computer_ai_jump_table_A5B1
 A565: C3 37 A5    jp   $A59D
 A568: DD 21 65 A5 ld   ix,$A5C5
 A56C: C3 37 A5    jp   $A59D
@@ -28162,13 +28178,107 @@ A599: DD 21 51 AC ld   ix,$A651
 A59D: DD E5       push ix
 A59F: CD C5 AC    call $A665
 A5A2: DD E1       pop  ix
+; a is the index of the routine in computer_ai_jump_table_A5B1
 A5A4: 87          add  a,a
 A5A5: 06 00       ld   b,$00
 A5A7: 4F          ld   c,a
 A5A8: DD 09       add  ix,bc
 A5AA: DD 6E 00    ld   l,(ix+$00)
 A5AD: DD 66 01    ld   h,(ix+$01)
+; jump to the routine
 A5B0: E9          jp   (hl)
+
+computer_ai_jump_table_A5B1:
+	dc.w	display_error_text_B075
+	dc.w	$A6D4
+	dc.w	$A6D4
+	dc.w	$A6D4
+	dc.w	$A6D4
+	dc.w	$A6D4
+	dc.w	$A6D4
+	dc.w	$A6D4
+	dc.w	$A6D4
+	dc.w	$A6D4
+	dc.w	display_error_text_B075
+	dc.w	$A6E7
+	dc.w	$A6EF
+	dc.w	$A700
+	dc.w	$A711
+	dc.w	$A714
+	dc.w	$A717
+	dc.w	$A71A
+	dc.w	$A71D
+	dc.w	$A71D
+	dc.w	display_error_text_B075
+	dc.w	$A725
+	dc.w	$A73F
+	dc.w	$A786
+	dc.w	$A7C5
+	dc.w	$A7CD
+	dc.w	$A7D5
+	dc.w	$A7E6
+	dc.w	$A7F7
+	dc.w	$A7FA
+	dc.w	display_error_text_B075
+	dc.w	$A802
+	dc.w	$A80C
+	dc.w	$A85B
+	dc.w	$A893
+	dc.W	$A8A8
+	dc.W	$A8A8
+	dc.w	$A8E8
+	dc.w	$A911
+	dc.w	$A914
+	dc.w	display_error_text_B075
+	dc.w	$A917
+	dc.w	$A92F
+	dc.w	$A932
+	dc.w	$A93D
+	dc.w	$A940
+	dc.w	$A943
+	dc.w	$A946
+	dc.w	$A94E
+	dc.w	display_error_text_B075
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	display_error_text_B075
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	$A966
+	dc.w	display_error_text_B075
+	dc.w	$A96E
+	dc.w	$A980
+	dc.w	$A9D6
+	dc.w	$AA10
+	dc.w	$AA22
+	dc.w	$AA25
+	dc.w	$AA25
+	dc.w	$AA2D
+	dc.w	$AA30
+	dc.w	display_error_text_B075
+	dc.w	$AA33
+	dc.w	$AA33
+	dc.w	$AA33
+	dc.w	$AA33
+	dc.w	$AA33
+	dc.w	$AA33
+	dc.w	$AA33
+	dc.w	$AA33
+	dc.w	$AA33
+
 A5B1: D5          push de
 A5B2: B0          or   b
 A5B3: 74          ld   (hl),h
@@ -28317,6 +28427,7 @@ A661: 99          sbc  a,c
 A662: AA          xor  d
 A663: 99          sbc  a,c
 A664: AA          xor  d
+
 A665: FD 6E 0B    ld   l,(iy+$0b)
 A668: FD 66 06    ld   h,(iy+$0c)
 A66B: CB BC       res  7,h
@@ -28367,6 +28478,7 @@ A6CC: 3E 02       ld   a,$08
 A6CE: C2 79 AC    jp   nz,$A6D3
 A6D1: 3E 03       ld   a,$09
 A6D3: C9          ret
+
 A6D4: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 ; here writes to C26B (if player 2 CPU) to tell CPU to walk forward
 A6D7: 36 08       ld   (hl),$02
@@ -28390,30 +28502,39 @@ A705: FD CB 0F DE bit  7,(iy+$0f)
 A709: C2 0E AD    jp   nz,$A70E
 A70C: 36 08       ld   (hl),$02
 A70E: C3 10 A4    jp   $A410
+; looks like a jump table
 A711: C3 ED AC    jp   $A6E7
 A714: C3 ED AC    jp   $A6E7
 A717: C3 75 AD    jp   $A7D5
 A71A: C3 EC AD    jp   $A7E6
+; send "walk forward"
 A71D: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A720: 36 08       ld   (hl),$02
 A722: C3 10 A4    jp   $A410
 
-A725: 3A 8E 60    ld   a,(attack_periodic_counter_C02E)
+; called by a jp (hl) when distance between players is "medium" (C26C 0 -> 1)
+A725: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A728: E6 0F       and  $0F
-; probably a periodic counter: decide an attack each 1/4s roughly
+; periodic counter: decide an attack each 1/4s roughly
+; (actually if reaches that point with the counter aligned on 16, not
+; sure if it's each 1/4s)
 A72A: C2 94 AD    jp   nz,$A734
 A72D: CD 8E AB    call cpu_attacks_player_AB2E
 A730: A7          and  a
-A731: C2 96 AD    jp   nz,$A73C
+A731: C2 96 AD    jp   nz,$A73C	; a != 0 => attacked
+; returns 0: just walk, don't attack
 A734: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
-; send walk forward order to CPU
+; just send walk forward order to CPU
 A737: 36 08       ld   (hl),$02
 A739: C3 10 A4    jp   $A410
+
 A73C: C3 E4 A9    jp   $A3E4
+
 A73F: FD CB 0F DE bit  7,(iy+$0f)
 A743: CA 57 AD    jp   z,$A75D
-A746: 3A 8E 60    ld   a,(attack_periodic_counter_C02E)
+A746: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A749: E6 01       and  $01
+; one out of 2 times: each 30th second
 A74B: CA 55 AD    jp   z,$A755
 A74E: CD 8E AB    call cpu_attacks_player_AB2E
 A751: A7          and  a
@@ -28439,7 +28560,7 @@ A780: C3 10 A4    jp   $A410
 A783: C3 E4 A9    jp   $A3E4
 A786: FD CB 0F DE bit  7,(iy+$0f)
 A78A: C2 A4 AD    jp   nz,$A7A4
-A78D: 3A 8E 60    ld   a,(attack_periodic_counter_C02E)
+A78D: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A790: CB 4F       bit  1,a
 A792: CA 36 AD    jp   z,$A79C
 A795: CD 8E AB    call cpu_attacks_player_AB2E
@@ -28450,7 +28571,7 @@ A79F: 36 08       ld   (hl),$02
 A7A1: C3 BF AD    jp   $A7BF
 A7A4: CD F7 AA    call $AAFD
 A7A7: CA BA AD    jp   z,$A7BA
-A7AA: 3A 8E 60    ld   a,(attack_periodic_counter_C02E)
+A7AA: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A7AD: CB 47       bit  0,a
 A7AF: C2 BA AD    jp   nz,$A7BA
 A7B2: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
@@ -28483,9 +28604,10 @@ A7F7: C3 85 AD    jp   $A725	; seems to be unreachable
 A7FA: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A7FD: 36 08       ld   (hl),$02
 A7FF: C3 10 A4    jp   $A410
+
 A802: CD 8E AB    call cpu_attacks_player_AB2E
 A805: A7          and  a
-A806: CC D5 B0    call z,$B075
+A806: CC D5 B0    call z,display_error_text_B075
 A809: C3 E4 A9    jp   $A3E4
 A80C: FD CB 0F DE bit  7,(iy+$0f)
 A810: C2 4E A2    jp   nz,$A84E
@@ -28500,7 +28622,7 @@ A824: A7          and  a
 A825: CA 92 A2    jp   z,$A838
 A828: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A82B: 36 09       ld   (hl),$03
-A82D: 3A 8E 60    ld   a,(attack_periodic_counter_C02E)
+A82D: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A830: E6 09       and  $03
 A832: CA 52 A2    jp   z,$A858
 A835: C3 4C A2    jp   $A846
@@ -28516,7 +28638,7 @@ A84B: C3 55 A2    jp   $A855
 
 A84E: CD 8E AB    call cpu_attacks_player_AB2E
 A851: A7          and  a
-A852: CC D5 B0    call z,$B075
+A852: CC D5 B0    call z,display_error_text_B075
 A855: C3 E4 A9    jp   $A3E4
 A858: C3 10 A4    jp   $A410
 A85B: FD CB 0F DE bit  7,(iy+$0f)
@@ -28526,7 +28648,7 @@ A865: A7          and  a
 A866: CA DB A2    jp   z,$A87B
 A869: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A86C: 36 09       ld   (hl),$03
-A86E: 3A 8E 60    ld   a,(attack_periodic_counter_C02E)
+A86E: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A871: CB 47       bit  0,a
 A873: C2 30 A2    jp   nz,$A890
 A876: 36 01       ld   (hl),$01
@@ -28537,12 +28659,12 @@ A881: 36 01       ld   (hl),$01
 A883: C3 27 A2    jp   $A88D
 A886: CD 8E AB    call cpu_attacks_player_AB2E
 A889: A7          and  a
-A88A: CC D5 B0    call z,$B075
+A88A: CC D5 B0    call z,display_error_text_B075
 A88D: C3 E4 A9    jp   $A3E4
 A890: C3 10 A4    jp   $A410
 A893: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A896: 36 14       ld   (hl),$14
-A898: 3A 8E 60    ld   a,(attack_periodic_counter_C02E)
+A898: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A89B: E6 0D       and  $07
 A89D: CA A5 A2    jp   z,$A8A5
 A8A0: 36 08       ld   (hl),$02
@@ -28563,7 +28685,7 @@ A8C6: E1          pop  hl
 A8C7: C2 6F A2    jp   nz,$A8CF
 A8CA: 36 08       ld   (hl),$02
 A8CC: C3 E5 A2    jp   $A8E5
-A8CF: 3A 8E 60    ld   a,(attack_periodic_counter_C02E)
+A8CF: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A8D2: 36 10       ld   (hl),$10
 A8D4: E6 09       and  $03
 A8D6: CA E8 A2    jp   z,$A8E2
@@ -28589,7 +28711,9 @@ A907: 36 08       ld   (hl),$02
 A909: C3 0E A3    jp   $A90E
 A90C: 36 01       ld   (hl),$01
 A90E: C3 10 A4    jp   $A410
+
 A911: C3 08 A2    jp   $A802
+
 A914: C3 08 A2    jp   $A802
 A917: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A91A: 36 14       ld   (hl),$14
@@ -28647,7 +28771,7 @@ A998: A7          and  a
 A999: CA A6 A3    jp   z,$A9AC
 A99C: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A99F: 36 09       ld   (hl),$03
-A9A1: 3A 8E 60    ld   a,(attack_periodic_counter_C02E)
+A9A1: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A9A4: E6 09       and  $03
 A9A6: CA 70 A3    jp   z,$A9D0
 A9A9: C3 61 A3    jp   $A9C1
@@ -28660,7 +28784,7 @@ A9BB: CD 8E AB    call cpu_attacks_player_AB2E
 A9BE: C2 79 A3    jp   nz,$A9D3
 A9C1: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A9C4: 36 0D       ld   (hl),$07
-A9C6: 3A 8E 60    ld   a,(attack_periodic_counter_C02E)
+A9C6: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A9C9: CB 47       bit  0,a
 A9CB: CA 70 A3    jp   z,$A9D0
 A9CE: 36 08       ld   (hl),$02
@@ -28673,7 +28797,7 @@ A9E0: A7          and  a
 A9E1: CA F4 A3    jp   z,$A9F4
 A9E4: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A9E7: 36 09       ld   (hl),$03
-A9E9: 3A 8E 60    ld   a,(attack_periodic_counter_C02E)
+A9E9: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A9EC: E6 09       and  $03
 A9EE: CA 0A AA    jp   z,$AA0A
 A9F1: C3 05 AA    jp   $AA05
@@ -28845,6 +28969,7 @@ AAFD: CD 17 AB    call $AB1D
 AB00: DD 21 74 AA ld   ix,$AAD4
 AB04: CD 0F B0    call $B00F
 AB07: C9          ret
+
 AB08: CD 17 AB    call $AB1D
 AB0B: FE 0E       cp   $0E
 AB0D: CA 11 AB    jp   z,$AB11
@@ -28854,6 +28979,7 @@ AB12: CD 17 AB    call $AB1D
 AB15: DD 21 72 AA ld   ix,$AAD8
 AB19: CD 0F B0    call $B00F
 AB1C: C9          ret
+
 AB1D: FD 4E 0B    ld   c,(iy+$0b)
 AB20: FD 46 06    ld   b,(iy+$0c)
 AB23: CB B8       res  7,b
@@ -28863,8 +28989,9 @@ AB28: DD 7E 02    ld   a,(ix+$08)
 AB2B: CB BF       res  7,a
 AB2D: C9          ret
 
+; > a: 0 don't attack
 cpu_attacks_player_AB2E:
-AB2E: DD 21 52 AB ld   ix,$AB58
+AB2E: DD 21 52 AB ld   ix,master_cpu_move_table_AB58		; table of pointers of move sequences
 AB32: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AB35: 23          inc  hl
 AB36: 7E          ld   a,(hl)
@@ -28874,8 +29001,8 @@ AB39: 06 00       ld   b,$00
 AB3B: DD 09       add  ix,bc
 AB3D: DD 6E 00    ld   l,(ix+$00)
 AB40: DD 66 01    ld   h,(ix+$01)
-; get attack counter? 
-AB43: ED 5B 8E 60 ld   de,(attack_periodic_counter_C02E)
+; get msb of 16 bit counter? probably for randomness
+AB43: ED 5B 8E 60 ld   de,(periodic_counter_16bit_C02E)
 AB47: 5E          ld   e,(hl)
 AB48: 23          inc  hl
 AB49: E5          push hl
@@ -28892,7 +29019,31 @@ AB53: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AB56: 77          ld   (hl),a
 AB57: C9          ret
 
-AB58: C8          ret  z
+; problem: how does the program know the length of the sequences?
+; some moves are probably done or not depending on how the players are located
+; the CPU isn't going to perform a back move in the void
+
+master_cpu_move_table_AB58:
+	dc.w  move_list_AB62
+	dc.w  move_list_AB70
+	dc.w  move_list_AB7B
+	dc.w  move_list_AB84
+	dc.w  move_list_AB84
+
+move_list_AB62:
+	; jsk, back, jbk, footsweep, front kick/punch, back round, lunge, jsk, round, lunge, lunge, revpunch, lowk
+	dc.b	0D 05 08 09 0A 0B 0C 0D 0E 0F 10 11 13 14 
+	; lunge lunge backroundkick lungemedium jsk 0E(???) round lunge, lunge, revpunch, lowkick
+move_list_AB70:
+	dc.b	0A 0A 0B 0C 0D 0E 0F 10 11 13 14
+	; jump back, front kick, back round, lungemedium, jsk, round, lunge, revpunch, lowkick
+move_list_AB7B
+	dc.b	 08 0A 0B 0C 0D 0F 10 13 14 
+	; this looks like a list of only reverse attacks
+	; pre-jump? back kick jbk foot sweep back
+move_list_AB84
+	dc.b	03 05 08 09
+	
 AB59: AB          xor  e
 AB5A: D0          ret  nc
 AB5B: AB          xor  e
@@ -28976,20 +29127,20 @@ ABE3: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 ; tell CPU to stop moving / stand guard
 ABE6: 36 00       ld   (hl),$00
 ABE8: 21 EF A7    ld   hl,$ADEF
-ABEB: CD 6E A6    call $ACCE
+ABEB: CD 6E A6    call do_something_ai_related_if_easy_level_ACCE
 ABEE: FE 03       cp   $09
 ABF0: CA DB A9    jp   z,$A37B
 ABF3: A7          and  a
 ABF4: CA F6 AB    jp   z,$ABFC
 ABF7: FE FF       cp   $FF
-ABF9: C4 D5 B0    call nz,$B075
+ABF9: C4 D5 B0    call nz,display_error_text_B075
 ABFC: C3 10 A4    jp   $A410
 ABFF: DD 21 29 A6 ld   ix,$AC83
 AC03: FD 5E 0D    ld   e,(iy+$07)
 AC06: FD 56 02    ld   d,(iy+$08)
 AC09: CD 06 B0    call $B00C
 AC0C: A7          and  a
-AC0D: C4 D5 B0    call nz,$B075
+AC0D: C4 D5 B0    call nz,display_error_text_B075
 AC10: E5          push hl
 AC11: DD E1       pop  ix
 AC13: FD 6E 0B    ld   l,(iy+$0b)
@@ -29001,20 +29152,20 @@ AC1F: CA 9E A6    jp   z,$AC3E
 AC22: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AC25: 36 00       ld   (hl),$00
 AC27: 21 1D AE    ld   hl,$AE17
-AC2A: CD 6E A6    call $ACCE
+AC2A: CD 6E A6    call do_something_ai_related_if_easy_level_ACCE
 AC2D: FE 03       cp   $09
 AC2F: CA DB A9    jp   z,$A37B
 AC32: A7          and  a
 AC33: CA 20 A6    jp   z,$AC80
 AC36: FE FF       cp   $FF
-AC38: C4 D5 B0    call nz,$B075
+AC38: C4 D5 B0    call nz,display_error_text_B075
 AC3B: C3 20 A6    jp   $AC80
 AC3E: DD 21 A7 A6 ld   ix,$ACAD
 AC42: FD 5E 0D    ld   e,(iy+$07)
 AC45: FD 56 02    ld   d,(iy+$08)
 AC48: CD 06 B0    call $B00C
 AC4B: A7          and  a
-AC4C: C4 D5 B0    call nz,$B075
+AC4C: C4 D5 B0    call nz,display_error_text_B075
 AC4F: E5          push hl
 AC50: FD 6E 0B    ld   l,(iy+$0b)
 AC53: FD 66 06    ld   h,(iy+$0c)
@@ -29029,13 +29180,13 @@ AC64: C2 20 A6    jp   nz,$AC80
 AC67: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AC6A: 36 00       ld   (hl),$00
 AC6C: 21 1D AE    ld   hl,$AE17
-AC6F: CD 6E A6    call $ACCE
+AC6F: CD 6E A6    call do_something_ai_related_if_easy_level_ACCE
 AC72: FE 03       cp   $09
 AC74: CA DB A9    jp   z,$A37B
 AC77: A7          and  a
 AC78: CA 20 A6    jp   z,$AC80
 AC7B: FE FF       cp   $FF
-AC7D: C4 D5 B0    call nz,$B075
+AC7D: C4 D5 B0    call nz,display_error_text_B075
 AC80: C3 10 A4    jp   $A410
 AC83: 22 1A 31    ld   ($911A),hl
 AC86: A6          and  (hl)
@@ -29093,12 +29244,12 @@ ACC8: C3 10 A4    jp   $A410
 ACCB: C3 10 A4    jp   $A410
 ; probably part of the A.I: not called in "practice" even in 1P mode
 ; makes the game easier when called? maybe A.I. hesitates more ?
-ACCE: 3A 10 63    ld   a,(computer_skill_C910)
+do_something_ai_related_if_easy_level_ACCE: 3A 10 63    ld   a,(computer_skill_C910)
 ACD1: FE 10       cp   $10
 ACD3: 3E 00       ld   a,$00
 ACD5: D2 1C A7    jp   nc,$AD16		; if level >= $10, skip the routine altogether
 
-; this is called when skill level is < CMP ($10 = 10 in bcd)
+; this is called when skill level is < CMP ($10 = 10 in bcd ??)
 ACD8: 3A 90 60    ld   a,($C030)
 ACDB: CB 3F       srl  a
 ACDD: CB 3F       srl  a
@@ -29130,7 +29281,7 @@ AD04: CA 1C A7    jp   z,$AD16
 AD07: FA 1C A7    jp   m,$AD16
 AD0A: 78          ld   a,b
 AD0B: A7          and  a
-AD0C: CC D5 B0    call z,$B075
+AD0C: CC D5 B0    call z,display_error_text_B075
 AD0F: FD E5       push iy
 AD11: CD 13 A7    call $AD19
 AD14: FD E1       pop  iy
@@ -29139,8 +29290,9 @@ AD16: C9          ret
 
 AD17: 00          nop
 AD18: 00          nop
+
 AD19: FD 21 40 68 ld   iy,$C240
-AD1D: 3A 82 60    ld   a,(player_vertical_pos_C028)
+AD1D: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 AD20: FE 03       cp   $09
 AD22: CA 83 A7    jp   z,$AD29
 AD25: FD 21 C0 68 ld   iy,$C260
@@ -29819,8 +29971,9 @@ display_text_B039: C3 5D B9    jp   display_text_B357
 B03C: C3 31 B9    jp   $B391
 B03F: C3 6E B9    jp   $B3CE
 B042: C3 40 B4    jp   $B440
-B045: C3 C3 B4    jp   $B469
-B048: C3 8F BD    jp   startup_B72F
+B045: C3 C3 B4    jp   $startup_B469
+periodic_interrupt_B048
+: C3 8F BD    jp   on_periodic_interrupt_B72F
 B04B: C3 D4 B5    jp   load_ix_with_player_structure_B574
 B04E: C3 2E B5    jp   $B58E
 B051: C3 A5 B5    jp   $B5A5
@@ -29830,8 +29983,8 @@ B05A: C3 5E BC    jp   $B65E
 B05D: C3 AE BC    jp   $B6AE
 B060: C3 D8 BB    jp   $BB72
 B063: C3 DA BB    jp   $BB7A
-B066: C3 28 BB    jp   $BB82
-B069: C3 28 BB    jp   $BB82
+B066: C3 28 BB    jp   check_coin_ports_BB82
+B069: C3 28 BB    jp   check_coin_ports_BB82
 B06C: C3 38 BB    jp   $BB92
 B06F: C3 3C BB    jp   $BB96
 B072: C3 B5 BB    jp   $BBB5
@@ -29859,8 +30012,8 @@ B0B1: C3 DE B8    jp   $B27E
 B0B4: C3 44 F7    jp   $FD44
 B0B7: C3 A2 BB    jp   $BBA8
 B0BA: C3 A7 BB    jp   $BBAD
-B0BD: C3 E8 BB    jp   $BBE2
-B0C0: C3 E2 BB    jp   $BBE8
+B0BD: C3 E8 BB    jp   write_0_in_port_1_BBE2
+B0C0: C3 E2 BB    jp   write_1_in_port_1_BBE8
 B0C3: 21 00 00    ld   hl,$0000
 B0C6: 06 00       ld   b,$00
 B0C8: 4A          ld   c,d
@@ -29886,8 +30039,12 @@ B0E9: CB C5       set  0,l
 B0EB: 10 F1       djnz $B0DE
 B0ED: C9          ret
 
-B0EE: AF          xor  a
-B0EF: 06 02       ld   b,$08
+; < de
+; > a
+; > d
+; what it does???
+B0EE: AF          xor  a	; a   => 0
+B0EF: 06 02       ld   b,$08  ; b => $08	; do it 8 times
 B0F1: CB 22       sla  d
 B0F3: CB 17       rl   a
 B0F5: BB          cp   e
@@ -29897,6 +30054,11 @@ B0FA: CB C2       set  0,d
 B0FC: 10 F9       djnz $B0F1
 B0FE: C9          ret
 
+; < ix
+; < hl
+; < bc
+; > a
+; what it does???
 B0FF: E5          push hl
 B100: C1          pop  bc
 B101: C5          push bc
@@ -29915,8 +30077,9 @@ B118: DD 23       inc  ix
 B11A: C3 01 B1    jp   $B101
 B11D: 3E FF       ld   a,$FF
 B11F: C3 89 B1    jp   $B123
-B122: AF          xor  a
+B122: AF          xor  a	; a <= 0
 B123: C9          ret
+
 B124: 01 04 00    ld   bc,$0004
 B127: DD 6E 00    ld   l,(ix+$00)
 B12A: DD 66 01    ld   h,(ix+$01)
@@ -29942,7 +30105,7 @@ B155: DD 23       inc  ix
 B157: C3 42 B1    jp   $B148
 B15A: AF          xor  a
 B15B: C9          ret
-B15C: 3A 82 60    ld   a,(player_vertical_pos_C028)
+B15C: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B15F: 57          ld   d,a
 B160: 1E 80       ld   e,$20
 B162: CD 69 B0    call $B0C3
@@ -29968,7 +30131,7 @@ B185: C9          ret
 
 display_error_text_B186
 B186: DD E1       pop  ix
-B188: CD E8 BB    call $BBE2
+B188: CD E8 BB    call write_0_in_port_1_BBE2
 B18B: F5          push af
 B18C: C5          push bc
 B18D: D5          push de
@@ -30002,7 +30165,7 @@ B1B9: CA 64 B1    jp   z,$B1C4
 B1BC: CB 57       bit  2,a
 B1BE: C2 7E B1    jp   nz,$B1DE
 B1C1: C3 7A B1    jp   $B1DA
-B1C4: 3A 82 60    ld   a,(player_vertical_pos_C028)
+B1C4: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B1C7: FE 0A       cp   $0A
 B1C9: CA 7E B1    jp   z,$B1DE
 B1CC: FE 0B       cp   $0B
@@ -30374,10 +30537,11 @@ B462: 3E FF       ld   a,$FF
 B464: C3 C2 B4    jp   $B468
 B467: AF          xor  a
 B468: C9          ret
-B469: 3E 48       ld   a,$42
+
+startup_B469: 3E 48       ld   a,$42
 B46B: 32 81 67    ld   ($CD21),a
 B46E: 31 00 6F    ld   sp,$CF00
-B471: CD E8 BB    call $BBE2
+B471: CD E8 BB    call write_0_in_port_1_BBE2
 B474: ED 56       im   1
 B476: 31 00 6F    ld   sp,$CF00
 B479: 21 00 60    ld   hl,$C000
@@ -30386,9 +30550,9 @@ B47F: CD B7 B8    call $B2BD
 B482: CD 41 BB    call $BB41
 B485: 3E FF       ld   a,$FF
 B487: 32 86 60    ld   ($C02C),a
-B48A: CD E2 BB    call $BBE8
+B48A: CD E2 BB    call write_1_in_port_1_BBE8
 B48D: 31 00 6F    ld   sp,$CF00
-B490: CD E2 BB    call $BBE8
+B490: CD E2 BB    call write_1_in_port_1_BBE8
 B493: 21 0C 60    ld   hl,$C006
 B496: 3A 83 60    ld   a,($C029)
 B499: A7          and  a
@@ -30425,7 +30589,7 @@ B4D0: DD 46 00    ld   b,(ix+$00)
 B4D3: DD 7E 01    ld   a,(ix+$01)
 B4D6: 83          add  a,e
 B4D7: 5F          ld   e,a
-B4D8: 32 82 60    ld   (player_vertical_pos_C028),a
+B4D8: 32 82 60    ld   (player_2_attack_flags_C028),a
 B4DB: 78          ld   a,b
 B4DC: AE          xor  (hl)
 B4DD: 77          ld   (hl),a
@@ -30442,9 +30606,9 @@ B4F3: FD 21 80 00 ld   iy,$0020
 B4F7: FD 19       add  iy,de
 B4F9: FD 6E 00    ld   l,(iy+$00)
 B4FC: FD 66 01    ld   h,(iy+$01)
-B4FF: CD E2 BB    call $BBE8
+B4FF: CD E2 BB    call write_1_in_port_1_BBE8
 B502: E9          jp   (hl)
-B503: CD E8 BB    call $BBE2
+B503: CD E8 BB    call write_0_in_port_1_BBE2
 B506: 21 06 60    ld   hl,$C00C
 B509: FD 21 06 60 ld   iy,$C00C
 B50D: FD 7E 00    ld   a,(iy+$00)
@@ -30480,7 +30644,7 @@ B545: DD 46 00    ld   b,(ix+$00)
 B548: DD 7E 01    ld   a,(ix+$01)
 B54B: 83          add  a,e
 B54C: 5F          ld   e,a
-B54D: 32 82 60    ld   (player_vertical_pos_C028),a
+B54D: 32 82 60    ld   (player_2_attack_flags_C028),a
 B550: 78          ld   a,b
 B551: AE          xor  (hl)
 B552: 77          ld   (hl),a
@@ -30505,11 +30669,11 @@ B56A: 23          inc  hl
 B56B: 7E          ld   a,(hl)
 B56C: 21 8A 60    ld   hl,$C02A
 B56F: 35          dec  (hl)
-B570: CD E2 BB    call $BBE8
+B570: CD E2 BB    call write_1_in_port_1_BBE8
 B573: C9          ret
 
 ; load iy with player structure
-load_ix_with_player_structure_B574: 3A 82 60    ld   a,(player_vertical_pos_C028)
+load_ix_with_player_structure_B574: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B577: FD 21 00 61 ld   iy,$C100
 B57B: 47          ld   b,a
 B57C: 0E 00       ld   c,$00
@@ -30535,8 +30699,8 @@ B59E: CB 18       rr   b
 B5A0: CB 19       rr   c
 B5A2: FD 09       add  iy,bc
 B5A4: C9          ret
-B5A5: CD E8 BB    call $BBE2
-B5A8: 3A 82 60    ld   a,(player_vertical_pos_C028)
+B5A5: CD E8 BB    call write_0_in_port_1_BBE2
+B5A8: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B5AB: 21 00 60    ld   hl,$C000
 B5AE: 4F          ld   c,a
 B5AF: 06 00       ld   b,$00
@@ -30556,7 +30720,7 @@ B5C5: DD 7E 00    ld   a,(ix+$00)
 B5C8: AE          xor  (hl)
 B5C9: 77          ld   (hl),a
 B5CA: C3 27 B4    jp   $B48D
-B5CD: CD E8 BB    call $BBE2
+B5CD: CD E8 BB    call write_0_in_port_1_BBE2
 B5D0: 21 00 60    ld   hl,$C000
 B5D3: 4F          ld   c,a
 B5D4: 06 00       ld   b,$00
@@ -30589,7 +30753,7 @@ B5FD: AE          xor  (hl)
 B5FE: 77          ld   (hl),a
 B5FF: 21 83 60    ld   hl,$C029
 B602: 35          dec  (hl)
-B603: CD E2 BB    call $BBE8
+B603: CD E2 BB    call write_1_in_port_1_BBE8
 B606: C9          ret
 B607: 19          add  hl,de
 B608: 78          ld   a,b
@@ -30600,15 +30764,15 @@ B60E: AE          xor  (hl)
 B60F: 77          ld   (hl),a
 B610: 21 8A 60    ld   hl,$C02A
 B613: 35          dec  (hl)
-B614: CD E2 BB    call $BBE8
+B614: CD E2 BB    call write_1_in_port_1_BBE8
 B617: C9          ret
 B618: 19          add  hl,de
 B619: 78          ld   a,b
 B61A: AE          xor  (hl)
 B61B: 77          ld   (hl),a
-B61C: CD E2 BB    call $BBE8
+B61C: CD E2 BB    call write_1_in_port_1_BBE8
 B61F: C9          ret
-B620: CD E8 BB    call $BBE2
+B620: CD E8 BB    call write_0_in_port_1_BBE2
 B623: 21 00 60    ld   hl,$C000
 B626: 4F          ld   c,a
 B627: 06 00       ld   b,$00
@@ -30639,14 +30803,15 @@ B64E: 77          ld   (hl),a
 B64F: 21 83 60    ld   hl,$C029
 B652: 34          inc  (hl)
 B653: AF          xor  a
-B654: CD E2 BB    call $BBE8
+B654: CD E2 BB    call write_1_in_port_1_BBE8
 B657: C9          ret
 B658: 3E FF       ld   a,$FF
-B65A: CD E2 BB    call $BBE8
+B65A: CD E2 BB    call write_1_in_port_1_BBE8
 B65D: C9          ret
-B65E: CD E8 BB    call $BBE2
+
+B65E: CD E8 BB    call write_0_in_port_1_BBE2
 B661: F5          push af
-B662: 3A 82 60    ld   a,(player_vertical_pos_C028)
+B662: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B665: 21 18 60    ld   hl,$C012
 B668: 4F          ld   c,a
 B669: 06 00       ld   b,$00
@@ -30665,7 +30830,7 @@ B67D: DD 19       add  ix,de
 B67F: DD 7E 00    ld   a,(ix+$00)
 B682: B6          or   (hl)
 B683: 77          ld   (hl),a
-B684: 3A 82 60    ld   a,(player_vertical_pos_C028)
+B684: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B687: FD 21 00 61 ld   iy,$C100
 B68B: 47          ld   b,a
 B68C: 0E 00       ld   c,$00
@@ -30678,13 +30843,14 @@ B697: CB 18       rr   b
 B699: CB 19       rr   c
 B69B: FD 09       add  iy,bc
 B69D: F1          pop  af
+; writes in player struct + 2: number of frames to wait until next frame
 B69E: FD 77 08    ld   (iy+$02),a
 B6A1: 21 00 00    ld   hl,$0000
 B6A4: 39          add  hl,sp
 B6A5: FD 75 00    ld   (iy+$00),l
 B6A8: FD 74 01    ld   (iy+$01),h
 B6AB: C3 27 B4    jp   $B48D
-B6AE: CD E8 BB    call $BBE2
+B6AE: CD E8 BB    call write_0_in_port_1_BBE2
 B6B1: C5          push bc
 B6B2: F5          push af
 B6B3: 21 00 60    ld   hl,$C000
@@ -30742,39 +30908,45 @@ B70B: CB 19       rr   c
 B70D: CB 18       rr   b
 B70F: CB 19       rr   c
 B711: FD 09       add  iy,bc
-B713: 3A 82 60    ld   a,(player_vertical_pos_C028)
+B713: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B716: FD 77 05    ld   (iy+$05),a
 B719: C1          pop  bc
 B71A: FD 70 0C    ld   (iy+$06),b
 B71D: 21 8A 60    ld   hl,$C02A
 B720: 34          inc  (hl)
 B721: AF          xor  a
-B722: CD E2 BB    call $BBE8
+B722: CD E2 BB    call write_1_in_port_1_BBE8
 B725: C9          ret
+
 B726: E1          pop  hl
 B727: F1          pop  af
 B728: C1          pop  bc
 B729: 3E FF       ld   a,$FF
-B72B: CD E2 BB    call $BBE8
+B72B: CD E2 BB    call write_1_in_port_1_BBE8
 B72E: C9          ret
+
+; main interrupt (vblank) routine, called every 1/60s
+on_periodic_interrupt_B72F:
 B72F: 08          ex   af,af'
 B730: D9          exx
 B731: DD E5       push ix
 B733: FD E5       push iy
-B735: CD E8 BB    call $BBE2
+B735: CD E8 BB    call write_0_in_port_1_BBE2
+; copy some data from C700 to D800 (254 bytes)
 B738: 21 00 6D    ld   hl,referee_x_pos_C700
 B73B: 11 00 72    ld   de,$D800
 B73E: 01 F6 00    ld   bc,$00FC
 B741: ED B0       ldir
-B743: 2A 8E 60    ld   hl,(attack_periodic_counter_C02E)
+; increment attack counter
+B743: 2A 8E 60    ld   hl,(periodic_counter_16bit_C02E)
 B746: 23          inc  hl
-B747: 22 8E 60    ld   (attack_periodic_counter_C02E),hl
-B74A: 3A 8B 60    ld   a,($C02B)
+B747: 22 8E 60    ld   (periodic_counter_16bit_C02E),hl
+B74A: 3A 8B 60    ld   a,(periodic_counter_8bit_C02B)
 B74D: 3C          inc  a
-B74E: 32 8B 60    ld   ($C02B),a
+B74E: 32 8B 60    ld   (periodic_counter_8bit_C02B),a
 B751: AF          xor  a
-B752: CD CF BB    call $BB6F
-B755: CD D7 BA    call $BA7D
+B752: CD CF BB    call write_a_in_port_0_BB6F
+B755: CD D7 BA    call manage_coin_inserted_BA7D
 B758: 21 18 60    ld   hl,$C012
 B75B: 01 00 00    ld   bc,$0000
 B75E: 16 00       ld   d,$00
@@ -30789,8 +30961,9 @@ B772: FD E1       pop  iy
 B774: DD E1       pop  ix
 B776: D9          exx
 B777: 08          ex   af,af'
-B778: CD E2 BB    call $BBE8
+B778: CD E2 BB    call write_1_in_port_1_BBE8
 B77B: ED 45       retn
+
 B77D: 7E          ld   a,(hl)
 B77E: A7          and  a
 B77F: C2 24 BD    jp   nz,$B784
@@ -30821,12 +30994,16 @@ B7A8: CB 18       rr   b
 B7AA: CB 19       rr   c
 B7AC: DD 09       add  ix,bc
 B7AE: C1          pop  bc
+; read current frame timeout value
 B7AF: DD 7E 08    ld   a,(ix+$02)
 B7B2: A7          and  a
-B7B3: CA E0 BD    jp   z,$B7E0
-B7B6: 3D          dec  a
-B7B7: DD 77 08    ld   (ix+$02),a
-B7BA: C2 E0 BD    jp   nz,$B7E0
+B7B3: CA E0 BD    jp   z,$B7E0		; zero => skip
+B7B6: 3D          dec  a			; decrease frame value
+B7B7: DD 77 08    ld   (ix+$02),a	; and store it
+B7BA: C2 E0 BD    jp   nz,$B7E0		; non-zero => skip
+; frame timeout reached (if ix == player 1 or player 2 struct C240 or C260)
+; seems that it can be used for other animations or timeouts
+; to put a breakpoint that filters player 2 animation: bp B7BD,ix == C260
 B7BD: DD 77 0C    ld   (ix+$06),a
 B7C0: DD 21 8A 60 ld   ix,$C02A
 B7C4: DD 34 00    inc  (ix+$00)
@@ -30848,6 +31025,9 @@ B7DF: E1          pop  hl
 B7E0: F1          pop  af
 B7E1: 1C          inc  e
 B7E2: C3 2C BD    jp   $B786
+
+
+
 B7E5: 00          nop
 B7E6: 61          ld   h,c
 B7E7: 80          add  a,b
@@ -31234,8 +31414,10 @@ BA75: 04          inc  b
 BA76: 08          ex   af,af'
 BA77: 01 00 08    ld   bc,$0200
 BA7A: 01 01 00    ld   bc,$0001
+
+manage_coin_inserted_BA7D
 BA7D: DD 21 84 60 ld   ix,nb_credits_minus_one_C024
-BA81: CD 28 BB    call $BB82
+BA81: CD 28 BB    call check_coin_ports_BB82
 BA84: E6 60       and  $C0
 BA86: 47          ld   b,a
 BA87: CA 67 BA    jp   z,$BACD
@@ -31318,6 +31500,7 @@ BB3B: 35          dec  (hl)
 BB3C: 35          dec  (hl)
 BB3D: C4 2C B1    call nz,display_error_text_B186
 BB40: C9          ret
+
 BB41: ED 56       im   1
 BB43: D1          pop  de
 BB44: 21 00 70    ld   hl,$D000
@@ -31337,6 +31520,8 @@ BB66: CD 80 BC    call $B620
 BB69: 3E 20       ld   a,$80
 BB6B: CD 7F BB    call $BBDF
 BB6E: C9          ret
+
+write_a_in_port_0_BB6F:
 BB6F: D3 00       out  ($00),a
 BB71: C9          ret
 BB72: 3E 00       ld   a,$00
@@ -31347,6 +31532,7 @@ BB7A: 3E 01       ld   a,$01
 BB7C: D3 00       out  ($00),a
 BB7E: 32 91 60    ld   ($C031),a
 BB81: C9          ret
+
 BB82: C5          push bc
 BB83: DB 20       in   a,($80)
 BB85: 2F          cpl
@@ -31359,9 +31545,11 @@ BB8D: B0          or   b
 BB8E: E6 66       and  $CC
 BB90: C1          pop  bc
 BB91: C9          ret
+
 BB92: DB 60       in   a,($C0)
 BB94: 2F          cpl
 BB95: C9          ret
+
 BB96: 3A 87 60    ld   a,(player_2_is_cpu_flags_C02D)
 BB99: CB 5F       bit  3,a
 BB9B: CA A4 BB    jp   z,$BBA4
@@ -31403,17 +31591,20 @@ BBDE: C9          ret
 BBDF: D3 40       out  ($40),a
 BBE1: C9          ret
 
+write_0_in_port_1_BBE2
 BBE2: F5          push af
 BBE3: AF          xor  a
 BBE4: D3 01       out  ($01),a
 BBE6: F1          pop  af
 BBE7: C9          ret
 
+write_1_in_port_1_BBE8
 BBE8: F5          push af
 BBE9: 3E 01       ld   a,$01
 BBEB: D3 01       out  ($01),a
 BBED: F1          pop  af
 BBEE: C9          ret
+
 BBEF: 00          nop
 BBF0: 10 C2       djnz $BC5A
 BBF2: 08          ex   af,af'
@@ -40625,12 +40816,12 @@ E156: FD 77 0A    ld   (iy+$0a),a
 E159: FD E5       push iy
 E15B: DD E5       push ix
 E15D: DD 21 00 6D ld   ix,referee_x_pos_C700
-E161: 3A 82 60    ld   a,(player_vertical_pos_C028)
+E161: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 E164: FE 08       cp   $02
 E166: CA C7 E1    jp   z,$E16D
 E169: DD 21 90 6D ld   ix,$C730
 E16D: 0E 01       ld   c,$01
-E16F: 3A 82 60    ld   a,(player_vertical_pos_C028)
+E16F: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 E172: FE 08       cp   $02
 E174: CA D3 E1    jp   z,$E179
 E177: 0E 08       ld   c,$02
@@ -40696,7 +40887,7 @@ E201: 4F          ld   c,a
 E202: CB 21       sla  c
 E204: DD 21 82 E8 ld   ix,$E228
 E208: DD 09       add  ix,bc
-E20A: 3A 82 60    ld   a,(player_vertical_pos_C028)
+E20A: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 E20D: 01 00 00    ld   bc,$0000
 E210: FE 1C       cp   $16
 E212: CA 12 E8    jp   z,$E218
@@ -42121,7 +42312,7 @@ EC86: 10 B6       djnz $EC44
 EC88: C9          ret
 EC89: 06 12       ld   b,$18
 EC8B: DD 21 C0 6D ld   ix,$C760
-EC8F: 3A 82 60    ld   a,(player_vertical_pos_C028)
+EC8F: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 EC92: FE 1D       cp   $17
 EC94: C2 37 E6    jp   nz,$EC9D
 EC97: 06 90       ld   b,$30
@@ -42150,7 +42341,7 @@ ECCA: 2C          inc  l
 ECCB: 10 FC       djnz $ECC3
 ECCD: DD 21 90 6D ld   ix,$C730
 ECD1: 21 90 F5    ld   hl,$F530
-ECD4: 3A 82 60    ld   a,(player_vertical_pos_C028)
+ECD4: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 ECD7: FE 1D       cp   $17
 ECD9: C2 7F E6    jp   nz,$ECDF
 ECDC: 21 84 F4    ld   hl,$F424
@@ -42161,10 +42352,10 @@ ECE7: E5          push hl
 ECE8: FD E5       push iy
 ECEA: C5          push bc
 ECEB: DD E5       push ix
-ECED: 3A 82 60    ld   a,(player_vertical_pos_C028)
+ECED: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 ECF0: FE 1D       cp   $17
 ECF2: C2 0C E7    jp   nz,$ED06
-ECF5: 3A 8B 60    ld   a,($C02B)
+ECF5: 3A 8B 60    ld   a,(periodic_counter_8bit_C02B)
 ECF8: E6 0F       and  $0F
 ECFA: CB 3F       srl  a
 ECFC: CB 3F       srl  a
@@ -42198,7 +42389,7 @@ ED38: D5          push de
 ED39: FD E1       pop  iy
 ED3B: 05          dec  b
 ED3C: C2 A9 E7    jp   nz,$EDA3
-ED3F: 3A 82 60    ld   a,(player_vertical_pos_C028)
+ED3F: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 ED42: FE 1D       cp   $17
 ED44: C2 DF E7    jp   nz,$ED7F
 ED47: DD 21 90 6D ld   ix,$C730
@@ -45185,7 +45376,7 @@ FF65: C5          push bc
 FF66: 3E 09       ld   a,$03
 FF68: CD 5A B0    call $B05A
 FF6B: A7          and  a
-FF6C: C4 D5 B0    call nz,$B075
+FF6C: C4 D5 B0    call nz,display_error_text_B075
 FF6F: CD C3 B0    call $B069
 FF72: E6 06       and  $0C
 FF74: C1          pop  bc
@@ -45201,19 +45392,19 @@ FF8B: CD 5D B0    call $B057
 FF8E: 3E 0A       ld   a,$0A
 FF90: CD 5D B0    call $B057
 FF93: A7          and  a
-FF94: C4 D5 B0    call nz,$B075
+FF94: C4 D5 B0    call nz,display_error_text_B075
 FF97: 3E 0B       ld   a,$0B
 FF99: CD 5D B0    call $B057
 FF9C: A7          and  a
-FF9D: C4 D5 B0    call nz,$B075
+FF9D: C4 D5 B0    call nz,display_error_text_B075
 FFA0: 3E 02       ld   a,$08
 FFA2: CD 5D B0    call $B057
 FFA5: A7          and  a
-FFA6: C4 D5 B0    call nz,$B075
+FFA6: C4 D5 B0    call nz,display_error_text_B075
 FFA9: 3E 03       ld   a,$09
 FFAB: CD 5D B0    call $B057
 FFAE: A7          and  a
-FFAF: C4 D5 B0    call nz,$B075
+FFAF: C4 D5 B0    call nz,display_error_text_B075
 FFB2: CD C3 B0    call $B069
 FFB5: E6 06       and  $0C
 FFB7: 32 4F 61    ld   ($C14F),a
@@ -45232,16 +45423,16 @@ FFD6: 3E 0F       ld   a,$0F
 FFD8: 06 80       ld   b,$20
 FFDA: CD 57 B0    call $B05D
 FFDD: A7          and  a
-FFDE: C4 D5 B0    call nz,$B075
+FFDE: C4 D5 B0    call nz,display_error_text_B075
 FFE1: 3E D2       ld   a,$78
 FFE3: CD 5A B0    call $B05A
 FFE6: A7          and  a
-FFE7: C4 D5 B0    call nz,$B075
+FFE7: C4 D5 B0    call nz,display_error_text_B075
 FFEA: 3E 01       ld   a,$01
 FFEC: 06 01       ld   b,$01
 FFEE: CD 57 B0    call $B05D
 FFF1: A7          and  a
-FFF2: C4 D5 B0    call nz,$B075
+FFF2: C4 D5 B0    call nz,display_error_text_B075
 FFF5: CD 51 B0    call $B051
 FFF8: 3A 4F 61    ld   a,($C14F)
 FFFB: A7          and  a

@@ -28,16 +28,58 @@
  {
    "name":"front_kick",
    "start_x":18,
-   "start_y":338,
+   "start_y":340,
    "gap":36,
    "frames":9
  },
 {
    "name":"low_kick",
    "start_x":18,
-   "start_y":426,
+   "start_y":432,
    "gap":36,
    "frames":10
+ },
+{
+   "name":"back_round_kick",
+   "start_x":18,
+   "start_y":528,
+   "gap":36,
+   "frames":9
+ },
+{
+   "name":"back_kick",
+   "start_x":18,
+   "start_y":622,
+   "gap":36,
+   "frames":8
+ },
+{
+   "name":"jumping_back_kick",
+   "start_x":18,
+   "start_y":720,
+   "gap":36,
+   "frames":9
+ },
+{
+   "name":"foot_sweep_back",
+   "start_x":18,
+   "start_y":812,
+   "gap":36,
+   "frames":9
+ },
+{
+   "name":"foot_sweep_front",
+   "start_x":18,
+   "start_y":914,
+   "gap":36,
+   "frames":9
+ },
+{
+   "name":"jumping_side_kick",
+   "start_x":18,
+   "start_y":1010,
+   "gap":36,
+   "frames":9
  }
  ]
 }
