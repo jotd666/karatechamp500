@@ -41,7 +41,7 @@
 ; 0x04: crouch
 ; 0x05: back kick
 ; 0x06: ??
-; 0x07: ??
+; 0x07: ?? it means something as it's set by A966 and others
 ; 0x08: jumping back kick
 ; 0x09: foot sweep (back)
 ; 0x0A: front kick (can also be small reverse punch at short range apparently)
@@ -66,8 +66,22 @@
 ; * figure out where the joystick is read
 ; * figure out the move timing tables and x offsets: each move frame has a different timing
 ;   and each move frame has a x-offset associated to it
-; * check & understand ai jump table computer_ai_jump_table_A5B1
-; * understand what B0EE does (multiplication?)
+; * check & understand ai jump tables computer_ai_jump_table_A5B1
+; * understand tables located table_AABD
+; * understand what B0EE does
+; * understand what AB1D does, what's the value of iy
+; * understand the diff between cpu_move_forward_towards_enemy_A6D4/A6E7
+; * understand 07 (A966) put a break point
+; * undestand A53B what is C22F: seems 0 -> 4 depending on player distance
+; so a finer version of the 0,1,2 distance
+;
+; actually C22F makes perfect sense
+; 
+; bit 7 set => means players are turning their backs to each other
+; then
+; 0: players far away, player 1 to the left, player 2 to the right
+; 1-4: same but the bigger the number, the closer the players
+; 5-8: 5 player 1 far right ... 8 players 1 & 2 very close, player 1 right
 
 0000: C3 45 B0    jp   $B045
 0003: C3 59 41    jp   $4153
@@ -8893,7 +8907,7 @@
 2A8B: 11 FF A6    ld   de,$ACFF
 2A8E: 11 A6 11    ld   de,$11AC
 2A91: A6          and  (hl)
-2A92: 11 0F B0    ld   de,$B00F
+2A92: 11 0F B0    ld   de,table_linear_search_B00F
 2A95: 13          inc  de
 2A96: B0          or   b
 2A97: 13          inc  de
@@ -10032,7 +10046,7 @@
 30BB: 40          ld   b,b
 30BC: 11 40 11    ld   de,$1140
 30BF: 40          ld   b,b
-30C0: 11 0F B0    ld   de,$B00F
+30C0: 11 0F B0    ld   de,table_linear_search_B00F
 30C3: 13          inc  de
 30C4: B0          or   b
 30C5: 13          inc  de
@@ -27948,7 +27962,7 @@ A390: CD 4B B0    call $B04B	; load_ix_with_player_structure_B574
 A393: CD 82 A4    call $A428
 A396: CD 47 A9    call $A34D
 A399: A7          and  a
-A39A: C2 10 A4    jp   nz,$A410
+A39A: C2 10 A4    jp   nz,cpu_move_done_A410
 A39D: DD 21 9B AA ld   ix,$AA3B
 A3A1: FD 6E 0D    ld   l,(iy+$07)
 A3A4: FD 66 02    ld   h,(iy+$08)
@@ -27984,9 +27998,9 @@ A3E1: C3 6B A6    jp   $ACCB
 A3E4: 3A 11 63    ld   a,($C911)
 A3E7: CB BF       res  7,a
 A3E9: FE 50       cp   $50
-A3EB: CA 10 A4    jp   z,$A410
+A3EB: CA 10 A4    jp   z,cpu_move_done_A410
 A3EE: FD CB 10 4C bit  0,(iy+$10)
-A3F2: C2 10 A4    jp   nz,$A410
+A3F2: C2 10 A4    jp   nz,cpu_move_done_A410
 ; we enter here when computer is about to decide what attack to do
 ; it doesn't enter here when the computer is walking towards the
 ; human player
@@ -28137,46 +28151,52 @@ A535: 70          ld   (hl),b
 A536: 1D          dec  e
 A537: E2 1D 00    jp   po,$0017
 A53A: FF          rst  $38
-A53B: DD 21 4F A5 ld   ix,$A54F
+
+; jump table depending on the value of iy+0xF
+; this jumps to another jump table selector (which is not very performant
+; as all the routines jumped to just load ix to a different value, a double
+; jump could probably have been avoided. But who am I to criticize Z80 code ?
+
+A53B: DD 21 4F A5 ld   ix,jump_table_A54F
 A53F: 06 00       ld   b,$00
-A541: FD 4E 0F    ld   c,(iy+$0f)
-A544: CB 21       sla  c
+A541: FD 4E 0F    ld   c,(iy+$0f); iy = C220: algebraic distance index (0-8 + facing direction bit 7)
+A544: CB 21       sla  c		; times 2 (and gets rid of the direction bit)
 A546: DD 09       add  ix,bc
 A548: DD 6E 00    ld   l,(ix+$00)
 A54B: DD 66 01    ld   h,(ix+$01)
 A54E: E9          jp   (hl)
-A54F: C1          pop  bc
-A550: A5          and  l
-A551: C2 A5 CF    jp   nz,$6FA5
-A554: A5          and  l
-A555: DC A5 D7    call c,$7DA5
-A558: A5          and  l
-A559: 24          inc  h
-A55A: A5          and  l
-A55B: 2B          dec  hl
-A55C: A5          and  l
-A55D: 38 A5       jr   c,$A504
-A55F: 33          inc  sp
-A560: A5          and  l
+jump_table_A54F: 
+; 61 A5 68 A5 6F A5 76 A5 7D A5 84 A5 8B A5 92 A5 99 A5
+
+; p1 left, p2 right, far away (C22F = 0)
 A561: DD 21 B1 A5 ld   ix,computer_ai_jump_table_A5B1
-A565: C3 37 A5    jp   $A59D
-A568: DD 21 65 A5 ld   ix,$A5C5
-A56C: C3 37 A5    jp   $A59D
-A56F: DD 21 73 A5 ld   ix,$A5D9
-A573: C3 37 A5    jp   $A59D
-A576: DD 21 E7 A5 ld   ix,$A5ED
-A57A: C3 37 A5    jp   $A59D
-A57D: DD 21 01 AC ld   ix,$A601
-A581: C3 37 A5    jp   $A59D
-A584: DD 21 15 AC ld   ix,$A615
-A588: C3 37 A5    jp   $A59D
-A58B: DD 21 83 AC ld   ix,$A629
-A58F: C3 37 A5    jp   $A59D
-A592: DD 21 97 AC ld   ix,$A63D
-A596: C3 37 A5    jp   $A59D
-A599: DD 21 51 AC ld   ix,$A651
+A565: C3 37 A5    jp   jump_to_routine_from_table_A59D
+; p1 left, p2 right, less far away (1)
+A568: DD 21 65 A5 ld   ix,computer_ai_jump_table_A5C5
+A56C: C3 37 A5    jp   jump_to_routine_from_table_A59D
+; p1 left, p2 right, less far away (2)
+A56F: DD 21 73 A5 ld   ix,computer_ai_jump_table_A5D9
+A573: C3 37 A5    jp   jump_to_routine_from_table_A59D
+; p1 left, p2 right, less far away (3)
+A576: DD 21 E7 A5 ld   ix,computer_ai_jump_table_A5ED
+A57A: C3 37 A5    jp   jump_to_routine_from_table_A59D
+; p1 left, p2 right, very close (4)
+A57D: DD 21 01 AC ld   ix,computer_ai_jump_table_A601
+A581: C3 37 A5    jp   jump_to_routine_from_table_A59D
+; p1 right, p2 left, far away (5)
+A584: DD 21 15 AC ld   ix,computer_ai_jump_table_A615
+A588: C3 37 A5    jp   jump_to_routine_from_table_A59D
+; 6
+A58B: DD 21 83 AC ld   ix,computer_ai_jump_table_A629
+A58F: C3 37 A5    jp   jump_to_routine_from_table_A59D
+; 7
+A592: DD 21 97 AC ld   ix,computer_ai_jump_table_A63D
+A596: C3 37 A5    jp   jump_to_routine_from_table_A59D
+; p1 right, p2 left, very close (8)
+A599: DD 21 51 AC ld   ix,computer_ai_jump_table_A651
+jump_to_routine_from_table_A59D
 A59D: DD E5       push ix
-A59F: CD C5 AC    call $A665
+A59F: CD C5 AC    call $A665		; get what to do. Is that random? TODO
 A5A2: DD E1       pop  ix
 ; a is the index of the routine in computer_ai_jump_table_A5B1
 A5A4: 87          add  a,a
@@ -28188,37 +28208,42 @@ A5AD: DD 66 01    ld   h,(ix+$01)
 ; jump to the routine
 A5B0: E9          jp   (hl)
 
+; makes sense: players are far away, CPU just tries to get closer to player
+; (uses the move forward with a special case TODO)
 computer_ai_jump_table_A5B1:
 	dc.w	display_error_text_B075
-	dc.w	$A6D4
-	dc.w	$A6D4
-	dc.w	$A6D4
-	dc.w	$A6D4
-	dc.w	$A6D4
-	dc.w	$A6D4
-	dc.w	$A6D4
-	dc.w	$A6D4
-	dc.w	$A6D4
+	dc.w	cpu_move_forward_towards_enemy_A6D4
+	dc.w	cpu_move_forward_towards_enemy_A6D4
+	dc.w	cpu_move_forward_towards_enemy_A6D4
+	dc.w	cpu_move_forward_towards_enemy_A6D4
+	dc.w	cpu_move_forward_towards_enemy_A6D4
+	dc.w	cpu_move_forward_towards_enemy_A6D4
+	dc.w	cpu_move_forward_towards_enemy_A6D4
+	dc.w	cpu_move_forward_towards_enemy_A6D4
+	dc.w	cpu_move_forward_towards_enemy_A6D4
+computer_ai_jump_table_A5C5
 	dc.w	display_error_text_B075
-	dc.w	$A6E7
-	dc.w	$A6EF
-	dc.w	$A700
-	dc.w	$A711
-	dc.w	$A714
+	dc.w	cpu_move_forward_towards_enemy_A6E7
+	dc.w	cpu_forward_or_stop_depending_on_facing_A6EF
+	dc.w	cpu_forward_or_stop_depending_on_facing_A700
+	dc.w	$A711	; jumps to cpu_move_forward_towards_enemy_A6E7
+	dc.w	$A714	; jumps to cpu_move_forward_towards_enemy_A6E7
 	dc.w	$A717
 	dc.w	$A71A
 	dc.w	$A71D
 	dc.w	$A71D
+computer_ai_jump_table_A5D9:
 	dc.w	display_error_text_B075
 	dc.w	$A725
 	dc.w	$A73F
 	dc.w	$A786
 	dc.w	$A7C5
 	dc.w	$A7CD
-	dc.w	$A7D5
-	dc.w	$A7E6
-	dc.w	$A7F7
-	dc.w	$A7FA
+	dc.w	cpu_forward_or_backward_depending_on_facing_A7D5
+	dc.w	cpu_backward_or_forward_depending_on_facing_A7E6
+	dc.w	$A7F7	; jumps to A725
+	dc.w	$cpu_move_forward_towards_enemy_A7FA
+computer_ai_jump_table_A5ED	
 	dc.w	display_error_text_B075
 	dc.w	$A802
 	dc.w	$A80C
@@ -28229,6 +28254,7 @@ computer_ai_jump_table_A5B1:
 	dc.w	$A8E8
 	dc.w	$A911
 	dc.w	$A914
+computer_ai_jump_table_A601
 	dc.w	display_error_text_B075
 	dc.w	$A917
 	dc.w	$A92F
@@ -28238,6 +28264,7 @@ computer_ai_jump_table_A5B1:
 	dc.w	$A943
 	dc.w	$A946
 	dc.w	$A94E
+computer_ai_jump_table_A615
 	dc.w	display_error_text_B075
 	dc.w	$A966
 	dc.w	$A966
@@ -28248,6 +28275,7 @@ computer_ai_jump_table_A5B1:
 	dc.w	$A966
 	dc.w	$A966
 	dc.w	$A966
+computer_ai_jump_table_A629
 	dc.w	display_error_text_B075
 	dc.w	$A966
 	dc.w	$A966
@@ -28258,6 +28286,7 @@ computer_ai_jump_table_A5B1:
 	dc.w	$A966
 	dc.w	$A966
 	dc.w	$A966
+computer_ai_jump_table_A63D
 	dc.w	display_error_text_B075
 	dc.w	$A96E
 	dc.w	$A980
@@ -28268,6 +28297,7 @@ computer_ai_jump_table_A5B1:
 	dc.w	$AA25
 	dc.w	$AA2D
 	dc.w	$AA30
+computer_ai_jump_table_A651
 	dc.w	display_error_text_B075
 	dc.w	$AA33
 	dc.w	$AA33
@@ -28479,38 +28509,50 @@ A6CE: C2 79 AC    jp   nz,$A6D3
 A6D1: 3E 03       ld   a,$09
 A6D3: C9          ret
 
+; move forward with a special case TODO
+cpu_move_forward_towards_enemy_A6D4:
 A6D4: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 ; here writes to C26B (if player 2 CPU) to tell CPU to walk forward
 A6D7: 36 08       ld   (hl),$02
 A6D9: FD 7E 07    ld   a,(iy+$0d)
 A6DC: FD BE 03    cp   (iy+$09)
 A6DF: D2 E4 AC    jp   nc,$A6E4
-A6E2: 36 0D       ld   (hl),$07
-A6E4: C3 10 A4    jp   $A410
+A6E2: 36 0D       ld   (hl),$07		; TODO see what this is
+A6E4: C3 10 A4    jp   cpu_move_done_A410
+
+; simplest & dumbest move forward
+cpu_move_forward_towards_enemy_A6E7:
 A6E7: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A6EA: 36 08       ld   (hl),$02
-A6EC: C3 10 A4    jp   $A410
+A6EC: C3 10 A4    jp   cpu_move_done_A410
+
+; move if not facing, stop if facing
+cpu_forward_or_stop_depending_on_facing_A6EF:
 A6EF: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
-A6F2: 36 00       ld   (hl),$00
-A6F4: DD CB 0F DE bit  7,(ix+$0f)
-A6F8: CA F7 AC    jp   z,$A6FD
+A6F2: 36 00       ld   (hl),$00		; stop
+A6F4: DD CB 0F DE bit  7,(ix+$0f)	; are players facing or back to back
+A6F8: CA F7 AC    jp   z,$A6FD		; facing
+; back to back: move
 A6FB: 36 08       ld   (hl),$02
-A6FD: C3 10 A4    jp   $A410
+A6FD: C3 10 A4    jp   cpu_move_done_A410
+
+; move if facing, stop if not facing
+cpu_forward_or_stop_depending_on_facing_A700:
 A700: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A703: 36 00       ld   (hl),$00
 A705: FD CB 0F DE bit  7,(iy+$0f)
 A709: C2 0E AD    jp   nz,$A70E
 A70C: 36 08       ld   (hl),$02
-A70E: C3 10 A4    jp   $A410
-; looks like a jump table
-A711: C3 ED AC    jp   $A6E7
-A714: C3 ED AC    jp   $A6E7
-A717: C3 75 AD    jp   $A7D5
-A71A: C3 EC AD    jp   $A7E6
+A70E: C3 10 A4    jp   cpu_move_done_A410
+
+A711: C3 ED AC    jp   cpu_move_forward_towards_enemy_A6E7
+A714: C3 ED AC    jp   cpu_move_forward_towards_enemy_A6E7
+A717: C3 75 AD    jp   cpu_forward_or_backward_depending_on_facing_A7D5
+A71A: C3 EC AD    jp   $cpu_backward_or_forward_depending_on_facing_A7E6
 ; send "walk forward"
 A71D: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A720: 36 08       ld   (hl),$02
-A722: C3 10 A4    jp   $A410
+A722: C3 10 A4    jp   cpu_move_done_A410
 
 ; called by a jp (hl) when distance between players is "medium" (C26C 0 -> 1)
 A725: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
@@ -28526,7 +28568,7 @@ A731: C2 96 AD    jp   nz,$A73C	; a != 0 => attacked
 A734: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 ; just send walk forward order to CPU
 A737: 36 08       ld   (hl),$02
-A739: C3 10 A4    jp   $A410
+A739: C3 10 A4    jp   cpu_move_done_A410
 
 A73C: C3 E4 A9    jp   $A3E4
 
@@ -28556,7 +28598,7 @@ A776: 36 09       ld   (hl),$03
 A778: C3 20 AD    jp   $A780
 A77B: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A77E: 36 01       ld   (hl),$01
-A780: C3 10 A4    jp   $A410
+A780: C3 10 A4    jp   cpu_move_done_A410
 A783: C3 E4 A9    jp   $A3E4
 A786: FD CB 0F DE bit  7,(iy+$0f)
 A78A: C2 A4 AD    jp   nz,$A7A4
@@ -28579,31 +28621,40 @@ A7B5: 36 09       ld   (hl),$03
 A7B7: C3 BF AD    jp   $A7BF
 A7BA: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A7BD: 36 01       ld   (hl),$01
-A7BF: C3 10 A4    jp   $A410
+A7BF: C3 10 A4    jp   cpu_move_done_A410
 A7C2: C3 E4 A9    jp   $A3E4
 A7C5: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A7C8: 36 08       ld   (hl),$02
-A7CA: C3 10 A4    jp   $A410
+A7CA: C3 10 A4    jp   cpu_move_done_A410
 A7CD: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A7D0: 36 08       ld   (hl),$02
-A7D2: C3 10 A4    jp   $A410
+A7D2: C3 10 A4    jp   cpu_move_done_A410
+
+; move forward, except if back to back in which case move backwards
+cpu_forward_or_backward_depending_on_facing_A7D5:
 A7D5: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A7D8: 36 08       ld   (hl),$02
 A7DA: FD CB 0F DE bit  7,(iy+$0f)
 A7DE: C2 E9 AD    jp   nz,$A7E3
 A7E1: 36 01       ld   (hl),$01
-A7E3: C3 10 A4    jp   $A410
+A7E3: C3 10 A4    jp   cpu_move_done_A410
+
+; move backwards, except if back to back in which case move forwards
+cpu_backward_or_forward_depending_on_facing_A7E6:
 A7E6: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A7E9: 36 08       ld   (hl),$02
 A7EB: FD CB 0F DE bit  7,(iy+$0f)
 A7EF: CA F4 AD    jp   z,$A7F4
 A7F2: 36 01       ld   (hl),$01
-A7F4: C3 10 A4    jp   $A410
-A7F7: C3 85 AD    jp   $A725	; seems to be unreachable
+A7F4: C3 10 A4    jp   cpu_move_done_A410
 
+A7F7: C3 85 AD    jp   $A725
+
+; dumb move forward, same code exactly as A6E7
+cpu_move_forward_towards_enemy_A7FA:
 A7FA: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A7FD: 36 08       ld   (hl),$02
-A7FF: C3 10 A4    jp   $A410
+A7FF: C3 10 A4    jp   cpu_move_done_A410
 
 A802: CD 8E AB    call cpu_attacks_player_AB2E
 A805: A7          and  a
@@ -28640,7 +28691,7 @@ A84E: CD 8E AB    call cpu_attacks_player_AB2E
 A851: A7          and  a
 A852: CC D5 B0    call z,display_error_text_B075
 A855: C3 E4 A9    jp   $A3E4
-A858: C3 10 A4    jp   $A410
+A858: C3 10 A4    jp   cpu_move_done_A410
 A85B: FD CB 0F DE bit  7,(iy+$0f)
 A85F: CA 2C A2    jp   z,$A886
 A862: CD F7 AA    call $AAFD
@@ -28661,14 +28712,14 @@ A886: CD 8E AB    call cpu_attacks_player_AB2E
 A889: A7          and  a
 A88A: CC D5 B0    call z,display_error_text_B075
 A88D: C3 E4 A9    jp   $A3E4
-A890: C3 10 A4    jp   $A410
+A890: C3 10 A4    jp   cpu_move_done_A410
 A893: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A896: 36 14       ld   (hl),$14
 A898: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A89B: E6 0D       and  $07
 A89D: CA A5 A2    jp   z,$A8A5
 A8A0: 36 08       ld   (hl),$02
-A8A2: C3 10 A4    jp   $A410
+A8A2: C3 10 A4    jp   cpu_move_done_A410
 A8A5: C3 E4 A9    jp   $A3E4
 A8A8: C3 08 A2    jp   $A802
 A8AB: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
@@ -28693,8 +28744,8 @@ A8D9: 36 07       ld   (hl),$0D
 A8DB: FE 01       cp   $01
 A8DD: CA E8 A2    jp   z,$A8E2
 A8E0: 36 0F       ld   (hl),$0F
-A8E2: C3 10 A4    jp   $A410
-A8E5: C3 10 A4    jp   $A410
+A8E2: C3 10 A4    jp   cpu_move_done_A410
+A8E5: C3 10 A4    jp   cpu_move_done_A410
 A8E8: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A8EB: FD CB 0F DE bit  7,(iy+$0f)
 A8EF: CA 06 A3    jp   z,$A90C
@@ -28710,7 +28761,7 @@ A904: C2 06 A3    jp   nz,$A90C
 A907: 36 08       ld   (hl),$02
 A909: C3 0E A3    jp   $A90E
 A90C: 36 01       ld   (hl),$01
-A90E: C3 10 A4    jp   $A410
+A90E: C3 10 A4    jp   cpu_move_done_A410
 
 A911: C3 08 A2    jp   $A802
 
@@ -28721,7 +28772,7 @@ A91C: FD 7E 03    ld   a,(iy+$09)
 A91F: FE 90       cp   $30
 A921: D2 83 A3    jp   nc,$A929
 A924: 36 1D       ld   (hl),$17
-A926: C3 10 A4    jp   $A410
+A926: C3 10 A4    jp   cpu_move_done_A410
 A929: C3 E4 A9    jp   $A3E4
 A92C: 00          nop
 A92D: 00          nop
@@ -28736,27 +28787,29 @@ A940: C3 AB A2    jp   $A8AB
 A943: C3 E2 A2    jp   $A8E8
 A946: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A949: 36 01       ld   (hl),$01
-A94B: C3 10 A4    jp   $A410
+A94B: C3 10 A4    jp   cpu_move_done_A410
 A94E: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A951: 36 0A       ld   (hl),$0A
 A953: FD 7E 03    ld   a,(iy+$09)
 A956: FE 90       cp   $30
 A958: D2 C0 A3    jp   nc,$A960
 A95B: 36 1D       ld   (hl),$17
-A95D: C3 10 A4    jp   $A410
+A95D: C3 10 A4    jp   cpu_move_done_A410
 A960: C3 E4 A9    jp   $A3E4
 A963: 00          nop
 A964: 00          nop
 A965: 00          nop
+
 A966: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A969: 36 0D       ld   (hl),$07
-A96B: C3 10 A4    jp   $A410
+A96B: C3 10 A4    jp   cpu_move_done_A410
+
 A96E: CD 8E AB    call cpu_attacks_player_AB2E
 A971: A7          and  a
 A972: C2 D7 A3    jp   nz,$A97D
 A975: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A978: 36 0D       ld   (hl),$07
-A97A: C3 10 A4    jp   $A410
+A97A: C3 10 A4    jp   cpu_move_done_A410
 A97D: C3 E4 A9    jp   $A3E4
 A980: FD CB 0F DE bit  7,(iy+$0f)
 A984: C2 BB A3    jp   nz,$A9BB
@@ -28788,7 +28841,7 @@ A9C6: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A9C9: CB 47       bit  0,a
 A9CB: CA 70 A3    jp   z,$A9D0
 A9CE: 36 08       ld   (hl),$02
-A9D0: C3 10 A4    jp   $A410
+A9D0: C3 10 A4    jp   cpu_move_done_A410
 A9D3: C3 E4 A9    jp   $A3E4
 A9D6: FD CB 0F DE bit  7,(iy+$0f)
 A9DA: CA FE A3    jp   z,$A9FE
@@ -28810,24 +28863,24 @@ AA01: A7          and  a
 AA02: C2 07 AA    jp   nz,$AA0D
 AA05: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AA08: 36 0D       ld   (hl),$07
-AA0A: C3 10 A4    jp   $A410
+AA0A: C3 10 A4    jp   cpu_move_done_A410
 AA0D: C3 E4 A9    jp   $A3E4
 AA10: CD BB AB    call $ABBB
 AA13: A7          and  a
 AA14: C2 1F AA    jp   nz,$AA1F
 AA17: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AA1A: 36 0D       ld   (hl),$07
-AA1C: C3 10 A4    jp   $A410
+AA1C: C3 10 A4    jp   cpu_move_done_A410
 AA1F: C3 E4 A9    jp   $A3E4
 AA22: C3 CE A3    jp   $A96E
 AA25: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AA28: 36 0D       ld   (hl),$07
-AA2A: C3 10 A4    jp   $A410
+AA2A: C3 10 A4    jp   cpu_move_done_A410
 AA2D: C3 CE A3    jp   $A96E
 AA30: C3 CE A3    jp   $A96E
 AA33: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AA36: 36 0D       ld   (hl),$07
-AA38: C3 10 A4    jp   $A410
+AA38: C3 10 A4    jp   cpu_move_done_A410
 AA3B: 23          inc  hl
 AA3C: 0A          ld   a,(bc)
 AA3D: 38 0A       jr   c,$AA49
@@ -28930,44 +28983,36 @@ AAB7: AD          xor  l
 AAB8: 10 7E       djnz $AA98
 AABA: 18 FF       jr   $AABB
 AABC: FF          rst  $38
-AABD: 04          inc  b
-AABE: 05          dec  b
-AABF: 0C          inc  c
-AAC0: 0D          dec  c
-AAC1: 02          ld   (bc),a
-AAC2: 03          inc  bc
-AAC3: 0A          ld   a,(bc)
-AAC4: 0B          dec  bc
-AAC5: 06 07       ld   b,$0D
-AAC7: 0E FF       ld   c,$FF
-AAC9: 01 08 09    ld   bc,$0302
-AACC: FF          rst  $38
-AACD: 08          ex   af,af'
-AACE: 0C          inc  c
-AACF: 02          ld   (bc),a
-AAD0: 0A          ld   a,(bc)
-AAD1: 0B          dec  bc
-AAD2: 06 FF       ld   b,$FF
-AAD4: 09          add  hl,bc
-AAD5: 03          inc  bc
-AAD6: 0E FF       ld   c,$FF
-AAD8: 10 11       djnz $AAEB
-AADA: 18 FF       jr   $AADB
+
+; some other tables loaded by the code below (accessed by a table too)
+; TODO what are those tables
+table_AABD:
+	dc.b	04 05 06 07 08 09 0A 0B 0C 0D 0E FF
+table_AAC9
+	dc.b	01 02 03 FF
+table_AACD
+	dc.b	02 06 08 0A 0B 0C FF
+table_AAD4
+	dc.b	03 09 0E FF
+table_AAD8
+	dc.b	10 11 12 FF
+
 AADC: CD 17 AB    call $AB1D
-AADF: DD 21 B7 AA ld   ix,$AABD
-AAE3: CD 0F B0    call $B00F
+AADF: DD 21 B7 AA ld   ix,table_AABD
+AAE3: CD 0F B0    call table_linear_search_B00F
 AAE6: C9          ret
+
 AAE7: CD 17 AB    call $AB1D
-AAEA: DD 21 63 AA ld   ix,$AAC9
-AAEE: CD 0F B0    call $B00F
+AAEA: DD 21 63 AA ld   ix,table_AAC9
+AAEE: CD 0F B0    call table_linear_search_B00F
 AAF1: C9          ret
 AAF2: CD 17 AB    call $AB1D
-AAF5: DD 21 67 AA ld   ix,$AACD
-AAF9: CD 0F B0    call $B00F
+AAF5: DD 21 67 AA ld   ix,table_AACD
+AAF9: CD 0F B0    call table_linear_search_B00F
 AAFC: C9          ret
 AAFD: CD 17 AB    call $AB1D
-AB00: DD 21 74 AA ld   ix,$AAD4
-AB04: CD 0F B0    call $B00F
+AB00: DD 21 74 AA ld   ix,table_AAD4
+AB04: CD 0F B0    call table_linear_search_B00F
 AB07: C9          ret
 
 AB08: CD 17 AB    call $AB1D
@@ -28975,9 +29020,10 @@ AB0B: FE 0E       cp   $0E
 AB0D: CA 11 AB    jp   z,$AB11
 AB10: AF          xor  a
 AB11: C9          ret
+
 AB12: CD 17 AB    call $AB1D
-AB15: DD 21 72 AA ld   ix,$AAD8
-AB19: CD 0F B0    call $B00F
+AB15: DD 21 72 AA ld   ix,table_AAD8
+AB19: CD 0F B0    call table_linear_search_B00F
 AB1C: C9          ret
 
 AB1D: FD 4E 0B    ld   c,(iy+$0b)
@@ -29122,7 +29168,7 @@ ABD6: ED 52       sbc  hl,de
 ABD8: C2 E0 AB    jp   nz,$ABE0
 ABDB: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 ABDE: 36 00       ld   (hl),$00
-ABE0: C3 10 A4    jp   $A410
+ABE0: C3 10 A4    jp   cpu_move_done_A410
 ABE3: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 ; tell CPU to stop moving / stand guard
 ABE6: 36 00       ld   (hl),$00
@@ -29134,7 +29180,7 @@ ABF3: A7          and  a
 ABF4: CA F6 AB    jp   z,$ABFC
 ABF7: FE FF       cp   $FF
 ABF9: C4 D5 B0    call nz,display_error_text_B075
-ABFC: C3 10 A4    jp   $A410
+ABFC: C3 10 A4    jp   cpu_move_done_A410
 ABFF: DD 21 29 A6 ld   ix,$AC83
 AC03: FD 5E 0D    ld   e,(iy+$07)
 AC06: FD 56 02    ld   d,(iy+$08)
@@ -29174,7 +29220,7 @@ AC58: E5          push hl
 AC59: DD E1       pop  ix
 AC5B: DD 7E 02    ld   a,(ix+$08)
 AC5E: DD E1       pop  ix
-AC60: CD 0F B0    call $B00F
+AC60: CD 0F B0    call table_linear_search_B00F
 AC63: A7          and  a
 AC64: C2 20 A6    jp   nz,$AC80
 AC67: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
@@ -29187,7 +29233,7 @@ AC77: A7          and  a
 AC78: CA 20 A6    jp   z,$AC80
 AC7B: FE FF       cp   $FF
 AC7D: C4 D5 B0    call nz,display_error_text_B075
-AC80: C3 10 A4    jp   $A410
+AC80: C3 10 A4    jp   cpu_move_done_A410
 AC83: 22 1A 31    ld   ($911A),hl
 AC86: A6          and  (hl)
 AC87: 70          ld   (hl),b
@@ -29240,8 +29286,8 @@ ACC2: 2D          dec  l
 ACC3: FF          rst  $38
 ACC4: 21 24 27    ld   hl,$8D84
 ACC7: FF          rst  $38
-ACC8: C3 10 A4    jp   $A410
-ACCB: C3 10 A4    jp   $A410
+ACC8: C3 10 A4    jp   cpu_move_done_A410
+ACCB: C3 10 A4    jp   cpu_move_done_A410
 ; probably part of the A.I: not called in "practice" even in 1P mode
 ; makes the game easier when called? maybe A.I. hesitates more ?
 do_something_ai_related_if_easy_level_ACCE: 3A 10 63    ld   a,(computer_skill_C910)
@@ -29953,7 +29999,7 @@ B003: C3 7B B0    jp   $B0DB
 B006: C3 EE B0    jp   $B0EE
 B009: C3 FF B0    jp   $B0FF
 B00C: C3 84 B1    jp   $B124
-B00F: C3 42 B1    jp   $B148
+table_linear_search_B00F: C3 42 B1    jp   table_linear_search_B148
 B012: C3 56 B1    jp   $B15C
 B015: C3 D1 B1    jp   $B171
 B018: C3 AB B1    jp   $B1AB
@@ -30043,15 +30089,15 @@ B0ED: C9          ret
 ; > a
 ; > d
 ; what it does???
-B0EE: AF          xor  a	; a   => 0
-B0EF: 06 02       ld   b,$08  ; b => $08	; do it 8 times
-B0F1: CB 22       sla  d
-B0F3: CB 17       rl   a
-B0F5: BB          cp   e
-B0F6: DA F6 B0    jp   c,$B0FC
-B0F9: 93          sub  e
-B0FA: CB C2       set  0,d
-B0FC: 10 F9       djnz $B0F1
+B0EE: AF          xor  a	;  clears a
+B0EF: 06 02       ld   b,$08  ; b <- $08	; do it 8 times at least
+B0F1: CB 22       sla  d	; d *= 2
+B0F3: CB 17       rl   a	; a <- 1 if carry set else 0
+B0F5: BB          cp   e	; compare a with e
+B0F6: DA F6 B0    jp   c,$B0FC	; if e >= a skip to djnz, repeat only if a == e
+B0F9: 93          sub  e	; a <- a-e
+B0FA: CB C2       set  0,d  ; d &= 1
+B0FC: 10 F9       djnz $B0F1  ; repeat 8 times
 B0FE: C9          ret
 
 ; < ix
@@ -30096,15 +30142,23 @@ B13F: DD 6E 08    ld   l,(ix+$02)
 B142: DD 66 09    ld   h,(ix+$03)
 B145: 3E 00       ld   a,$00
 B147: C9          ret
+
+; < ix: pointer on table (ends with $FF)
+; < a: value to look for
+; > a = 0 if not found, else a is unchanged
+
+table_linear_search_B148:
 B148: DD 46 00    ld   b,(ix+$00)
+; (clever way to test b against $FF without changing a probably)
 B14B: 04          inc  b
-B14C: CA 5A B1    jp   z,$B15A
-B14F: DD BE 00    cp   (ix+$00)
-B152: CA 5B B1    jp   z,$B15B
-B155: DD 23       inc  ix
-B157: C3 42 B1    jp   $B148
-B15A: AF          xor  a
+B14C: CA 5A B1    jp   z,$B15A	; table ends by $FF: if 0 => end 
+B14F: DD BE 00    cp   (ix+$00)	; check if A == (ix)
+B152: CA 5B B1    jp   z,$B15B	; found => exit
+B155: DD 23       inc  ix		; else keep searching
+B157: C3 42 B1    jp   table_linear_search_B148
+B15A: AF          xor  a		; not found: set a to zero
 B15B: C9          ret
+
 B15C: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B15F: 57          ld   d,a
 B160: 1E 80       ld   e,$20
