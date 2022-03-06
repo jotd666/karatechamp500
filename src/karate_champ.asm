@@ -1,8 +1,15 @@
-; current level info is copied C0DC: number C900: map index C910: skill level
-; to test:
-; - check io mappings (joystick)
 ;
-; player x coord around C028
+; Karate Champ VS 2. Reverse-engineering attempt by JOTD, focusing on 2 points:
+; - CPU A.I.
+; - animations
+;
+; current level info is copied at 3 locations which mean different things:
+;
+; C0DC: number (1ST, 2ND...)
+; C900: map index (picture, girl)
+; C910: skill level (increasing skill level dynamically works: computer goes super ninja)
+;
+; C028: attack flags, can be 08,09,0A TODO figure out when
 ;
 ; nb_credits_minus_one_C024: 0 when no credit, then if coin is inserted, set to 1, then
 ; immediately decreased, while showing "press 1P button" screen
@@ -13,8 +20,20 @@
 ;
 ; C556-59: 4 bytes looks like counters. When move is completed all 4 values are 8
 
-; C220: player 2 related structure, looks like a copy of C260 / previous values / whatever
-;
+; C220: another structure, A.I. related, probably sharing both parties characteristics
+; TODO: figure out more values from that structure, specially:
+; +07/+08: used as input of check_hl_in_ix_list_B009
+; +09/+0A: 
+; +0B/+0C: like 07/08
+; 
+; +0F ($C22F): 
+; bit 7 set => means players are turning their backs to each other
+; then
+; 0: players far away, player 1 to the left, player 2 to the right
+; 1-4: same but the bigger the number, the closer the players
+; 5-8: 5 player 1 far right ... 8 players 1 & 2 very close, player 1 right
+
+
 ; C240: player 1 structure
 ; +2: 0 when not animated, else number of ticks to stay in the current animation frame
 ; +7,8: animation related. Bit 7 of C248: facing direction
@@ -41,7 +60,7 @@
 ; 0x04: crouch
 ; 0x05: back kick
 ; 0x06: ??
-; 0x07: ?? it means something as it's set by A966 and others
+; 0x07: turn around (only CPU can do that)
 ; 0x08: jumping back kick
 ; 0x09: foot sweep (back)
 ; 0x0A: front kick (can also be small reverse punch at short range apparently)
@@ -71,17 +90,10 @@
 ; * understand what B0EE does
 ; * understand what AB1D does, what's the value of iy
 ; * understand the diff between cpu_move_forward_towards_enemy_A6D4/A6E7
-; * understand 07 (A966) put a break point
-; * undestand A53B what is C22F: seems 0 -> 4 depending on player distance
-; so a finer version of the 0,1,2 distance
-;
-; actually C22F makes perfect sense
-; 
-; bit 7 set => means players are turning their backs to each other
-; then
-; 0: players far away, player 1 to the left, player 2 to the right
-; 1-4: same but the bigger the number, the closer the players
-; 5-8: 5 player 1 far right ... 8 players 1 & 2 very close, player 1 right
+; * undestand A53B
+; * search for C229/whatever with the proper frame values as found in AA3B and such tables
+;   see which frame is which (depends on the graphical tiles)
+; * recode A.I. from fight_mainloop_A390 entrypoint
 
 0000: C3 45 B0    jp   $B045
 0003: C3 59 41    jp   $4153
@@ -12405,7 +12417,7 @@
 3E47: FD 6E 0D    ld   l,(iy+$07)
 3E4A: FD 66 02    ld   h,(iy+$08)
 3E4D: CB BC       res  7,h
-3E4F: CD 03 B0    call $B009
+3E4F: CD 03 B0    call check_hl_in_ix_list_B009
 3E52: A7          and  a
 3E53: CA D7 9E    jp   z,$3E7D
 3E56: DD 21 9D 97 ld   ix,$3D37
@@ -12474,7 +12486,7 @@
 3ED9: FD 6E 0D    ld   l,(iy+$07)
 3EDC: FD 66 02    ld   h,(iy+$08)
 3EDF: CB BC       res  7,h
-3EE1: CD 03 B0    call $B009
+3EE1: CD 03 B0    call check_hl_in_ix_list_B009
 3EE4: E1          pop  hl
 3EE5: A7          and  a
 3EE6: CA 94 9F    jp   z,$3F34
@@ -13178,7 +13190,7 @@
 4475: C4 D5 B0    call nz,display_error_text_B075
 4478: CD 27 4D    call $478D
 447B: DD 21 1A 4C ld   ix,$461A
-447F: CD 03 B0    call $B009
+447F: CD 03 B0    call check_hl_in_ix_list_B009
 4482: A7          and  a
 4483: CA 57 44    jp   z,$445D
 4486: C9          ret
@@ -27958,8 +27970,9 @@ A38D: C4 D5 B0    call nz,display_error_text_B075
 ; when players are shown and fight. either in the intro/demo
 ; or during a real fight
 fight_mainloop_A390:
-A390: CD 4B B0    call $B04B	; load_ix_with_player_structure_B574
-A393: CD 82 A4    call $A428
+A390: CD 4B B0    call $B04B	; load_iy_with_player_structure_B574
+; now (1 player vs red CPU: iy = $C200) 
+A393: CD 82 A4    call $init_shared_players_struct_C200_A428
 A396: CD 47 A9    call $A34D
 A399: A7          and  a
 A39A: C2 10 A4    jp   nz,cpu_move_done_A410
@@ -27967,25 +27980,25 @@ A39D: DD 21 9B AA ld   ix,$AA3B
 A3A1: FD 6E 0D    ld   l,(iy+$07)
 A3A4: FD 66 02    ld   h,(iy+$08)
 A3A7: E5          push hl
-A3A8: CD 03 B0    call $B009
+A3A8: CD 03 B0    call check_hl_in_ix_list_B009
 A3AB: E1          pop  hl
 A3AC: A7          and  a
 A3AD: C2 9B A5    jp   nz,$A53B
 A3B0: DD 21 47 AA ld   ix,$AA4D
 A3B4: E5          push hl
-A3B5: CD 03 B0    call $B009
+A3B5: CD 03 B0    call check_hl_in_ix_list_B009
 A3B8: E1          pop  hl
 A3B9: A7          and  a
 A3BA: C2 66 AB    jp   nz,$ABCC
 A3BD: DD 21 C7 AA ld   ix,$AA6D
 A3C1: E5          push hl
-A3C2: CD 03 B0    call $B009
+A3C2: CD 03 B0    call check_hl_in_ix_list_B009
 A3C5: E1          pop  hl
 A3C6: A7          and  a
 A3C7: C2 E9 AB    jp   nz,$ABE3
 A3CA: DD 21 27 AA ld   ix,$AA8D
 A3CE: E5          push hl
-A3CF: CD 03 B0    call $B009
+A3CF: CD 03 B0    call check_hl_in_ix_list_B009
 A3D2: E1          pop  hl
 A3D3: A7          and  a
 A3D4: C2 FF AB    jp   nz,$ABFF
@@ -28012,7 +28025,7 @@ A400: A7          and  a
 A401: CA 03 A4    jp   z,$A409
 A404: FE FF       cp   $FF
 A406: C4 D5 B0    call nz,display_error_text_B075
-; computer is going to attack. iy is alternate computer player structure (C220)
+; computer is going to attack. iy is A.I. computer player structure (C220)
 ; the attack move is already loaded in cpu C26B
 A409: FD CB 10 6C set  0,(iy+$10)
 A40D: C3 30 A9    jp   fight_mainloop_A390
@@ -28029,18 +28042,19 @@ A422: C4 D5 B0    call nz,display_error_text_B075
 A425: C3 DB A9    jp   $A37B
 
 
-A428: CD B7 B0    call $B0BD
-A42B: ED 5B 4D 68 ld   de,($C247)
-A42F: 2A 43 68    ld   hl,($C249)
-A432: D9          exx
-A433: ED 5B CD 68 ld   de,($C267)
-A437: 2A C3 68    ld   hl,($C269)
+init_shared_players_struct_C200_A428:
+A428: CD B7 B0    call $B0BD		; calls write_0_in_port_1_BBE2 ???
+A42B: ED 5B 4D 68 ld   de,($C247)		; load animation/position of player 1
+A42F: 2A 43 68    ld   hl,($C249)		; load xy for player 1
+A432: D9          exx  ; EXX exchanges BC, DE, and HL with shadow registers with BC', DE', and HL'.
+A433: ED 5B CD 68 ld   de,($C267)		; load animation/position of player 2
+A437: 2A C3 68    ld   hl,($C269)		; load xy for player 2
 A43A: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 A43D: FE 03       cp   $09
 A43F: CA 49 A4    jp   z,$A443
-A442: D9          exx
+A442: D9          exx	; depending on the configuration (which is the human opponent), swap values
 A443: FD 73 0D    ld   (iy+$07),e
-; d: y coord ($C208) ground: $0A, jumping $0B, sommersault $12 or $13
+; d: air status: ground: $0A, jumping $0B, sommersault $12 or $13
 A446: FD 72 02    ld   (iy+$08),d
 ; l: x coord (player 1: $C209) min $20
 A449: FD 75 03    ld   (iy+$09),l	 
@@ -28196,7 +28210,7 @@ A596: C3 37 A5    jp   jump_to_routine_from_table_A59D
 A599: DD 21 51 AC ld   ix,computer_ai_jump_table_A651
 jump_to_routine_from_table_A59D
 A59D: DD E5       push ix
-A59F: CD C5 AC    call $A665		; get what to do. Is that random? TODO
+A59F: CD C5 AC    call make_ai_decision_A665	; retrieve value 1 -> 9
 A5A2: DD E1       pop  ix
 ; a is the index of the routine in computer_ai_jump_table_A5B1
 A5A4: 87          add  a,a
@@ -28266,26 +28280,26 @@ computer_ai_jump_table_A601
 	dc.w	$A94E
 computer_ai_jump_table_A615
 	dc.w	display_error_text_B075
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
 computer_ai_jump_table_A629
 	dc.w	display_error_text_B075
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
-	dc.w	$A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
+	dc.w	cpu_move_turn_around_A966
 computer_ai_jump_table_A63D
 	dc.w	display_error_text_B075
 	dc.w	$A96E
@@ -28458,39 +28472,46 @@ A662: AA          xor  d
 A663: 99          sbc  a,c
 A664: AA          xor  d
 
+; given opponent moves (not distance), return a value between 1 and 9
+; to be used in a per-distance/facing configuration jump table
+; iy: points on C220 (the A.I. structure)
+; 1: no particular stuff
+; 6: when player is performing a sommersault forward
+; 9: ???
+make_ai_decision_A665:
 A665: FD 6E 0B    ld   l,(iy+$0b)
 A668: FD 66 06    ld   h,(iy+$0c)
-A66B: CB BC       res  7,h
+A66B: CB BC       res  7,h		; remove last bit
 A66D: DD 21 9B AA ld   ix,$AA3B
 A671: E5          push hl
-A672: CD 03 B0    call $B009
+A672: CD 03 B0    call check_hl_in_ix_list_B009
 A675: E1          pop  hl
 A676: A7          and  a
 A677: 3E 01       ld   a,$01
 A679: C2 79 AC    jp   nz,$A6D3
-A67C: DD 21 B9 AA ld   ix,$AAB3
+A67C: DD 21 B9 AA ld   ix,$AAB3	; load a table, there are 7 tables like this
 A680: E5          push hl
-A681: CD 03 B0    call $B009
+A681: CD 03 B0    call check_hl_in_ix_list_B009
 A684: E1          pop  hl
 A685: A7          and  a
 A686: 3E 04       ld   a,$04
 A688: C2 79 AC    jp   nz,$A6D3
 A68B: DD 21 47 AA ld   ix,$AA4D
 A68F: E5          push hl
-A690: CD 03 B0    call $B009
+A690: CD 03 B0    call check_hl_in_ix_list_B009
 A693: E1          pop  hl
 A694: A7          and  a
 A695: 3E 05       ld   a,$05
 A697: C2 79 AC    jp   nz,$A6D3
 A69A: DD 21 35 AA ld   ix,$AA95
 A69E: E5          push hl
-A69F: CD 03 B0    call $B009
+A69F: CD 03 B0    call check_hl_in_ix_list_B009
 A6A2: E1          pop  hl
 A6A3: A7          and  a
 A6A4: 3E 0C       ld   a,$06
 A6A6: C2 79 AC    jp   nz,$A6D3
 A6A9: DD 21 A5 AA ld   ix,$AAA5
-A6AD: CD 03 B0    call $B009
+A6AD: CD 03 B0    call check_hl_in_ix_list_B009
 A6B0: A7          and  a
 A6B1: 3E 0D       ld   a,$07
 A6B3: C2 79 AC    jp   nz,$A6D3
@@ -28730,7 +28751,7 @@ A8B6: DD 21 3B AA ld   ix,$AA9B
 A8BA: FD 6E 0B    ld   l,(iy+$0b)
 A8BD: FD 66 06    ld   h,(iy+$0c)
 A8C0: CB BC       res  7,h
-A8C2: CD 03 B0    call $B009
+A8C2: CD 03 B0    call check_hl_in_ix_list_B009
 A8C5: A7          and  a
 A8C6: E1          pop  hl
 A8C7: C2 6F A2    jp   nz,$A8CF
@@ -28754,7 +28775,7 @@ A8F3: DD 21 A3 AA ld   ix,$AAA9
 A8F7: FD 6E 0B    ld   l,(iy+$0b)
 A8FA: FD 66 06    ld   h,(iy+$0c)
 A8FD: CB BC       res  7,h
-A8FF: CD 03 B0    call $B009
+A8FF: CD 03 B0    call check_hl_in_ix_list_B009
 A902: A7          and  a
 A903: E1          pop  hl
 A904: C2 06 A3    jp   nz,$A90C
@@ -28800,15 +28821,16 @@ A963: 00          nop
 A964: 00          nop
 A965: 00          nop
 
+cpu_move_turn_around_A966:
 A966: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
-A969: 36 0D       ld   (hl),$07
+A969: 36 0D       ld   (hl),$07		; turn around
 A96B: C3 10 A4    jp   cpu_move_done_A410
 
 A96E: CD 8E AB    call cpu_attacks_player_AB2E
 A971: A7          and  a
 A972: C2 D7 A3    jp   nz,$A97D
 A975: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
-A978: 36 0D       ld   (hl),$07
+A978: 36 0D       ld   (hl),$07		; turn around
 A97A: C3 10 A4    jp   cpu_move_done_A410
 A97D: C3 E4 A9    jp   $A3E4
 A980: FD CB 0F DE bit  7,(iy+$0f)
@@ -28881,108 +28903,17 @@ AA30: C3 CE A3    jp   $A96E
 AA33: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AA36: 36 0D       ld   (hl),$07
 AA38: C3 10 A4    jp   cpu_move_done_A410
-AA3B: 23          inc  hl
-AA3C: 0A          ld   a,(bc)
-AA3D: 38 0A       jr   c,$AA49
-AA3F: 3B          dec  sp
-AA40: 0A          ld   a,(bc)
-AA41: A4          and  h
-AA42: 0A          ld   a,(bc)
-AA43: A7          and  a
-AA44: 0A          ld   a,(bc)
-AA45: BC          cp   h
-AA46: 0A          ld   a,(bc)
-AA47: BF          cp   a
-AA48: 0A          ld   a,(bc)
-AA49: 62          ld   h,d
-AA4A: 0A          ld   a,(bc)
-AA4B: FF          rst  $38
-AA4C: FF          rst  $38
-AA4D: 88          adc  a,b
-AA4E: 0B          dec  bc
-AA4F: 2E 0B       ld   l,$0B
-AA51: 3D          dec  a
-AA52: 0B          dec  bc
-AA53: A0          and  b
-AA54: 0B          dec  bc
-AA55: A3          and  e
-AA56: 0B          dec  bc
-AA57: B8          cp   b
-AA58: 0B          dec  bc
-AA59: BB          cp   e
-AA5A: 0B          dec  bc
-AA5B: 64          ld   h,h
-AA5C: 0B          dec  bc
-AA5D: 67          ld   h,a
-AA5E: 0B          dec  bc
-AA5F: 7C          ld   a,h
-AA60: 0B          dec  bc
-AA61: 7F          ld   a,a
-AA62: 0B          dec  bc
-AA63: E2 0B F1    jp   po,$F10B
-AA66: 0B          dec  bc
-AA67: FA 0B D9    jp   m,$730B
-AA6A: 0B          dec  bc
-AA6B: FF          rst  $38
-AA6C: FF          rst  $38
-AA6D: 60          ld   h,b
-AA6E: 06 78       ld   b,$D2
-AA70: 06 4D       ld   b,$47
-AA72: 07          rlca
-AA73: 7D          ld   a,l
-AA74: 07          rlca
-AA75: 46          ld   b,(hl)
-AA76: 0E AF       ld   c,$AF
-AA78: 0E 1B       ld   c,$1B
-AA7A: 0F          rrca
-AA7B: 30 0F       jr   nc,$AA8C
-AA7D: 0E 10       ld   c,$10
-AA7F: 3E 10       ld   a,$10
-AA81: 0A          ld   a,(bc)
-AA82: 11 C7 11    ld   de,$116D
-AA85: E8          ret  pe
-AA86: 11 75 18    ld   de,$12D5
-AA89: 4A          ld   c,d
-AA8A: 19          add  hl,de
-AA8B: FF          rst  $38
-AA8C: FF          rst  $38
-AA8D: 22 1A 70    ld   ($D01A),hl
-AA90: 1A          ld   a,(de)
-AA91: 12          ld   (de),a
-AA92: 1B          dec  de
-AA93: FF          rst  $38
-AA94: FF          rst  $38
-AA95: A7          and  a
-AA96: 19          add  hl,de
-AA97: BC          cp   h
-AA98: 19          add  hl,de
-AA99: BF          cp   a
-AA9A: 19          add  hl,de
-AA9B: 62          ld   h,d
-AA9C: 19          add  hl,de
-AA9D: 71          ld   (hl),c
-AA9E: 19          add  hl,de
-AA9F: 7A          ld   a,d
-AAA0: 19          add  hl,de
-AAA1: E9          jp   (hl)
-AAA2: 19          add  hl,de
-AAA3: FF          rst  $38
-AAA4: FF          rst  $38
-AAA5: 45          ld   b,l
-AAA6: 18 4E       jr   $AAF6
-AAA8: 18 5D       jr   $AB01
-AAAA: 18 C0       jr   $AB0C
-AAAC: 18 D8       jr   $AB20
-AAAE: 18 DB       jr   $AB2B
-AAB0: 18 FF       jr   $AAB1
-AAB2: FF          rst  $38
-AAB3: 8D          adc  a,l
-AAB4: 06 E0       ld   b,$E0
-AAB6: 07          rlca
-AAB7: AD          xor  l
-AAB8: 10 7E       djnz $AA98
-AABA: 18 FF       jr   $AABB
-AABC: FF          rst  $38
+
+; collection of tables exploited by B009 at various points of the A.I. code
+; probably specific animation frames of techniques so the computer
+; can counter attack on them
+AA3B: dc.b	$89 0A 92 0A 9B 0A A4 0A AD 0A B6 0A BF 0A C8 0A FF FF
+AA4D: dc.b	$22 0B 8E 0B 97 0B A0 0B A9 0B B2 0B BB 0B C4 0B CD 0B D6 0B DF 0B E8 0B F1 0B FA 0B 73 0B FF FF
+AA6D: dc.b	$C0 0C D2 0C 47 0D D7 0D 4C 0E AF 0E 1B 0F 90 0F 0E 10 9E 10 0A 11 6D 11 E2 11 D5 12 4A 13 FF FF
+AA8D: dc.b	$88 1A D0 1A 18 1B FF FF
+AA95: dc.b	$AD 13 B6 13 BF 13 C8 13 D1 13 DA 13 E3 13 FF FF
+AAA5: dc.b	$45 12 4E 12 57 12 60 12 72 12 7B 12 FF FF
+AAB3: dc.b	$27 0C E0 0D A7 10 DE 12 FF FF
 
 ; some other tables loaded by the code below (accessed by a table too)
 ; TODO what are those tables
@@ -29192,7 +29123,7 @@ AC11: DD E1       pop  ix
 AC13: FD 6E 0B    ld   l,(iy+$0b)
 AC16: FD 66 06    ld   h,(iy+$0c)
 AC19: CB BC       res  7,h
-AC1B: CD 03 B0    call $B009
+AC1B: CD 03 B0    call check_hl_in_ix_list_B009
 AC1E: A7          and  a
 AC1F: CA 9E A6    jp   z,$AC3E
 AC22: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
@@ -29997,7 +29928,7 @@ AFFF: 00          nop
 B000: C3 69 B0    jp   $B0C3
 B003: C3 7B B0    jp   $B0DB
 B006: C3 EE B0    jp   $B0EE
-B009: C3 FF B0    jp   $B0FF
+B009: C3 FF B0    jp   check_hl_in_ix_list_B0FF
 B00C: C3 84 B1    jp   $B124
 table_linear_search_B00F: C3 42 B1    jp   table_linear_search_B148
 B012: C3 56 B1    jp   $B15C
@@ -30020,7 +29951,7 @@ B042: C3 40 B4    jp   $B440
 B045: C3 C3 B4    jp   $startup_B469
 periodic_interrupt_B048
 : C3 8F BD    jp   on_periodic_interrupt_B72F
-B04B: C3 D4 B5    jp   load_ix_with_player_structure_B574
+B04B: C3 D4 B5    jp   load_iy_with_player_structure_B574
 B04E: C3 2E B5    jp   $B58E
 B051: C3 A5 B5    jp   $B5A5
 B054: C3 67 B5    jp   $B5CD
@@ -30100,29 +30031,31 @@ B0FA: CB C2       set  0,d  ; d &= 1
 B0FC: 10 F9       djnz $B0F1  ; repeat 8 times
 B0FE: C9          ret
 
-; < ix
+; < ix: table like AA3B, AA4D... 2 value list ending with FF FF
 ; < hl
 ; < bc
-; > a
-; what it does???
+; > a 0 or $FF depending on value in hl & 0x7FFF found in list pointed in ix
+
+check_hl_in_ix_list_B0FF:
 B0FF: E5          push hl
-B100: C1          pop  bc
+B100: C1          pop  bc 	; save hl in bc
 B101: C5          push bc
-B102: E1          pop  hl
-B103: DD 5E 00    ld   e,(ix+$00)
-B106: DD 56 01    ld   d,(ix+$01)
+B102: E1          pop  hl	; restore hl (useless the first time but there's a loop)
+B103: DD 5E 00    ld   e,(ix+$00)	; load first value of table e
+B106: DD 56 01    ld   d,(ix+$01)	; load second value of table in d
 B109: 7A          ld   a,d
 B10A: A3          and  e
-B10B: FE FF       cp   $FF
-B10D: CA 88 B1    jp   z,$B122
-B110: A7          and  a
-B111: ED 52       sbc  hl,de
-B113: CA 17 B1    jp   z,$B11D
+B10B: FE FF       cp   $FF	; check if both e and d are $FF
+B10D: CA 88 B1    jp   z,$B122	; if so, end of scan
+B110: A7          and  a	; clear carry for sbc operation
+B111: ED 52       sbc  hl,de	; did we match de with hl ?
+B113: CA 17 B1    jp   z,$B11D	; if so end, putting FF in a (found)
 B116: DD 23       inc  ix
 B118: DD 23       inc  ix
-B11A: C3 01 B1    jp   $B101
-B11D: 3E FF       ld   a,$FF
+B11A: C3 01 B1    jp   $B101	; next value to scan
+B11D: 3E FF       ld   a,$FF	; found
 B11F: C3 89 B1    jp   $B123
+; not found
 B122: AF          xor  a	; a <= 0
 B123: C9          ret
 
@@ -30727,7 +30660,8 @@ B570: CD E2 BB    call write_1_in_port_1_BBE8
 B573: C9          ret
 
 ; load iy with player structure
-load_ix_with_player_structure_B574: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+load_iy_with_player_structure_B574:
+B574: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B577: FD 21 00 61 ld   iy,$C100
 B57B: 47          ld   b,a
 B57C: 0E 00       ld   c,$00
