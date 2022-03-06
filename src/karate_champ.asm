@@ -91,7 +91,7 @@
 ; * understand what AB1D does, what's the value of iy
 ; * understand the diff between cpu_move_forward_towards_enemy_A6D4/A6E7
 ; * undestand A53B
-; * search for C229/whatever with the proper frame values as found in AA3B and such tables
+; * search for C229/whatever with the proper frame values as found in walk_frames_list_AA3B and such tables
 ;   see which frame is which (depends on the graphical tiles)
 ; * recode A.I. from fight_mainloop_A390 entrypoint
 
@@ -12482,7 +12482,7 @@
 3ED0: 19          add  hl,de
 3ED1: C3 6C 9E    jp   $3EC6
 3ED4: E5          push hl
-3ED5: DD 21 9B AA ld   ix,$AA3B
+3ED5: DD 21 9B AA ld   ix,$walk_frames_list_AA3B
 3ED9: FD 6E 0D    ld   l,(iy+$07)
 3EDC: FD 66 02    ld   h,(iy+$08)
 3EDF: CB BC       res  7,h
@@ -12521,6 +12521,7 @@
 3F2B: CA 94 9F    jp   z,$3F34
 3F2E: CD 39 9F    call $3F93
 3F31: C3 38 9F    jp   $3F92
+
 3F34: FD 7E 06    ld   a,(iy+$0c)
 3F37: 23          inc  hl
 3F38: A7          and  a
@@ -27972,11 +27973,11 @@ A38D: C4 D5 B0    call nz,display_error_text_B075
 fight_mainloop_A390:
 A390: CD 4B B0    call $B04B	; load_iy_with_player_structure_B574
 ; now (1 player vs red CPU: iy = $C200) 
-A393: CD 82 A4    call $init_shared_players_struct_C200_A428
+A393: CD 82 A4    call update_players_struct_C2xx_A428
 A396: CD 47 A9    call $A34D
 A399: A7          and  a
 A39A: C2 10 A4    jp   nz,cpu_move_done_A410
-A39D: DD 21 9B AA ld   ix,$AA3B
+A39D: DD 21 9B AA ld   ix,walk_frames_list_AA3B
 A3A1: FD 6E 0D    ld   l,(iy+$07)
 A3A4: FD 66 02    ld   h,(iy+$08)
 A3A7: E5          push hl
@@ -27984,19 +27985,19 @@ A3A8: CD 03 B0    call check_hl_in_ix_list_B009
 A3AB: E1          pop  hl
 A3AC: A7          and  a
 A3AD: C2 9B A5    jp   nz,$A53B
-A3B0: DD 21 47 AA ld   ix,$AA4D
+A3B0: DD 21 47 AA ld   ix,$jump_frames_list_AA4D
 A3B4: E5          push hl
 A3B5: CD 03 B0    call check_hl_in_ix_list_B009
 A3B8: E1          pop  hl
 A3B9: A7          and  a
 A3BA: C2 66 AB    jp   nz,$ABCC
-A3BD: DD 21 C7 AA ld   ix,$AA6D
+A3BD: DD 21 C7 AA ld   ix,back_kick_frames_list_AA6D
 A3C1: E5          push hl
 A3C2: CD 03 B0    call check_hl_in_ix_list_B009
 A3C5: E1          pop  hl
 A3C6: A7          and  a
 A3C7: C2 E9 AB    jp   nz,$ABE3
-A3CA: DD 21 27 AA ld   ix,$AA8D
+A3CA: DD 21 27 AA ld   ix,repositionning_frame_list_AA8D
 A3CE: E5          push hl
 A3CF: CD 03 B0    call check_hl_in_ix_list_B009
 A3D2: E1          pop  hl
@@ -28042,7 +28043,7 @@ A422: C4 D5 B0    call nz,display_error_text_B075
 A425: C3 DB A9    jp   $A37B
 
 
-init_shared_players_struct_C200_A428:
+update_players_struct_C2xx_A428:
 A428: CD B7 B0    call $B0BD		; calls write_0_in_port_1_BBE2 ???
 A42B: ED 5B 4D 68 ld   de,($C247)		; load animation/position of player 1
 A42F: 2A 43 68    ld   hl,($C249)		; load xy for player 1
@@ -28053,8 +28054,8 @@ A43A: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 A43D: FE 03       cp   $09
 A43F: CA 49 A4    jp   z,$A443
 A442: D9          exx	; depending on the configuration (which is the human opponent), swap values
+; frame ID (16 bit) in e and d
 A443: FD 73 0D    ld   (iy+$07),e
-; d: air status: ground: $0A, jumping $0B, sommersault $12 or $13
 A446: FD 72 02    ld   (iy+$08),d
 ; l: x coord (player 1: $C209) min $20
 A449: FD 75 03    ld   (iy+$09),l	 
@@ -28210,7 +28211,7 @@ A596: C3 37 A5    jp   jump_to_routine_from_table_A59D
 A599: DD 21 51 AC ld   ix,computer_ai_jump_table_A651
 jump_to_routine_from_table_A59D
 A59D: DD E5       push ix
-A59F: CD C5 AC    call make_ai_decision_A665	; retrieve value 1 -> 9
+A59F: CD C5 AC    call classify_opponent_move_A665	; retrieve value 1 -> 9
 A5A2: DD E1       pop  ix
 ; a is the index of the routine in computer_ai_jump_table_A5B1
 A5A4: 87          add  a,a
@@ -28478,57 +28479,58 @@ A664: AA          xor  d
 ; 1: no particular stuff
 ; 6: when player is performing a sommersault forward
 ; 9: ???
-make_ai_decision_A665:
+classify_opponent_move_A665:
 A665: FD 6E 0B    ld   l,(iy+$0b)
 A668: FD 66 06    ld   h,(iy+$0c)
 A66B: CB BC       res  7,h		; remove last bit
-A66D: DD 21 9B AA ld   ix,$AA3B
+A66D: DD 21 9B AA ld   ix,$walk_frames_list_AA3B
 A671: E5          push hl
 A672: CD 03 B0    call check_hl_in_ix_list_B009
 A675: E1          pop  hl
 A676: A7          and  a
 A677: 3E 01       ld   a,$01
-A679: C2 79 AC    jp   nz,$A6D3
-A67C: DD 21 B9 AA ld   ix,$AAB3	; load a table, there are 7 tables like this
+A679: C2 79 AC    jp   nz,move_found_A6D3
+A67C: DD 21 B9 AA ld   ix,$crouch_frame_list_AAB3	; load a table, there are 7 tables like this
 A680: E5          push hl
 A681: CD 03 B0    call check_hl_in_ix_list_B009
 A684: E1          pop  hl
 A685: A7          and  a
 A686: 3E 04       ld   a,$04
-A688: C2 79 AC    jp   nz,$A6D3
-A68B: DD 21 47 AA ld   ix,$AA4D
+A688: C2 79 AC    jp   nz,move_found_A6D3
+A68B: DD 21 47 AA ld   ix,$jump_frames_list_AA4D
 A68F: E5          push hl
 A690: CD 03 B0    call check_hl_in_ix_list_B009
 A693: E1          pop  hl
 A694: A7          and  a
 A695: 3E 05       ld   a,$05
-A697: C2 79 AC    jp   nz,$A6D3
-A69A: DD 21 35 AA ld   ix,$AA95
+A697: C2 79 AC    jp   nz,move_found_A6D3
+A69A: DD 21 35 AA ld   ix,forward_sommersault_frame_list_AA95
 A69E: E5          push hl
 A69F: CD 03 B0    call check_hl_in_ix_list_B009
 A6A2: E1          pop  hl
 A6A3: A7          and  a
-A6A4: 3E 0C       ld   a,$06
-A6A6: C2 79 AC    jp   nz,$A6D3
-A6A9: DD 21 A5 AA ld   ix,$AAA5
+A6A4: 3E 0C       ld   a,$06		: forward sommersault
+A6A6: C2 79 AC    jp   nz,move_found_A6D3
+A6A9: DD 21 A5 AA ld   ix,backwards_sommersault_frame_list_AAA5
 A6AD: CD 03 B0    call check_hl_in_ix_list_B009
 A6B0: A7          and  a
-A6B1: 3E 0D       ld   a,$07
-A6B3: C2 79 AC    jp   nz,$A6D3
+A6B1: 3E 0D       ld   a,$07		; backwards sommersault
+A6B3: C2 79 AC    jp   nz,move_found_A6D3
 A6B6: CD 76 AA    call $AADC
 A6B9: A7          and  a
 A6BA: 3E 08       ld   a,$02
-A6BC: C2 79 AC    jp   nz,$A6D3
+A6BC: C2 79 AC    jp   nz,move_found_A6D3
 A6BF: CD ED AA    call $AAE7
 A6C2: A7          and  a
 A6C3: 3E 09       ld   a,$03
-A6C5: C2 79 AC    jp   nz,$A6D3
+A6C5: C2 79 AC    jp   nz,move_found_A6D3
 A6C8: CD 18 AB    call $AB12
 A6CB: A7          and  a
 A6CC: 3E 02       ld   a,$08
-A6CE: C2 79 AC    jp   nz,$A6D3
+A6CE: C2 79 AC    jp   nz,move_found_A6D3
 A6D1: 3E 03       ld   a,$09
-A6D3: C9          ret
+move_found_A6D3:
+	C9          ret
 
 ; move forward with a special case TODO
 cpu_move_forward_towards_enemy_A6D4:
@@ -28906,14 +28908,25 @@ AA38: C3 10 A4    jp   cpu_move_done_A410
 
 ; collection of tables exploited by B009 at various points of the A.I. code
 ; probably specific animation frames of techniques so the computer
-; can counter attack on them
-AA3B: dc.b	$89 0A 92 0A 9B 0A A4 0A AD 0A B6 0A BF 0A C8 0A FF FF
-AA4D: dc.b	$22 0B 8E 0B 97 0B A0 0B A9 0B B2 0B BB 0B C4 0B CD 0B D6 0B DF 0B E8 0B F1 0B FA 0B 73 0B FF FF
-AA6D: dc.b	$C0 0C D2 0C 47 0D D7 0D 4C 0E AF 0E 1B 0F 90 0F 0E 10 9E 10 0A 11 6D 11 E2 11 D5 12 4A 13 FF FF
-AA8D: dc.b	$88 1A D0 1A 18 1B FF FF
-AA95: dc.b	$AD 13 B6 13 BF 13 C8 13 D1 13 DA 13 E3 13 FF FF
-AAA5: dc.b	$45 12 4E 12 57 12 60 12 72 12 7B 12 FF FF
-AAB3: dc.b	$27 0C E0 0D A7 10 DE 12 FF FF
+; can counter attack / react on them
+; 
+; for example 890A (first item of the first list) is: stand guard
+walk_frames_list_AA3B:
+	dc.b	$89 0A 92 0A 9B 0A A4 0A AD 0A B6 0A BF 0A C8 0A FF FF
+jump_frames_list_AA4D:
+	dc.b	$22 0B 8E 0B 97 0B A0 0B A9 0B B2 0B BB 0B C4 0B CD 0B D6 0B DF 0B E8 0B F1 0B FA 0B 73 0B FF FF
+	; back kick, jumping back kick, back foot sweep ...
+back_kick_frames_list_AA6D:
+	dc.b	$C0 0C D2 0C 47 0D D7 0D 4C 0E AF 0E 1B 0F 90 0F 0E 10 9E 10 0A 11 6D 11 E2 11 D5 12 4A 13 FF FF
+repositionning_frame_list_AA8D:
+	dc.b	$88 1A D0 1A 18 1B FF FF
+forward_sommersault_frame_list_AA95:
+	dc.b	$AD 13 B6 13 BF 13 C8 13 D1 13 DA 13 E3 13 FF FF
+backwards_sommersault_frame_list_AAA5:
+	dc.b	$45 12 4E 12 57 12 60 12 72 12 7B 12 FF FF
+; player gets down, including foot sweep
+crouch_frame_list_AAB3:
+	dc.b	$27 0C E0 0D A7 10 DE 12 FF FF
 
 ; some other tables loaded by the code below (accessed by a table too)
 ; TODO what are those tables
@@ -29112,6 +29125,7 @@ ABF4: CA F6 AB    jp   z,$ABFC
 ABF7: FE FF       cp   $FF
 ABF9: C4 D5 B0    call nz,display_error_text_B075
 ABFC: C3 10 A4    jp   cpu_move_done_A410
+
 ABFF: DD 21 29 A6 ld   ix,$AC83
 AC03: FD 5E 0D    ld   e,(iy+$07)
 AC06: FD 56 02    ld   d,(iy+$08)
@@ -30031,7 +30045,7 @@ B0FA: CB C2       set  0,d  ; d &= 1
 B0FC: 10 F9       djnz $B0F1  ; repeat 8 times
 B0FE: C9          ret
 
-; < ix: table like AA3B, AA4D... 2 value list ending with FF FF
+; < ix: table like walk_frames_list_AA3B, jump_frames_list_AA4D... 2 value list ending with FF FF
 ; < hl
 ; < bc
 ; > a 0 or $FF depending on value in hl & 0x7FFF found in list pointed in ix
