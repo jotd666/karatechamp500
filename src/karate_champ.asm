@@ -20,13 +20,15 @@
 ;
 ; C556-59: 4 bytes looks like counters. When move is completed all 4 values are 8
 
+; C02D
+; player_2_is_cpu_flags_C02D: 05 1 player vs CPU, 0F 2 players. Changing dynamically works too!
+
 ; C220: another structure, A.I. related, probably sharing both parties characteristics
 ; TODO: figure out more values from that structure, specially:
 ; +07/+08: frame id/pointer on frame structure, used as input of check_hl_in_ix_list_B009 by A.I
   so the CPU can recognize the moves
 ; +09/+0A: 
 ; +0B/+0C: like 07/08
-; +0D: player_2_is_cpu_flags_C02D: 05 1 player vs CPU, 0F 2 players. Changing dynamically works too!
 
 ; +0F ($C22F): 
 ; bit 7 set => means players are turning their backs to each other

@@ -254,10 +254,7 @@ def process_player_tiles(json_file):
 
 def process_player_tiles():
     rval = dict()
-
-
     move_dict = dict()
-
 
     player_palette = [(0,0,0),(240,240,240),(240,192,192),(96, 80, 80)]
 
@@ -266,16 +263,24 @@ def process_player_tiles():
 
     width = 64
     height = 48
+    moves_list = set(os.listdir(moves_dir))
+    # walk/forward in priority
+    moves_list.remove("walk")
+    moves_list.remove("forward")
+    moves_list = ["walk","forward"]+sorted(moves_list)
 
-    for d in os.listdir(moves_dir):
+    for d in moves_list[0:5]:
         # load info
         with open(os.path.join(moves_dir,d,"info.json")) as f:
             info = json.load(f)
+        deltas = info["deltas"]
         # process each image, without last image which is player guard
         images_list = sorted([x for x in os.listdir(os.path.join(moves_dir,d)) if x.endswith(".png")],
-        key=lambda x: int(os.path.splitext(x)[0]))[1:-1]
-        for i,image_file in enumerate(images_list):
+        key=lambda x: int(os.path.splitext(x)[0]))
+        frame_list = []
+        print(len(deltas),len(images_list))
 
+        for i,((df,dx,dy),image_file) in enumerate(zip(deltas,images_list)):
 
             img = Image.open(os.path.join(moves_dir,d,image_file))
 
@@ -299,77 +304,88 @@ def process_player_tiles():
                 img.save(os.path.join(outdir,"{}_{}.png".format(d,i)))
 
             blk = extract_block(img,0,0,width,height)
-            if blk in move_dict:
-                print("already {} : {}".format(name,move_dict[blk]))
-                move_dict[blk] = True
+            existing_name = move_dict.get(blk)
+            if existing_name:
+                print("already {} : {}".format(name,existing_name))
+                name = existing_name
+            else:
+                move_dict[blk] = name
+
+                print("processing bob {}...".format(name))
+
+                bn = name
+                mask_img = mask
+
+                def create_bob(bob_data,bob_mask_data,outfile):
+                    # data, no mask
+                    contents = bitplanelib.palette_image2raw(bob_data,None,player_palette,
+                    palette_precision_mask=0xF0,generate_mask=False,blit_pad=True)
+                    # append (almost) manually created mask
+                    contents += bitplanelib.palette_image2raw(bob_mask_data,None,((0,0,0),(255,255,255)),
+                    palette_precision_mask=0xFF,generate_mask=False,blit_pad=True)
+
+                    with open(outfile,"wb") as f:
+                        f.write(contents)
+                    return contents
+
+                create_bob(img,mask_img,"{}/{}_right.bin".format(sprites_dir,bn))
+
+                img_mirror = Image.new("RGB",img.size)
+                mask_img_mirror = Image.new("RGB",img.size)
+                for x in range(img.size[0]):
+                    sx = img.size[0]-x-1
+                    for y in range(img.size[1]):
+                        img_mirror.putpixel((sx,y),img.getpixel((x,y)))
+                        mask_img_mirror.putpixel((sx,y),mask_img.getpixel((x,y)))
+
+                create_bob(img_mirror,mask_img_mirror,"{}/{}_left.bin".format(sprites_dir,bn))
+
+            frame_list.append((bn,df,dx,dy))
+        rval[d] = frame_list
+    radix = "player"
 
 
-            print("processing bob {}...".format(name))
+    def create_frame_sequence(suffix,x_sign):
+        f.write("{}{}_frames:\n".format(name,suffix))
 
-            bn = name
-            mask_img = mask
+        prev_dx = 0
+        prev_dy = 0
+        for frame,df,dx,dy in frame_list:
+            for i in range(df):
+                f.write("\tdc.l\t{}{}\n".format(frame,suffix))
+                # x/y variations
+                f.write("\tdc.w\t{},{}\n".format((dx - prev_dx)*x_sign,dy - prev_dy))
+                prev_dx = dx
+                prev_dy = dy
+        f.write("\tdc.l\t0,0\n")
 
-            def create_bob(bob_data,bob_mask_data,outfile):
-                # data, no mask
-                contents = bitplanelib.palette_image2raw(bob_data,None,player_palette,
-                palette_precision_mask=0xF0,generate_mask=False,blit_pad=True)
-                # append (almost) manually created mask
-                contents += bitplanelib.palette_image2raw(bob_mask_data,None,((0,0,0),(255,255,255)),
-                palette_precision_mask=0xFF,generate_mask=False,blit_pad=True)
+    with open("{}/{}_frames.s".format(source_dir,radix),"w") as f:
+        for name,frame_list in sorted(rval.items()):
+            f.write("{}_frames:\n".format(name))
+            create_mirror_objects = name != "win"
+            if create_mirror_objects:
+                f.write("\tdc.l\t{0}_right_frames,{0}_left_frames\n".format(name))
+                create_frame_sequence("_right",1)
+                create_frame_sequence("_left",-1)
+            else:
+                create_frame_sequence("",1)
+    # include frames only once (may be used more than once)
+    frames_to_write = dict()
+    for name,frame_list in sorted(rval.items()):
+        create_mirror_objects = name != "win"
+        if create_mirror_objects:
+            for d in ["right","left"]:
+                for frame,*_ in frame_list:
+                    frames_to_write["{}_{}:\n".format(frame,d)] = "\tincbin\t{}_{}.bin\n".format(frame,d)
+        else:
+            for frame in frame_list:
+                frames_to_write["{}:\n".format(frame)] = "\tincbin\t{}.bin\n".format(frame)
 
-                with open(outfile,"wb") as f:
-                    f.write(contents)
-                return contents
+    with open("{}/{}_bobs.s".format(source_dir,radix),"w") as f:
+        for a,b in sorted(frames_to_write.items()):
+            f.write(a)
+            f.write(b)
 
-            create_bob(img,mask_img,"{}/{}_right.bin".format(sprites_dir,bn))
-
-            img_mirror = Image.new("RGB",img.size)
-            mask_img_mirror = Image.new("RGB",img.size)
-            for x in range(img.size[0]):
-                sx = img.size[0]-x-1
-                for y in range(img.size[1]):
-                    img_mirror.putpixel((sx,y),img.getpixel((x,y)))
-                    mask_img_mirror.putpixel((sx,y),mask_img.getpixel((x,y)))
-
-            create_bob(img_mirror,mask_img_mirror,"{}/{}_left.bin".format(sprites_dir,bn))
-
-            #frame_list.append(bn)
-        #rval[name] = frame_list
-##    radix = os.path.splitext(os.path.basename(json_file))[0]
-##    with open("{}/{}_frames.s".format(source_dir,radix),"w") as f:
-##        for name,frame_list in sorted(rval.items()):
-##            f.write("{}_frames:\n".format(name))
-##            if create_mirror_objects:
-##                f.write("\tdc.l\t{0}_left_frames,{0}_right_frames\n".format(name))
-##
-##                f.write("{}_left_frames:\n".format(name))
-##                for frame in frame_list:
-##                    f.write("\tdc.l\t{}_left\n".format(frame))
-##                f.write("\tdc.l\t{}\n".format(0))
-##                f.write("{}_right_frames:\n".format(name))
-##                for frame in frame_list:
-##                    f.write("\tdc.l\t{}_right\n".format(frame))
-##                f.write("\tdc.l\t{}\n".format(0))
-##            else:
-##                for frame in frame_list:
-##                    f.write("\tdc.l\t{}\n".format(frame))
-##                f.write("\tdc.l\t{}\n".format(0))
-##    with open("{}/{}_bobs.s".format(source_dir,radix),"w") as f:
-##        for name,frame_list in sorted(rval.items()):
-##            if create_mirror_objects:
-##                for frame in frame_list:
-##                    f.write("{}_right:\n".format(frame))
-##                    f.write("\tincbin\t{}_right.bin\n".format(frame))
-##                for frame in frame_list:
-##                    f.write("{}_left:\n".format(frame))
-##                    f.write("\tincbin\t{}_left.bin\n".format(frame))
-##                f.write("\n")
-##            else:
-##                for frame in frame_list:
-##                    f.write("{}:\n".format(frame))
-##                    f.write("\tincbin\t{}.bin\n".format(frame))
-##                f.write("\n")
-    return rval
 
 def process_fonts(dump=False):
     json_file = "fonts.json"

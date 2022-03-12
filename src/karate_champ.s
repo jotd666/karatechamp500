@@ -44,6 +44,7 @@ INTERRUPTS_ON_MASK = $E038
     
 	STRUCTURE	Character,0
     ULONG   character_id
+	ULONG	frame_set
 	UWORD	xpos
 	UWORD	ypos
 	UWORD	previous_xpos
@@ -137,8 +138,8 @@ ORIGINAL_TICKS_PER_SEC = 60
 
 NB_BYTES_PER_LINE = 40
 NB_BYTES_PER_BACKBUFFER_LINE = 28
-BOB_16X16_PLANE_SIZE = 4*16
-BOB_48X48_PLANE_SIZE = 8*48		; 64x48 pixels
+BOB_16X16_PLANE_SIZE = (16/8+2)*16
+BOB_48X48_PLANE_SIZE = (64/8+2)*48		; 64x48 pixels
 BOB_8X8_PLANE_SIZE = 16
 NB_LINES = 256
 SCREEN_PLANE_SIZE = NB_BYTES_PER_LINE*NB_LINES
@@ -159,10 +160,7 @@ GAME_OVER_TIMER = ORIGINAL_TICKS_PER_SEC*3
 ; direction enumerates, follows order of enemies in the sprite sheet
 RIGHT = 0
 LEFT = 1<<2
-UP = 2<<2
-DOWN = 3<<2
-; one extra enumerate for fire (demo mode)
-FIRE = 4
+
 
 ; possible direction bits, clockwise
 DIRB_RIGHT = 0
@@ -185,6 +183,7 @@ STATE_LIFE_LOST = 4*4
 STATE_INTRO_SCREEN = 5*4
 STATE_GAME_START_SCREEN = 6*4
 
+X_MAX = 200
 
 ; jump table macro, used in draw and update
 DEF_STATE_CASE_TABLE:MACRO
@@ -764,10 +763,11 @@ draw_background_pic
 	rts
     
 PANEL_PLANE_SIZE = (176/8+2)*64
-
+PANEL_WIDTH = 176/8+2
+PANEL_X = 24 
 draw_panel
 	lea	panel,a0
-	move.w	#176/8+2,d2
+	move.w	#PANEL_WIDTH,d2
 	moveq.l	#-1,d3
 	move.w	#64,d4
 	move.w	#NB_PLANES-1,d7
@@ -776,7 +776,7 @@ draw_panel
 	lea		_custom,a5
 .loop
 	moveq.w	#0,d1
-	move.w	#24,d0
+	move.w	#PANEL_X,d0
 	move.l	a4,a1
 	move.l	a1,a2  
 	movem.l d2-d7/a2-a4,-(a7)
@@ -785,6 +785,18 @@ draw_panel
 	add.w	#SCREEN_PLANE_SIZE,a4
 	add.w	#PANEL_PLANE_SIZE,a0
 	dbf		d7,.loop
+	
+	; current level
+	move.w	level_number(pc),d0
+	add.w	d0,d0
+	add.w	d0,d0
+	lea		pos_table(pc),a0
+	move.l	(a0,d0.w),a0
+	move.w	#PANEL_X+24,d0
+	move.w	#8,d1
+	move.w	#$F00,d2
+	bsr		write_color_string
+	
 	rts
 		
 ; draw score with titles and extra 0
@@ -804,51 +816,6 @@ draw_score:
 	rts
 	
 	
-    lea p1_string(pc),a0
-    move.w  #232,d0
-    move.w  #16,d1
-    move.w  #$FF,d2
-    bsr write_color_string
-    lea score_string(pc),a0
-    move.w  #$FFF,d2
-    move.w  #232,d0
-    add.w  #8,d1
-    bsr write_color_string
-    
-    move.w  #$FF,d2
-    lea high_score_string(pc),a0
-    move.w  #232,d0
-    move.w  #48,d1
-    bsr write_color_string
-    
-    ; extra 0
-    move.w  #$FFF,d2
-    lea score_string(pc),a0
-    move.w  #232,d0
-    add.w  #8,d1
-    bsr write_color_string
-
-    move.l  score(pc),d2
-    bsr     draw_current_score
-    
-    move.l  high_score(pc),d2
-    bsr     draw_high_score
-
-    lea level_string(pc),a0
-    move.w  #232,d0
-    move.w  #48+24,d1
-    move.w  #$FF,d2
-    bsr write_color_string
-
-    moveq.l #1,d2
-    add.w  level_number(pc),d2
-    move.w  #232+48,d0
-    move.w  #48+24+8,d1
-    move.w  #3,d3
-    move.w  #$FFF,d4
-    bra write_color_decimal_number
-
-    rts
     
 ; < D2 score
 ; trashes D0-D3
@@ -894,7 +861,8 @@ init_players:
     clr.l	previous_xpos(a0)
     move.w  #22,xpos(a0)
 	move.w	#176,ypos(a0)
-    
+    clr.w	frame(a0)
+	move.l	#walk_right_frames,frame_set(a0)
 	move.w 	#RIGHT,direction(a0)
 	
     lea player_2(pc),a0
@@ -903,7 +871,9 @@ init_players:
     clr.l	previous_xpos(a0)
     move.w  #148,xpos(a0)
 	move.w	#176,ypos(a0)
-    
+    clr.w	frame(a0)
+	move.l	#walk_left_frames,frame_set(a0)
+   
 	move.w 	#LEFT,direction(a0)
     
     move.w  #ORIGINAL_TICKS_PER_SEC,D0   
@@ -1065,7 +1035,7 @@ PLAYER_ONE_Y = 102-14
 
 	lea	player_1(pc),a4
 
-	;bsr	erase_player
+	bsr	erase_player
 
 	lea	player_1(pc),a4
     bsr draw_player
@@ -1202,9 +1172,7 @@ draw_intro_screen
     
     ; write high scores & position
     move.w  #24,D1
-    lea     .pos_table(pc),a3
-    lea     hiscore_table(pc),a4
-    move.w  #9,d5
+
 .ws
     move.w  #$FFF,d2    ; color
     move.l  (a3)+,a0
@@ -1233,45 +1201,41 @@ draw_intro_screen
 .no_change
     rts
 
-.pos_table  
-    dc.l    .pos1
-    dc.l    .pos2
-    dc.l    .pos3
-    dc.l    .pos4
-    dc.l    .pos5
-    dc.l    .pos6
-    dc.l    .pos7
-    dc.l    .pos8
-    dc.l    .pos9
-    dc.l    .pos10
-    
 
-.onechar
-    dc.b    0,0
-.toggle
-    dc.b    0
-    
-.pos1
-    dc.b    "1ST",0
-.pos2
-    dc.b    "2ND",0
-.pos3
-    dc.b    "3RD",0
-.pos4
-    dc.b    "4TH",0
-.pos5
-    dc.b    "5TH",0
-.pos6
-    dc.b    "6TH",0
-.pos7
-    dc.b    "7TH",0
-.pos8
-    dc.b    "8TH",0
-.pos9
-    dc.b    "9TH",0
-.pos10
-    dc.b    "10TH",0
-    
+pos_table  
+    dc.l    pos1
+    dc.l    pos2
+    dc.l    pos3
+    dc.l    pos4
+    dc.l    pos5
+    dc.l    pos6
+    dc.l    pos7
+    dc.l    pos8
+    dc.l    pos9
+    dc.l    pos10
+
+pos1
+   dc.b    "1ST",0
+pos2
+   dc.b    "2ND",0
+pos3
+   dc.b    "3RD",0
+pos4
+   dc.b    "4TH",0
+pos5
+   dc.b    "5TH",0
+pos6
+   dc.b    "6TH",0
+pos7
+   dc.b    "7TH",0
+pos8
+   dc.b    "8TH",0
+pos9
+   dc.b    "9TH",0
+pos10
+    dc.b    "10G",0
+pos10plus
+	dc.b	"CMP",0
     even
 
 time_left
@@ -2026,19 +1990,19 @@ update_player
     beq.b   .no_auto_right
     bset    #JPB_BTN_RIGHT,d0
 .no_auto_right
-    btst    #UP>>2,d2
-    beq.b   .no_auto_up
-    bset    #JPB_BTN_UP,d0
-    bra.b   .no_auto_down
-.no_auto_up
-    btst    #DOWN>>2,d2
-    beq.b   .no_auto_down
-    bset    #JPB_BTN_DOWN,d0
-.no_auto_down
-    btst    #FIRE,d2
-    beq.b   .no_auto_fire
-    bset    #JPB_BTN_RED,d0
-.no_auto_fire
+;    btst    #2,d2
+;    beq.b   .no_auto_up
+;    bset    #JPB_BTN_UP,d0
+;    bra.b   .no_auto_down
+;.no_auto_up
+;    btst    #3,d2
+;    beq.b   .no_auto_down
+;    bset    #JPB_BTN_DOWN,d0
+;.no_auto_down
+;    btst    #FIRE,d2
+;    beq.b   .no_auto_fire
+;    bset    #JPB_BTN_RED,d0
+;.no_auto_fire
     
     ; read live or recorded controls
 .no_demo
@@ -2068,19 +2032,36 @@ update_player
 
 	; left/right (TODO: no other button is pressed)
 	tst.b	right_pressed(a4)
-	beq.b	.no_right
+	beq.b	.no_right_move
 	
 	move.w	xpos(a4),d0
 	cmp.w	#X_MAX,d0
-	bcc.b	.no_right
-	; move right
-	add.w	#4,d0
-	move.w	frame(a4),d1
-	addq.w	#4,d1
-	
+	bcc.b	.no_right_move
+	bsr		move_player
+.no_right_move
 	
     rts
-   
+
+move_player
+	; advance frame / move
+	move.w	frame(a4),d0
+	add.w	#8,d0		; frame long+2 words of x/y
+	move.l	frame_set(a4),a0
+	move.l	(a0,d0.w),d1
+	bne.b	.not_last
+	clr.w	d0
+	move.l	a0,d1
+.not_last
+	move.l	d1,a1
+	addq.w	#4,a1
+	move.w	d0,frame(a4)
+	; a1 holds frame structure. we only need delta x/y
+	move.w	(a1)+,d0
+	add.w	d0,xpos(a4)
+	move.w	(a1),d0
+	add.w	d0,ypos(a4)
+	rts
+	
 ; < A4: player struct   
 erase_player:
 	
@@ -2174,14 +2155,9 @@ draw_player:
 	cmp.w	#LEFT,direction(a4)
 	beq.b	.ok
 	lea	walk_right_frames,a0
+	add.w	frame(a4),a0
 .ok
 	move.l	(a0),a0
-;	move.w	time_ticks(pc),d0
-;	lsr.w	#4,d0
-;	and.w	#3,d0
-;	add.w	d0,d0
-;	add.w	d0,d0
-;	move.l	(a0,d0.w),a0
 	
 	lea		screen_data,a1
 	move.l	a1,a2
@@ -2193,8 +2169,8 @@ draw_player:
 	move.w	d0,previous_xpos(a4)
 	move.w	d1,previous_ypos(a4)
 	moveq.l #-1,d3	;masking of first/last word    
-    move.w  #8,d2       ; 48 pixels + 2 shift bytes
-    move.w  #48,d4      ; 16 pixels height  
+    move.w  #10,d2       ; 64 pixels + 2 shift bytes
+    move.w  #48,d4      ; 48 pixels height  
 
     bsr blit_plane_any_internal_cookie_cut
 
@@ -3415,8 +3391,8 @@ end_color_copper:
    dc.w  $0092,$0038            ;  DDFSTRT := 0x0038
    dc.w  $0094,$00d0            ;  DDFSTOP := 0x00d0
    dc.w  $FFDF,$FFFE            ; PAL wait (256)
-   dc.w intreq,$8010            ; generate copper interrupt
    dc.w  $2201,$FFFE            ; PAL extra wait (around 288)
+   dc.w	 intreq,$8010            ; generate copper interrupt
     dc.l    -2
 
    
