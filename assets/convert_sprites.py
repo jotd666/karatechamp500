@@ -278,7 +278,7 @@ def process_player_tiles():
         images_list = sorted([x for x in os.listdir(os.path.join(moves_dir,d)) if x.endswith(".png")],
         key=lambda x: int(os.path.splitext(x)[0]))
         frame_list = []
-        print(len(deltas),len(images_list))
+
 
         for i,((df,dx,dy),image_file) in enumerate(zip(deltas,images_list)):
 
@@ -341,6 +341,7 @@ def process_player_tiles():
                 create_bob(img_mirror,mask_img_mirror,"{}/{}_left.bin".format(sprites_dir,bn))
 
             frame_list.append((bn,df,dx,dy))
+
         rval[d] = frame_list
     radix = "player"
 
@@ -351,6 +352,8 @@ def process_player_tiles():
         prev_dx = 0
         prev_dy = 0
         for frame,df,dx,dy in frame_list:
+            if not df:
+                df = 1
             for i in range(df):
                 f.write("\tdc.l\t{}{}\n".format(frame,suffix))
                 # x/y variations

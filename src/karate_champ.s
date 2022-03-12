@@ -2007,7 +2007,7 @@ update_player
     ; read live or recorded controls
 .no_demo
 
-
+	clr.l	right_pressed(a4)
     tst.l   d0
     beq.b   .out        ; nothing is currently pressed: optimize
     btst    #JPB_BTN_RED,d0
@@ -2016,7 +2016,7 @@ update_player
 .no_red
     btst    #JPB_BTN_RIGHT,d0
     sne.b   right_pressed(a4)
-    bra.b   .vertical
+	move.w	#$F00,$DFF180
 .no_right
     btst    #JPB_BTN_LEFT,d0
     sne.b   left_pressed(a4)
@@ -2057,9 +2057,13 @@ move_player
 	move.w	d0,frame(a4)
 	; a1 holds frame structure. we only need delta x/y
 	move.w	(a1)+,d0
+	beq.b	.nox
 	add.w	d0,xpos(a4)
+.nox
 	move.w	(a1),d0
+	beq.b	.noy
 	add.w	d0,ypos(a4)
+.noy
 	rts
 	
 ; < A4: player struct   
