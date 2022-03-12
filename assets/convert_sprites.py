@@ -269,7 +269,7 @@ def process_player_tiles():
     moves_list.remove("forward")
     moves_list = ["walk","forward"]+sorted(moves_list)
 
-    for d in moves_list[0:5]:
+    for d in moves_list[0:1]:
         # load info
         with open(os.path.join(moves_dir,d,"info.json")) as f:
             info = json.load(f)
@@ -313,7 +313,6 @@ def process_player_tiles():
 
                 print("processing bob {}...".format(name))
 
-                bn = name
                 mask_img = mask
 
                 def create_bob(bob_data,bob_mask_data,outfile):
@@ -328,7 +327,7 @@ def process_player_tiles():
                         f.write(contents)
                     return contents
 
-                create_bob(img,mask_img,"{}/{}_right.bin".format(sprites_dir,bn))
+                create_bob(img,mask_img,"{}/{}_right.bin".format(sprites_dir,name))
 
                 img_mirror = Image.new("RGB",img.size)
                 mask_img_mirror = Image.new("RGB",img.size)
@@ -338,10 +337,11 @@ def process_player_tiles():
                         img_mirror.putpixel((sx,y),img.getpixel((x,y)))
                         mask_img_mirror.putpixel((sx,y),mask_img.getpixel((x,y)))
 
-                create_bob(img_mirror,mask_img_mirror,"{}/{}_left.bin".format(sprites_dir,bn))
+                create_bob(img_mirror,mask_img_mirror,"{}/{}_left.bin".format(sprites_dir,name))
 
-            frame_list.append((bn,df,dx,dy))
+            frame_list.append([name,df,dx,dy])
 
+        #frame_list[-1][1] = 0       # last frame should not be repeated
         rval[d] = frame_list
     radix = "player"
 

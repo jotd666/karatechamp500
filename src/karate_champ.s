@@ -139,7 +139,7 @@ ORIGINAL_TICKS_PER_SEC = 60
 NB_BYTES_PER_LINE = 40
 NB_BYTES_PER_BACKBUFFER_LINE = 28
 BOB_16X16_PLANE_SIZE = (16/8+2)*16
-BOB_48X48_PLANE_SIZE = (64/8+2)*48		; 64x48 pixels
+BOB_64X48_PLANE_SIZE = (64/8+2)*48		; 64x48 pixels
 BOB_8X8_PLANE_SIZE = 16
 NB_LINES = 256
 SCREEN_PLANE_SIZE = NB_BYTES_PER_LINE*NB_LINES
@@ -809,12 +809,20 @@ draw_score:
 	
     move.w  #$FFF,d4
 	bsr write_blanked_color_decimal_number
+	cmp.w	#10,d2
+	bcc.b	.more
+	lea		.zero(pc),a0
+    move.w  d4,d2
+	bsr write_blanked_color_string
 	
+.more
 	
-	bsr		draw_high_score
+	;bsr		draw_high_score
 
 	rts
-	
+.zero
+		dc.b	"0",0
+		even
 	
     
 ; < D2 score
@@ -906,16 +914,16 @@ init_players:
     	    
 
     
-DEBUG_X = 8     ; 232+8
-DEBUG_Y = 8
+DEBUG_X = 24     ; 232+8
+DEBUG_Y = 24
 
         
 draw_debug
-    lea player(pc),a2
+    lea player_1(pc),a2
     move.w  #DEBUG_X,d0
     move.w  #DEBUG_Y,d1
     lea	screen_data+SCREEN_PLANE_SIZE,a1 
-    lea .px(pc),a0
+    lea .p1x(pc),a0
     bsr write_string
     lsl.w   #3,d0
     add.w  #DEBUG_X,d0
@@ -926,7 +934,7 @@ draw_debug
     move.w  #DEBUG_X,d0
     add.w  #8,d1
     move.l  d0,d4
-    lea .py(pc),a0
+    lea .p1y(pc),a0
     bsr write_string
     lsl.w   #3,d0
     add.w  #DEBUG_X,d0
@@ -936,6 +944,7 @@ draw_debug
     bsr write_decimal_number
     move.l  d4,d0
     ;;
+	IFEQ	1
     add.w  #8,d1
     lea .ph(pc),a0
     bsr write_string
@@ -957,15 +966,15 @@ draw_debug
     move.w  #3,d3
     bsr write_decimal_number
     move.l  d4,d0
-	
+	ENDC
  
 
     rts
     
-.px
-        dc.b    "PX ",0
-.py
-        dc.b    "PY ",0
+.p1x
+        dc.b    "P1X ",0
+.p1y
+        dc.b    "P1Y ",0
 .ph
 		dc.b	"PREVH ",0
 .pv
@@ -1034,7 +1043,6 @@ PLAYER_ONE_Y = 102-14
 	bsr	draw_score
 
 	lea	player_1(pc),a4
-
 	bsr	erase_player
 
 	lea	player_1(pc),a4
@@ -1879,7 +1887,7 @@ update_all
 	blitz
 .no_sec
 
-    lea     player(pc),a4
+    lea     player_1(pc),a4
 
     bsr update_player
     
@@ -2016,7 +2024,6 @@ update_player
 .no_red
     btst    #JPB_BTN_RIGHT,d0
     sne.b   right_pressed(a4)
-	move.w	#$F00,$DFF180
 .no_right
     btst    #JPB_BTN_LEFT,d0
     sne.b   left_pressed(a4)
@@ -2037,27 +2044,43 @@ update_player
 	move.w	xpos(a4),d0
 	cmp.w	#X_MAX,d0
 	bcc.b	.no_right_move
+	clr.w	d1
 	bsr		move_player
+	bra.b	.no_left_move
 .no_right_move
+	tst.b	left_pressed(a4)
+	beq.b	.no_left_move
+	
+	move.w	xpos(a4),d0
+	cmp.w	#20,d0
+	bcs.b	.no_left_move
+	st		d1
+	bsr		move_player
+.no_left_move
 	
     rts
+
+; < d1: 0 normal, != 0 negate x
 
 move_player
 	; advance frame / move
 	move.w	frame(a4),d0
 	add.w	#8,d0		; frame long+2 words of x/y
 	move.l	frame_set(a4),a0
-	move.l	(a0,d0.w),d1
+	tst.l	(a0,d0.w)
 	bne.b	.not_last
 	clr.w	d0
-	move.l	a0,d1
 .not_last
-	move.l	d1,a1
-	addq.w	#4,a1
+	
+	lea	(4,a0,d0.w),a1
 	move.w	d0,frame(a4)
 	; a1 holds frame structure. we only need delta x/y
 	move.w	(a1)+,d0
 	beq.b	.nox
+	tst	d1
+	beq.b	.nadd
+	neg.w	d0
+.nadd
 	add.w	d0,xpos(a4)
 .nox
 	move.w	(a1),d0
@@ -2074,6 +2097,7 @@ erase_player:
 	move.w	xpos(a4),d2
 	move.w	ypos(a4),d3
 	
+	and.w	#$F0,d2		; round & multiple of 16
 	move.l	d2,d0
 	move.l	d3,d1
 	lea		screen_data,a1
@@ -2083,7 +2107,7 @@ erase_player:
 	; compute source address
 	move.l	a1,-(a7)
 	move.l	d2,d0
-	and.w	#$F0,d0		; multiple of 16
+	
 	move.l	d3,d1
 	lea		backbuffer,a1
 	ADD_XY_TO_A1_28		a0
@@ -2093,7 +2117,7 @@ erase_player:
     lea _custom,A5
 	
 	; restore background
-	move.w	#6,d2	; width (no shifting)
+	move.w	#8,d2	; width (no shifting)
 	move.w	#48,d4	; height
 	
 
@@ -2165,7 +2189,7 @@ draw_player:
 	
 	lea		screen_data,a1
 	move.l	a1,a2
-	lea		(BOB_48X48_PLANE_SIZE*2,a0),a3
+	lea		(BOB_64X48_PLANE_SIZE*2,a0),a3
 		
 	; plane 1: clothes data as white
 	move.w	xpos(a4),D0
@@ -2178,7 +2202,7 @@ draw_player:
 
     bsr blit_plane_any_internal_cookie_cut
 
-	add.w	#BOB_48X48_PLANE_SIZE,a0		; next source plane
+	add.w	#BOB_64X48_PLANE_SIZE,a0		; next source plane
 	add.w	#SCREEN_PLANE_SIZE,a2
 	move.l	a2,a1
     bsr blit_plane_any_internal_cookie_cut
@@ -2197,7 +2221,7 @@ draw_player:
 	
 	; red: another layer of clothes plane that activate color 9
 	; (color 9 is fixed as red)
-	lea		(-BOB_48X48_PLANE_SIZE*2,a3),a0
+	lea		(-BOB_64X48_PLANE_SIZE*2,a3),a0
 	
 .white:
 	
@@ -3403,7 +3427,7 @@ end_color_copper:
 
 empty_16x16_bob
 empty_48x48_bob
-    ds.b    BOB_48X48_PLANE_SIZE,0
+    ds.b    BOB_64X48_PLANE_SIZE,0
 
 	
 credit_raw
