@@ -173,9 +173,6 @@ def process_player_tiles(json_file):
             # save
             x_size = cropped_img.size[0]
 
-            # blitter object
-##                if x_size % 16:
-##                    raise Exception("{} (frame #{}) with should be a multiple of 16, found {}".format(name,i,x_size))
 
             p = bitplanelib.palette_extract(cropped_img,palette_precision_mask=0xF0)
             # add 16 pixelsblit_pad
@@ -269,7 +266,7 @@ def process_player_tiles():
     moves_list.remove("forward")
     moves_list = ["walk","forward"]+sorted(moves_list)
 
-    for d in moves_list[0:1]:
+    for d in moves_list[0:-1]:
         # load info
         with open(os.path.join(moves_dir,d,"info.json")) as f:
             info = json.load(f)
@@ -354,13 +351,13 @@ def process_player_tiles():
         for frame,df,dx,dy in frame_list:
             if not df:
                 df = 1
-            for i in range(df):
-                f.write("\tdc.l\t{}{}\n".format(frame,suffix))
-                # x/y variations
-                f.write("\tdc.w\t{},{}\n".format((dx - prev_dx)*x_sign,dy - prev_dy))
-                prev_dx = dx
-                prev_dy = dy
-        f.write("\tdc.l\t0,0\n")
+
+            f.write("\tdc.l\t{}{}\n".format(frame,suffix))
+            # x/y variations
+            f.write("\tdc.w\t{},{},{}\n".format((dx - prev_dx)*x_sign,dy - prev_dy,df))
+            prev_dx = dx
+            prev_dy = dy
+        f.write("\tdc.l\t0,0,0\n")
 
     with open("{}/{}_frames.s".format(source_dir,radix),"w") as f:
         for name,frame_list in sorted(rval.items()):

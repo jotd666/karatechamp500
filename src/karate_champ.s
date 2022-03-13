@@ -49,13 +49,12 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	ypos
 	UWORD	previous_xpos
 	UWORD	previous_ypos
-    UBYTE   right_pressed
-    UBYTE   left_pressed
-    UBYTE   up_pressed
-    UBYTE   down_pressed
 	UWORD	direction   ; sprite orientation
 	UWORD	previous_direction   ; previous sprite orientation
+	UWORD	current_frame_countdown
     UWORD   frame
+    UBYTE   controls
+    UBYTE   is_jumping
 	LABEL	Character_SIZEOF
 
 	STRUCTURE	Player,0
@@ -124,10 +123,36 @@ START_LEVEL = 1
 		ENDC
 	ENDC
 	
+NULL = 0
 
 NB_RECORDED_MOVES = 100
 
+	IFD	WINUAE_PAD_CONTROLS
+JPB_BTN_ADOWN = JPB_BTN_GRN
+JPB_BTN_AUP = JPB_BTN_BLU
+JPB_BTN_ARIGHT = JPB_BTN_YEL
+JPB_BTN_ALEFT = JPB_BTN_RED
+	ELSE
+; CD32 button position that match original arcade controls best
+JPB_BTN_ADOWN = JPB_BTN_RED
+JPB_BTN_AUP = JPB_BTN_YEL
+JPB_BTN_ARIGHT = JPB_BTN_BLU
+JPB_BTN_ALEFT = JPB_BTN_GRN
+	ENDC
+	
+; 8 bits for directions+buttons
+; do NOT change order of bits, move_table has been
+; computed with those values (in generate_move_tables.py script)
+CTB_RIGHT_DIRECTION = 0
+CTB_LEFT_DIRECTION = 1
+CTB_UP_DIRECTION = 2
+CTB_DOWN_DIRECTION = 3
+CTB_RIGHT_BUTTON = 4
+CTB_LEFT_BUTTON = 5
+CTB_UP_BUTTON = 6
+CTB_DOWN_BUTTON = 7
 
+	
 ; --------------- end debug/adjustable variables
 
 ; actual nb ticks (PAL)
@@ -183,6 +208,7 @@ STATE_LIFE_LOST = 4*4
 STATE_INTRO_SCREEN = 5*4
 STATE_GAME_START_SCREEN = 6*4
 
+X_MIN = 20
 X_MAX = 200
 
 ; jump table macro, used in draw and update
@@ -764,7 +790,8 @@ draw_background_pic
     
 PANEL_PLANE_SIZE = (176/8+2)*64
 PANEL_WIDTH = 176/8+2
-PANEL_X = 24 
+PANEL_X = 24
+
 draw_panel
 	lea	panel,a0
 	move.w	#PANEL_WIDTH,d2
@@ -857,32 +884,34 @@ hide_sprites:
     
 init_players:
     ; no moves (zeroes direction flags)
-    clr.l  right_pressed(a4)  
+    clr.b  controls(a4)  
+    clr.b  is_jumping(a4)  
+ 
 
 	move.w	#30,time_left
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
 	
 
-    lea player_1(pc),a0
+    lea player_1(pc),a4
 
-	move.b	#0,character_id(a0)
-    clr.l	previous_xpos(a0)
-    move.w  #22,xpos(a0)
-	move.w	#176,ypos(a0)
-    clr.w	frame(a0)
-	move.l	#walk_right_frames,frame_set(a0)
-	move.w 	#RIGHT,direction(a0)
+	move.b	#0,character_id(a4)
+    clr.l	previous_xpos(a4)
+    move.w  #22,xpos(a4)
+	move.w	#176,ypos(a4)
+
+	lea		walk_frames(pc),a0
+	move.w 	#RIGHT,direction(a4)
+	bsr		load_frame
 	
-    lea player_2(pc),a0
-	move.b	#1,character_id(a0)
+    lea player_2(pc),a4
+	move.b	#1,character_id(a4)
 
-    clr.l	previous_xpos(a0)
-    move.w  #148,xpos(a0)
-	move.w	#176,ypos(a0)
-    clr.w	frame(a0)
-	move.l	#walk_left_frames,frame_set(a0)
-   
-	move.w 	#LEFT,direction(a0)
+    clr.l	previous_xpos(a4)
+    move.w  #148,xpos(a4)
+	move.w	#176,ypos(a4)
+	lea		walk_frames(pc),a0
+	move.w 	#LEFT,direction(a4)
+	bsr		load_frame
     
     move.w  #ORIGINAL_TICKS_PER_SEC,D0   
     tst.b   music_played
@@ -911,8 +940,18 @@ init_players:
 
 
     rts
-    	    
 
+; < a0: frame right/left
+; < a4: player structure
+; trashes: D0
+load_frame:
+    clr.w	frame(a4)
+	clr.w	current_frame_countdown(a4)
+	move.w	direction(a4),d0
+	move.l	(a0,d0.w),frame_set(a4)
+	
+	rts
+	
     
 DEBUG_X = 24     ; 232+8
 DEBUG_Y = 24
@@ -944,16 +983,16 @@ draw_debug
     bsr write_decimal_number
     move.l  d4,d0
     ;;
-	IFEQ	1
     add.w  #8,d1
-    lea .ph(pc),a0
+    lea .cmc(pc),a0
     bsr write_string
     lsl.w   #3,d0
     add.w  #DEBUG_X,d0
     clr.l   d2
-    move.w previous_valid_direction(pc),d2
+    move.w current_frame_countdown(a2),d2
     move.w  #5,d3
     bsr write_decimal_number
+	IFEQ	1
     move.w  #DEBUG_X,d0
     add.w  #8,d1
     move.l  d0,d4
@@ -975,8 +1014,8 @@ draw_debug
         dc.b    "P1X ",0
 .p1y
         dc.b    "P1Y ",0
-.ph
-		dc.b	"PREVH ",0
+.cmc
+		dc.b	"CMC ",0
 .pv
 		dc.b	"PREVV ",0
 .ato
@@ -1920,8 +1959,13 @@ update_intro_screen
   
     rts
 
-    
-    
+CONTROL_TEST:MACRO
+	btst	#JPB_BTN_\1,d0
+	beq.b	.no_\1
+	bset	#CTB_\2,d1
+	bra.b	\3
+.no_\1
+    ENDM
     
 play_loop_fx
     tst.b   demo_mode
@@ -2015,57 +2059,58 @@ update_player
     ; read live or recorded controls
 .no_demo
 
-	clr.l	right_pressed(a4)
+	clr.b	controls(a4)
     tst.l   d0
     beq.b   .out        ; nothing is currently pressed: optimize
-    btst    #JPB_BTN_RED,d0
-    beq.b   .no_red
- 
-.no_red
-    btst    #JPB_BTN_RIGHT,d0
-    sne.b   right_pressed(a4)
-.no_right
-    btst    #JPB_BTN_LEFT,d0
-    sne.b   left_pressed(a4)
-.vertical
-    btst    #JPB_BTN_UP,d0
-    sne.b   up_pressed(a4)
-    bra.b   .out
-.no_up
-    btst    #JPB_BTN_DOWN,d0
-    sne.b   down_pressed(a4)
-.no_down    
-.out
-
-	; left/right (TODO: no other button is pressed)
-	tst.b	right_pressed(a4)
-	beq.b	.no_right_move
-	
-	move.w	xpos(a4),d0
-	cmp.w	#X_MAX,d0
-	bcc.b	.no_right_move
 	clr.w	d1
-	bsr		move_player
-	bra.b	.no_left_move
-.no_right_move
-	tst.b	left_pressed(a4)
-	beq.b	.no_left_move
+
+	CONTROL_TEST	ADOWN,DOWN_BUTTON,.out1
+	CONTROL_TEST	AUP,UP_BUTTON,.out1
+	CONTROL_TEST	ARIGHT,RIGHT_BUTTON,.out1
+	CONTROL_TEST	ALEFT,LEFT_BUTTON,.out1
+.out1	
+	CONTROL_TEST	DOWN,DOWN_DIRECTION,.out2
+	CONTROL_TEST	UP,UP_DIRECTION,.out2
+	CONTROL_TEST	RIGHT,RIGHT_DIRECTION,.out2
+	CONTROL_TEST	LEFT,LEFT_DIRECTION,.out2
+.out2	
+;	cmp.b	#144,d1
+;	bcc.b	.out		; not possible
+	lea		moves_table(pc),a0
 	
+	add.w	d1,d1
+	add.w	d1,d1
+	move.l	(a0,d1.w),a0
+	jsr		(a0)
+
+	; correct x afterwards
 	move.w	xpos(a4),d0
-	cmp.w	#20,d0
-	bcs.b	.no_left_move
-	st		d1
-	bsr		move_player
-.no_left_move
-	
+	cmp.w	#X_MAX+1,d0
+	bcs.b	.ok_max
+	move.w	#X_MAX,xpos(a4)
+	bra.b	.ok_min
+.ok_max
+	cmp.w	#X_MIN+1,d0
+	bcc.b	.ok_min
+	move.w	#X_MIN,xpos(a4)
+.ok_min
+.out
     rts
 
+; what: animate & move player according to animation table
 ; < d1: 0 normal, != 0 negate x
 
 move_player
+	move.w	current_frame_countdown(a4),d2
+	bmi.b	.no_change		; negative: wait for player move change
+	beq.b	.change
+	subq.w	#1,d2
+	bra.b	.no_change
+.change
+	; countdown at zero
 	; advance frame / move
 	move.w	frame(a4),d0
-	add.w	#8,d0		; frame long+2 words of x/y
+	add.w	#10,d0		; frame long+2 words of x/y/nbframes
 	move.l	frame_set(a4),a0
 	tst.l	(a0,d0.w)
 	bne.b	.not_last
@@ -2083,10 +2128,13 @@ move_player
 .nadd
 	add.w	d0,xpos(a4)
 .nox
-	move.w	(a1),d0
+	move.w	(a1)+,d0
 	beq.b	.noy
 	add.w	d0,ypos(a4)
 .noy
+	move.w	(a1),d2	; load frame countdown
+.no_change
+	move.w	d2,current_frame_countdown(a4)
 	rts
 	
 ; < A4: player struct   
@@ -3276,8 +3324,103 @@ play_fx
     bra _mt_playfx
 .no_sound
     rts
-    
+   
+do_sommersault_back:
+	rts
+do_low_kick:
+	rts
+do_back_round_kick_right:
+	rts
+do_jump:
+	rts
+do_back_round_kick_left:
+	rts
+do_jumping_side_kick:
+	rts
+do_foot_sweep_front:
+	rts
+do_jumping_back_kick:
+	rts
+do_move_forward:
+	tst.b	is_jumping(a4)
+	bne.b	.out
+	cmp.w	#RIGHT,direction(a4)
+	beq.b	.right
+	st		d1
+	bra.b		move_player
+.right
+	clr.w	d1
+	bra.b		move_player
+.out
+	rts
+do_move_back:
+	tst.b	is_jumping(a4)
+	bne.b	.out
+	cmp.w	#RIGHT,direction(a4)
+	beq.b	.right
+	clr.w		d1
+	bra.b		move_player
+.right
+	st	d1
+	bra.b		move_player
+.out
+	rts
+do_lunge_punch_400:
+	rts
+do_crouch:
+	rts
+do_lunge_punch_1000:
+	rts
+do_reverse_punch_800:
+	rts
+do_lunge_punch_600:
+	rts
+do_front_kick:
+	rts
+do_back_kick:
+	rts
 
+do_sommersault:
+	rts
+do_foot_sweep_back:
+	rts
+do_round_kick:
+	rts
+	
+moves_table
+	dc.l	NULL,do_move_forward,do_move_back,NULL,do_jump,NULL,NULL,NULL
+	dc.l	do_crouch,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	do_front_kick,do_lunge_punch_400,do_back_round_kick_right,NULL,do_jumping_side_kick,NULL,NULL,NULL
+	dc.l	do_foot_sweep_front,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	do_back_kick,do_back_round_kick_left,do_back_kick,NULL,do_jumping_back_kick,NULL,NULL,NULL
+	dc.l	do_foot_sweep_back,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	do_round_kick,do_lunge_punch_1000,do_lunge_punch_600,NULL,do_sommersault_back,NULL,NULL,NULL
+	dc.l	do_reverse_punch_800,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	do_low_kick,do_low_kick,do_low_kick,NULL,do_sommersault,NULL,NULL,NULL
+	dc.l	do_foot_sweep_front,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	
 ;base addr, len, per, vol, channel<<8 + pri, loop timer, number of repeats (or -1), current repeat, current vbl
 
 FXFREQBASE = 3579564
