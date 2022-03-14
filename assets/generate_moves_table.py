@@ -35,20 +35,23 @@ RIGHT_DIRECTION|UP_BUTTON : "lunge_punch_1000",
 LEFT_DIRECTION|UP_BUTTON : "lunge_punch_600",
 }
 
+jump_moves = {v for v in dct.values() if "jump" in v or "sault" in v}
 # above 129 no combinations are viable
 table = ["NULL"]*256
+is_jump = [0]*256
 for k,v in dct.items():
     table[k] = "do_"+v
+    is_jump[k] = int(v in jump_moves)
 for v in {x for x in table if x != "NULL"}:
     print("{}:\n\trts".format(v))
 
 # print the table
 
-for i,t in enumerate(table):
+for i,(j,t) in enumerate(zip(is_jump,table)):
     im8 = i%8
     if not im8:
         print("\tdc.l\t",end="")
-    print(t,end="")
+    print("{},{}".format(t,j),end="")
     if im8 < 7:
         print(",",end="")
     else:

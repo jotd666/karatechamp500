@@ -127,6 +127,8 @@ NULL = 0
 
 NB_RECORDED_MOVES = 100
 
+WINUAE_PAD_CONTROLS
+
 	IFD	WINUAE_PAD_CONTROLS
 JPB_BTN_ADOWN = JPB_BTN_GRN
 JPB_BTN_AUP = JPB_BTN_BLU
@@ -210,6 +212,7 @@ STATE_GAME_START_SCREEN = 6*4
 
 X_MIN = 20
 X_MAX = 200
+GUARD_X_DISTANCE = 60		; to confirm
 
 ; jump table macro, used in draw and update
 DEF_STATE_CASE_TABLE:MACRO
@@ -992,6 +995,19 @@ draw_debug
     move.w current_frame_countdown(a2),d2
     move.w  #5,d3
     bsr write_decimal_number
+
+    move.w  #DEBUG_X,d0
+    add.w  #8,d1
+    move.l  d0,d4
+    lea .ctrl(pc),a0
+    bsr write_string
+    lsl.w   #3,d0
+    add.w  #DEBUG_X,d0
+    clr.l   d2
+    move.b player+controls(pc),d2
+    move.w  #3,d3
+    bsr write_hexadecimal_number
+	
 	IFEQ	1
     move.w  #DEBUG_X,d0
     add.w  #8,d1
@@ -1016,8 +1032,8 @@ draw_debug
         dc.b    "P1Y ",0
 .cmc
 		dc.b	"CMC ",0
-.pv
-		dc.b	"PREVV ",0
+.ctrl
+		dc.b	"CTRL ",0
 .ato
 		dc.b "ATO ",0
 .tx
@@ -1807,10 +1823,10 @@ level3_interrupt:
     bsr _read_joystick
     
     
-    btst    #JPB_BTN_BLU,d0
+    btst    #JPB_BTN_PLAY,d0
     beq.b   .no_second
     move.l  joystick_state(pc),d2
-    btst    #JPB_BTN_BLU,d2
+    btst    #JPB_BTN_PLAY,d2
     bne.b   .no_second
 
     ; no pause if not in game
@@ -1923,7 +1939,7 @@ update_all
 	subq.w	#1,time_left
 	bne.b	.no_sec
 	; out of time
-	blitz
+	;;blitz
 .no_sec
 
     lea     player_1(pc),a4
@@ -2073,14 +2089,28 @@ update_player
 	CONTROL_TEST	UP,UP_DIRECTION,.out2
 	CONTROL_TEST	RIGHT,RIGHT_DIRECTION,.out2
 	CONTROL_TEST	LEFT,LEFT_DIRECTION,.out2
-.out2	
+.out2
+	move.b	d1,controls(a4)
+	tst.w	d1
+	beq.b	.out
 ;	cmp.b	#144,d1
 ;	bcc.b	.out		; not possible
 	lea		moves_table(pc),a0
 	
 	add.w	d1,d1
 	add.w	d1,d1
-	move.l	(a0,d1.w),a0
+	add.w	d1,d1
+	move.l	(a0,d1.w),d0
+	bne.b	.ok
+	blitz
+.ok
+	move.l	(4,a0,d1.w),d1	; is jump argument
+	bne.b	.do_move		; jumping move is responsible for handing interruptions by other jumps
+	; not a jumping move. Are we jumping ?
+	tst.b	is_jumping(a4)
+	bne.b	.out		; can't interrupt a jumping move	
+.do_move
+	move.l	d0,a0
 	jsr		(a0)
 
 	; correct x afterwards
@@ -2097,10 +2127,30 @@ update_player
 .out
     rts
 
-; what: animate & move player according to animation table
-; < d1: 0 normal, != 0 negate x
-
+; what: animate & move player according to animation table & player direction
+; < a0: current frame set (right/left)
+; < a4: player structure
+; < d1: invert move
 move_player
+	cmp.w	#RIGHT,direction(a4)
+	beq.b	.right
+	; left
+	move.l	(4,a0),a0
+	bra.b		.cont
+.right
+	move.l	(a0),a0
+.cont
+	move.l	frame_set(a4),a1
+	; is frame set different from last time?
+	cmp.l	a0,a1
+	beq.b	.no_frame_set_change
+	; change frame set
+	move.l	a0,frame_set(a4)
+	move.l	a0,a1
+	; reset all counters
+	clr.w	current_frame_countdown(a4)
+	clr.w	frame(a4)
+.no_frame_set_change
 	move.w	current_frame_countdown(a4),d2
 	bmi.b	.no_change		; negative: wait for player move change
 	beq.b	.change
@@ -2111,13 +2161,11 @@ move_player
 	; advance frame / move
 	move.w	frame(a4),d0
 	add.w	#10,d0		; frame long+2 words of x/y/nbframes
-	move.l	frame_set(a4),a0
-	tst.l	(a0,d0.w)
+	tst.l	(a1,d0.w)
 	bne.b	.not_last
 	clr.w	d0
 .not_last
-	
-	lea	(4,a0,d0.w),a1
+	lea	(4,a1,d0.w),a1
 	move.w	d0,frame(a4)
 	; a1 holds frame structure. we only need delta x/y
 	move.w	(a1)+,d0
@@ -2142,8 +2190,8 @@ erase_player:
 	
 	; compute dest address
 	
-	move.w	xpos(a4),d2
-	move.w	ypos(a4),d3
+	move.w	previous_xpos(a4),d2
+	move.w	previous_ypos(a4),d3
 	
 	and.w	#$F0,d2		; round & multiple of 16
 	move.l	d2,d0
@@ -2227,12 +2275,8 @@ blit_back_plane:
 draw_player:
     lea _custom,A5
 	
-	lea	walk_left_frames,a0
-	cmp.w	#LEFT,direction(a4)
-	beq.b	.ok
-	lea	walk_right_frames,a0
+	move.l	frame_set(a4),a0
 	add.w	frame(a4),a0
-.ok
 	move.l	(a0),a0
 	
 	lea		screen_data,a1
@@ -3325,101 +3369,113 @@ play_fx
 .no_sound
     rts
    
+
+
+get_player_distance
+	move.w	player+xpos(pc),d0
+	sub.w	player+Player_SIZEOF+xpos(pc),d0
+	bpl.b	.pos
+	neg.w	d0
+.pos
+	rts
+	
+SIMPLE_MOVE_CALLBACK:MACRO
+do_\1:
+	lea	\1_frames(pc),a0
+	clr.w	d1
+	bra.b	move_player
+	ENDM
+	
+; each "do_xxx" function has the following input params
+; < A4: player structure
+
 do_sommersault_back:
 	rts
-do_low_kick:
+	
+	SIMPLE_MOVE_CALLBACK	low_kick
+	SIMPLE_MOVE_CALLBACK	foot_sweep_front
+	SIMPLE_MOVE_CALLBACK	foot_sweep_back
+	SIMPLE_MOVE_CALLBACK	jumping_back_kick
+	SIMPLE_MOVE_CALLBACK	jumping_side_kick
+	SIMPLE_MOVE_CALLBACK	crouch
+	SIMPLE_MOVE_CALLBACK	round_kick
+	SIMPLE_MOVE_CALLBACK	front_kick
+	SIMPLE_MOVE_CALLBACK	back_kick
+	SIMPLE_MOVE_CALLBACK	lunge_punch_400
+	SIMPLE_MOVE_CALLBACK	lunge_punch_600
+	SIMPLE_MOVE_CALLBACK	lunge_punch_1000
+do_reverse_punch_800
 	rts
+	;SIMPLE_MOVE_CALLBACK	reverse_punch_800
+	
 do_back_round_kick_right:
 	rts
 do_jump:
 	rts
 do_back_round_kick_left:
 	rts
-do_jumping_side_kick:
-	rts
-do_foot_sweep_front:
-	rts
-do_jumping_back_kick:
-	rts
+
+
 do_move_forward:
-	tst.b	is_jumping(a4)
-	bne.b	.out
-	cmp.w	#RIGHT,direction(a4)
-	beq.b	.right
-	st		d1
-	bra.b		move_player
-.right
+	lea		walk_frames(pc),a0
 	clr.w	d1
-	bra.b		move_player
-.out
+	bsr		get_player_distance
+	cmp.w	#GUARD_X_DISTANCE,d0		; approx...
+	bcc.b	move_player
+	lea		forward_frames(pc),a0
+	bra.b	move_player
 	rts
 do_move_back:
-	tst.b	is_jumping(a4)
-	bne.b	.out
-	cmp.w	#RIGHT,direction(a4)
-	beq.b	.right
-	clr.w		d1
-	bra.b		move_player
-.right
-	st	d1
-	bra.b		move_player
-.out
+	lea		walk_frames(pc),a0
+	st.b	d1
+	bsr		get_player_distance
+	cmp.w	#GUARD_X_DISTANCE,d0		; approx...
+	bcc.b	move_player
+	lea		forward_frames(pc),a0
+	bra.b	move_player
 	rts
-do_lunge_punch_400:
-	rts
-do_crouch:
-	rts
-do_lunge_punch_1000:
-	rts
-do_reverse_punch_800:
-	rts
-do_lunge_punch_600:
-	rts
-do_front_kick:
-	rts
-do_back_kick:
-	rts
+	
+	
+
 
 do_sommersault:
 	rts
-do_foot_sweep_back:
-	rts
-do_round_kick:
-	rts
+
+
 	
 moves_table
-	dc.l	NULL,do_move_forward,do_move_back,NULL,do_jump,NULL,NULL,NULL
-	dc.l	do_crouch,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	do_front_kick,do_lunge_punch_400,do_back_round_kick_right,NULL,do_jumping_side_kick,NULL,NULL,NULL
-	dc.l	do_foot_sweep_front,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	do_back_kick,do_back_round_kick_left,do_back_kick,NULL,do_jumping_back_kick,NULL,NULL,NULL
-	dc.l	do_foot_sweep_back,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	do_round_kick,do_lunge_punch_1000,do_lunge_punch_600,NULL,do_sommersault_back,NULL,NULL,NULL
-	dc.l	do_reverse_punch_800,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	do_low_kick,do_low_kick,do_low_kick,NULL,do_sommersault,NULL,NULL,NULL
-	dc.l	do_foot_sweep_front,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-	dc.l	NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+	dc.l	NULL,0,do_move_forward,0,do_move_back,0,NULL,0,do_jump,1,NULL,0,NULL,0,NULL,0
+	dc.l	do_crouch,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	do_front_kick,0,do_lunge_punch_400,0,do_back_round_kick_right,0,NULL,0,do_jumping_side_kick,1,NULL,0,NULL,0,NULL,0
+	dc.l	do_foot_sweep_front,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	do_back_kick,0,do_back_round_kick_left,0,do_back_kick,0,NULL,0,do_jumping_back_kick,1,NULL,0,NULL,0,NULL,0
+	dc.l	do_foot_sweep_back,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	do_round_kick,0,do_lunge_punch_1000,0,do_lunge_punch_600,0,NULL,0,do_sommersault_back,1,NULL,0,NULL,0,NULL,0
+	dc.l	do_reverse_punch_800,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	do_low_kick,0,do_low_kick,0,do_low_kick,0,NULL,0,do_sommersault,1,NULL,0,NULL,0,NULL,0
+	dc.l	do_foot_sweep_front,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
+	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
 	
 ;base addr, len, per, vol, channel<<8 + pri, loop timer, number of repeats (or -1), current repeat, current vbl
 
