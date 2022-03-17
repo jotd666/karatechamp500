@@ -217,7 +217,7 @@ def process_player_tiles(json_file):
         for name,frame_list in sorted(rval.items()):
             f.write("{}_frames:\n".format(name))
             if create_mirror_objects:
-                f.write("\tdc.l\t{0}_left_frames,{0}_right_frames\n".format(name))
+                f.write("\tdc.l\t{0}_left_frames,{0}_right_frames,{}\n".format(name,len(frame_list)))
 
                 f.write("{}_left_frames:\n".format(name))
                 for frame in frame_list:
@@ -228,6 +228,7 @@ def process_player_tiles(json_file):
                     f.write("\tdc.l\t{}_right\n".format(frame))
                 f.write("\tdc.l\t{}\n".format(0))
             else:
+                f.write("\tdc.l\t{}   ; nb frames\n".format(len(frame_list)))
                 for frame in frame_list:
                     f.write("\tdc.l\t{}\n".format(frame))
                 f.write("\tdc.l\t{}\n".format(0))
@@ -349,22 +350,19 @@ def process_player_tiles():
         prev_dx = 0
         prev_dy = 0
         for frame,df,dx,dy in frame_list:
-            if not df:
-                df = 1
-
             f.write("\tdc.l\t{}{}\n".format(frame,suffix))
-            # x/y variations
-            f.write("\tdc.w\t{},{},{}\n".format((dx - prev_dx)*x_sign,dy - prev_dy,df))
+            # x/y variations, plus padding
+            f.write("\tdc.w\t{},{},{},0,0,0\n".format((dx - prev_dx)*x_sign,dy - prev_dy,df))
             prev_dx = dx
             prev_dy = dy
-        f.write("\tdc.l\t0,0,0\n")
+        f.write("\tdc.l\t0,0,0,0\n")
 
     with open("{}/{}_frames.s".format(source_dir,radix),"w") as f:
         for name,frame_list in sorted(rval.items()):
             f.write("{}_frames:\n".format(name))
             create_mirror_objects = name != "win"
             if create_mirror_objects:
-                f.write("\tdc.l\t{0}_right_frames,{0}_left_frames\n".format(name))
+                f.write("\tdc.l\t{0}_right_frames,{0}_left_frames,{1}\n".format(name,len(frame_list)))
                 create_frame_sequence("_right",1)
                 create_frame_sequence("_left",-1)
             else:

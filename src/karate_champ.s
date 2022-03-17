@@ -53,8 +53,10 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	previous_direction   ; previous sprite orientation
 	UWORD	current_frame_countdown
     UWORD   frame
-    UBYTE   controls
+    UBYTE   move_controls
+	UBYTE	attack_controls
     UBYTE   is_jumping
+	UBYTE	rollback
 	LABEL	Character_SIZEOF
 
 	STRUCTURE	Player,0
@@ -145,14 +147,11 @@ JPB_BTN_ALEFT = JPB_BTN_GRN
 ; 8 bits for directions+buttons
 ; do NOT change order of bits, move_table has been
 ; computed with those values (in generate_move_tables.py script)
-CTB_RIGHT_DIRECTION = 0
-CTB_LEFT_DIRECTION = 1
-CTB_UP_DIRECTION = 2
-CTB_DOWN_DIRECTION = 3
-CTB_RIGHT_BUTTON = 4
-CTB_LEFT_BUTTON = 5
-CTB_UP_BUTTON = 6
-CTB_DOWN_BUTTON = 7
+CTB_RIGHT = 0
+CTB_LEFT = 1
+CTB_UP = 2
+CTB_DOWN = 3
+
 
 	
 ; --------------- end debug/adjustable variables
@@ -887,9 +886,9 @@ hide_sprites:
     
 init_players:
     ; no moves (zeroes direction flags)
-    clr.b  controls(a4)  
+    clr.w  move_controls(a4)  	; and attack controls
     clr.b  is_jumping(a4)  
- 
+	clr.b	rollback(a4)
 
 	move.w	#30,time_left
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
@@ -1004,7 +1003,7 @@ draw_debug
     lsl.w   #3,d0
     add.w  #DEBUG_X,d0
     clr.l   d2
-    move.b player+controls(pc),d2
+    move.w player+move_controls(pc),d2
     move.w  #3,d3
     bsr write_hexadecimal_number
 	
@@ -2075,32 +2074,60 @@ update_player
     ; read live or recorded controls
 .no_demo
 
-	clr.b	controls(a4)
     tst.l   d0
     beq.b   .out        ; nothing is currently pressed: optimize
+	; if move is rewound or is a jump move after enough frames, controls aren't active
+	; TODO
+	
+	move.b	move_controls(a4),d2		; previous value
 	clr.w	d1
 
-	CONTROL_TEST	ADOWN,DOWN_BUTTON,.out1
-	CONTROL_TEST	AUP,UP_BUTTON,.out1
-	CONTROL_TEST	ARIGHT,RIGHT_BUTTON,.out1
-	CONTROL_TEST	ALEFT,LEFT_BUTTON,.out1
-.out1	
-	CONTROL_TEST	DOWN,DOWN_DIRECTION,.out2
-	CONTROL_TEST	UP,UP_DIRECTION,.out2
-	CONTROL_TEST	RIGHT,RIGHT_DIRECTION,.out2
-	CONTROL_TEST	LEFT,LEFT_DIRECTION,.out2
+	; attacks
+	CONTROL_TEST	DOWN,DOWN,.out1
+	CONTROL_TEST	UP,UP,.out1
+	CONTROL_TEST	RIGHT,RIGHT,.out1
+	CONTROL_TEST	LEFT,LEFT,.out1
+.out1
+	move.w	d1,d4
+	clr.w	d3
+	; compute transition table for moves => d3
+	bsr		.get_controls_truth_table
+	lsl.w	#2,d3
+	
+	move.b	attack_controls(a4),d2		; previous value
+	clr.w	d1
+	CONTROL_TEST	ADOWN,DOWN,.out2
+	CONTROL_TEST	AUP,UP,.out2
+	CONTROL_TEST	ARIGHT,RIGHT,.out2
+	CONTROL_TEST	ALEFT,LEFT,.out2
 .out2
-	move.b	d1,controls(a4)
-	tst.w	d1
+	move.w	d1,d5
+	bsr		.get_controls_truth_table
+	; now d3 is a 0-16 value encoding the moves/attack transitions
+	add.w	d3,d3
+	add.w	d3,d3
+	st.b	d6		; default: rollback
+	lea		transition_table(pc),a0
+	move.l	(a0,d3.w),a0
+	jsr		(a0)
+	
+	move.b	d4,move_controls(a4)
+	move.b	d5,attack_controls(a4)
+	move.b	d6,rollback(a4)
+.perform
+	lsl.b	#4,d5
+	or.b	d5,d4	; combine for table offset
+	tst.w	d4
 	beq.b	.out
 ;	cmp.b	#144,d1
 ;	bcc.b	.out		; not possible
 	lea		moves_table(pc),a0
 	
-	add.w	d1,d1
-	add.w	d1,d1
-	add.w	d1,d1
-	move.l	(a0,d1.w),d0
+	; times 8
+	add.w	d4,d4
+	add.w	d4,d4
+	add.w	d4,d4
+	move.l	(a0,d4.w),d0
 	bne.b	.ok
 	blitz
 .ok
@@ -2127,11 +2154,80 @@ update_player
 .out
     rts
 
+; < d1: current controls
+; < d2: previous controls
+; > d3: bit 0 set if current is != 0, bit 1 set if previous is != 0
+.get_controls_truth_table
+	tst.b	d1
+	beq.b	.z1
+	bset	#0,d3
+.z1
+	tst.b	d2
+	beq.b	.z2
+	bset	#1,d3
+.z2
+	rts
+
+transition_table
+	dc.l	trans_all_zero	; 0000
+	dc.l	trans_new_simple_attack		; 0001
+	dc.l	trans_attack_dropped		; 0010
+	dc.l	trans_simple_attack_held	; 0011
+	dc.l	trans_new_move				; 0100
+	dc.l	trans_new_complex_attack	; 0101
+	dc.l	trans_attack_dropped		; 0110
+	dc.l	trans_simple_attack_held	; 0111
+	dc.l	trans_move_dropped			; 1000
+	dc.l	trans_new_simple_attack		; 1001
+	dc.l	trans_attack_dropped		; 1010: both attack and move stopped
+	dc.l	trans_attack_dropped		; 1011: same attack but move cancelled
+	dc.l	trans_move_held				; 1100
+	dc.l	trans_new_complex_attack	; 1101: move already set, now attack is set
+	dc.l	trans_complex_attack_held	; 1111
+	
+; in: d6 cleared
+; out: d4 zeroed if moves nullified (because should have no effect during an attack)
+;      d5 zeroed if complex move cancelled, so next time it's seen as simple technique
+;      d6 set move/technique dropped, rollback, 0 if continues or starts new move
+
+trans_all_zero:
+	; nothing changed, everything is zero and was zero
+	rts
+trans_new_simple_attack
+	; attack with only buttons (right joy)
+	clr.b	d6
+	rts
+trans_new_complex_attack
+	; attack with both joys (exactly at the same time or move already set)
+	clr.b	d6
+	rts
+trans_attack_dropped
+	clr.b	d4		; cancel parasite move if exists
+	clr.b	d5
+	rts
+trans_complex_attack_held
+	clr.b	d6
+	rts
+	
+trans_simple_attack_held
+	clr.b	d4		; cancel parasite move if exists
+	clr.b	d6
+	rts
+trans_move_held
+trans_new_move
+	; new move, no previous or current attack
+	st.b	d6
+	rts
+trans_move_dropped
+	rts
+	
 ; what: animate & move player according to animation table & player direction
 ; < a0: current frame set (right/left)
 ; < a4: player structure
-; < d1: invert move
+; < d1=1: invert move (right => left)
+
 move_player
+	move.l	(8,a0),d4		; nb frames total
 	cmp.w	#RIGHT,direction(a4)
 	beq.b	.right
 	; left
@@ -2151,16 +2247,28 @@ move_player
 	clr.w	current_frame_countdown(a4)
 	clr.w	frame(a4)
 .no_frame_set_change
-	move.w	current_frame_countdown(a4),d2
+	move.w	current_frame_countdown(a4),d3
 	bmi.b	.no_change		; negative: wait for player move change
 	beq.b	.change
-	subq.w	#1,d2
+	subq.w	#1,d3
 	bra.b	.no_change
 .change
 	; countdown at zero
 	; advance frame / move
 	move.w	frame(a4),d0
-	add.w	#10,d0		; frame long+2 words of x/y/nbframes
+	tst		rollback(a4)
+	beq.b	.forward
+	; backwards
+	tst		d0
+	bne.b	.not_last_back
+	; point to last
+	lsl.w	#4,d4		; d4*16
+	add.w	d4,d0
+.not_last_back
+	sub.w	#16,d0
+	bra.b	.not_last
+.forward
+	add.w	#16,d0		; frame long+2 words of x/y/nbframes
 	tst.l	(a1,d0.w)
 	bne.b	.not_last
 	clr.w	d0
@@ -2180,9 +2288,9 @@ move_player
 	beq.b	.noy
 	add.w	d0,ypos(a4)
 .noy
-	move.w	(a1),d2	; load frame countdown
+	move.w	(a1),d3	; load frame countdown
 .no_change
-	move.w	d2,current_frame_countdown(a4)
+	move.w	d3,current_frame_countdown(a4)
 	rts
 	
 ; < A4: player struct   
@@ -3389,8 +3497,6 @@ do_\1:
 ; each "do_xxx" function has the following input params
 ; < A4: player structure
 
-do_sommersault_back:
-	rts
 	
 	SIMPLE_MOVE_CALLBACK	low_kick
 	SIMPLE_MOVE_CALLBACK	foot_sweep_front
@@ -3404,9 +3510,9 @@ do_sommersault_back:
 	SIMPLE_MOVE_CALLBACK	lunge_punch_400
 	SIMPLE_MOVE_CALLBACK	lunge_punch_600
 	SIMPLE_MOVE_CALLBACK	lunge_punch_1000
-do_reverse_punch_800
-	rts
-	;SIMPLE_MOVE_CALLBACK	reverse_punch_800
+	SIMPLE_MOVE_CALLBACK	sommersault_back
+	SIMPLE_MOVE_CALLBACK	reverse_punch_800
+
 	
 do_back_round_kick_right:
 	rts
@@ -3415,11 +3521,16 @@ do_jump:
 do_back_round_kick_left:
 	rts
 
+do_sommersault:
+	rts
+
 
 do_move_forward:
 	lea		walk_frames(pc),a0
 	clr.w	d1
+	clr.b	rollback(a4)
 	bsr		get_player_distance
+	
 	cmp.w	#GUARD_X_DISTANCE,d0		; approx...
 	bcc.b	move_player
 	lea		forward_frames(pc),a0
@@ -3428,6 +3539,7 @@ do_move_forward:
 do_move_back:
 	lea		walk_frames(pc),a0
 	st.b	d1
+	st.b	rollback(a4)
 	bsr		get_player_distance
 	cmp.w	#GUARD_X_DISTANCE,d0		; approx...
 	bcc.b	move_player
@@ -3435,11 +3547,6 @@ do_move_back:
 	bra.b	move_player
 	rts
 	
-	
-
-
-do_sommersault:
-	rts
 
 
 	
