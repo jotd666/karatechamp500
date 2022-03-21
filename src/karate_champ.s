@@ -183,7 +183,7 @@ PLAYER_KILL_TIMER = ORIGINAL_TICKS_PER_SEC*2
 ENEMY_KILL_TIMER = ORIGINAL_TICKS_PER_SEC*2
 GAME_OVER_TIMER = ORIGINAL_TICKS_PER_SEC*3
 
-; direction enumerates, follows order of enemies in the sprite sheet
+; direction enumerates, 0:right, 4:left to directly load properly oriented sprites
 RIGHT = 0
 LEFT = 1<<2
 
@@ -897,11 +897,11 @@ init_players:
     lea player_1(pc),a4
 
 	move.b	#0,character_id(a4)
-    clr.l	previous_xpos(a4)
+    clr.l	previous_xpos(a4)	; x and y
     move.w  #22,xpos(a4)
 	move.w	#176,ypos(a4)
 
-	lea		walk_frames(pc),a0
+	lea		walk_forward_frames(pc),a0
 	move.w 	#RIGHT,direction(a4)
 	bsr		load_frame
 	
@@ -911,7 +911,7 @@ init_players:
     clr.l	previous_xpos(a4)
     move.w  #148,xpos(a4)
 	move.w	#176,ypos(a4)
-	lea		walk_frames(pc),a0
+	lea		walk_forward_frames(pc),a0
 	move.w 	#LEFT,direction(a4)
 	bsr		load_frame
     
@@ -950,8 +950,7 @@ load_frame:
     clr.w	frame(a4)
 	clr.w	current_frame_countdown(a4)
 	move.w	direction(a4),d0
-	move.l	(a0,d0.w),frame_set(a4)
-	
+	move.l	(a0,d0.w),frame_set(a4)	
 	rts
 	
     
@@ -1004,6 +1003,20 @@ draw_debug
     add.w  #DEBUG_X,d0
     clr.l   d2
     move.w player+move_controls(pc),d2
+    move.w  #4,d3
+    bsr write_hexadecimal_number
+	
+    move.w  #DEBUG_X,d0
+    add.w  #8,d1
+    move.l  d0,d4
+    lea .frame_count(pc),a0
+    bsr write_string
+    lsl.w   #3,d0
+    add.w  #DEBUG_X,d0
+    clr.l   d2
+    move.w player+frame(pc),d2
+	divu	#PlayerFrame_SIZEOF,d2
+	and.l	#$FFFF,d2
     move.w  #3,d3
     bsr write_hexadecimal_number
 	
@@ -1033,8 +1046,8 @@ draw_debug
 		dc.b	"CMC ",0
 .ctrl
 		dc.b	"CTRL ",0
-.ato
-		dc.b "ATO ",0
+.frame_count
+		dc.b "FCNT ",0
 .tx
         dc.b    "TX ",0
 .ty
@@ -1098,11 +1111,14 @@ PLAYER_ONE_Y = 102-14
 
 	lea	player_1(pc),a4
 	bsr	erase_player
+	;lea	player_2(pc),a4
+	;bsr	erase_player
 
 	lea	player_1(pc),a4
+	LOGPC	100
     bsr draw_player
-	lea	player_2(pc),a4
-    bsr draw_player
+	;lea	player_2(pc),a4
+    ;bsr draw_player
    
     
 .after_draw
@@ -1643,6 +1659,7 @@ saved_intena
 ; F2: toggle invincibility
 ; F3: toggle infinite lives
 ; F4: show debug info
+; F5: re-draw background pic
 ; left-ctrl: fast-forward (no player controls during that)
 
 level2_interrupt:
@@ -1731,6 +1748,15 @@ level2_interrupt:
     bsr     clear_debug_screen
     bra.b   .no_playing
 .no_debug
+    cmp.b   #$54,d0     ; F5
+    bne.b   .no_redraw
+   
+	movem.l	d0-a6,-(a7)
+    bsr     draw_background_pic
+	bsr		draw_panel
+	movem.l	(a7)+,d0-a6
+    bra.b   .no_playing
+.no_redraw
 
 .no_playing
 
@@ -2224,18 +2250,11 @@ trans_move_dropped
 ; what: animate & move player according to animation table & player direction
 ; < a0: current frame set (right/left)
 ; < a4: player structure
-; < d1=1: invert move (right => left)
 
-move_player
-	move.l	(8,a0),d4		; nb frames total
-	cmp.w	#RIGHT,direction(a4)
-	beq.b	.right
-	; left
-	move.l	(4,a0),a0
-	bra.b		.cont
-.right
-	move.l	(a0),a0
-.cont
+move_player:
+	move.w	direction(a4),d0	
+	move.l	(a0,d0.w),a0	; proper frame list according to direction
+
 	move.l	frame_set(a4),a1
 	; is frame set different from last time?
 	cmp.l	a0,a1
@@ -2258,48 +2277,46 @@ move_player
 	move.w	frame(a4),d0
 	tst		rollback(a4)
 	beq.b	.forward
-	; backwards
+	; backwards (rollbacking)
 	tst		d0
-	bne.b	.not_last_back
-	; point to last
-	lsl.w	#4,d4		; d4*16
-	add.w	d4,d0
-.not_last_back
-	sub.w	#16,d0
-	bra.b	.not_last
+	beq.b	.animation_ended
+	sub.w	#PlayerFrame_SIZEOF,d0		; frame long+2 words of x/y/nbframes
+	bra.b	.fup
 .forward
-	add.w	#16,d0		; frame long+2 words of x/y/nbframes
-	tst.l	(a1,d0.w)
-	bne.b	.not_last
-	clr.w	d0
-.not_last
-	lea	(4,a1,d0.w),a1
+	add.w	#PlayerFrame_SIZEOF,d0		; frame long+2 words of x/y/nbframes
+	tst.l	(bob_data,a1,d0.w)
+	beq.b	.animation_ended
+.fup
 	move.w	d0,frame(a4)
 	; a1 holds frame structure. we only need delta x/y
-	move.w	(a1)+,d0
+	move.w	(delta_x,a1,d0.w),d2
 	beq.b	.nox
-	tst	d1
-	beq.b	.nadd
-	neg.w	d0
-.nadd
-	add.w	d0,xpos(a4)
+	add.w	d2,xpos(a4)
 .nox
-	move.w	(a1)+,d0
+	move.w	(delta_y,a1,d0.w),d2
 	beq.b	.noy
-	add.w	d0,ypos(a4)
+	add.w	d2,ypos(a4)
 .noy
-	move.w	(a1),d3	; load frame countdown
+	move.w	(staying_frames,a1,d0.w),d3	; load frame countdown
 .no_change
 	move.w	d3,current_frame_countdown(a4)
 	rts
-	
+
+; todo be able to change that default frame when player is hit
+; death anim + fall down
+; animation complete, back to walk/default
+.animation_ended
+	lea		walk_forward_frames(pc),a0
+	bra		load_frame
+
 ; < A4: player struct   
 erase_player:
 	
 	; compute dest address
 	
-	move.w	previous_xpos(a4),d2
 	move.w	previous_ypos(a4),d3
+	beq.b	.out		; 0: not possible: first draw
+	move.w	previous_xpos(a4),d2
 	
 	and.w	#$F0,d2		; round & multiple of 16
 	move.l	d2,d0
@@ -2337,7 +2354,7 @@ erase_player:
     bsr blit_back_plane
     movem.l (a7)+,d2-d6
 	
-
+.out
     rts	
 .not_first_draw
 	rts
@@ -2385,24 +2402,26 @@ draw_player:
 	
 	move.l	frame_set(a4),a0
 	add.w	frame(a4),a0
-	move.l	(a0),a0
-	
+	move.w	bob_plane_size(a0),d5
+	move.w	bob_nb_bytes_per_row(a0),d2
+	move.l	bob_data(a0),a0
 	lea		screen_data,a1
 	move.l	a1,a2
-	lea		(BOB_64X48_PLANE_SIZE*2,a0),a3
-		
+	move.l	a0,a3
+	add.w	d5,a3
+	add.w	d5,a3	; mask data
+	
 	; plane 1: clothes data as white
 	move.w	xpos(a4),D0
 	move.w	ypos(a4),D1
 	move.w	d0,previous_xpos(a4)
 	move.w	d1,previous_ypos(a4)
 	moveq.l #-1,d3	;masking of first/last word    
-    move.w  #10,d2       ; 64 pixels + 2 shift bytes
     move.w  #48,d4      ; 48 pixels height  
 
     bsr blit_plane_any_internal_cookie_cut
 
-	add.w	#BOB_64X48_PLANE_SIZE,a0		; next source plane
+	add.w	d5,a0		; next source plane
 	add.w	#SCREEN_PLANE_SIZE,a2
 	move.l	a2,a1
     bsr blit_plane_any_internal_cookie_cut
@@ -2421,7 +2440,9 @@ draw_player:
 	
 	; red: another layer of clothes plane that activate color 9
 	; (color 9 is fixed as red)
-	lea		(-BOB_64X48_PLANE_SIZE*2,a3),a0
+	move.l	a3,a0
+	sub.w	d5,a0
+	sub.w	d5,a0
 	
 .white:
 	
@@ -2605,34 +2626,34 @@ blit_plane_any_internal:
 ; trashes: a1
 
 blit_plane_any_internal_cookie_cut:
-    movem.l d0-d7/a2/a4,-(a7)
+    movem.l d0-d6/a2/a4,-(a7)
     ; pre-compute the maximum of shit here
     lea mul40_table(pc),a4
     swap    d1
     clr.w   d1
     swap    d1
     add.w   d1,d1
-    move.w  d1,d6   ; save it
     beq.b   .d1_zero    ; optim
-    move.w  (a4,d1.w),d1
+    move.w  (a4,d1.w),d1	; y times 40
+	add.w	d1,a2			; Y plane position for background
 .d1_zero
     move.l  #$0fca0000,d5    ;B+C-A->D cookie cut   
 
-    move    d0,d7
+    move    d0,d6
     beq.b   .d0_zero
-    and.w   #$F,d7
-	beq.b	.no_shifting
     and.w   #$1F0,d0
     lsr.w   #3,d0
+    and.w   #$F,d6
+	beq.b	.no_shifting
 
-    lsl.l   #8,d7
-    lsl.l   #4,d7
-    or.w    d7,d5            ; add shift to mask (bplcon1)
-    swap    d7
-    clr.w   d7
-    or.l    d7,d5            ; add shift
+    lsl.l   #8,d6
+    lsl.l   #4,d6
+    or.w    d6,d5            ; add shift to mask (bplcon1)
+    swap    d6
+    clr.w   d6
+    or.l    d6,d5            ; add shift
 .no_shifting    
-    move.w  d0,d7
+    move.w  d0,d6
     add.w   d0,d1
     
 .d0_zero
@@ -2641,13 +2662,7 @@ blit_plane_any_internal_cookie_cut:
     bclr    #0,d1
     add.l   d1,a1       ; plane position (long: allow unsigned D1)
 
-    ; a4 is a multiplication table
-    ;;beq.b   .d1_zero    ; optim
-    move.w  (a4,d6.w),d1
-    add.w   d7,a2       ; X
-;;.d1_zero    
-    ; compute offset for maze plane
-    add.l   d1,a2       ; Y maze plane position
+    add.w   d6,a2       ; X offset for background
 
 	move.w #NB_BYTES_PER_LINE,d0
 
@@ -2678,7 +2693,7 @@ blit_plane_any_internal_cookie_cut:
 	move.l a1,bltdpt(a5)	;destination top left corner
 	move.w  d4,bltsize(a5)	;rectangle size, starts blit
     
-    movem.l (a7)+,d0-d7/a2/a4
+    movem.l (a7)+,d0-d6/a2/a4
     rts
 
 
@@ -3510,6 +3525,7 @@ do_\1:
 	SIMPLE_MOVE_CALLBACK	lunge_punch_400
 	SIMPLE_MOVE_CALLBACK	lunge_punch_600
 	SIMPLE_MOVE_CALLBACK	lunge_punch_1000
+	SIMPLE_MOVE_CALLBACK	sommersault
 	SIMPLE_MOVE_CALLBACK	sommersault_back
 	SIMPLE_MOVE_CALLBACK	reverse_punch_800
 
@@ -3521,29 +3537,25 @@ do_jump:
 do_back_round_kick_left:
 	rts
 
-do_sommersault:
-	rts
 
 
 do_move_forward:
-	lea		walk_frames(pc),a0
-	clr.w	d1
+	lea		walk_forward_frames(pc),a0
 	clr.b	rollback(a4)
 	bsr		get_player_distance
-	
 	cmp.w	#GUARD_X_DISTANCE,d0		; approx...
 	bcc.b	move_player
 	lea		forward_frames(pc),a0
 	bra.b	move_player
 	rts
 do_move_back:
-	lea		walk_frames(pc),a0
-	st.b	d1
-	st.b	rollback(a4)
+	lea		walk_backwards_frames(pc),a0   ; todo backwards
+	clr.b	rollback(a4)
 	bsr		get_player_distance
 	cmp.w	#GUARD_X_DISTANCE,d0		; approx...
 	bcc.b	move_player
-	lea		forward_frames(pc),a0
+	lea		backwards_frames(pc),a0		; todo backwards
+
 	bra.b	move_player
 	rts
 	
@@ -3727,7 +3739,7 @@ end_color_copper:
    dc.w  $FFDF,$FFFE            ; PAL wait (256)
    dc.w  $2201,$FFFE            ; PAL extra wait (around 288)
    dc.w	 intreq,$8010            ; generate copper interrupt
-    dc.l    -2
+    dc.l    -2					; end of copperlist
 
    
 

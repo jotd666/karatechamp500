@@ -83,173 +83,6 @@ def process_backgrounds(palette):
         os.remove(outfile)
 
 
-def process_player_tiles(json_file):
-    rval = dict()
-    with open(json_file) as f:
-        tiles = json.load(f)
-
-    move_dict = dict()
-
-    default_width = tiles["width"]
-    default_height = tiles["height"]
-    default_horizontal = tiles["horizontal"]
-
-    game_palette_8 = [tuple(x) for x in tiles["palette"]]
-
-    player_palette = game_palette_8[:4]
-
-    master_blit_pad = tiles.get("blit_pad",True)
-    master_generate_mask = tiles.get("generate_mask",False)
-    master_mask_color = tiles.get("mask_color_index",0)
-    create_mirror_objects = tiles.get("create_mirror_objects",False)
-
-    x_offset = tiles["x_offset"]
-    y_offset = tiles["y_offset"]
-
-    sprite_page = tiles["source"]
-
-    sprites = Image.open(sprite_page)
-
-    mask_sprites = Image.new("RGB",sprites.size)
-    sback = tuple(player_palette[3])        # last color of sheet is the pinkish mask
-    # we need to generate mask manually then remove the color so picture conversion
-    # won't generate active bitplanes for it (it has to be index 0 of palette)
-    # that's the cornercase when part of the sprites are black, which is rare, but annoying
-    for x in range(sprites.size[0]):
-        for y in range(sprites.size[1]):
-            p = tuple(0xF0 & c for c in sprites.getpixel((x,y)))
-            if p == sback:
-                mask_sprites.putpixel((x,y),(0,0,0))
-                # remove background color now that we have the mask
-                sprites.putpixel((x,y),(0,0,0))
-            else:
-                mask_sprites.putpixel((x,y),(255,255,255))
-
-
-    name_dict = {"scores_{}".format(i):"scores_"+n for i,n in enumerate(["100","200","300"])}
-    # we first did that to get the palette but we need to control
-    # the order of the palette
-
-
-    for object in tiles["objects"]:
-
-        if object.get("ignore"):
-            continue
-        generate_mask = False  #object.get("generate_mask",master_generate_mask)
-
-        gap = object.get("gap",0)
-        name = object["name"]
-
-        start_x = object["start_x"]+x_offset
-        start_y = object["start_y"]+y_offset
-        horizontal = object.get("horizontal",default_horizontal)
-        width = object.get("width",default_width)
-        height = object.get("height",default_height)
-
-
-        nb_frames = object.get("frames",1)
-        frame_list = []
-        for i in range(nb_frames):
-            if horizontal:
-                x = i*(width+gap)+start_x
-                y = start_y
-            else:
-                x = start_x
-                y = i*(height+gap)+start_y
-
-            area = (x, y, x + width, y + height)
-            cropped_img = sprites.crop(area)
-            cropped_mask_img = mask_sprites.crop(area)
-            if nb_frames == 1:
-                cropped_name = os.path.join(outdir,"{}.png".format(name))
-            else:
-                cropped_name = os.path.join(outdir,"{}_{}.png".format(name,i))
-            cropped_img.save(cropped_name)
-
-            blk = extract_block(cropped_img,0,0,width,height)
-            if blk in move_dict:
-                print("already {} : {}".format(name,move_dict[blk]))
-
-            # save
-            x_size = cropped_img.size[0]
-
-
-            p = bitplanelib.palette_extract(cropped_img,palette_precision_mask=0xF0)
-            # add 16 pixelsblit_pad
-            img = cropped_img
-            mask_img = cropped_mask_img
-
-            used_palette = game_palette_8
-
-            namei = "{}_{}".format(name,i) if nb_frames!=1 else name
-
-            print("processing bob {}, mask {}...".format(name,generate_mask))
-            bn = name_dict.get(namei,namei)
-
-            def create_bob(bob_data,bob_mask_data,outfile):
-                # data, no mask
-                contents = bitplanelib.palette_image2raw(bob_data,None,used_palette,
-                palette_precision_mask=0xF0,generate_mask=False,blit_pad=True)
-                # append (almost) manually created mask
-                contents += bitplanelib.palette_image2raw(bob_mask_data,None,((0,0,0),(255,255,255)),
-                palette_precision_mask=0xFF,generate_mask=False,blit_pad=True)
-
-                with open(outfile,"wb") as f:
-                    f.write(contents)
-                return contents
-
-            create_bob(img,mask_img,"{}/{}_right.bin".format(sprites_dir,bn))
-
-            img_mirror = Image.new("RGB",img.size)
-            mask_img_mirror = Image.new("RGB",img.size)
-            for x in range(img.size[0]):
-                sx = img.size[0]-x-1
-                for y in range(img.size[1]):
-                    img_mirror.putpixel((sx,y),img.getpixel((x,y)))
-                    mask_img_mirror.putpixel((sx,y),mask_img.getpixel((x,y)))
-
-            create_bob(img_mirror,mask_img_mirror,"{}/{}_left.bin".format(sprites_dir,bn))
-
-            frame_list.append(bn)
-        rval[name] = frame_list
-    radix = os.path.splitext(os.path.basename(json_file))[0]
-    with open("{}/{}_frames.s".format(source_dir,radix),"w") as f:
-        for name,frame_list in sorted(rval.items()):
-            f.write("{}_frames:\n".format(name))
-            if create_mirror_objects:
-                f.write("\tdc.l\t{0}_left_frames,{0}_right_frames,{}\n".format(name,len(frame_list)))
-
-                f.write("{}_left_frames:\n".format(name))
-                for frame in frame_list:
-                    f.write("\tdc.l\t{}_left\n".format(frame))
-                f.write("\tdc.l\t{}\n".format(0))
-                f.write("{}_right_frames:\n".format(name))
-                for frame in frame_list:
-                    f.write("\tdc.l\t{}_right\n".format(frame))
-                f.write("\tdc.l\t{}\n".format(0))
-            else:
-                f.write("\tdc.l\t{}   ; nb frames\n".format(len(frame_list)))
-                for frame in frame_list:
-                    f.write("\tdc.l\t{}\n".format(frame))
-                f.write("\tdc.l\t{}\n".format(0))
-    with open("{}/{}_bobs.s".format(source_dir,radix),"w") as f:
-        for name,frame_list in sorted(rval.items()):
-            if create_mirror_objects:
-                for frame in frame_list:
-                    f.write("{}_right:\n".format(frame))
-                    f.write("\tincbin\t{}_right.bin\n".format(frame))
-                for frame in frame_list:
-                    f.write("{}_left:\n".format(frame))
-                    f.write("\tincbin\t{}_left.bin\n".format(frame))
-                f.write("\n")
-            else:
-                for frame in frame_list:
-                    f.write("{}:\n".format(frame))
-                    f.write("\tincbin\t{}.bin\n".format(frame))
-                f.write("\n")
-    return rval
-
-
 def process_player_tiles():
     rval = dict()
     move_dict = dict()
@@ -259,13 +92,12 @@ def process_player_tiles():
     moves_dir = "moves"
     sback = (192,192,0)     # background of level 2, uniform background, used for mask color
 
-    width = 64
     height = 48
     moves_list = set(os.listdir(moves_dir))
     # walk/forward in priority
-    moves_list.remove("walk")
+    moves_list.remove("walk_forward")
     moves_list.remove("forward")
-    moves_list = ["walk","forward"]+sorted(moves_list)
+    moves_list = ["walk_forward","forward"]+sorted(moves_list)
 
     for d in moves_list[0:-1]:
         # load info
@@ -277,16 +109,16 @@ def process_player_tiles():
         key=lambda x: int(os.path.splitext(x)[0]))
         frame_list = []
 
-
         for i,((df,dx,dy),image_file) in enumerate(zip(deltas,images_list)):
-
             img = Image.open(os.path.join(moves_dir,d,image_file))
-
+            width = img.size[0]
+            if height != img.size[1]:
+                raise Exception("{} height != {}".format(image_file,height))
             mask = Image.new("RGB",img.size)
             # we need to generate mask manually then remove the color so picture conversion
             # won't generate active bitplanes for it (it has to be index 0 of palette)
             # that's the cornercase when part of the sprites are black, which is rare, but annoying
-            for x in range(img.size[0]):
+            for x in range(width):
                 for y in range(img.size[1]):
                     p = tuple(0xF0 & c for c in img.getpixel((x,y)))
                     if p == sback:
@@ -302,12 +134,14 @@ def process_player_tiles():
                 img.save(os.path.join(outdir,"{}_{}.png".format(d,i)))
 
             blk = extract_block(img,0,0,width,height)
-            existing_name = move_dict.get(blk)
-            if existing_name:
-                print("already {} : {}".format(name,existing_name))
-                name = existing_name
+            existing = move_dict.get(blk)
+            if existing:
+                print("already {} : {}".format(name,existing["name"]))
+                name = existing['name']
+                width = existing["width"]
+                height = existing["height"]
             else:
-                move_dict[blk] = name
+                move_dict[blk] = {"name":name,"width":width,"height":height}
 
                 print("processing bob {}...".format(name))
 
@@ -337,10 +171,25 @@ def process_player_tiles():
 
                 create_bob(img_mirror,mask_img_mirror,"{}/{}_left.bin".format(sprites_dir,name))
 
-            frame_list.append([name,df,dx,dy])
+            frame_list.append([name,width,height,df,dx,dy])
 
         #frame_list[-1][1] = 0       # last frame should not be repeated
-        rval[d] = frame_list
+        # shift number of staying frames because the info extracted gives the
+        # frame number when the next frame appears, this should be converted into
+        # number of staying frames in the previous entry. And last item bears 0
+
+        shifted_frame_list = []
+        i = iter(frame_list)
+        prev_frame,prev_width,prev_height,_,prev_dx,prev_dy = next(i)  # skip it, it's zero
+        for frame,width,height,df,dx,dy in i:
+            shifted_frame_list.append([prev_frame,prev_width,prev_height,df,prev_dx,prev_dy])
+            prev_dx = dx
+            prev_dy = dy
+            prev_frame = frame
+            prev_height = height
+            prev_width = width
+
+        rval[d] = shifted_frame_list
     radix = "player"
 
 
@@ -349,20 +198,46 @@ def process_player_tiles():
 
         prev_dx = 0
         prev_dy = 0
-        for frame,df,dx,dy in frame_list:
+        for i,(frame,width,height,df,dx,dy) in enumerate(frame_list):
             f.write("\tdc.l\t{}{}\n".format(frame,suffix))
-            # x/y variations, plus padding
-            f.write("\tdc.w\t{},{},{},0,0,0\n".format((dx - prev_dx)*x_sign,dy - prev_dy,df))
+            # image size info, x/y variations, logical infos (padding ATM)
+            row_size = ((width//8)+2)
+            plane_size = row_size*height
+            frame_type = "FT_NORMAL"
+            # if permanent frame then it's hitting
+            if df<0:
+                frame_type = "FT_HIT"
+            # plane_size is redundant but saves a multiplication by 48
+            f.write("\tdc.w\t{},{},{},{},{},{},{},0,0\n".format(plane_size,row_size,(dx - prev_dx)*x_sign,dy - prev_dy,df,int(i<3),frame_type))
             prev_dx = dx
             prev_dy = dy
         f.write("\tdc.l\t0,0,0,0\n")
 
     with open("{}/{}_frames.s".format(source_dir,radix),"w") as f:
+        f.write("""
+    STRUCTURE   PlayerFrame,0
+    APTR    bob_data
+    UWORD   bob_plane_size
+    UWORD   bob_nb_bytes_per_row
+    UWORD   delta_x
+    UWORD   delta_y
+    UWORD   staying_frames
+    UWORD   can_rollback
+    UWORD   frame_type
+    UWORD   hitbox_x
+    UWORD   hitbox_y
+    LABEL   PlayerFrame_SIZEOF
+
+FT_NORMAL = 0
+FT_HIT = 1
+FT_BLOCK = 2
+
+""")
         for name,frame_list in sorted(rval.items()):
             f.write("{}_frames:\n".format(name))
             create_mirror_objects = name != "win"
             if create_mirror_objects:
-                f.write("\tdc.l\t{0}_right_frames,{0}_left_frames,{1}\n".format(name,len(frame_list)))
+                f.write("\tdc.l\t{0}_right_frames,{0}_left_frames\n".format(name))
                 create_frame_sequence("_right",1)
                 create_frame_sequence("_left",-1)
             else:
