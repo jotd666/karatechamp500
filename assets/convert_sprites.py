@@ -218,6 +218,12 @@ def process_player_tiles():
 
     with open("{}/{}_frames.s".format(source_dir,radix),"w") as f:
         f.write("""
+    STRUCTURE   PlayerFrameSet,0
+    APTR    right_frame_set
+    APTR    left_frame_set
+    UWORD   animation_loops
+    LABEL   PlayerFrameSet_SIZEOF
+
     STRUCTURE   PlayerFrame,0
     APTR    bob_data
     UWORD   bob_plane_size

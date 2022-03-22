@@ -2104,14 +2104,14 @@ update_player
     ; read live or recorded controls
 .no_demo
 
-    tst.l   d0
-    beq.b   .out        ; nothing is currently pressed: optimize
 	; if move is rewound or is a jump move after enough frames, controls aren't active
 	; TODO
 	
 	move.b	move_controls(a4),d2		; previous value
 	clr.w	d1
 
+    tst.l   d0
+    beq.b   .out1        ; nothing is currently pressed: optimize
 	; attacks
 	CONTROL_TEST	DOWN,DOWN,.out1
 	CONTROL_TEST	UP,UP,.out1
@@ -2126,6 +2126,8 @@ update_player
 	
 	move.b	attack_controls(a4),d2		; previous value
 	clr.w	d1
+    tst.l   d0
+    beq.b   .out2        ; nothing is currently pressed: optimize
 	CONTROL_TEST	ADOWN,DOWN,.out2
 	CONTROL_TEST	AUP,UP,.out2
 	CONTROL_TEST	ARIGHT,RIGHT,.out2
@@ -2143,6 +2145,9 @@ update_player
 	
 	move.b	d4,move_controls(a4)
 	move.b	d5,attack_controls(a4)
+	; setting it can be ignored by animation if move got passed rollback max frame
+	; (can_rollback flag is false after a few frames for jumps 
+	; or when ground technique has completed for ground moves)
 	move.b	d6,rollback(a4)
 .perform
 	lsl.b	#4,d5
@@ -2168,6 +2173,7 @@ update_player
 	bne.b	.out		; can't interrupt a jumping move	
 .do_move
 	move.l	d0,a0
+	; call move routine
 	jsr		(a0)
 
 	; correct x afterwards
@@ -2216,6 +2222,7 @@ transition_table
 	dc.l	trans_complex_attack_held	; 1111
 	
 ; in: d6 cleared
+; in/out: d4 and d5
 ; out: d4 zeroed if moves nullified (because should have no effect during an attack)
 ;      d5 zeroed if complex move cancelled, so next time it's seen as simple technique
 ;      d6 set move/technique dropped, rollback, 0 if continues or starts new move
@@ -2225,15 +2232,16 @@ trans_all_zero:
 	rts
 trans_new_simple_attack
 	; attack with only buttons (right joy)
-	clr.b	d6
+	clr.b	d6	; cancel possible rollback
 	rts
 trans_new_complex_attack
 	; attack with both joys (exactly at the same time or move already set)
-	clr.b	d6
+	clr.b	d6	; cancel possible rollback
 	rts
 trans_attack_dropped
 	clr.b	d4		; cancel parasite move if exists
 	clr.b	d5
+	; don't cancel possible rollback
 	rts
 trans_complex_attack_held
 	clr.b	d6
@@ -2241,14 +2249,16 @@ trans_complex_attack_held
 	
 trans_simple_attack_held
 	clr.b	d4		; cancel parasite move if exists
-	clr.b	d6
+	clr.b	d6		; cancels possible rollback
 	rts
 trans_move_held
 trans_new_move
 	; new move, no previous or current attack
-	st.b	d6
+	clr.b	d6
 	rts
 trans_move_dropped
+	; don't cancel possible rollback
+
 	rts
 	
 ; what: animate & move player according to animation table & player direction
@@ -2256,7 +2266,11 @@ trans_move_dropped
 ; < a4: player structure
 
 move_player:
-	move.w	direction(a4),d0	
+	; update animation loop flag if required
+	move.w	(8,a0),d0
+	move.b	d0,animation_loops(a4)
+
+	move.w	direction(a4),d0
 	move.l	(a0,d0.w),a0	; proper frame list according to direction
 
 	move.l	frame_set(a4),a1
@@ -3513,7 +3527,6 @@ get_player_distance
 SIMPLE_MOVE_CALLBACK:MACRO
 do_\1:
 	lea	\1_frames(pc),a0
-	clr.w	d1
 	bra.b	move_player
 	ENDM
 	
