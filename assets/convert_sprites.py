@@ -95,9 +95,12 @@ def process_player_tiles():
     height = 48
     moves_list = set(os.listdir(moves_dir))
     # walk/forward in priority
-    moves_list.remove("walk_forward")
-    moves_list.remove("forward")
-    moves_list = ["walk_forward","forward"]+sorted(moves_list)
+    walking_anims = ["walk_forward","forward","walk_backwards","backwards"]
+    moves_list.difference_update(walking_anims)
+
+    moves_list = walking_anims+sorted(moves_list)
+
+    walking_anims = set(walking_anims)
 
     for d in moves_list[0:-1]:
         # load info
@@ -238,6 +241,8 @@ FT_BLOCK = 2
             create_mirror_objects = name != "win"
             if create_mirror_objects:
                 f.write("\tdc.l\t{0}_right_frames,{0}_left_frames\n".format(name))
+                iwa = name in walking_anims
+                f.write("\tdc.w\t{}\t; {}\n".format(int(iwa),"looping" if iwa else "runs once"))
                 create_frame_sequence("_right",1)
                 create_frame_sequence("_left",-1)
             else:

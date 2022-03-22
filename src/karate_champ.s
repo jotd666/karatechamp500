@@ -57,6 +57,8 @@ INTERRUPTS_ON_MASK = $E038
 	UBYTE	attack_controls
     UBYTE   is_jumping
 	UBYTE	rollback
+	UBYTE	animation_loops
+	
 	LABEL	Character_SIZEOF
 
 	STRUCTURE	Player,0
@@ -944,13 +946,16 @@ init_players:
     rts
 
 ; < a0: frame right/left
-; < a4: player structure
+; < a4: player structure (updated)
 ; trashes: D0
 load_frame:
     clr.w	frame(a4)
+	clr.b	rollback(a4)
 	clr.w	current_frame_countdown(a4)
 	move.w	direction(a4),d0
 	move.l	(a0,d0.w),frame_set(a4)	
+	move.w	(8,a0),d0
+	move.b	d0,animation_loops(a4)
 	rts
 	
     
@@ -1115,7 +1120,6 @@ PLAYER_ONE_Y = 102-14
 	;bsr	erase_player
 
 	lea	player_1(pc),a4
-	LOGPC	100
     bsr draw_player
 	;lea	player_2(pc),a4
     ;bsr draw_player
@@ -2275,7 +2279,7 @@ move_player:
 	; countdown at zero
 	; advance frame / move
 	move.w	frame(a4),d0
-	tst		rollback(a4)
+	tst.b	rollback(a4)
 	beq.b	.forward
 	; backwards (rollbacking)
 	tst		d0
@@ -2285,7 +2289,10 @@ move_player:
 .forward
 	add.w	#PlayerFrame_SIZEOF,d0		; frame long+2 words of x/y/nbframes
 	tst.l	(bob_data,a1,d0.w)
+	bne.b	.fup
+	tst.b	animation_loops(a4)
 	beq.b	.animation_ended
+	clr.w	d0		; starts over again (looping animations, basically walks)
 .fup
 	move.w	d0,frame(a4)
 	; a1 holds frame structure. we only need delta x/y
@@ -2309,6 +2316,7 @@ move_player:
 	lea		walk_forward_frames(pc),a0
 	bra		load_frame
 
+	
 ; < A4: player struct   
 erase_player:
 	
