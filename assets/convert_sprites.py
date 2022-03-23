@@ -221,7 +221,7 @@ def process_player_tiles():
     STRUCTURE   PlayerFrameSet,0
     APTR    right_frame_set
     APTR    left_frame_set
-    UWORD   animation_loops
+    UWORD   fs_animation_loops
     LABEL   PlayerFrameSet_SIZEOF
 
     STRUCTURE   PlayerFrame,0

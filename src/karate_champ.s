@@ -42,9 +42,10 @@ INTERRUPTS_ON_MASK = $E038
     UWORD   color3
     LABEL   SpritePalette_SIZEOF
     
-	STRUCTURE	Character,0
+	STRUCTURE	Player,0
     ULONG   character_id
 	ULONG	frame_set
+	ULONG	current_move_callback
 	UWORD	xpos
 	UWORD	ypos
 	UWORD	previous_xpos
@@ -58,12 +59,7 @@ INTERRUPTS_ON_MASK = $E038
     UBYTE   is_jumping
 	UBYTE	rollback
 	UBYTE	animation_loops
-	
-	LABEL	Character_SIZEOF
-
-	STRUCTURE	Player,0
-	STRUCT      BaseCharacter1,Character_SIZEOF
-    UWORD   prepost_turn
+	UBYTE	crouching
     LABEL   Player_SIZEOF
     
     
@@ -889,8 +885,6 @@ hide_sprites:
 init_players:
     ; no moves (zeroes direction flags)
     clr.w  move_controls(a4)  	; and attack controls
-    clr.b  is_jumping(a4)  
-	clr.b	rollback(a4)
 
 	move.w	#30,time_left
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
@@ -905,7 +899,7 @@ init_players:
 
 	lea		walk_forward_frames(pc),a0
 	move.w 	#RIGHT,direction(a4)
-	bsr		load_frame
+	bsr		load_walk_frame
 	
     lea player_2(pc),a4
 	move.b	#1,character_id(a4)
@@ -915,7 +909,7 @@ init_players:
 	move.w	#176,ypos(a4)
 	lea		walk_forward_frames(pc),a0
 	move.w 	#LEFT,direction(a4)
-	bsr		load_frame
+	bsr		load_walk_frame
     
     move.w  #ORIGINAL_TICKS_PER_SEC,D0   
     tst.b   music_played
@@ -948,9 +942,13 @@ init_players:
 ; < a0: frame right/left
 ; < a4: player structure (updated)
 ; trashes: D0
-load_frame:
+load_walk_frame:
+    clr.b	is_jumping(a4)  
+	clr.b	rollback(a4)
+	clr.b	crouching(a4)
     clr.w	frame(a4)
 	clr.b	rollback(a4)
+	clr.l	current_move_callback(a4)	
 	clr.w	current_frame_countdown(a4)
 	move.w	direction(a4),d0
 	move.l	(a0,d0.w),frame_set(a4)	
@@ -1567,6 +1565,10 @@ init_interrupts
     move.l  a1,($c,a0)
     lea   exc10(pc),a1
     move.l  a1,($10,a0)
+    lea   exc28(pc),a1
+    move.l  a1,($28,a0)
+    lea   exc2f(pc),a1
+    move.l  a1,($2c,a0)
     
     lea level2_interrupt(pc),a1
     move.l  a1,($68,a0)
@@ -1581,23 +1583,45 @@ exc8
     lea .bus_error(pc),a0
     bra.b lockup
 .bus_error:
-    dc.b    "BUS ERROR AT",0
+    dc.b    "BUS ERROR AT ",0
     even
 excc
+    lea .address_error(pc),a0
+    bra.b lockup
+.address_error:
+    dc.b    "ADDRESS ERROR AT ",0
+    even
+exc28
     lea .linea_error(pc),a0
     bra.b lockup
 .linea_error:
-    dc.b    "LINEA ERROR AT",0
+    dc.b    "LINEA ERROR AT ",0
+    even
+exc2f
+    lea .linef_error(pc),a0
+    bra.b lockup
+.linef_error:
+    dc.b    "LINEF ERROR AT ",0
     even
 
 exc10
     lea .illegal_error(pc),a0
     bra.b lockup
 .illegal_error:
-    dc.b    "ILLEGAL INSTRUCTION AT",0
+    dc.b    "ILLEGAL INSTRUCTION AT ",0
     even
 
 lockup
+	lea	screen_data,a1
+	moveq.w	#3,d3
+.cploop
+	clr.l	D0
+	clr.l	D1
+	move.w	#38,d2
+	bsr	clear_plane_any_blitter
+	add.w	#SCREEN_PLANE_SIZE,a1
+	dbf		d3,.cploop
+	bsr	wait_blit
     move.l  (2,a7),d3
     move.w  #$FFF,d2
     clr.w   d0
@@ -2133,49 +2157,65 @@ update_player
 	CONTROL_TEST	ARIGHT,RIGHT,.out2
 	CONTROL_TEST	ALEFT,LEFT,.out2
 .out2
+	move.w	d1,d7
 	move.w	d1,d5
+	lsl.b	#4,d7
+	or.b	d4,d7	; combine for table offset
+
 	bsr		.get_controls_truth_table
+	
 	; now d3 is a 0-16 value encoding the moves/attack transitions
 	add.w	d3,d3
 	add.w	d3,d3
-	st.b	d6		; default: rollback
+
+	st.b	d6		; default: rollback unless d6 is cleared in the function
 	lea		transition_table(pc),a0
 	move.l	(a0,d3.w),a0
+	; call transition function, which may clear d4, d5 or d6
 	jsr		(a0)
 	
+	; update d4 and d5 if changed
 	move.b	d4,move_controls(a4)
 	move.b	d5,attack_controls(a4)
 	; setting it can be ignored by animation if move got passed rollback max frame
 	; (can_rollback flag is false after a few frames for jumps 
 	; or when ground technique has completed for ground moves)
 	move.b	d6,rollback(a4)
+	beq.b	.perform	
+	; can we really rollback? or is it too late/not possible?
+	tst.w	current_frame_countdown(a4)
+	bpl.b	.not_reached_blocking_move
+	clr.b	rollback(a4)		; cancel rollback, continue move
+	move.w	#1,current_frame_countdown(a4)
+.not_reached_blocking_move	
+	; rollback: use previous move if exists
+	move.l	current_move_callback(a4),d0
+	bne.b	.move_routine
 .perform
-	lsl.b	#4,d5
-	or.b	d5,d4	; combine for table offset
-	tst.w	d4
+	tst.w	d7
 	beq.b	.out
 ;	cmp.b	#144,d1
 ;	bcc.b	.out		; not possible
 	lea		moves_table(pc),a0
 	
 	; times 8
-	add.w	d4,d4
-	add.w	d4,d4
-	add.w	d4,d4
-	move.l	(a0,d4.w),d0
-	bne.b	.ok
-	blitz
-.ok
+	lsl.w	#3,d7
+	move.l	(a0,d7.w),d0
+
 	move.l	(4,a0,d1.w),d1	; is jump argument
 	bne.b	.do_move		; jumping move is responsible for handing interruptions by other jumps
 	; not a jumping move. Are we jumping ?
 	tst.b	is_jumping(a4)
-	bne.b	.out		; can't interrupt a jumping move	
+	bne.b	.skip		; can't interrupt a jumping move	
 .do_move
+	; store in case we have to rollback or when the controls are changed but move
+	; is not over
+	move.l	d0,current_move_callback(a4)
+.move_routine
 	move.l	d0,a0
 	; call move routine
 	jsr		(a0)
-
+.skip
 	; correct x afterwards
 	move.w	xpos(a4),d0
 	cmp.w	#X_MAX+1,d0
@@ -2205,21 +2245,22 @@ update_player
 	rts
 
 transition_table
-	dc.l	trans_all_zero	; 0000
-	dc.l	trans_new_simple_attack		; 0001
-	dc.l	trans_attack_dropped		; 0010
-	dc.l	trans_simple_attack_held	; 0011
-	dc.l	trans_new_move				; 0100
-	dc.l	trans_new_complex_attack	; 0101
-	dc.l	trans_attack_dropped		; 0110
-	dc.l	trans_simple_attack_held	; 0111
-	dc.l	trans_move_dropped			; 1000
-	dc.l	trans_new_simple_attack		; 1001
-	dc.l	trans_attack_dropped		; 1010: both attack and move stopped
-	dc.l	trans_attack_dropped		; 1011: same attack but move cancelled
-	dc.l	trans_move_held				; 1100
-	dc.l	trans_new_complex_attack	; 1101: move already set, now attack is set
-	dc.l	trans_complex_attack_held	; 1111
+	dc.l	trans_all_zero				; 00:0000
+	dc.l	trans_new_simple_attack		; 01:0001
+	dc.l	trans_attack_dropped		; 02:0010
+	dc.l	trans_simple_attack_held	; 03:0011
+	dc.l	trans_new_move				; 04:0100
+	dc.l	trans_new_complex_attack	; 05:0101
+	dc.l	trans_attack_dropped		; 06:0110
+	dc.l	trans_simple_attack_held	; 07:0111
+	dc.l	trans_move_dropped			; 08:1000
+	dc.l	trans_new_simple_attack		; 09:1001
+	dc.l	trans_attack_dropped		; 0A:1010: both attack and move stopped
+	dc.l	trans_attack_dropped		; 0B:1011: same attack but move cancelled
+	dc.l	trans_move_held				; 0C:1100
+	dc.l	trans_new_complex_attack	; 0D:1101: move already set, now attack is set
+	dc.l	trans_attack_dropped		; 0E:1110: move already set, now attack is dropped
+	dc.l	trans_complex_attack_held	; 0F:1111
 	
 ; in: d6 cleared
 ; in/out: d4 and d5
@@ -2328,7 +2369,7 @@ move_player:
 ; animation complete, back to walk/default
 .animation_ended
 	lea		walk_forward_frames(pc),a0
-	bra		load_frame
+	bra		load_walk_frame
 
 	
 ; < A4: player struct   
@@ -3539,7 +3580,6 @@ do_\1:
 	SIMPLE_MOVE_CALLBACK	foot_sweep_back
 	SIMPLE_MOVE_CALLBACK	jumping_back_kick
 	SIMPLE_MOVE_CALLBACK	jumping_side_kick
-	SIMPLE_MOVE_CALLBACK	crouch
 	SIMPLE_MOVE_CALLBACK	round_kick
 	SIMPLE_MOVE_CALLBACK	front_kick
 	SIMPLE_MOVE_CALLBACK	back_kick
@@ -3550,6 +3590,10 @@ do_\1:
 	SIMPLE_MOVE_CALLBACK	sommersault_back
 	SIMPLE_MOVE_CALLBACK	reverse_punch_800
 
+do_crouch:
+	lea	crouch_frames(pc),a0
+	st.b	crouching(a4)
+	bra.b	move_player
 	
 do_back_round_kick_right:
 	rts
@@ -3563,6 +3607,7 @@ do_back_round_kick_left:
 do_move_forward:
 	lea		walk_forward_frames(pc),a0
 	clr.b	rollback(a4)
+	clr.l	current_move_callback(a4)
 	bsr		get_player_distance
 	cmp.w	#GUARD_X_DISTANCE,d0		; approx...
 	bcc.b	move_player
@@ -3572,6 +3617,7 @@ do_move_forward:
 do_move_back:
 	lea		walk_backwards_frames(pc),a0   ; todo backwards
 	clr.b	rollback(a4)
+	clr.l	current_move_callback(a4)
 	bsr		get_player_distance
 	cmp.w	#GUARD_X_DISTANCE,d0		; approx...
 	bcc.b	move_player
