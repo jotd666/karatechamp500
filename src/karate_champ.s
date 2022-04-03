@@ -58,8 +58,10 @@ INTERRUPTS_ON_MASK = $E038
 	UBYTE	attack_controls
     UBYTE   is_jumping
 	UBYTE	rollback
+	UBYTE	rollback_lock
 	UBYTE	animation_loops
 	UBYTE	crouching
+	UBYTE	pad
     LABEL   Player_SIZEOF
     
     
@@ -944,7 +946,7 @@ init_players:
 ; trashes: D0
 load_walk_frame:
     clr.b	is_jumping(a4)  
-	clr.b	rollback(a4)
+	clr.b	rollback_lock(a4)
 	clr.b	crouching(a4)
     clr.w	frame(a4)
 	clr.b	rollback(a4)
@@ -1635,6 +1637,7 @@ lockup
     bsr write_hexadecimal_number    
 .lockup
     bra.b   .lockup
+	
 finalize_sound
     bsr stop_sounds
     ; assuming VBR at 0
@@ -2180,11 +2183,14 @@ update_player
 	; setting it can be ignored by animation if move got passed rollback max frame
 	; (can_rollback flag is false after a few frames for jumps 
 	; or when ground technique has completed for ground moves)
+	tst.b	rollback_lock(a4)
+	bne.b	.not_reached_blocking_move	; keep on playing animation
 	move.b	d6,rollback(a4)
-	beq.b	.perform	
+	beq.b	.perform
 	; can we really rollback? or is it too late/not possible?
 	tst.w	current_frame_countdown(a4)
 	bpl.b	.not_reached_blocking_move
+	st.b	rollback_lock(a4)		; prevent further rollbacks on that move
 	clr.b	rollback(a4)		; cancel rollback, continue move
 	move.w	#1,current_frame_countdown(a4)
 .not_reached_blocking_move	
@@ -2351,7 +2357,8 @@ move_player:
 .fup
 	move.w	d0,frame(a4)
 	; a1 holds frame structure. we only need delta x/y
-	move.w	(delta_x,a1,d0.w),d2
+	move.w	(delta_x,a1,d0.w),d2	
+
 	beq.b	.nox
 	add.w	d2,xpos(a4)
 .nox
@@ -3607,6 +3614,7 @@ do_back_round_kick_left:
 do_move_forward:
 	lea		walk_forward_frames(pc),a0
 	clr.b	rollback(a4)
+	clr.b	rollback_lock(a4)
 	clr.l	current_move_callback(a4)
 	bsr		get_player_distance
 	cmp.w	#GUARD_X_DISTANCE,d0		; approx...
@@ -3617,6 +3625,7 @@ do_move_forward:
 do_move_back:
 	lea		walk_backwards_frames(pc),a0   ; todo backwards
 	clr.b	rollback(a4)
+	clr.b	rollback_lock(a4)
 	clr.l	current_move_callback(a4)
 	bsr		get_player_distance
 	cmp.w	#GUARD_X_DISTANCE,d0		; approx...
