@@ -17,6 +17,20 @@ b_gray = (0xB0,0xB0,0xB0)
 
 outdir = "tiles"
 
+null = -1
+
+hit_info = {"backwards":null,
+"forward":null,
+"high_block":null,
+"jumping_back_kick":5,
+"jumping_side_kick":5,
+"low_block":null,
+"medium_block":null,
+"sommersault":null,
+"sommersault_back":null,
+"walk_backwards":null,
+"walk_forward":null}
+
 
 def compute_palette():
     common = set()
@@ -201,6 +215,9 @@ def process_player_tiles():
 
         prev_dx = 0
         prev_dy = 0
+        hi = hit_info.get(name)
+
+        hit_frame = hi is not None
         for i,(frame,width,height,df,dx,dy) in enumerate(frame_list):
             f.write("\tdc.l\t{}{}\n".format(frame,suffix))
             # image size info, x/y variations, logical infos (padding ATM)
@@ -208,13 +225,18 @@ def process_player_tiles():
             plane_size = row_size*height
             frame_type = "FT_NORMAL"
             # if permanent frame then it's hitting
-            if df<0:
+            if df<0 or hi == i:     # either from move data or special case
+                # (2 special cases: jump kicks don't have a permanent/stuck frame)
                 frame_type = "FT_HIT"
-            # plane_size is redundant but saves a multiplication by 48
+
+            if frame_type == "FT_HIT":
+                hit_frame = True        # note that there's a hit frame
+            # plane_size is redundant but saves a multiplication by 48 in-game
             f.write("\tdc.w\t{},{},{},{},{},{},{},0,0\n".format(plane_size,row_size,(dx - prev_dx)*x_sign,dy - prev_dy,df,int(i<3),frame_type))
             prev_dx = dx
             prev_dy = dy
         f.write("\tdc.l\t0,0,0,0\n")
+        return hit_frame
 
     with open("{}/{}_frames.s".format(source_dir,radix),"w") as f:
         f.write("""
@@ -250,7 +272,9 @@ FT_BLOCK = 2
                 iwa = name in walking_anims
                 f.write("\tdc.w\t{}\t; {}\n".format(int(iwa),"looping" if iwa else "runs once"))
                 create_frame_sequence("_right",1)
-                create_frame_sequence("_left",-1)
+                hit_found = create_frame_sequence("_left",-1)
+                if not hit_found:
+                    print("Warning: no hit found for frame {}".format(name))
             else:
                 create_frame_sequence("",1)
     # include frames only once (may be used more than once)

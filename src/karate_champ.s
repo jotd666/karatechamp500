@@ -2357,8 +2357,11 @@ move_player:
 .fup
 	move.w	d0,frame(a4)
 	; a1 holds frame structure. we only need delta x/y
-	move.w	(delta_x,a1,d0.w),d2	
 
+	tst.b	rollback(a4)
+	bne.b	.revert_deltas
+
+	move.w	(delta_x,a1,d0.w),d2	
 	beq.b	.nox
 	add.w	d2,xpos(a4)
 .nox
@@ -2371,6 +2374,16 @@ move_player:
 	move.w	d3,current_frame_countdown(a4)
 	rts
 
+.revert_deltas
+	move.w	(delta_x,a1,d0.w),d2	
+	beq.b	.nox2
+	sub.w	d2,xpos(a4)
+.nox2
+	move.w	(delta_y,a1,d0.w),d2
+	beq.b	.noy
+	sub.w	d2,ypos(a4)
+	bra.b	.noy
+	
 ; todo be able to change that default frame when player is hit
 ; death anim + fall down
 ; animation complete, back to walk/default
@@ -3603,12 +3616,14 @@ do_crouch:
 	bra.b	move_player
 	
 do_back_round_kick_right:
-	rts
+	lea	back_round_kick_frames(pc),a0
+	bra.b	move_player
+
 do_jump:
 	rts
 do_back_round_kick_left:
-	rts
-
+	lea	back_round_kick_frames(pc),a0
+	bra.b	move_player
 
 
 do_move_forward:
