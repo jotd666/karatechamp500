@@ -12,6 +12,7 @@ jump special case just for jumping side kick (connect from jump)
 -> <- back round kick to the left (regardless of character direction)
 <- -> to the right
 if direction is not the proper one, turn before move
+jumps are bogus (wrong y on land), same for sommersaults
 jumping back: turn after complete move
-redo back kick
+center display
 reverse punch (800) erase square too small

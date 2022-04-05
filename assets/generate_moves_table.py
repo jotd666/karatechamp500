@@ -9,6 +9,25 @@ LEFT_BUTTON = 1<<5
 UP_BUTTON = 1<<6
 DOWN_BUTTON = 1<<7
 
+KIAI_1 = "kiai_1_sound"
+KIAI_2 = "kiai_2_sound"
+
+sound_table = {'back_kick':KIAI_1,
+ 'back_round_kick_left':KIAI_2,
+ 'back_round_kick_right':KIAI_2,
+ 'foot_sweep_back':KIAI_1,
+ 'foot_sweep_front':KIAI_1,
+ 'front_kick':KIAI_1,
+ 'jumping_back_kick':KIAI_2,
+ 'jumping_side_kick':KIAI_2,
+ 'low_kick':KIAI_1,
+ 'lunge_punch_1000':KIAI_2,
+ 'lunge_punch_400':KIAI_1,
+ 'lunge_punch_600':KIAI_1,
+ 'reverse_punch_800': KIAI_2,
+ 'round_kick': KIAI_2
+}
+
 dct = {RIGHT_DIRECTION : "move_forward",
 LEFT_DIRECTION : "move_back",
 UP_DIRECTION : "jump",
@@ -39,20 +58,24 @@ jump_moves = {v for v in dct.values() if "jump" in v or "sault" in v}
 # above 129 no combinations are viable
 table = ["NULL"]*256
 is_jump = [0]*256
+sounds = [0]*256
 for k,v in dct.items():
     table[k] = "do_"+v
     is_jump[k] = int(v in jump_moves)
+    sounds[k] = sound_table.get(v,0)
 for v in {x for x in table if x != "NULL"}:
     print("{}:\n\trts".format(v))
 
 # print the table
 
-for i,(j,t) in enumerate(zip(is_jump,table)):
-    im8 = i%8
+max_items = 4
+
+for i,(j,t,s) in enumerate(zip(is_jump,table,sounds)):
+    im8 = i%max_items
     if not im8:
         print("\tdc.l\t",end="")
-    print("{},{}".format(t,j),end="")
-    if im8 < 7:
+    print("{},{},{},0".format(t,j,s),end="")
+    if im8 < (max_items-1):
         print(",",end="")
     else:
         print("")

@@ -61,7 +61,7 @@ INTERRUPTS_ON_MASK = $E038
 	UBYTE	rollback_lock
 	UBYTE	animation_loops
 	UBYTE	crouching
-	UBYTE	pad
+	UBYTE	sound_playing
     LABEL   Player_SIZEOF
     
     
@@ -455,8 +455,8 @@ intro:
 
     tst.b   demo_mode
     bne.b   .no_credit
-    lea credit_sound(pc),a0
-    bsr play_fx
+    ;lea credit_sound(pc),a0
+    ;bsr play_fx
 
 .game_start_loop
     bsr random      ; so the enemies aren't going to do the same things at first game
@@ -948,6 +948,7 @@ load_walk_frame:
     clr.b	is_jumping(a4)  
 	clr.b	rollback_lock(a4)
 	clr.b	crouching(a4)
+	clr.b	sound_playing(a4)
     clr.w	frame(a4)
 	clr.b	rollback(a4)
 	clr.l	current_move_callback(a4)	
@@ -2204,16 +2205,31 @@ update_player
 ;	bcc.b	.out		; not possible
 	lea		moves_table(pc),a0
 	
-	; times 8
-	lsl.w	#3,d7
+	; times 16
+	lsl.w	#4,d7
 	move.l	(a0,d7.w),d0
 
-	move.l	(4,a0,d1.w),d1	; is jump argument
+	tst.l	(4,a0,d7.w)		; is jump argument
 	bne.b	.do_move		; jumping move is responsible for handing interruptions by other jumps
 	; not a jumping move. Are we jumping ?
 	tst.b	is_jumping(a4)
 	bne.b	.skip		; can't interrupt a jumping move	
 .do_move
+	; play sound
+	tst.b	sound_playing(a4)
+	bne.b	.no_sound2
+	move.l	d0,-(a7)
+	bsr	random
+	and.w	#3,d0
+	beq.b	.no_sound
+	move.l	(8,a0,d7.w),d0
+	beq.b	.no_sound
+	move.l	d0,a0
+	st.b	sound_playing(a4)
+	bsr		play_fx
+.no_sound	
+	move.l	(a7)+,d0
+.no_sound2	
 	; store in case we have to rollback or when the controls are changed but move
 	; is not over
 	move.l	d0,current_move_callback(a4)
@@ -3654,43 +3670,74 @@ do_move_back:
 
 	
 moves_table
-	dc.l	NULL,0,do_move_forward,0,do_move_back,0,NULL,0,do_jump,1,NULL,0,NULL,0,NULL,0
-	dc.l	do_crouch,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	do_front_kick,0,do_lunge_punch_400,0,do_back_round_kick_right,0,NULL,0,do_jumping_side_kick,1,NULL,0,NULL,0,NULL,0
-	dc.l	do_foot_sweep_front,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	do_back_kick,0,do_back_round_kick_left,0,do_back_kick,0,NULL,0,do_jumping_back_kick,1,NULL,0,NULL,0,NULL,0
-	dc.l	do_foot_sweep_back,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	do_round_kick,0,do_lunge_punch_1000,0,do_lunge_punch_600,0,NULL,0,do_sommersault_back,1,NULL,0,NULL,0,NULL,0
-	dc.l	do_reverse_punch_800,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	do_low_kick,0,do_low_kick,0,do_low_kick,0,NULL,0,do_sommersault,1,NULL,0,NULL,0,NULL,0
-	dc.l	do_foot_sweep_front,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	dc.l	NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0,NULL,0
-	
+	dc.l	NULL,0,0,0,do_move_forward,0,0,0,do_move_back,0,0,0,NULL,0,0,0
+	dc.l	do_jump,1,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	do_crouch,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	do_front_kick,0,kiai_1_sound,0,do_lunge_punch_400,0,kiai_1_sound,0,do_back_round_kick_right,0,kiai_2_sound,0,NULL,0,0,0
+	dc.l	do_jumping_side_kick,1,kiai_2_sound,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	do_foot_sweep_front,0,kiai_1_sound,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	do_back_kick,0,kiai_1_sound,0,do_back_round_kick_left,0,kiai_2_sound,0,do_back_kick,0,kiai_1_sound,0,NULL,0,0,0
+	dc.l	do_jumping_back_kick,1,kiai_2_sound,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	do_foot_sweep_back,0,kiai_1_sound,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	do_round_kick,0,kiai_2_sound,0,do_lunge_punch_1000,0,kiai_2_sound,0,do_lunge_punch_600,0,kiai_1_sound,0,NULL,0,0,0
+	dc.l	do_sommersault_back,1,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	do_reverse_punch_800,0,kiai_2_sound,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	do_low_kick,0,kiai_1_sound,0,do_low_kick,0,kiai_1_sound,0,do_low_kick,0,kiai_1_sound,0,NULL,0,0,0
+	dc.l	do_sommersault,1,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	do_foot_sweep_front,0,kiai_1_sound,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
 ;base addr, len, per, vol, channel<<8 + pri, loop timer, number of repeats (or -1), current repeat, current vbl
 
 FXFREQBASE = 3579564
-SOUNDFREQ = 22050
+SOUNDFREQ = 16000
 
 SOUND_ENTRY:MACRO
 \1_sound
@@ -3701,8 +3748,8 @@ SOUND_ENTRY:MACRO
     ENDM
     
     ; radix, ,channel (0-3)
-    SOUND_ENTRY credit,1,SOUNDFREQ,64
-
+    SOUND_ENTRY kiai_1,2,SOUNDFREQ,29
+    SOUND_ENTRY kiai_2,2,SOUNDFREQ,17
 
 game_palette
     include "palette.s"
@@ -3838,11 +3885,17 @@ empty_16x16_bob
 empty_48x48_bob
     ds.b    BOB_64X48_PLANE_SIZE,0
 
-	
-credit_raw
-    incbin  "credit.raw"
+; sound samples
+kiai_1_raw
+    incbin  "kiai_1.raw"
     even
-credit_raw_end
+kiai_1_raw_end
+
+kiai_2_raw
+    incbin  "kiai_2.raw"
+    even
+kiai_2_raw_end
+
 
 	include	"player_bobs.s"
 	
