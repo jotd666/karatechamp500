@@ -1,7 +1,7 @@
 import bitplanelib,glob,os,collections
 from PIL import Image
 
-for move_dir in glob.glob("moves/back_kick"):
+for move_dir in glob.glob("moves/lunge_punch_1000"):
     imglist = [(imgname,Image.open(imgname)) for imgname in glob.glob(os.path.join(move_dir,"*.png"))]
     dims = set(img.size for _,img in imglist)
     if len(dims) != 1:

@@ -2194,7 +2194,7 @@ update_player
 	st.b	rollback_lock(a4)		; prevent further rollbacks on that move
 	clr.b	rollback(a4)		; cancel rollback, continue move
 	move.w	#1,current_frame_countdown(a4)
-.not_reached_blocking_move	
+.not_reached_blocking_move
 	; rollback: use previous move if exists
 	move.l	current_move_callback(a4),d0
 	bne.b	.move_routine
@@ -2385,7 +2385,16 @@ move_player:
 	beq.b	.noy
 	add.w	d2,ypos(a4)
 .noy
-	move.w	(staying_frames,a1,d0.w),d3	; load frame countdown
+	add.w	d0,a1
+	; convert "can_rollback" to lock
+	tst.w	(can_rollback,a1)
+	seq		rollback_lock(a4)
+
+	; but cancel rollback lock if infinite time
+	; (hit frame, but on ground)
+	move.w	(staying_frames,a1),d3	; load frame countdown
+	bpl.b	.no_change
+	clr.b	rollback_lock(a4)
 .no_change
 	move.w	d3,current_frame_countdown(a4)
 	rts
@@ -2437,7 +2446,7 @@ erase_player:
     lea _custom,A5
 	
 	; restore background
-	move.w	#8,d2	; width (no shifting)
+	move.w	#10,d2	; width (no shifting)
 	move.w	#48,d4	; height
 	
 
