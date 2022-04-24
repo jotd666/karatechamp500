@@ -19,6 +19,8 @@ outdir = "tiles"
 
 null = -1
 
+# where to insert "FT_HIT" for moves that don't have a stopping point
+# (negative frame counter)
 hit_info = {"backwards":null,
 "forward":null,
 "high_block":null,
@@ -31,6 +33,22 @@ hit_info = {"backwards":null,
 "walk_backwards":null,
 "walk_forward":null}
 
+def mirror(img):
+    m = img.transpose(Image.FLIP_LEFT_RIGHT)
+    # now left-justify the image
+    # compute the first non-black point
+
+    found = False
+    for x in range(m.size[0]):
+        for y in range(m.size[1]):
+            if m.getpixel((x,y)) != (0,0,0):
+                found = True
+                break
+        if found:
+            break
+    img_mirror = Image.new("RGB",m.size)
+    img_mirror.paste(m,(-x,0,m.size[0]-x,m.size[1]))
+    return img_mirror
 
 def compute_palette():
     common = set()
@@ -147,8 +165,10 @@ def process_player_tiles():
 
             name = "{}_{}".format(d,i)
             if dump_tiles:
-                mask.save(os.path.join(outdir,"{}_mask_{}.png".format(d,i)))
-                img.save(os.path.join(outdir,"{}_{}.png".format(d,i)))
+                mask.save(os.path.join(outdir,"{}_mask_{}_right.png".format(d,i)))
+                img.save(os.path.join(outdir,"{}_{}_right.png".format(d,i)))
+                mirror(img).save(os.path.join(outdir,"{}_{}_left.png".format(d,i)))
+                mirror(mask).save(os.path.join(outdir,"{}_mask_{}_left.png".format(d,i)))
 
             blk = extract_block(img,0,0,width,height)
             existing = move_dict.get(blk)
@@ -178,13 +198,8 @@ def process_player_tiles():
 
                 create_bob(img,mask_img,"{}/{}_right.bin".format(sprites_dir,name))
 
-                img_mirror = Image.new("RGB",img.size)
-                mask_img_mirror = Image.new("RGB",img.size)
-                for x in range(img.size[0]):
-                    sx = img.size[0]-x-1
-                    for y in range(img.size[1]):
-                        img_mirror.putpixel((sx,y),img.getpixel((x,y)))
-                        mask_img_mirror.putpixel((sx,y),mask_img.getpixel((x,y)))
+                img_mirror = mirror(img)
+                mask_img_mirror = mirror(mask_img)
 
                 create_bob(img_mirror,mask_img_mirror,"{}/{}_left.bin".format(sprites_dir,name))
 

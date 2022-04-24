@@ -954,6 +954,10 @@ load_walk_frame:
 	clr.l	current_move_callback(a4)	
 	clr.w	current_frame_countdown(a4)
 	move.w	direction(a4),d0
+	; store previous direction, just in case we use back round kick
+	; so previous_direction still points to the proper move table
+	; even if player turns around
+	move.w	d0,previous_direction(a4)
 	move.l	(a0,d0.w),frame_set(a4)	
 	move.w	(8,a0),d0
 	move.b	d0,animation_loops(a4)
@@ -2203,7 +2207,11 @@ update_player
 	beq.b	.out
 ;	cmp.b	#144,d1
 ;	bcc.b	.out		; not possible
+
+	; select proper direction
 	lea		moves_table(pc),a0
+	move.w	previous_direction(a4),d0
+	move.l	(a0,d0.w),a0
 	
 	; times 16
 	lsl.w	#4,d7
@@ -2402,7 +2410,7 @@ move_player:
 .revert_deltas
 	move.w	(delta_x,a1,d0.w),d2	
 	beq.b	.nox2
-	sub.w	d2,xpos(a4)
+	add.w	d2,xpos(a4)
 .nox2
 	move.w	(delta_y,a1,d0.w),d2
 	beq.b	.noy
@@ -3641,12 +3649,22 @@ do_crouch:
 	bra.b	move_player
 	
 do_back_round_kick_right:
+	move.w	direction(a4),d0
+	cmp.w	#RIGHT,d0
+	beq.b	.no_turn
+	move.w	#RIGHT,direction(a4)	
+.no_turn
 	lea	back_round_kick_frames(pc),a0
 	bra.b	move_player
 
 do_jump:
 	rts
 do_back_round_kick_left:
+	move.w	direction(a4),d0
+	cmp.w	#LEFT,d0
+	beq.b	.no_turn
+	move.w	#LEFT,direction(a4)
+.no_turn
 	lea	back_round_kick_frames(pc),a0
 	bra.b	move_player
 
@@ -3675,74 +3693,10 @@ do_move_back:
 	bra.b	move_player
 	rts
 	
-
-
-	
 moves_table
-	dc.l	NULL,0,0,0,do_move_forward,0,0,0,do_move_back,0,0,0,NULL,0,0,0
-	dc.l	do_jump,1,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	do_crouch,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	do_front_kick,0,kiai_1_sound,0,do_lunge_punch_400,0,kiai_1_sound,0,do_back_round_kick_right,0,kiai_2_sound,0,NULL,0,0,0
-	dc.l	do_jumping_side_kick,1,kiai_2_sound,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	do_foot_sweep_front,0,kiai_1_sound,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	do_back_kick,0,kiai_1_sound,0,do_back_round_kick_left,0,kiai_2_sound,0,do_back_kick,0,kiai_1_sound,0,NULL,0,0,0
-	dc.l	do_jumping_back_kick,1,kiai_2_sound,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	do_foot_sweep_back,0,kiai_1_sound,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	do_round_kick,0,kiai_2_sound,0,do_lunge_punch_1000,0,kiai_2_sound,0,do_lunge_punch_600,0,kiai_1_sound,0,NULL,0,0,0
-	dc.l	do_sommersault_back,1,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	do_reverse_punch_800,0,kiai_2_sound,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	do_low_kick,0,kiai_1_sound,0,do_low_kick,0,kiai_1_sound,0,do_low_kick,0,kiai_1_sound,0,NULL,0,0,0
-	dc.l	do_sommersault,1,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	do_foot_sweep_front,0,kiai_1_sound,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
-	dc.l	NULL,0,0,0,NULL,0,0,0,NULL,0,0,0,NULL,0,0,0
+	dc.l	move_table_right,move_table_left
+	include	"move_tables.s"
+	
 ;base addr, len, per, vol, channel<<8 + pri, loop timer, number of repeats (or -1), current repeat, current vbl
 
 FXFREQBASE = 3579564
