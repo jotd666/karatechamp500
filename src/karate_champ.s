@@ -396,16 +396,21 @@ Start:
     clr.w copjmp1(a5)
 
 ;playfield init
+	
+	; one of ross' magic value so the screen is centered
+    move.w #$30b1,diwstrt(a5)
+    move.w #$3081,diwstop(a5)	; was 3091 for scramble here it's narrower
+    move.w #$0048,ddfstrt(a5)
+    move.w #$00B8,ddfstop(a5)
 
-    move.w #$3081,diwstrt(a5)             ; valeurs standard pour
-    move.w #$30C1,diwstop(a5)             ; la fenêtre écran
-    move.w #$0038,ddfstrt(a5)             ; et le DMA bitplane
-    move.w #$00D0,ddfstop(a5)
+
     move.w #$4200,bplcon0(a5) ; 4 bitplanes
     clr.w bplcon1(a5)                     ; no scrolling
-    clr.w bplcon2(a5)                     ; pas de priorité
-    move.w #0,bpl1mod(a5)                ; modulo de tous les plans = 40
-    move.w #0,bpl2mod(a5)
+    clr.w bplcon2(a5)                     ; no sprite priority
+		; bplmod needs to be altered because of special arcade resolution & centering
+    move.w #10,d0
+	move.w	d0,bpl1mod(a5)
+    move.w	d0,bpl2mod(a5)
 
 intro:
     lea _custom,a5
@@ -943,7 +948,7 @@ init_players:
 
 ; < a0: frame right/left
 ; < a4: player structure (updated)
-; trashes: D0
+; trashes: D0,D1
 load_walk_frame:
     clr.b	is_jumping(a4)  
 	clr.b	rollback_lock(a4)
@@ -958,10 +963,12 @@ load_walk_frame:
 	; so previous_direction still points to the proper move table
 	; even if player turns around
 	move.w	d0,previous_direction(a4)
+	
 	move.l	(a0,d0.w),frame_set(a4)	
-	move.w	(8,a0),d0
+	move.w	(fs_animation_loops,a0),d0
 	move.b	d0,animation_loops(a4)
 	rts
+
 	
     
 DEBUG_X = 24     ; 232+8
@@ -2518,6 +2525,7 @@ draw_player:
 	
 	move.l	frame_set(a4),a0
 	add.w	frame(a4),a0
+
 	move.w	bob_plane_size(a0),d5
 	move.w	bob_nb_bytes_per_row(a0),d2
 	move.l	bob_data(a0),a0
@@ -2529,6 +2537,14 @@ draw_player:
 	
 	; plane 1: clothes data as white
 	move.w	xpos(a4),D0
+	cmp.w	#RIGHT,direction(a4)
+	beq.b	.no_offset
+	move.w	d2,d3
+	sub.w	#6,d3	; minus 48 to center character
+	lsl.w	#3,d3	; times 8
+	sub.w	d3,d0	; subtract if facing left
+.no_offset
+
 	move.w	ypos(a4),D1
 	move.w	d0,previous_xpos(a4)
 	move.w	d1,previous_ypos(a4)
@@ -3787,8 +3803,6 @@ player_move_buffer
     SECTION  S5,DATA,CHIP
 ; main copper list
 coplist
-   dc.l  $01080000
-   dc.l  $010a0000
 bitplanes:
    dc.l  $00e00000
    dc.l  $00e20000
@@ -3830,13 +3844,9 @@ enemy_sprites:
     dc.w    sprpt+28,0
     dc.w    sprpt+30,0
 end_color_copper:
-   dc.w  diwstrt,$3081            ;  DIWSTRT
-   dc.w  diwstop,$30c1            ;  DIWSTOP
    ; proper sprite priority: above bitplanes
-   dc.w  $0102,$0000            ;  BPLCON1 := 0x0000
-   dc.w  $0104,$0024            ;  BPLCON2 := 0x0024
-   dc.w  $0092,$0038            ;  DDFSTRT := 0x0038
-   dc.w  $0094,$00d0            ;  DDFSTOP := 0x00d0
+   ;dc.w  $0102,$0000            ;  BPLCON1 := 0x0000
+   ;dc.w  $0104,$0024            ;  BPLCON2 := 0x0024
    dc.w  $FFDF,$FFFE            ; PAL wait (256)
    dc.w  $2201,$FFFE            ; PAL extra wait (around 288)
    dc.w	 intreq,$8010            ; generate copper interrupt

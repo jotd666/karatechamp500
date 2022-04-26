@@ -35,20 +35,22 @@ hit_info = {"backwards":null,
 
 def mirror(img):
     m = img.transpose(Image.FLIP_LEFT_RIGHT)
-    # now left-justify the image
-    # compute the first non-black point
-
-    found = False
-    for x in range(m.size[0]):
-        for y in range(m.size[1]):
-            if m.getpixel((x,y)) != (0,0,0):
-                found = True
-                break
-        if found:
-            break
-    img_mirror = Image.new("RGB",m.size)
-    img_mirror.paste(m,(-x,0,m.size[0]-x,m.size[1]))
-    return img_mirror
+    return m
+##
+##    # now left-justify the image
+##    # compute the first non-black point
+##
+##    found = False
+##    for x in range(m.size[0]):
+##        for y in range(m.size[1]):
+##            if m.getpixel((x,y)) != (0,0,0):
+##                found = True
+##                break
+##        if found:
+##            break
+##    img_mirror = Image.new("RGB",m.size)
+##    img_mirror.paste(m,(-x,0,m.size[0]-x,m.size[1]))
+##    return img_mirror
 
 def compute_palette():
     common = set()
