@@ -244,7 +244,7 @@ def process_player_tiles():
             # if permanent frame then it's hitting
             if df<0 or hi == i:     # either from move data or special case
                 # (2 special cases: jump kicks don't have a permanent/stuck frame)
-                frame_type = "FT_HIT"
+                frame_type = "FT_BLOCK" if "block" in name else "FT_HIT"
 
             if frame_type == "FT_HIT":
                 hit_frame = True        # note that there's a hit frame

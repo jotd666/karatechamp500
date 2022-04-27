@@ -46,6 +46,7 @@ INTERRUPTS_ON_MASK = $E038
     ULONG   character_id
 	ULONG	frame_set
 	ULONG	current_move_callback
+	ULONG	animation_struct
 	UWORD	xpos
 	UWORD	ypos
 	UWORD	previous_xpos
@@ -54,14 +55,17 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	previous_direction   ; previous sprite orientation
 	UWORD	current_frame_countdown
     UWORD   frame
+	UWORD	current_frame_type
     UBYTE   move_controls
 	UBYTE	attack_controls
     UBYTE   is_jumping
 	UBYTE	rollback
 	UBYTE	rollback_lock
 	UBYTE	animation_loops
-	UBYTE	crouching
 	UBYTE	sound_playing
+	UBYTE	turn_back_flag
+	UBYTE	skip_frame_reset
+	UBYTE	pad
     LABEL   Player_SIZEOF
     
     
@@ -212,6 +216,7 @@ STATE_GAME_START_SCREEN = 6*4
 X_MIN = 20
 X_MAX = 200
 GUARD_X_DISTANCE = 60		; to confirm
+MIN_FRONT_KICK_DISTANCE = 20 ; to confirm
 
 ; jump table macro, used in draw and update
 DEF_STATE_CASE_TABLE:MACRO
@@ -407,7 +412,8 @@ Start:
     move.w #$4200,bplcon0(a5) ; 4 bitplanes
     clr.w bplcon1(a5)                     ; no scrolling
     clr.w bplcon2(a5)                     ; no sprite priority
-		; bplmod needs to be altered because of special arcade resolution & centering
+	; bplmod needs to be altered because
+	; of special arcade resolution & centering
     move.w #10,d0
 	move.w	d0,bpl1mod(a5)
     move.w	d0,bpl2mod(a5)
@@ -888,7 +894,14 @@ hide_sprites:
     rts
 
 
-    
+init_player_common
+	clr.b	turn_back_flag(a4)
+    move.w	#176,ypos(a4)
+	clr.l	previous_xpos(a4)	; x and y
+	clr.l	animation_struct(a4)
+	clr.b	skip_frame_reset(a4)
+	rts
+	
 init_players:
     ; no moves (zeroes direction flags)
     clr.w  move_controls(a4)  	; and attack controls
@@ -898,22 +911,23 @@ init_players:
 	
 
     lea player_1(pc),a4
-
+	bsr		init_player_common
 	move.b	#0,character_id(a4)
-    clr.l	previous_xpos(a4)	; x and y
+    
     move.w  #22,xpos(a4)
 	move.w	#176,ypos(a4)
-
+	clr.b	turn_back_flag(a4)
+	
 	lea		walk_forward_frames(pc),a0
 	move.w 	#RIGHT,direction(a4)
 	bsr		load_walk_frame
 	
     lea player_2(pc),a4
+	bsr		init_player_common
 	move.b	#1,character_id(a4)
-
-    clr.l	previous_xpos(a4)
+ 
     move.w  #148,xpos(a4)
-	move.w	#176,ypos(a4)
+	
 	lea		walk_forward_frames(pc),a0
 	move.w 	#LEFT,direction(a4)
 	bsr		load_walk_frame
@@ -950,9 +964,9 @@ init_players:
 ; < a4: player structure (updated)
 ; trashes: D0,D1
 load_walk_frame:
+	move.w	#FT_NORMAL,current_frame_type(a4)
     clr.b	is_jumping(a4)  
 	clr.b	rollback_lock(a4)
-	clr.b	crouching(a4)
 	clr.b	sound_playing(a4)
     clr.w	frame(a4)
 	clr.b	rollback(a4)
@@ -963,7 +977,7 @@ load_walk_frame:
 	; so previous_direction still points to the proper move table
 	; even if player turns around
 	move.w	d0,previous_direction(a4)
-	
+	move.l	a0,animation_struct(a4)
 	move.l	(a0,d0.w),frame_set(a4)	
 	move.w	(fs_animation_loops,a0),d0
 	move.b	d0,animation_loops(a4)
@@ -1704,7 +1718,11 @@ saved_intena
 ; F4: show debug info
 ; F5: re-draw background pic
 ; left-ctrl: fast-forward (no player controls during that)
-
+; when going away:
+; * reverse: medium block (shuto-uke)
+; * forward: high block (utchi-uke)
+; * rev+fwd: low block (gedan-barai)
+ 
 level2_interrupt:
 	movem.l	D0/A0/A5,-(a7)
 	LEA	$00BFD000,A5
@@ -2344,6 +2362,7 @@ trans_move_dropped
 ; < a4: player structure
 
 move_player:
+	move.l	a0,animation_struct(a4)
 	; update animation loop flag if required
 	move.w	(8,a0),d0
 	move.b	d0,animation_loops(a4)
@@ -2360,8 +2379,12 @@ move_player:
 	move.l	a0,a1
 	; reset all counters
 	clr.w	current_frame_countdown(a4)
+	; don't reset current frame if connecting move
+	tst.b	skip_frame_reset(a4)
+	bne.b	.no_frame_set_change
 	clr.w	frame(a4)
 .no_frame_set_change
+	clr.b	skip_frame_reset(a4)
 	move.w	current_frame_countdown(a4),d3
 	bmi.b	.no_change		; negative: wait for player move change
 	beq.b	.change
@@ -2380,6 +2403,9 @@ move_player:
 	bra.b	.fup
 .forward
 	add.w	#PlayerFrame_SIZEOF,d0		; frame long+2 words of x/y/nbframes
+	; load frame type
+	
+	move.w	(frame_type,a1,d0.w),current_frame_type(a4)
 	tst.l	(bob_data,a1,d0.w)
 	bne.b	.fup
 	tst.b	animation_loops(a4)
@@ -2428,6 +2454,13 @@ move_player:
 ; death anim + fall down
 ; animation complete, back to walk/default
 .animation_ended
+	tst.b	turn_back_flag(a4)
+	beq.b	.no_turn_back
+	; set turn back as soon as rollback lock
+	clr.b	turn_back_flag(a4)
+	bsr		turn_back
+
+.no_turn_back
 	lea		walk_forward_frames(pc),a0
 	bra		load_walk_frame
 
@@ -3644,25 +3677,78 @@ do_\1:
 ; < A4: player structure
 
 	
+	SIMPLE_MOVE_CALLBACK	low_block
+	SIMPLE_MOVE_CALLBACK	medium_block
+	SIMPLE_MOVE_CALLBACK	high_block
 	SIMPLE_MOVE_CALLBACK	low_kick
-	SIMPLE_MOVE_CALLBACK	foot_sweep_front
-	SIMPLE_MOVE_CALLBACK	foot_sweep_back
-	SIMPLE_MOVE_CALLBACK	jumping_back_kick
+	SIMPLE_MOVE_CALLBACK	crouch
+		
 	SIMPLE_MOVE_CALLBACK	jumping_side_kick
 	SIMPLE_MOVE_CALLBACK	round_kick
-	SIMPLE_MOVE_CALLBACK	front_kick
 	SIMPLE_MOVE_CALLBACK	back_kick
 	SIMPLE_MOVE_CALLBACK	lunge_punch_400
 	SIMPLE_MOVE_CALLBACK	lunge_punch_600
 	SIMPLE_MOVE_CALLBACK	lunge_punch_1000
 	SIMPLE_MOVE_CALLBACK	sommersault
 	SIMPLE_MOVE_CALLBACK	sommersault_back
-	SIMPLE_MOVE_CALLBACK	reverse_punch_800
 
-do_crouch:
-	lea	crouch_frames(pc),a0
-	st.b	crouching(a4)
+do_reverse_punch_800	
+	lea	reverse_punch_800_frames(pc),a0
+	bra.b	do_foot_sweep_common
+
+do_foot_sweep_back
+	lea	foot_sweep_back_frames(pc),a0
+	bra.b	do_foot_sweep_common
+	
+do_foot_sweep_front
+	lea	foot_sweep_front_frames(pc),a0
+do_foot_sweep_common
+	; are we crouching?
+	lea		crouch_frames(pc),a1
+	cmp.l	animation_struct(a4),a1
+	bne.b	move_player
+	; connect from crouch to move
+	move.w	#PlayerFrame_SIZEOF*3,frame(a4)
+	st.b	skip_frame_reset(a4)
 	bra.b	move_player
+	
+do_jumping_back_kick:
+	lea	jumping_back_kick_frames(pc),a0
+	move.l	animation_struct(a4),a1
+	cmp.l	a0,a1
+	bne.b	move_player
+	; already jumping back kick, check if last frame
+	; in which case reverse position when landing
+	tst.b	rollback_lock(a4)
+	beq.b	.no_turn_back
+	st.b	turn_back_flag(a4)
+.no_turn_back
+	bra.b	move_player
+	
+do_front_kick:
+	; check the distance to the other player
+	; if too close, then switch to weak reverse punch
+	;
+	; also, if reverse punch already running, don't switch
+	; to front kick (the opposite is also true)
+	bsr	get_player_distance
+	move.l	animation_struct(a4),a1
+	cmp.w	#MIN_FRONT_KICK_DISTANCE,d0
+	bcc.b	.kick
+	lea	front_kick_frames(pc),a2
+	cmp.l	a2,a1
+	beq.b	.force_kick	; already kick, keep kick
+.force_punch
+	lea	weak_reverse_punch_frames(pc),a0
+	bra.b	move_player
+.kick
+	lea	weak_reverse_punch_frames(pc),a2
+	cmp.l	a2,a1
+	beq.b	.force_punch
+.force_kick
+	lea	front_kick_frames(pc),a0
+	bra.b	move_player
+
 	
 do_back_round_kick_right:
 	move.w	direction(a4),d0
@@ -3674,7 +3760,10 @@ do_back_round_kick_right:
 	bra.b	move_player
 
 do_jump:
-	rts
+	lea	jump_frames(pc),a0
+	
+	bra.b	move_player
+	
 do_back_round_kick_left:
 	move.w	direction(a4),d0
 	cmp.w	#LEFT,d0
@@ -3695,19 +3784,58 @@ do_move_forward:
 	bcc.b	move_player
 	lea		forward_frames(pc),a0
 	bra.b	move_player
-	rts
+
 do_move_back:
-	lea		walk_backwards_frames(pc),a0   ; todo backwards
+	clr.l	d1
+	tst.w	cheat_keys
+	beq.b	.no_cheat
+; when going away:
+; * reverse: medium block (shuto-uke)
+; * forward: high block (utchi-uke)
+; * rev+fwd: low block (gedan-barai)
+	move.l	joystick_state(pc),d0
+	btst	#JPB_BTN_FORWARD,d0
+	beq.b	.no_forward
+	bset	#2,d1
+.no_forward
+	btst	#JPB_BTN_REVERSE,d0
+	beq.b	.no_reverse
+	bset	#3,d1
+.no_reverse
+	
+.no_cheat
+	; D1 contains enemy attack mode
+	; 0: no attack
+	; 4: high attack
+	; 8: medium attack
+	; 12: low attack
+	lea	block_table(pc),a0
+	move.l	(a0,d1.w),a0
+	jmp	(a0)
+	
+
+normal_backing_away
+	lea		walk_backwards_frames(pc),a0
 	clr.b	rollback(a4)
 	clr.b	rollback_lock(a4)
 	clr.l	current_move_callback(a4)
 	bsr		get_player_distance
 	cmp.w	#GUARD_X_DISTANCE,d0		; approx...
 	bcc.b	move_player
-	lea		backwards_frames(pc),a0		; todo backwards
+	lea		backwards_frames(pc),a0
 
 	bra.b	move_player
+
+turn_back
+	move.w	direction(a4),d0
+	neg.w	d0
+	add.w	#LEFT,d0
+	move.w	d0,direction(a4)	
+.no_turn
 	rts
+	
+block_table
+	dc.l	normal_backing_away,do_high_block,do_medium_block,do_low_block
 	
 moves_table
 	dc.l	move_table_right,move_table_left

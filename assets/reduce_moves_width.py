@@ -1,14 +1,14 @@
 import bitplanelib,glob,os,collections
 from PIL import Image
 
-for move_dir in glob.glob("moves/lunge_punch_1000"):
+for move_dir in glob.glob("moves/low_block"):
     imglist = [(imgname,Image.open(imgname)) for imgname in glob.glob(os.path.join(move_dir,"*.png"))]
     dims = set(img.size for _,img in imglist)
     if len(dims) != 1:
-        raise Exception("{}: varying dimensions {}".format(move_dir,dims))
+        dims = [max(dims)]
     width,height = next(iter(dims))   # sole element of set
     # now for each image check if uniform (pick top right corner for instance)
-    background_pixel = imglist[0][1].getpixel((width-1,0))
+    background_pixel = imglist[0][1].getpixel((imglist[0][1].size[0]-1,0))
 
     for imgname,img in imglist:
         if width == 64:
@@ -24,7 +24,11 @@ for move_dir in glob.glob("moves/lunge_punch_1000"):
             possible = True
             for x in range(tw,width):
                 for y in range(height):
-                    if img.getpixel((x,y))!=background_pixel:
+                    try:
+                        if img.getpixel((x,y))!=background_pixel:
+                            possible = False
+                            break
+                    except IndexError:
                         possible = False
                         break
                 if not possible:
