@@ -110,7 +110,8 @@ _Relocate	movem.l	d0-d1/a0-a2,-(sp)
         pea     8                       ;8 byte alignment
         pea     WHDLTAG_ALIGN
 		ENDC
-        move.l  a7,a1                   ;tags		move.l	_resload(pc),a2
+        move.l  a7,a1                   ;tags	
+		move.l	_resload(pc),a2
 		jsr	resload_Relocate(a2)
 		IFND		CHIP_ONLY
         add.w   #5*4,a7

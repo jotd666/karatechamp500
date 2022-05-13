@@ -16,6 +16,7 @@ c_gray = (192,192,192)
 b_gray = (0xB0,0xB0,0xB0)
 
 outdir = "tiles"
+hit_mask_dir = "hit_masks"
 
 null = -1
 
@@ -91,7 +92,12 @@ def compute_palette():
 
     return palette
 
-def extract_block(img,x,y,width,height):
+def extract_block(img,x=0,y=0,width=None,height=None):
+    if not width:
+        width = img.size[0]
+    if not height:
+        height = img.size[1]
+
     return tuple(img.getpixel((x+i,y+j)) for j in range(height) for i in range(width))
 
 
@@ -122,6 +128,17 @@ def process_player_tiles():
     move_dict = dict()
 
     player_palette = [(0,0,0),(240,240,240),(240,192,192),(96, 80, 80)]
+
+    mask_palette = Image.new("RGB",(32,64))
+    y = 0
+    for rgb in [(255,255,255),(255,0,0),(0,255,0),(0,0,255)]:
+        for i in range(16):
+            for x in range(32):
+                mask_palette.putpixel((x,y),rgb)
+            y += 1
+
+    mask_palette_file = os.path.join(hit_mask_dir,"palette.png")
+    mask_palette.save(mask_palette_file)
 
     moves_dir = "moves"
     sback = (192,192,0)     # background of level 2, uniform background, used for mask color
@@ -172,10 +189,10 @@ def process_player_tiles():
                 mirror(img).save(os.path.join(outdir,"{}_{}_left.png".format(d,i)))
                 mirror(mask).save(os.path.join(outdir,"{}_mask_{}_left.png".format(d,i)))
 
-            blk = extract_block(img,0,0,width,height)
+            blk = extract_block(img)
             existing = move_dict.get(blk)
             if existing:
-                print("already {} : {}".format(name,existing["name"]))
+                print("already existing bitmap for {} => {}".format(name,existing["name"]))
                 name = existing['name']
                 width = existing["width"]
                 height = existing["height"]
@@ -205,6 +222,34 @@ def process_player_tiles():
 
                 create_bob(img_mirror,mask_img_mirror,"{}/{}_left.bin".format(sprites_dir,name))
 
+                # save mask image in hit masks dir if doesn't exist, or load it/compare to see if still matches
+                # the actual mask (which could have been updated)
+                # we want those hit masks to be 100% the same shape as pics/masks
+                # only with added logic information
+                #
+                # white: vulnerable
+                # red: hit zone (can hurt other player)
+                # blue: neutral (like part of leg/arm)
+                # green: block zone (blocks opponent hits)
+
+                hit_mask_filename = os.path.join(hit_mask_dir,name+".png")
+                if os.path.exists(hit_mask_filename):
+                    # load it and compare non-black colors, see if they match
+                    hit_mask = Image.open(hit_mask_filename)
+                    if hit_mask.size != mask_img.size:
+                        raise Exception("{}: hit mask size {} doesn't match mask size {}".format(
+                    name,hit_mask.size,mask_img.size))
+                    for x in range(hit_mask.size[0]):
+                        for y in range(hit_mask.size[1]):
+                            nonblack1 = bool(mask_img.getpixel((x,y)) != (0,0,0))
+                            nonblack2 = bool(hit_mask.getpixel((x,y)) != (0,0,0))
+                            if nonblack1 != nonblack2:
+                                raise Exception("{}: hit maskdoesn't match mask (x={},y={})".format(name,x,y))
+                else:
+                    print("creating monochrome hitmask {}".format(hit_mask_filename))
+                    mask_img.save(hit_mask_filename)
+
+
             frame_list.append([name,width,height,df,dx,dy])
 
         #frame_list[-1][1] = 0       # last frame should not be repeated
@@ -226,6 +271,7 @@ def process_player_tiles():
         rval[d] = shifted_frame_list
     radix = "player"
 
+    # create mask frames in "existing" or reload them / associate them TODO
 
     def create_frame_sequence(suffix,x_sign):
         f.write("{}{}_frames:\n".format(name,suffix))
