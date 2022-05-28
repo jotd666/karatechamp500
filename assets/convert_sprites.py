@@ -15,6 +15,15 @@ dump_fonts = True
 c_gray = (192,192,192)
 b_gray = (0xB0,0xB0,0xB0)
 
+HIT_NONE = 0
+HIT_VALID = 1
+HIT_ATTACK = 2
+HIT_BLOCK = 3
+
+BLACK,WHITE,RED,GREEN,BLUE = (0,0,0),(255,255,255),(255,0,0),(0,255,0),(0,0,255)
+hit_mask_dict = {v:i for i,v in enumerate((BLACK,WHITE,RED,GREEN))}
+hit_mask_dict[BLUE] = HIT_NONE
+
 outdir = "tiles"
 hit_mask_dir = "hit_masks"
 
@@ -131,7 +140,7 @@ def process_player_tiles():
 
     mask_palette = Image.new("RGB",(32,64))
     y = 0
-    for rgb in [(255,255,255),(255,0,0),(0,255,0),(0,0,255)]:
+    for rgb in [WHITE,RED,GREEN,BLUE]:
         for i in range(16):
             for x in range(32):
                 mask_palette.putpixel((x,y),rgb)
@@ -239,12 +248,37 @@ def process_player_tiles():
                     if hit_mask.size != mask_img.size:
                         raise Exception("{}: hit mask size {} doesn't match mask size {}".format(
                     name,hit_mask.size,mask_img.size))
-                    for x in range(hit_mask.size[0]):
+
+                    # create hit matrix from hit mask color codes
+                    hit_matrix = [[HIT_NONE]*hit_mask.size[0] for _ in range(hit_mask.size[1])]
+
+                    for x in range(0,hit_mask.size[0]):
                         for y in range(hit_mask.size[1]):
-                            nonblack1 = bool(mask_img.getpixel((x,y)) != (0,0,0))
-                            nonblack2 = bool(hit_mask.getpixel((x,y)) != (0,0,0))
+                            hmp = hit_mask.getpixel((x,y))
+                            nonblack1 = mask_img.getpixel((x,y)) != BLACK
+                            nonblack2 = hmp != BLACK
+
                             if nonblack1 != nonblack2:
                                 raise Exception("{}: hit maskdoesn't match mask (x={},y={})".format(name,x,y))
+                            if nonblack1:
+                                hit_matrix[y][x] = hit_mask_dict[hmp]
+
+                    # rescale 50% to reduce mask size, hitbox will be accurate enough
+                    # the rescaling has a priority on active hitboxes
+                    hit_matrix_small = [[HIT_NONE]*(hit_mask.size[0]//2) for _ in range(hit_mask.size[1]//2)]
+                    for x in range(0,hit_mask.size[0]):
+                        x2 = x//2
+                        for y in range(hit_mask.size[1]):
+                            y2 = y//2
+                            if hit_matrix_small[y2][x2] != HIT_NONE:
+                                hit_matrix_small[y2][x2] = hit_matrix[y][x]
+
+                    # dump hit matrix in sprites dir
+                    with open(os.path.join(sprites_dir,name+"_mask.bin"),"wb") as f:
+                        for hline in hit_matrix_small:
+                            a = bytearray(hline)
+                            f.write(a)
+
                 else:
                     print("creating monochrome hitmask {}".format(hit_mask_filename))
                     mask_img.save(hit_mask_filename)
