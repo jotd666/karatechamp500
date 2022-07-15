@@ -55,7 +55,6 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	previous_direction   ; previous sprite orientation
 	UWORD	current_frame_countdown
     UWORD   frame
-	UWORD	current_frame_type
     UBYTE   move_controls
 	UBYTE	attack_controls
     UBYTE   is_jumping
@@ -778,7 +777,7 @@ draw_background_pic
 	move.w	d0,loaded_level
 	add.w	d0,d0
 	add.w	d0,d0
-	lea	background_pics(pc),a0
+	lea	background_pics,a0
 	move.l	(a0,d0.w),a0
 	lea	backbuffer,a1
 	bsr	Unpack
@@ -918,7 +917,7 @@ init_players:
 	move.w	#176,ypos(a4)
 	clr.b	turn_back_flag(a4)
 	
-	lea		walk_forward_frames(pc),a0
+	lea		walk_forward_frames,a0
 	move.w 	#RIGHT,direction(a4)
 	bsr		load_walk_frame
 	
@@ -928,7 +927,7 @@ init_players:
  
     move.w  #148,xpos(a4)
 	
-	lea		walk_forward_frames(pc),a0
+	lea		walk_forward_frames,a0
 	move.w 	#LEFT,direction(a4)
 	bsr		load_walk_frame
     
@@ -964,7 +963,6 @@ init_players:
 ; < a4: player structure (updated)
 ; trashes: D0,D1
 load_walk_frame:
-	move.w	#FT_NORMAL,current_frame_type(a4)
     clr.b	is_jumping(a4)  
 	clr.b	rollback_lock(a4)
 	clr.b	sound_playing(a4)
@@ -2405,7 +2403,6 @@ move_player:
 	add.w	#PlayerFrame_SIZEOF,d0		; frame long+2 words of x/y/nbframes
 	; load frame type
 	
-	move.w	(frame_type,a1,d0.w),current_frame_type(a4)
 	tst.l	(bob_data,a1,d0.w)
 	bne.b	.fup
 	tst.b	animation_loops(a4)
@@ -3611,7 +3608,6 @@ player_one_string_clear
 
     even
 
-	include	player_frames.s
 	
     MUL_TABLE   40
     MUL_TABLE   28
@@ -3877,6 +3873,8 @@ floppy_file
 
     even
 
+	include	player_frames.s
+	include	hit_lists.s
 
 
 background_pics:

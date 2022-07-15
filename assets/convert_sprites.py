@@ -15,6 +15,8 @@ dump_fonts = True
 c_gray = (192,192,192)
 b_gray = (0xB0,0xB0,0xB0)
 
+name_dict = {"scores_{}".format(i):"scores_"+n for i,n in enumerate(["100","200","300","400","500","600","800","1000"])}
+
 HIT_NONE = 0
 HIT_VALID = 1
 HIT_ATTACK = 2
@@ -31,17 +33,7 @@ null = -1
 
 # where to insert "FT_HIT" for moves that don't have a stopping point
 # (negative frame counter)
-hit_info = {"backwards":null,
-"forward":null,
-"high_block":null,
-"jumping_back_kick":5,
-"jumping_side_kick":5,
-"low_block":null,
-"medium_block":null,
-"sommersault":null,
-"sommersault_back":null,
-"walk_backwards":null,
-"walk_forward":null}
+
 
 def mirror(img):
     m = img.transpose(Image.FLIP_LEFT_RIGHT)
@@ -160,6 +152,8 @@ def process_player_tiles():
 
     moves_list = walking_anims+sorted(moves_list)
 
+    hit_dict = dict()
+
     walking_anims = set(walking_anims)
 
     for d in moves_list[0:-1]:
@@ -266,19 +260,31 @@ def process_player_tiles():
                     # rescale 50% to reduce mask size, hitbox will be accurate enough
                     # the rescaling has a priority on active hitboxes
                     hit_matrix_small = [[HIT_NONE]*(hit_mask.size[0]//2) for _ in range(hit_mask.size[1]//2)]
+                    hit_list = []
                     for x in range(0,hit_mask.size[0]):
                         x2 = x//2
                         for y in range(hit_mask.size[1]):
                             y2 = y//2
-                            if hit_matrix_small[y2][x2] != HIT_NONE:
-                                hit_matrix_small[y2][x2] = hit_matrix[y][x]
+                            # only HIT_VALID (hit target)
+                            # is considered in matrix mask, disregard all other categories,
+                            hit_type = hit_matrix[y][x]
+                            if hit_type == HIT_VALID:
+                                hit_matrix_small[y2][x2] = HIT_VALID
+                            # if hit attack, store in hit list. The game scans hit list
+                            # first and checks against hit matrix, this is way faster than
+                            # computing matrix to matrix collision at each frame
+                            elif hit_type == HIT_ATTACK:
+                                hit_list.append((x,y))  # store in real coords, this is an offset
+                            # other categories (block) are useless for the game (block = invisible)
+                            # but needed to make sure that the logical mask matches the real graphical data
+                            # when converting assets. Else it would be a nightmare to debug that
 
                     # dump hit matrix in sprites dir
                     with open(os.path.join(sprites_dir,name+"_mask.bin"),"wb") as f:
                         for hline in hit_matrix_small:
                             a = bytearray(hline)
                             f.write(a)
-
+                    hit_dict[name] = hit_list
                 else:
                     print("creating monochrome hitmask {}".format(hit_mask_filename))
                     mask_img.save(hit_mask_filename)
@@ -312,28 +318,21 @@ def process_player_tiles():
 
         prev_dx = 0
         prev_dy = 0
-        hi = hit_info.get(name)
 
-        hit_frame = hi is not None
         for i,(frame,width,height,df,dx,dy) in enumerate(frame_list):
             f.write("\tdc.l\t{}{}\n".format(frame,suffix))
+            f.write("\tdc.l\t{}_mask\n".format(frame))
+            f.write("\tdc.l\t{}_hit_list\n".format(frame))
             # image size info, x/y variations, logical infos (padding ATM)
             row_size = ((width//8)+2)
             plane_size = row_size*height
-            frame_type = "FT_NORMAL"
-            # if permanent frame then it's hitting
-            if df<0 or hi == i:     # either from move data or special case
-                # (2 special cases: jump kicks don't have a permanent/stuck frame)
-                frame_type = "FT_BLOCK" if "block" in name else "FT_HIT"
-
-            if frame_type == "FT_HIT":
-                hit_frame = True        # note that there's a hit frame
             # plane_size is redundant but saves a multiplication by 48 in-game
-            f.write("\tdc.w\t{},{},{},{},{},{},{},0,0\n".format(plane_size,row_size,(dx - prev_dx)*x_sign,dy - prev_dy,df,int(i<3),frame_type))
+            f.write("\tdc.w\t{},{},{},{},{},{}\n".format(plane_size,row_size,(dx - prev_dx)*x_sign,dy - prev_dy,df,int(i<3)))
             prev_dx = dx
             prev_dy = dy
         f.write("\tdc.l\t0,0,0,0\n")
-        return hit_frame
+        return True  # ATM ignore hit found
+
 
     with open("{}/{}_frames.s".format(source_dir,radix),"w") as f:
         f.write("""
@@ -345,15 +344,14 @@ def process_player_tiles():
 
     STRUCTURE   PlayerFrame,0
     APTR    bob_data
+    APTR    target_data
+	APTR	hit_data
     UWORD   bob_plane_size
     UWORD   bob_nb_bytes_per_row
     UWORD   delta_x
     UWORD   delta_y
     UWORD   staying_frames
     UWORD   can_rollback
-    UWORD   frame_type
-    UWORD   hitbox_x
-    UWORD   hitbox_y
     LABEL   PlayerFrame_SIZEOF
 
 FT_NORMAL = 0
@@ -379,7 +377,7 @@ FT_BLOCK = 2
     for name,frame_list in sorted(rval.items()):
         create_mirror_objects = name != "win"
         if create_mirror_objects:
-            for d in ["right","left"]:
+            for d in ["right","left","mask"]:
                 for frame,*_ in frame_list:
                     frames_to_write["{}_{}:\n".format(frame,d)] = "\tincbin\t{}_{}.bin\n".format(frame,d)
         else:
@@ -390,7 +388,14 @@ FT_BLOCK = 2
         for a,b in sorted(frames_to_write.items()):
             f.write(a)
             f.write(b)
+    with open("{}/hit_lists.s".format(source_dir),"w") as f:
+        for name,coords in sorted(hit_dict.items()):
+            f.write("{}_hit_list:\n\tdc.w\t".format(name))
+            for i,(x,y) in enumerate(coords):
+                f.write("{},{}".format(x,y))
+                f.write("," if (i==0 or i%8) else "\n\tdc.w\t")
 
+            f.write("-1,-1\n")  # end
 
 def process_fonts(dump=False):
     json_file = "fonts.json"
