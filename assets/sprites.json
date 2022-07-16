@@ -1,0 +1,36 @@
+{
+"source":"sprites.png",
+"palette":[[0, 0, 0],
+ [240, 240, 240],
+ [240, 192, 192],
+ [176, 176, 176],
+ [0, 0, 240],
+ [0, 192, 0],
+ [64, 192, 240],
+ [128, 0, 192],
+ [128, 240, 0],
+ [240, 0, 0],
+ [192, 128, 0],
+ [192, 160, 48],
+ [192, 192, 0],
+ [240, 192, 0],
+ [240, 240, 0],
+ [240, 240, 192]],
+ "mask_color_index":0,
+ "generate_mask":true,
+ "create_mirror_objects":false,
+"x_offset":0,
+"y_offset":0,
+ "width" : 16,
+ "height" : 16,
+ "horizontal" : true,
+ "objects":[
+ {
+   "name":"score",
+   "start_x":64,
+   "start_y":0,
+   "gap":0,
+   "frames":10
+ }
+ ]
+}

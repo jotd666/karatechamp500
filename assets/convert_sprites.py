@@ -15,7 +15,7 @@ dump_fonts = True
 c_gray = (192,192,192)
 b_gray = (0xB0,0xB0,0xB0)
 
-name_dict = {"scores_{}".format(i):"scores_"+n for i,n in enumerate(["100","200","300","400","500","600","800","1000"])}
+name_dict = {"score_{}".format(i):"score_{}".format((i+1)*100) for i in range(0,10)}
 
 HIT_NONE = 0
 HIT_VALID = 1
@@ -397,6 +397,102 @@ FT_BLOCK = 2
 
             f.write("-1,-1\n")  # end
 
+def process_tiles(json_file,dump=False):
+    with open(json_file) as f:
+        tiles = json.load(f)
+
+    default_width = tiles["width"]
+    default_height = tiles["height"]
+    default_horizontal = tiles["horizontal"]
+
+    game_palette_8 = [tuple(x) for x in tiles["palette"]]
+
+    master_blit_pad = tiles.get("blit_pad",True)
+    master_generate_mask = tiles.get("generate_mask",False)
+
+    x_offset = tiles["x_offset"]
+    y_offset = tiles["y_offset"]
+
+    sprite_page = tiles["source"]
+
+    sprites = Image.open(sprite_page)
+
+
+    for object in tiles["objects"]:
+
+        if object.get("ignore"):
+            continue
+        generate_mask = object.get("generate_mask",master_generate_mask)
+
+        blit_pad = object.get("blit_pad",master_blit_pad)
+        gap = object.get("gap",0)
+        name = object["name"]
+
+        start_x = object["start_x"]+x_offset
+        start_y = object["start_y"]+y_offset
+        horizontal = object.get("horizontal",default_horizontal)
+        width = object.get("width",default_width)
+        height = object.get("height",default_height)
+
+
+        nb_frames = object.get("frames",1)
+        for i in range(nb_frames):
+            if horizontal:
+                x = i*(width+gap)+start_x
+                y = start_y
+            else:
+                x = start_x
+                y = i*(height+gap)+start_y
+
+            area = (x, y, x + width, y + height)
+            cropped_img = sprites.crop(area)
+            if nb_frames == 1:
+                cropped_name = os.path.join(outdir,"{}.png".format(name))
+            else:
+                cropped_name = os.path.join(outdir,"{}_{}.png".format(name,i))
+            print("savin "+cropped_name)
+            cropped_img.save(cropped_name)
+
+            # save
+            x_size = cropped_img.size[0]
+            sprite_number = object.get("sprite_number")
+            sprite_palette = object.get("sprite_palette")
+            if sprite_palette:
+                sprite_palette = [tuple(x) for x in sprite_palette]
+            if sprite_number is not None:
+                if x_size != 16:
+                    raise Exception("{} (frame #{}) width (as sprite) should 16, found {}".format(name,i,x_size))
+                if sprite_palette:
+
+                    bitplanelib.palette_dump(sprite_palette,"../{}/{}.s".format("src",name))
+                else:
+                    sprite_palette_offset = 16+(sprite_number//2)*4
+                    sprite_palette = game_palette[sprite_palette_offset:sprite_palette_offset+4]
+                bin_base = "{}/{}_{}.bin".format(sprites_dir,name,i) if nb_frames != 1 else "{}/{}.bin".format(sprites_dir,name)
+                print("processing sprite {}...".format(name))
+                bitplanelib.palette_image2sprite(cropped_img,bin_base,
+                    sprite_palette,palette_precision_mask=0xF0)
+            else:
+                # blitter object
+##                if x_size % 16:
+##                    raise Exception("{} (frame #{}) with should be a multiple of 16, found {}".format(name,i,x_size))
+
+                p = bitplanelib.palette_extract(cropped_img,palette_precision_mask=0xF0)
+                # add 16 pixelsblit_pad
+                img_x = x_size+16 if blit_pad else x_size
+                img = Image.new("RGB",(img_x,cropped_img.size[1]))
+                img.paste(cropped_img)
+
+                used_palette = sprite_palette or game_palette_8
+
+                namei = "{}_{}".format(name,i) if nb_frames!=1 else name
+
+                print("processing bob {}, mask {}...".format(name,generate_mask))
+                bitplanelib.palette_image2raw(img,"{}/{}.bin".format(sprites_dir,name_dict.get(namei,namei)),used_palette,
+                palette_precision_mask=0xF0,generate_mask=generate_mask)
+
+    return game_palette_8
+
 def process_fonts(dump=False):
     json_file = "fonts.json"
     with open(json_file) as f:
@@ -466,15 +562,20 @@ def process_fonts(dump=False):
 
 # compute palette from background images
 palette = compute_palette()
+
 bitplanelib.palette_dump(palette,os.path.join(source_dir,"palette.s"),as_copperlist=False)
 
+#bitplanelib.palette_to_image(palette,"palette.png")
+
 # status panel
-bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
-        palette,palette_precision_mask=0xF0,blit_pad=True)
+#bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
+#        palette,palette_precision_mask=0xF0,blit_pad=True)
 
 #process_backgrounds(palette)
 
-process_player_tiles()
+process_tiles("sprites.json")
+
+#process_player_tiles()
 
 #process_fonts(dump_fonts)
 
