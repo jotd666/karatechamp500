@@ -64,7 +64,7 @@ INTERRUPTS_ON_MASK = $E038
 	UBYTE	sound_playing
 	UBYTE	turn_back_flag
 	UBYTE	skip_frame_reset
-	UBYTE	pad
+	UBYTE	is_cpu			; 1: controlled by A.I.
     LABEL   Player_SIZEOF
     
     
@@ -85,11 +85,12 @@ Execbase  = 4
 ; if set skips intro, game starts immediately
 DIRECT_GAME_START
 
+; do NOT change those enums without changing the update/draw function tables
 GM_NORMAL = 0
-GM_PRACTICE = 1
-GM_BULL = 2
-GM_BREAK = 3
-GM_EVADE = 3
+GM_PRACTICE = 1<<2
+GM_BULL = 2<<2
+GM_BREAK = 3<<2
+GM_EVADE = 3<<2
 
 ; test bonus screen 
 ;BONUS_SCREEN_TEST
@@ -134,6 +135,8 @@ START_LEVEL = 1
 	ENDC
 	
 NULL = 0
+
+PRACTICE_SKIP_MESSAGE_LEN = 210
 
 NB_RECORDED_MOVES = 100
 
@@ -895,6 +898,19 @@ draw_panel
 	bsr		blit_4_planes_cookie_cut	
 .no_practice
 
+	; draw "HISCORE"
+	move.w	#136,d0
+	move.w	#8,d1
+    move.w  #$0fff,d2
+    lea hiscore_string(pc),a0
+    bsr write_color_string
+	rts
+	; draw trailing "0"
+	move.w	#136+56,d0
+	move.w	#16,d1
+    move.w  #$0fff,d2
+    lea zero_string(pc),a0
+    bsr write_color_string
 	rts
 		
 ; draw score with titles and extra 0
@@ -915,7 +931,7 @@ draw_score:
 	
 .more
 	
-	;bsr		draw_high_score
+	bsr		draw_high_score
 
 	rts
 .zero
@@ -1000,12 +1016,14 @@ init_players:
 	bsr		init_player_common
     
 	clr.b	turn_back_flag(a4)
+	clr.b	is_cpu(a4)
 	
 	lea		walk_forward_frames,a0
 	bsr		load_walk_frame
 	
     lea player_2(pc),a4
 	move.b	#1,character_id(a4)
+	st.b	is_cpu(a4)			; ATM 1 player mode
 	bsr		init_player_common
  
     move.w  #148,xpos(a4)
@@ -1220,16 +1238,11 @@ PLAYER_ONE_Y = 102-14
 .playing
 	bsr	draw_score
 
-	lea	player_1(pc),a4
-	bsr	erase_player
-	;lea	player_2(pc),a4
-	;bsr	erase_player
-
-	lea	player_1(pc),a4
-    bsr draw_player
-	;lea	player_2(pc),a4
-    ;bsr draw_player
-   
+	move.w	level_type(pc),d0
+	lea		draw_level_type_table(pc),a0
+	move.l	(a0,d0.w),a0
+	jsr		(a0)
+	   
     
 .after_draw
         
@@ -1263,12 +1276,73 @@ stop_sounds
     clr.b   music_playing
     bra _mt_end
 
+draw_level_type_table
+	dc.l	draw_normal
+	dc.l	draw_practice
+	dc.l	draw_bull
+	dc.l	draw_break
+	dc.l	draw_evade
 
+draw_practice:
+	; draw normal if message has been read
+	move.l	state_timer(pc),d0
+	cmp.l	#PRACTICE_SKIP_MESSAGE_LEN,d0
+	beq.b	.erase_message
+	bcc.b	draw_normal
+	; draw message. This is suboptimal but works
+	lea		message_list(pc),a1
+.loop
+	move.w	(a1)+,d0
+	bmi.b	.out_msg
+	move.w	(a1)+,d1
+	move.l	(a1)+,a0
+	move.w	#$ffc,d2
+	move.w	d0,d3
+	bsr		write_blanked_color_string
+	move.w	d3,d0
+	move.l	(a1)+,a0
+	; remove characters
+	moveq	#$0,d2
+	bsr		write_color_string
+	; add characters
+	move.w	d3,d0
+	move.w	#$F00,d2
+	bsr		write_color_string
+	bra.b	.loop
+.out_msg
+	rts
+	
+.erase_message
+	move.w	#32,D0
+	move.w	#112,d1
+	move.w	#19*8,d2
+	move.w	#40,d3
+	bsr		restore_background
 
+	rts
+	
+draw_evade
+draw_break
+draw_bull
+	rts
+	
+draw_normal:
+	lea	player_1(pc),a4
+	bsr	erase_player
+	lea	player_2(pc),a4
+	bsr	erase_player
+
+	lea	player_1(pc),a4
+    bsr draw_player
+	lea	player_2(pc),a4
+    bsr draw_player
+	rts
+	
 ; < D2: highscore
 draw_high_score
     move.w  #136,d0
     move.w  #16,d1
+	move.l	hiscore_table(pc),d2
     move.w  #6,d3
     move.w  #$FFF,d4    
     bra write_color_decimal_number
@@ -1325,7 +1399,18 @@ draw_start_screen
     dc.b    "1 PLAYER ONLY",0
     even
     
-    
+message_list
+	dc.w	56,112
+	dc.l	blank_13_message
+	dc.l	if_you_do_not_message 
+	dc.w	32,112+16
+	dc.l	blank_19_message
+	dc.l	want_practice_press_message 
+	dc.w	32,112+32
+	dc.l	blank_19_message
+	dc.l	player_start_button_message 
+	dc.w	-1
+	
 INTRO_Y_SHIFT=68
 ENEMY_Y_SPACING = 24
 
@@ -2094,11 +2179,18 @@ update_all
     rts
     ; update
 .playing
-
+	addq.l	#1,state_timer
 .no_first_tick
     ; for demo mode
     addq.w  #1,record_input_clock
 
+	move.w	level_type(pc),d0
+	lea		update_level_type_table(pc),a0
+	move.l	(a0,d0.w),a0
+	jmp		(a0)
+	
+update_normal:
+	; time
 	subq.w	#1,time_ticks
 	bne.b	.no_sec
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
@@ -2107,24 +2199,57 @@ update_all
 	; out of time
 	;;blitz
 .no_sec
-
     lea     player_1(pc),a4
-
     bsr update_player
-    
-
-    
+    lea     player_2(pc),a4
+    bsr update_player
 
     rts
-
+	
+update_bull
+	bsr		update_active_player
+	rts
+update_evade
+	bsr		update_active_player
+	rts
+update_break
+	rts
+	
+update_practice
+	move.l	state_timer(pc),d0
+	cmp.l	#PRACTICE_SKIP_MESSAGE_LEN,d0
+	bcs.b	.nothing
+    lea     player_1(pc),a4
+    bsr update_player
+    lea     player_2(pc),a4
+    bsr update_player
+	
+.nothing
+	rts
+	
 .intro_music_played
     dc.b    0
     even
 start_music_countdown
     dc.w    0
 
+; know which player is still alive after a fight phase
+; at this point only one player is still playing
 
+update_active_player
+	lea	player_1(pc),a4
+	tst.b	is_cpu(a4)
+	beq.b	.upd
+	lea	player_2(pc),a4
+.upd
+	bra	update_player
 	
+update_level_type_table
+	dc.l	update_normal
+	dc.l	update_practice
+	dc.l	update_bull
+	dc.l	update_break
+	dc.l	update_evade
 
 
     
@@ -2157,7 +2282,8 @@ play_loop_fx
 .nosfx
     rts
  
-    
+; < A4 player structure
+   
 update_player
 
     move.w  player_killed_timer(pc),d6
@@ -2178,10 +2304,13 @@ update_player
     rts
 .alive
 
-    
-.okmove
-
-    move.l  joystick_state(pc),d0
+    tst.b	is_cpu(a4)
+	beq.b	.human_player
+	bsr		handle_ai
+	bra.b	.no_demo
+	
+.human_player	
+    move.l  joystick_state(pc),d0		; ATM 1 player only
     IFD    RECORD_INPUT_TABLE_SIZE
     bsr     record_input
     ENDC
@@ -2580,18 +2709,30 @@ erase_player:
 	beq.b	.out		; 0: not possible: first draw
 	move.w	previous_xpos(a4),d2
 	
-	and.w	#$F0,d2		; round & multiple of 16
 	move.l	d2,d0
 	move.l	d3,d1
+	move.w	#80,d2	; width (no shifting)
+	move.w	#48,d3	; height
+	bra.b		restore_background
+.out
+	rts
+	
+; < D0: X (rounded to be a multiple of 16)
+; < D1: Y
+; < D2: width
+; < D3: height
+restore_background:
 	lea		screen_data,a1
+	and.w	#$F0,d0		; round & multiple of 16
+	lsr.w	#3,d2	; pixels => bytes
+	move.l	d1,-(a7)
+	move.l	d0,-(a7)
 	ADD_XY_TO_A1_40		a0
-	
-
 	; compute source address
+	move.l	(a7)+,d0
+	move.l	(a7)+,d1
 	move.l	a1,-(a7)
-	move.l	d2,d0
 	
-	move.l	d3,d1
 	lea		backbuffer,a1
 	ADD_XY_TO_A1_28		a0
 	move.l	a1,a0
@@ -2600,10 +2741,7 @@ erase_player:
     lea _custom,A5
 	
 	; restore background
-	move.w	#10,d2	; width (no shifting)
-	move.w	#48,d4	; height
 	
-
 	REPT	3
     movem.l d2-d6,-(a7)
     bsr blit_back_plane
@@ -2625,7 +2763,7 @@ erase_player:
 ; < A0: source
 ; < A1: plane pointer
 ; < D2: width in bytes
-; < D4: blit height
+; < D3: blit height
 ; trashes D0-D6
 
 blit_back_plane:
@@ -2638,24 +2776,24 @@ blit_back_plane:
 	move.w #NB_BYTES_PER_BACKBUFFER_LINE,d1
     sub.w   d2,d1       ; blit width
 
-    lsl.w   #6,d4
+    lsl.w   #6,d3
     lsr.w   #1,d2
-    add.w   d2,d4       ; blit height
+    add.w   d2,d3       ; blit height
 
-	moveq.l	#-1,d3
+	moveq.l	#-1,d4
 	
 	
     ; now just wait for blitter ready to write all registers
 	bsr	wait_blit
     
     ; blitter registers set
-    move.l  d3,bltafwm(a5)
+    move.l  d4,bltafwm(a5)
 	move.l d5,bltcon0(a5)	
 	move.w  d1,bltamod(a5)		;A modulo=bytes to skip between lines
     move.w  d0,bltdmod(a5)	;D modulo
 	move.l a0,bltapt(a5)	;source graphic top left corner
 	move.l a1,bltdpt(a5)	;destination top left corner
-	move.w  d4,bltsize(a5)	;rectangle size, starts blit
+	move.w  d3,bltsize(a5)	;rectangle size, starts blit
     rts
 
 ; < A4: player structure
@@ -2720,7 +2858,15 @@ draw_player:
     bsr blit_plane_any_internal_cookie_cut
 	rts
 
-    
+handle_ai
+	moveq.l	#0,d0
+	cmp.w	#GM_PRACTICE,level_type
+	bne.b	.normal
+	bset	#JPB_BTN_RIGHT,d0
+	
+.normal
+	rts
+	
 ; < d0.w: x
 ; < d1.w: y
 ; > d0.L: control word
@@ -3313,6 +3459,8 @@ write_color_string:
     lea screen_data,a1
     moveq   #3,d3
     move.w  d0,d4
+	tst.w	d5
+	beq.b	.erase_loop
 .plane_loop
 ; < A0: c string
 ; < A1: plane
@@ -3330,7 +3478,20 @@ write_color_string:
 .out
     movem.l (a7)+,D1-D5/A1
     rts
-    
+	
+.erase_loop
+; < A0: c string
+; < A1: plane
+; < D0: X (multiple of 8)
+; < D1: Y
+; > D0: number of characters written
+    move.w  d4,d0
+    bsr carve_string
+
+    lsr.w   #1,d5
+    add.w   #SCREEN_PLANE_SIZE,a1
+    dbf d3,.erase_loop
+    bra.b	.out
 ; what: writes a text in a single plane
 ; args:
 ; < A0: c string
@@ -3340,8 +3501,21 @@ write_color_string:
 ; > D0: number of characters written
 ; trashes: none
 
-write_string:
-    movem.l A0-A2/d1-D2,-(a7)
+write_string
+	move.l	d3,-(a7)
+	moveq.l	#1,d3
+	bsr		write_string_internal
+	move.l	(a7)+,d3
+	rts
+carve_string
+	move.l	d3,-(a7)
+	moveq.l	#0,d3
+	bsr		write_string_internal
+	move.l	(a7)+,d3
+	rts
+	
+write_string_internal:
+    movem.l A0-A2/d1-D2/d4,-(a7)
     clr.w   d2
     ADD_XY_TO_A1_40    a2
     moveq.l #0,d0
@@ -3369,15 +3543,20 @@ write_string:
 .wl
     lsl.w   #3,d2   ; *8
     add.w   d2,a2
-    move.b  (a2)+,(a1)
-    move.b  (a2)+,(NB_BYTES_PER_LINE,a1)
-    move.b  (a2)+,(NB_BYTES_PER_LINE*2,a1)
-    move.b  (a2)+,(NB_BYTES_PER_LINE*3,a1)
-    move.b  (a2)+,(NB_BYTES_PER_LINE*4,a1)
-    move.b  (a2)+,(NB_BYTES_PER_LINE*5,a1)
-    move.b  (a2)+,(NB_BYTES_PER_LINE*6,a1)
-    move.b  (a2)+,(NB_BYTES_PER_LINE*7,a1)
+	tst.w	d3
+	beq.b	.carve
+	REPT	8
+	move.b	(a2)+,d4
+    or.b  d4,(NB_BYTES_PER_LINE*REPTN,a1)
+	ENDR
     bra.b   .next
+.carve
+	REPT	8
+	move.b	(a2)+,d4
+    eor.b  d4,(NB_BYTES_PER_LINE*REPTN,a1)
+	ENDR
+    bra.b   .next
+
 .special
     cmp.b   #' ',d2
     bne.b   .nospace
@@ -3397,6 +3576,12 @@ write_string:
     moveq.l #0,d2
     bra.b   .wl
 .nodot
+    cmp.b   #'/',d2
+    bne.b   .nosq
+    lea square(pc),a2
+    moveq.l #0,d2
+    bra.b   .wl
+.nosq
     cmp.b   #'h',d2
     bne.b   .noheart
     lea heart(pc),a2
@@ -3416,7 +3601,7 @@ write_string:
     addq.l  #1,a1
     bra.b   .loop
 .end
-    movem.l (a7)+,A0-A2/d1-D2
+    movem.l (a7)+,A0-A2/d1-D2/d4
     rts
 
 	IFD		HIGHSCORES_TEST
@@ -3577,12 +3762,11 @@ io_request:
 _keyexit
     dc.b    $59
 scores_name
-    dc.b    "amidar.high",0
+    dc.b    "kchampvs.high",0
 highscore_needs_saving
     dc.b    0
 cdtvname:
 	dc.b	"cdtv.device",0
-
 graphicsname:   dc.b "graphics.library",0
 dosname
         dc.b    "dos.library",0
@@ -3731,6 +3915,11 @@ dash
 dot
     incbin  "dot.bin"
 
+square
+    REPT	8
+	dc.b	$FF
+	ENDR
+
 heart
     incbin  "heart.bin"
 copyright
@@ -3738,8 +3927,10 @@ copyright
 space
     ds.b    8,0
     
-high_score_string
-    dc.b    " HIGH SCORE",0
+hiscore_string
+	dc.b	"HISCORE",0
+zero_string
+	dc.b	"0",0
 p1_string
     dc.b    "     1UP",0
 level_string
@@ -3805,6 +3996,11 @@ play_fx
 
 
 get_player_distance
+	cmp.w	#GM_NORMAL,level_type
+	beq.b	.compute
+	move.w	#-1,d0	; huge distance
+	rts
+.compute
 	move.w	player+xpos(pc),d0
 	sub.w	player+Player_SIZEOF+xpos(pc),d0
 	bpl.b	.pos
@@ -4037,6 +4233,24 @@ keyboard_table:
 floppy_file
     dc.b    "floppy",0
 
+
+if_you_do_not_message
+	dc.b	"IF YOU DO NOT",0
+want_practice_press_message 
+	dc.b	"WANT PRACTICE PRESS",0
+player_start_button_message 
+	dc.b	"PLAYER START BUTTON",0
+blank_13_message
+	REPT	13
+	dc.b	"/"
+	ENDR
+	dc.b	0
+blank_19_message
+	REPT	19
+	dc.b	"/"
+	ENDR
+	dc.b	0
+	
     even
 
 	include	player_frames.s
@@ -4163,7 +4377,7 @@ kiai_2_raw_end
 
 
 	include	"player_bobs.s"
-	include	"sprites.s"
+	include	"other_bobs.s"
 music:
     ;incbin  "amidar_music_conv.mod"
     

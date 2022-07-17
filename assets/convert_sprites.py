@@ -586,9 +586,9 @@ bitplanelib.palette_dump(palette,os.path.join(source_dir,"palette.s"),as_copperl
 
 #process_backgrounds(palette)
 
-process_tiles("sprites.json",os.path.join(source_dir,"sprites.s"))
+process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
 
 #process_player_tiles()
 
-#process_fonts(dump_fonts)
+process_fonts(dump_fonts)
 

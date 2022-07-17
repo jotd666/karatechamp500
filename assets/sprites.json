@@ -54,38 +54,30 @@
  },
  {
    "name":"right_arrow",
-   "sprite_palette":[[0,0,0],[176,176,176],[32,32,32],[32,32,32]],
    "start_x":64,
    "start_y":16,
-   "sprite_number":0,
-   "width":8,
+   "width":16,
    "height":8
  },
  {
    "name":"left_arrow",
-   "sprite_palette":[[0,0,0],[176,176,176],[32,32,32],[32,32,32]],
    "start_x":80,
    "start_y":16,
-   "sprite_number":1,
-   "width":8,
+   "width":16,
    "height":8
  },
 {
    "name":"up_arrow",
-   "sprite_palette":[[0,0,0],[176,176,176],[32,32,32],[32,32,32]],
    "start_x":80,
    "start_y":24,
-   "sprite_number":1,
-   "width":8,
+   "width":16,
    "height":8
  },
 {
    "name":"down_arrow",
-   "sprite_palette":[[0,0,0],[176,176,176],[32,32,32],[32,32,32]],
    "start_x":64,
    "start_y":24,
-   "sprite_number":1,
-   "width":8,
+   "width":16,
    "height":8
  },
   {"ignore":true}

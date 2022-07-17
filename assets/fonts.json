@@ -30,6 +30,7 @@
    "start_x":40,
    "start_y":8
  },
+
  {
    "name":"dash",
    "frames":1,
