@@ -29,8 +29,65 @@
    "name":"score",
    "start_x":64,
    "start_y":0,
-   "gap":0,
    "frames":10
- }
+ },
+ {
+   "name":"controls",
+   "start_x":224,
+   "start_y":0,
+   "width":32,
+   "height":32
+ },
+ {
+   "name":"practice",
+   "start_x":0,
+   "start_y":16,
+   "width":64,
+   "height":16
+ },
+ {
+   "name":"techniques",
+   "start_x":0,
+   "start_y":32,
+   "width":64,
+   "height":32
+ },
+ {
+   "name":"right_arrow",
+   "sprite_palette":[[0,0,0],[176,176,176],[32,32,32],[32,32,32]],
+   "start_x":64,
+   "start_y":16,
+   "sprite_number":0,
+   "width":8,
+   "height":8
+ },
+ {
+   "name":"left_arrow",
+   "sprite_palette":[[0,0,0],[176,176,176],[32,32,32],[32,32,32]],
+   "start_x":80,
+   "start_y":16,
+   "sprite_number":1,
+   "width":8,
+   "height":8
+ },
+{
+   "name":"up_arrow",
+   "sprite_palette":[[0,0,0],[176,176,176],[32,32,32],[32,32,32]],
+   "start_x":80,
+   "start_y":24,
+   "sprite_number":1,
+   "width":8,
+   "height":8
+ },
+{
+   "name":"down_arrow",
+   "sprite_palette":[[0,0,0],[176,176,176],[32,32,32],[32,32,32]],
+   "start_x":64,
+   "start_y":24,
+   "sprite_number":1,
+   "width":8,
+   "height":8
+ },
+  {"ignore":true}
  ]
 }

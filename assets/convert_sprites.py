@@ -397,7 +397,7 @@ FT_BLOCK = 2
 
             f.write("-1,-1\n")  # end
 
-def process_tiles(json_file,dump=False):
+def process_tiles(json_file,out_asm_file=None,dump=False):
     with open(json_file) as f:
         tiles = json.load(f)
 
@@ -417,7 +417,7 @@ def process_tiles(json_file,dump=False):
 
     sprites = Image.open(sprite_page)
 
-
+    binlist = []
     for object in tiles["objects"]:
 
         if object.get("ignore"):
@@ -450,7 +450,7 @@ def process_tiles(json_file,dump=False):
                 cropped_name = os.path.join(outdir,"{}.png".format(name))
             else:
                 cropped_name = os.path.join(outdir,"{}_{}.png".format(name,i))
-            print("savin "+cropped_name)
+
             cropped_img.save(cropped_name)
 
             # save
@@ -460,16 +460,23 @@ def process_tiles(json_file,dump=False):
             if sprite_palette:
                 sprite_palette = [tuple(x) for x in sprite_palette]
             if sprite_number is not None:
-                if x_size != 16:
-                    raise Exception("{} (frame #{}) width (as sprite) should 16, found {}".format(name,i,x_size))
+                if x_size > 16:
+                    raise Exception("{} (frame #{}) width (as sprite) should be <= 16, found {}".format(name,i,x_size))
                 if sprite_palette:
-
-                    bitplanelib.palette_dump(sprite_palette,"../{}/{}.s".format("src",name))
+                    pass
+                    #bitplanelib.palette_dump(sprite_palette,"../{}/{}.s".format("src",name))
                 else:
                     sprite_palette_offset = 16+(sprite_number//2)*4
                     sprite_palette = game_palette[sprite_palette_offset:sprite_palette_offset+4]
                 bin_base = "{}/{}_{}.bin".format(sprites_dir,name,i) if nb_frames != 1 else "{}/{}.bin".format(sprites_dir,name)
                 print("processing sprite {}...".format(name))
+
+                if x_size < 16:
+                    # make it at least 16
+                    img = Image.new("RGB",(16,cropped_img.size[1]))
+                    img.paste(cropped_img)
+                    cropped_img = img
+
                 bitplanelib.palette_image2sprite(cropped_img,bin_base,
                     sprite_palette,palette_precision_mask=0xF0)
             else:
@@ -488,9 +495,15 @@ def process_tiles(json_file,dump=False):
                 namei = "{}_{}".format(name,i) if nb_frames!=1 else name
 
                 print("processing bob {}, mask {}...".format(name,generate_mask))
-                bitplanelib.palette_image2raw(img,"{}/{}.bin".format(sprites_dir,name_dict.get(namei,namei)),used_palette,
+                binname = "{}/{}".format(sprites_dir,name_dict.get(namei,namei))
+                binlist.append(binname)
+                bitplanelib.palette_image2raw(img,binname+".bin",used_palette,
                 palette_precision_mask=0xF0,generate_mask=generate_mask)
 
+        if out_asm_file:
+            with open(out_asm_file,"w") as f:
+                for n in binlist:
+                    f.write("{0}:\n\tincbin\t{0}.bin\n".format(os.path.basename(n)))
     return game_palette_8
 
 def process_fonts(dump=False):
@@ -573,7 +586,7 @@ bitplanelib.palette_dump(palette,os.path.join(source_dir,"palette.s"),as_copperl
 
 #process_backgrounds(palette)
 
-process_tiles("sprites.json")
+process_tiles("sprites.json",os.path.join(source_dir,"sprites.s"))
 
 #process_player_tiles()
 

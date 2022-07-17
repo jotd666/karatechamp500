@@ -11,8 +11,10 @@ jump special case just for jumping side kick (connect from jump)
 jumping side kick y looks wrong: re-capture
 jump not correct: re-capture
 
-generate frame: compute min/max y
-                if FT_HIT, compute hitbox automatically: max x: which y
+generate frame: compute min/max y                
 				
 debug mode: show hitboxes
 block moves on xmin/xmax
+
+yellow arrow sprites
+practice mode with move names

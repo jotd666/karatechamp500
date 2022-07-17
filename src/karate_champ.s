@@ -85,6 +85,11 @@ Execbase  = 4
 ; if set skips intro, game starts immediately
 DIRECT_GAME_START
 
+GM_NORMAL = 0
+GM_PRACTICE = 1
+GM_BULL = 2
+GM_BREAK = 3
+GM_EVADE = 3
 
 ; test bonus screen 
 ;BONUS_SCREEN_TEST
@@ -402,7 +407,7 @@ Start:
 ;playfield init
 	
 	; one of ross' magic value so the screen is centered
-    move.w #$30b1,diwstrt(a5)
+    move.w #$30a1,diwstrt(a5)
     move.w #$3081,diwstop(a5)	; was 3091 for scramble here it's narrower
     move.w #$0048,ddfstrt(a5)
     move.w #$00B8,ddfstop(a5)
@@ -502,11 +507,10 @@ intro:
 	bsr	draw_background_pic
 	bsr	draw_panel
 	
-    ;;tst.b   next_level_is_bonus_level
 
     bra.b   .normal_level
 	
-    bsr init_players     ; at least reset 3 stars
+    bsr init_players
 
     bsr wait_bof
 
@@ -733,7 +737,8 @@ init_new_play:
 	clr.b	previous_move
     clr.l   state_timer
  
-
+	move.w	#GM_PRACTICE,level_type
+	
     clr.b    music_played
     move.w  #START_LEVEL-1,level_number
  
@@ -769,9 +774,17 @@ init_level:
     
     rts
 
+get_background_picture_index
+	move.w	level_number(pc),d0
+	cmp.w	#GM_PRACTICE,level_type
+	bne.b	.no_practice
+	move.w	#2,d0		; practice uses third level background
+.no_practice
+	rts
+	
 
 draw_background_pic
-	move.w	level_number(pc),d0
+	bsr	get_background_picture_index
 	cmp.w	loaded_level(pc),d0
 	beq.b	.unpacked
 	move.w	d0,loaded_level
@@ -798,6 +811,42 @@ draw_background_pic
 	add.w	#SCREEN_PLANE_SIZE,a2
 	add.w	#BACKBUFFER_PLANE_SIZE,a0
 	dbf		d7,.loop
+	
+	
+	cmp.w	#GM_PRACTICE,level_type	
+	bne.b	.no_practice
+	; trash the bottom of the level
+	lea	_custom,a5
+	moveq.w	#NB_PLANES-1,d7
+	lea		screen_data,a2
+.clrloop
+	moveq	#0,d0
+	move.w	#256-32,d1
+	move.w	#224/8,d2
+	move.w	#-1,d3
+	move.w	#32,d4
+	move.l	a2,a1
+	move.l	a2,a3
+	bsr		clear_plane_any_blitter_internal	
+	lea		(SCREEN_PLANE_SIZE,a3),a2
+	dbf		d7,.clrloop
+	; blit control sprite
+	lea		controls,a0
+	move.w	#6,d2
+	move.w	#32,d3
+	move.w	#72,d0
+	move.w	#224,d1
+	bsr		blit_4_planes
+	move.w	#120,d0
+	move.w	#224,d1
+	bsr		blit_4_planes
+	lea		techniques,a0
+	move.w	#64/8+2,d2
+	move.w	#32,d3
+	move.w	#160,d0
+	move.w	#224,d1
+	bsr		blit_4_planes
+.no_practice
 	rts
     
 PANEL_PLANE_SIZE = (176/8+2)*64
@@ -836,6 +885,16 @@ draw_panel
 	move.w	#$F00,d2
 	bsr		write_color_string
 	
+	cmp.w	#GM_PRACTICE,level_type
+	bne.b	.no_practice
+	lea		practice,a0
+	move.w	#64/8+2,d2
+	move.w	#16,d3
+	move.w	#32,d0
+	move.w	#40,d1
+	bsr		blit_4_planes_cookie_cut	
+.no_practice
+
 	rts
 		
 ; draw score with titles and extra 0
@@ -895,7 +954,34 @@ hide_sprites:
 
 init_player_common
 	clr.b	turn_back_flag(a4)
-    move.w	#176,ypos(a4)
+	bsr		get_background_picture_index
+	add.w	d0,d0
+	lea		player_start_y_table(pc),a0
+    move.w	(a0,d0.w),ypos(a4)
+	
+	move.w 	#RIGHT,direction(a4)
+	tst		character_id(a4)
+	beq.b	.p1
+	; player 2/cpu
+	cmp.w	#GM_PRACTICE,level_type
+	bne.b	.no_practice
+	; practice: player 2 is higher
+	move.w	#96,ypos(a4)
+	move.w  #120,xpos(a4)	; not proper value
+	bra.b	.cont	
+.no_practice
+	move.w 	#LEFT,direction(a4)
+	move.w  #148,xpos(a4)
+	bra.b	.cont
+.p1
+	move.w  #22,xpos(a4)
+	cmp.w	#GM_PRACTICE,level_type
+	bne.b	.no_practice2
+	move.w  #40,xpos(a4)
+	move.w  #152,ypos(a4)
+	
+.no_practice2
+.cont
 	clr.l	previous_xpos(a4)	; x and y
 	clr.l	animation_struct(a4)
 	clr.b	skip_frame_reset(a4)
@@ -910,25 +996,21 @@ init_players:
 	
 
     lea player_1(pc),a4
-	bsr		init_player_common
 	move.b	#0,character_id(a4)
+	bsr		init_player_common
     
-    move.w  #22,xpos(a4)
-	move.w	#176,ypos(a4)
 	clr.b	turn_back_flag(a4)
 	
 	lea		walk_forward_frames,a0
-	move.w 	#RIGHT,direction(a4)
 	bsr		load_walk_frame
 	
     lea player_2(pc),a4
-	bsr		init_player_common
 	move.b	#1,character_id(a4)
+	bsr		init_player_common
  
     move.w  #148,xpos(a4)
 	
 	lea		walk_forward_frames,a0
-	move.w 	#LEFT,direction(a4)
 	bsr		load_walk_frame
     
     move.w  #ORIGINAL_TICKS_PER_SEC,D0   
@@ -1511,7 +1593,7 @@ clear_plane_any_blitter:
 ; < D2: width in bytes (inc. 2 extra for shifting)
 ; < D3: blit mask
 ; < D4: blit height
-; trashes D0-D6
+; trashes D0-D6 and A2
 ; > A1: even address where blit was done
 clear_plane_any_blitter_internal:
     ; pre-compute the maximum of shit here
@@ -2390,7 +2472,7 @@ move_player:
 	bra.b	.no_change
 .change
 	; countdown at zero
-	; advance frame / move
+	; advance/next frame / move
 	move.w	frame(a4),d0
 	tst.b	rollback(a4)
 	beq.b	.forward
@@ -2412,18 +2494,23 @@ move_player:
 	move.w	d0,frame(a4)
 	; a1 holds frame structure. we only need delta x/y
 
+	add.w	d0,a1
 	tst.b	rollback(a4)
 	bne.b	.revert_deltas
 
-	move.w	(delta_x,a1,d0.w),d2	
+	
+	move.w	(delta_x,a1),d2	
 	beq.b	.nox
 	add.w	d2,xpos(a4)
 .nox
-	move.w	(delta_y,a1,d0.w),d2
+	move.w	(delta_y,a1),d2
 	beq.b	.noy
 	add.w	d2,ypos(a4)
 .noy
-	add.w	d0,a1
+	move.l	(hit_data,a1),a0		; hit list
+	; check if there are some hit points
+	bsr		check_hit
+	
 	; convert "can_rollback" to lock
 	tst.w	(can_rollback,a1)
 	seq		rollback_lock(a4)
@@ -2438,11 +2525,11 @@ move_player:
 	rts
 
 .revert_deltas
-	move.w	(delta_x,a1,d0.w),d2	
+	move.w	(delta_x,a1),d2	
 	beq.b	.nox2
 	add.w	d2,xpos(a4)
 .nox2
-	move.w	(delta_y,a1,d0.w),d2
+	move.w	(delta_y,a1),d2
 	beq.b	.noy
 	sub.w	d2,ypos(a4)
 	bra.b	.noy
@@ -2461,6 +2548,28 @@ move_player:
 	lea		walk_forward_frames(pc),a0
 	bra		load_walk_frame
 
+
+; < A0: X,Y hit list
+; < A4: player struct   
+check_hit
+	tst.w	(a0)
+	bmi.b	.out1	; optim if no hit points
+	movem.l	d2-d3,-(a7)
+	move.w	xpos(a4),d2
+	move.w	ypos(a4),d3	
+.loop
+	move.w	(a0)+,d0	; delta x
+	bmi.b	.out
+	move.w	(a0)+,d1	; delta y
+	; TODO adjust according to facing direction
+	; if left, we have to perform a symmetry in x
+	add.w	d2,d0
+	add.w	d3,d1
+	; TEMP draw something there!!
+.out
+	movem.l	(a7)+,d2-d3
+.out1
+	rts
 	
 ; < A4: player struct   
 erase_player:
@@ -2859,11 +2968,14 @@ blit_plane_any_internal_cookie_cut:
     rts
 
 
-; what: blits 16(32)x16 data on 4 planes (for bonuses), full mask
+; what: blits data on 4 planes (no cookie cut)
+; shifted, full mask, W/H generic
 ; args:
 ; < A0: data (16x16)
 ; < D0: X
 ; < D1: Y
+; < D2: width in bytes (pls include 2 bytes for shifting)
+; < D3: height
 ; trashes: D0-D1
 
 blit_4_planes
@@ -2871,19 +2983,54 @@ blit_4_planes
     lea $DFF000,A5
     lea     screen_data,a1
     moveq.l #3,d7
-.loop
-    movem.l d0-d1/a1,-(a7)
-    move.w  #4,d2       ; 16 pixels + 2 shift bytes
+    move.w	d3,d4      ; height
     moveq.l #-1,d3  ; mask
-    move.w  #16,d4      ; height
+	move.w	d4,d5
+	mulu.w	d2,d5	; plane size
+.loop
+    movem.l d0-d5/a1,-(a7)
     bsr blit_plane_any_internal
-    movem.l (a7)+,d0-d1/a1
+    movem.l (a7)+,d0-d5/a1
     add.w   #SCREEN_PLANE_SIZE,a1
-    add.l   #64,a0      ; 32 but shifting!
+    add.w   D5,a0
     dbf d7,.loop
     movem.l (a7)+,d2-d6/a0-a1/a5
     rts
-    
+; what: blits data on 4 planes (cookie cut)
+; shifted, full mask, W/H generic
+; args:
+; < A0: data (16x16)
+; < D0: X
+; < D1: Y
+; < D2: width in bytes (pls include 2 bytes for shifting)
+; < D3: height
+; trashes: D0-D1
+
+blit_4_planes_cookie_cut
+    movem.l d2-d6/a0-a3/a5,-(a7)
+    lea $DFF000,A5
+    lea     screen_data,a1
+    moveq.l #3,d7
+    move.w	d3,d4      ; height
+    moveq.l #-1,d3  ; mask
+	move.w	d4,d5
+	mulu.w	d2,d5	; plane size
+	move.l	a0,a3
+	add.w	d5,a3
+	add.w	d5,a3
+	add.w	d5,a3
+	add.w	d5,a3
+.loop
+    movem.l d0-d5/a1,-(a7)
+	move.l	a1,a2
+    bsr blit_plane_any_internal_cookie_cut
+    movem.l (a7)+,d0-d5/a1
+    add.w   #SCREEN_PLANE_SIZE,a1
+    add.w   D5,a0
+    dbf d7,.loop
+    movem.l (a7)+,d2-d6/a0-a3/a5
+    rts
+
 wait_blit
 	TST.B	$BFE001
 .wait
@@ -3491,6 +3638,8 @@ previous_valid_direction
 ; 0: level 1
 level_number:
     dc.w    0
+level_type:
+	dc.w	0
 loaded_level:
 	dc.w	-1
 demo_level_number:
@@ -3830,6 +3979,23 @@ turn_back
 .no_turn
 	rts
 	
+player_start_y_table
+	dc.w	176
+	dc.w	176	; ???
+	dc.w	150
+	dc.w	150	; ???
+	dc.w	150	; ???
+	dc.w	150	; ???
+	dc.w	150	; ???
+	dc.w	150	; ???
+	dc.w	150	; ???
+	dc.w	150	; ???
+	dc.w	150	; ???
+	dc.w	150	; ???
+	dc.w	150	; ???
+	dc.w	150	; ???
+	dc.w	150	; ???
+	dc.w	150	; ???
 block_table
 	dc.l	normal_backing_away,do_high_block,do_medium_block,do_low_block
 	
@@ -3997,7 +4163,7 @@ kiai_2_raw_end
 
 
 	include	"player_bobs.s"
-	
+	include	"sprites.s"
 music:
     ;incbin  "amidar_music_conv.mod"
     
