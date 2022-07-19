@@ -1452,7 +1452,24 @@ ARROW_HORIZ_X_SHIFT = 24
 	move.w	#ARROW_HORIZ_RIGHT_X+ARROW_HORIZ_X_SHIFT,d0
 	bsr		blit_4_planes_cookie_cut
 .no_tech_right
-
+	; now the technique name
+	move.l	d4,d0
+	bsr		decode_technique_name
+	tst.l	d0
+	beq.b	.no_tech	; should not happen!!
+	move.l	d0,a1
+	move.w	#256-24,d1
+.wl
+	move.l	(a1)+,d3
+	beq.b	.no_tech
+	; display word
+	move.l	d3,a0
+	move.w	#8,d0
+	move.w	#$FFF,d2
+	bsr		write_color_string
+	add.w	#8,d1
+	bra.b	.wl
+.no_tech
 	clr.l	current_move_key_message	; ack
 	rts
 	
@@ -1496,6 +1513,37 @@ draw_high_score
     bra write_color_decimal_number
 
 
+CONTROL_TEST:MACRO
+	btst	#JPB_BTN_\1,d0
+	beq.b	.no_\1
+	bset	#CTB_\2,d1
+	bra.b	\3
+.no_\1
+    ENDM
+	
+; < D0: control bits
+; > D0: pointer on words list for technique (or 0)
+; trashes: D1,A0
+decode_technique_name	
+	moveq.l	#0,d1
+	CONTROL_TEST	ADOWN,DOWN,.out2
+	CONTROL_TEST	AUP,UP,.out2
+	CONTROL_TEST	ARIGHT,RIGHT,.out2
+	CONTROL_TEST	ALEFT,LEFT,.out2
+.out2	
+	lsl.w	#4,d1	; shift moves
+	CONTROL_TEST	DOWN,DOWN,.out1
+	CONTROL_TEST	UP,UP,.out1
+	CONTROL_TEST	RIGHT,RIGHT,.out1
+	CONTROL_TEST	LEFT,LEFT,.out1
+.out1
+	; D1.B holds table index for move name
+	add.w	d1,d1
+	add.w	d1,d1
+	lea		move_name_table_right,a0	; ATM right is ok
+	move.l	(a0,d1.w),d0
+	rts
+	
     
 ; < D0: score (/10)
 ; trashes: D0,D1
@@ -2436,13 +2484,6 @@ update_intro_screen
   
     rts
 
-CONTROL_TEST:MACRO
-	btst	#JPB_BTN_\1,d0
-	beq.b	.no_\1
-	bset	#CTB_\2,d1
-	bra.b	\3
-.no_\1
-    ENDM
     
 play_loop_fx
     tst.b   demo_mode
