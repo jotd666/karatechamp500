@@ -47,6 +47,7 @@ INTERRUPTS_ON_MASK = $E038
 	ULONG	frame_set
 	ULONG	current_move_callback
 	ULONG	animation_struct
+	ULONG	current_move_name
 	UWORD	xpos
 	UWORD	ypos
 	UWORD	previous_xpos
@@ -136,7 +137,10 @@ START_LEVEL = 1
 	
 NULL = 0
 
+; in 1/60 seconds aka frames
 PRACTICE_SKIP_MESSAGE_LEN = 210
+PRACTICE_WAIT_BEFORE_NEXT_MOVE = 45
+PRACTICE_MOVE_DURATION = PRACTICE_WAIT_BEFORE_NEXT_MOVE*2
 
 NB_RECORDED_MOVES = 100
 
@@ -147,12 +151,20 @@ JPB_BTN_ADOWN = JPB_BTN_GRN
 JPB_BTN_AUP = JPB_BTN_BLU
 JPB_BTN_ARIGHT = JPB_BTN_YEL
 JPB_BTN_ALEFT = JPB_BTN_RED
+JPF_BTN_ADOWN = JPF_BTN_GRN
+JPF_BTN_AUP = JPF_BTN_BLU
+JPF_BTN_ARIGHT = JPF_BTN_YEL
+JPF_BTN_ALEFT = JPF_BTN_RED
 	ELSE
 ; CD32 button position that match original arcade controls best
 JPB_BTN_ADOWN = JPB_BTN_RED
 JPB_BTN_AUP = JPB_BTN_YEL
 JPB_BTN_ARIGHT = JPB_BTN_BLU
 JPB_BTN_ALEFT = JPB_BTN_GRN
+JPF_BTN_ADOWN = JPF_BTN_RED
+JPF_BTN_AUP = JPF_BTN_YEL
+JPF_BTN_ARIGHT = JPF_BTN_BLU
+JPF_BTN_ALEFT = JPF_BTN_GRN
 	ENDC
 	
 ; 8 bits for directions+buttons
@@ -768,8 +780,59 @@ init_new_play:
     move.l  #START_SCORE,score
     clr.l   previous_score
     clr.l   displayed_score
+	; random practice sequence
+	bsr		random
+	and.w	#7,d0
+	add.w	d0,d0
+	add.w	d0,d0
+	lea		practice_tables(pc),a0
+	move.l	(a0,d0.w),picked_practice_table
+	clr.l	current_practice_move_timer
+	move.l	#PRACTICE_WAIT_BEFORE_NEXT_MOVE,next_practice_move_timer
+	clr.w	practice_move_index
     rts
-    
+
+practice_tables:
+	dc.l	practice_table_1
+	dc.l	practice_table_2
+	dc.l	practice_table_3
+	dc.l	practice_table_2
+	dc.l	practice_table_1
+	dc.l	practice_table_2
+	dc.l	practice_table_3
+	dc.l	practice_table_1
+	
+practice_table_1:
+	dc.l	JPF_BTN_AUP|JPF_BTN_RIGHT	; lunge punch
+	dc.l	JPF_BTN_ARIGHT	; front kick	
+	dc.l	JPF_BTN_ALEFT	; back kick
+	dc.l	JPF_BTN_ADOWN	; low kick
+	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT	; lunge punch
+	dc.l	JPF_BTN_UP|JPF_BTN_ALEFT	; jumping back kick
+	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
+	dc.l	JPF_BTN_AUP					; round kick
+	dc.l	0
+practice_table_2	
+	dc.l	JPF_BTN_AUP	; round kick
+	dc.l	JPF_BTN_ADOWN	; low kick
+	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT	; lunge punch (high, still)
+	dc.l	JPF_BTN_LEFT|JPF_BTN_ARIGHT	; back round kick
+	dc.l	JPF_BTN_ARIGHT	; front kick
+	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
+	dc.l	JPF_BTN_ALEFT	; back kick
+	dc.l	JPF_BTN_AUP|JPF_BTN_RIGHT	; lunge punch (high, forward)
+	dc.l	0
+practice_table_3
+	dc.l	JPF_BTN_ARIGHT	; front kick
+	dc.l	JPF_BTN_AUP	; round kick
+	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
+	dc.l	JPF_BTN_ADOWN	; low kick
+	dc.l	JPF_BTN_ALEFT	; back kick
+	dc.l	JPF_BTN_DOWN|JPF_BTN_AUP	; reverse punch
+	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT	; lunge punch (high, still)
+	dc.l	JPF_BTN_UP|JPF_BTN_ALEFT	; jumping back kick
+	dc.l	0
+	
 init_level: 
 	clr.l	state_timer
     ; sets initial number of dots
@@ -819,13 +882,29 @@ draw_background_pic
 	cmp.w	#GM_PRACTICE,level_type	
 	bne.b	.no_practice
 	; trash the bottom of the level
+
+	bsr		draw_joys
+	lea		techniques,a0
+	move.w	#64/8+2,d2
+	move.w	#32,d3
+	move.w	#160,d0
+	move.w	#224,d1
+	bsr		blit_4_planes
+.no_practice
+	rts
+    
+PANEL_PLANE_SIZE = (176/8+2)*64
+PANEL_WIDTH = 176/8+2
+PANEL_X = 24
+
+draw_joys:
 	lea	_custom,a5
 	moveq.w	#NB_PLANES-1,d7
 	lea		screen_data,a2
 .clrloop
 	moveq	#0,d0
 	move.w	#256-32,d1
-	move.w	#224/8,d2
+	move.w	#8,d2
 	move.w	#-1,d3
 	move.w	#32,d4
 	move.l	a2,a1
@@ -842,19 +921,7 @@ draw_background_pic
 	bsr		blit_4_planes
 	move.w	#120,d0
 	move.w	#224,d1
-	bsr		blit_4_planes
-	lea		techniques,a0
-	move.w	#64/8+2,d2
-	move.w	#32,d3
-	move.w	#160,d0
-	move.w	#224,d1
-	bsr		blit_4_planes
-.no_practice
-	rts
-    
-PANEL_PLANE_SIZE = (176/8+2)*64
-PANEL_WIDTH = 176/8+2
-PANEL_X = 24
+	bra		blit_4_planes
 
 draw_panel
 	lea	panel,a0
@@ -983,7 +1050,7 @@ init_player_common
 	bne.b	.no_practice
 	; practice: player 2 is higher
 	move.w	#96,ypos(a4)
-	move.w  #120,xpos(a4)	; not proper value
+	move.w  #112,xpos(a4)
 	bra.b	.cont	
 .no_practice
 	move.w 	#LEFT,direction(a4)
@@ -1026,7 +1093,6 @@ init_players:
 	st.b	is_cpu(a4)			; ATM 1 player mode
 	bsr		init_player_common
  
-    move.w  #148,xpos(a4)
 	
 	lea		walk_forward_frames,a0
 	bsr		load_walk_frame
@@ -1284,11 +1350,18 @@ draw_level_type_table
 	dc.l	draw_evade
 
 draw_practice:
+	; draw moves names & controls
+	move.l	current_move_key_message(pc),d0
+	bmi.b	.erase_move_message
+	bne.b	.draw_move_message
+	
 	; draw normal if message has been read
 	move.l	state_timer(pc),d0
+	beq.b	.draw_practice_message
 	cmp.l	#PRACTICE_SKIP_MESSAGE_LEN,d0
-	beq.b	.erase_message
+	beq.b	.erase_practice_message
 	bcc.b	draw_normal
+.draw_practice_message:
 	; draw message. This is suboptimal but works
 	lea		message_list(pc),a1
 .loop
@@ -1312,10 +1385,85 @@ draw_practice:
 .out_msg
 	rts
 	
-.erase_message
+UP_ARROW_Y = 256-32+2
+ARROW_LEFT_X = 84
+ARROW_VERT_TO_HORIZ_X_SHIFT = 11
+ARROW_HORIZ_LEFT_X = ARROW_LEFT_X-ARROW_VERT_TO_HORIZ_X_SHIFT
+ARROW_RIGHT_X = ARROW_LEFT_X+48
+ARROW_HORIZ_RIGHT_X = ARROW_RIGHT_X-ARROW_VERT_TO_HORIZ_X_SHIFT
+DOWN_ARROW_Y = UP_ARROW_Y+22
+HORIZ_ARROW_Y = UP_ARROW_Y+10
+ARROW_HORIZ_X_SHIFT = 24
+
+.draw_move_message
+	; D0: move key
+	move.l	d0,d4
+	moveq.w	#4,d2
+	moveq.w	#8,d3
+	move.w	#ARROW_LEFT_X,d0
+	move.w	#UP_ARROW_Y,d1
+	; up arrows
+	lea	up_arrow,a0
+	btst	#JPB_BTN_UP,d4
+	beq.b	.no_dir_up
+	bsr		blit_4_planes_cookie_cut
+.no_dir_up
+	btst	#JPB_BTN_AUP,d4
+	beq.b	.no_tech_up
+	move.w	#ARROW_RIGHT_X,d0
+	bsr		blit_4_planes_cookie_cut
+.no_tech_up
+	; down arrows
+	lea	down_arrow,a0
+	move.w	#ARROW_LEFT_X,d0
+	move.w	#DOWN_ARROW_Y,d1
+	btst	#JPB_BTN_DOWN,d4
+	beq.b	.no_dir_down
+	bsr		blit_4_planes_cookie_cut
+.no_dir_down
+	btst	#JPB_BTN_ADOWN,d4
+	beq.b	.no_tech_down
+	move.w	#ARROW_RIGHT_X,d0
+	bsr		blit_4_planes_cookie_cut
+.no_tech_down
+	; left arrows
+	lea	left_arrow,a0
+	move.w	#ARROW_HORIZ_LEFT_X,d0
+	move.w	#HORIZ_ARROW_Y,d1
+	btst	#JPB_BTN_LEFT,d4
+	beq.b	.no_dir_left
+	bsr		blit_4_planes_cookie_cut
+.no_dir_left
+	btst	#JPB_BTN_ALEFT,d4
+	beq.b	.no_tech_left
+	move.w	#ARROW_HORIZ_RIGHT_X,d0
+	bsr		blit_4_planes_cookie_cut
+.no_tech_left
+	; right arrows
+	lea	right_arrow,a0
+	move.w	#ARROW_HORIZ_RIGHT_X+ARROW_HORIZ_X_SHIFT,d0
+	move.w	#HORIZ_ARROW_Y,d1
+	btst	#JPB_BTN_RIGHT,d4
+	beq.b	.no_dir_right
+	bsr		blit_4_planes_cookie_cut
+.no_dir_right
+	btst	#JPB_BTN_ARIGHT,d4
+	beq.b	.no_tech_right
+	move.w	#ARROW_HORIZ_RIGHT_X+ARROW_HORIZ_X_SHIFT,d0
+	bsr		blit_4_planes_cookie_cut
+.no_tech_right
+
+	clr.l	current_move_key_message	; ack
+	rts
+	
+.erase_move_message
+	clr.l	current_move_key_message	; ack
+	bra	draw_joys	
+
+.erase_practice_message
 	move.w	#32,D0
 	move.w	#112,d1
-	move.w	#19*8,d2
+	move.w	#20*8,d2
 	move.w	#40,d3
 	bsr		restore_background
 
@@ -2179,8 +2327,12 @@ update_all
     rts
     ; update
 .playing
-	addq.l	#1,state_timer
+	tst.l	state_timer
+	bne.b	.no_first_tick
+	; initialize some variables
+	
 .no_first_tick
+	addq.l	#1,state_timer
     ; for demo mode
     addq.w  #1,record_input_clock
 
@@ -2252,7 +2404,25 @@ update_level_type_table
 	dc.l	update_evade
 
 
-    
+init_level_type_table
+	dc.l	init_normal
+	dc.l	init_practice
+	dc.l	init_bull
+	dc.l	init_break
+	dc.l	init_evade
+
+init_normal:
+	; todo reset hits, maybe call init players
+	rts
+	
+init_practice
+	rts
+
+init_bull
+init_break	
+init_evade	
+	rts
+	
 CHARACTER_X_START = 88
 
 update_intro_screen
@@ -2458,6 +2628,8 @@ update_player
 	bne.b	.skip		; can't interrupt a jumping move	
 .do_move
 	; play sound
+;	tst.b	is_cpu(a4)
+;	bne.b	.no_sound2
 	tst.b	sound_playing(a4)
 	bne.b	.no_sound2
 	move.l	d0,-(a7)
@@ -2477,8 +2649,9 @@ update_player
 	move.l	d0,current_move_callback(a4)
 .move_routine
 	move.l	d0,a0
+	clr.l	current_move_name(a4)	; default: no move name
 	; call move routine
-	jsr		(a0)
+	jsr		(a0)	
 .skip
 	; correct x afterwards
 	move.w	xpos(a4),d0
@@ -2862,9 +3035,50 @@ handle_ai
 	moveq.l	#0,d0
 	cmp.w	#GM_PRACTICE,level_type
 	bne.b	.normal
-	bset	#JPB_BTN_RIGHT,d0
+	; practice
+	bsr		update_practice_moves
+
+	rts
 	
 .normal
+	rts
+
+update_practice_moves
+	tst.l	current_practice_move_timer
+	beq.b	.not_performing_move
+	subq.l	#1,current_practice_move_timer
+	bne.b	.not_zero
+	move.l	#-1,current_move_key_message
+.not_zero
+	move.l	practice_current_move_key(pc),d0
+	bne.b	.out
+	; training is over
+	blitz
+	bra.b	.out
+.not_performing_move
+	subq.l	#1,next_practice_move_timer
+	beq.b	.next_move
+	
+.out
+	rts
+.next_move
+	move.l	#PRACTICE_WAIT_BEFORE_NEXT_MOVE,next_practice_move_timer
+	move.l	#PRACTICE_MOVE_DURATION,current_practice_move_timer
+	move.l	picked_practice_table(pc),a0
+	move.w	practice_move_index(pc),d0
+	move.l	(a0,d0.w),d0
+	move.l	d0,practice_current_move_key
+	move.l	d0,current_move_key_message
+	cmp.l	#JPF_BTN_UP|JPF_BTN_ALEFT,d0	; jumping side kick, ends some sequences
+	bne.b	.no_jsk
+	; longer wait after last move
+	move.l	#PRACTICE_WAIT_BEFORE_NEXT_MOVE*2,next_practice_move_timer
+	; shorter move type
+	move.l	#PRACTICE_MOVE_DURATION/2,current_practice_move_timer
+.no_jsk
+	addq.w	#4,practice_move_index
+	; signal message system to display move name
+	moveq.l	#0,d0	; no move
 	rts
 	
 ; < d0.w: x
@@ -4219,6 +4433,18 @@ SOUND_ENTRY:MACRO
 game_palette
     include "palette.s"
     
+picked_practice_table:
+	dc.l	0
+current_practice_move_timer:
+	dc.l	0
+next_practice_move_timer:
+	dc.l	0
+practice_current_move_key:
+	dc.l	0
+current_move_key_message:
+	dc.l	0
+practice_move_index:
+	dc.w	0
 player:
 player_1:
     ds.b    Player_SIZEOF
