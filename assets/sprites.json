@@ -50,7 +50,7 @@
    "start_x":0,
    "start_y":32,
    "width":64,
-   "height":32
+   "height":24
  },
  {
    "name":"right_arrow",
@@ -79,6 +79,146 @@
    "start_y":24,
    "width":16,
    "height":8
+ },
+{
+   "name":"white_left_bubble_leg",
+   "start_x":64,
+   "start_y":40,
+   "width":16,
+   "height":8
+ },
+{
+   "name":"red_right_bubble_leg",
+   "start_x":64,
+   "start_y":32,
+   "width":16,
+   "height":8
+ },
+{
+   "name":"yellow_right_bubble_leg",
+   "start_x":80,
+   "start_y":32,
+   "width":16,
+   "height":8
+ },
+{
+   "name":"white_right_bubble_leg",
+   "start_x":80,
+   "start_y":40,
+   "width":16,
+   "height":8
+ },
+{
+   "name":"white_fan_arm",
+   "start_x":96,
+   "start_y":32,
+   "width":16,
+   "height":16
+ },
+{
+   "name":"red_fan_arm",
+   "start_x":112,
+   "start_y":32,
+   "width":16,
+   "height":16
+ },
+{
+   "name":"japan_fan_arm",
+   "start_x":128,
+   "start_y":32,
+   "width":16,
+   "height":16
+ },
+{
+   "name":"red_bubble",
+   "start_x":0,
+   "start_y":64,
+   "width":32,
+   "height":16
+ },
+{
+   "name":"white_bubble",
+   "start_x":32,
+   "start_y":64,
+   "width":32,
+   "height":16
+ },
+{
+   "name":"begin_bubble",
+   "start_x":64,
+   "start_y":64,
+   "width":32,
+   "height":16
+ },
+{
+   "name":"stop_bubble",
+   "start_x":96,
+   "start_y":64,
+   "width":32,
+   "height":16
+ },
+{
+   "name":"my_hero_bubble",
+   "start_x":128,
+   "start_y":64,
+   "width":80,
+   "height":16
+ },
+{
+   "name":"apple",
+   "start_x":0,
+   "start_y":0,
+   "width":16,
+   "height":16,
+   "frames":4
+ },
+{
+   "name":"better_luck_bubble",
+   "start_x":0,
+   "start_y":112,
+   "width":80,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"better_luck_bubble_mask",
+   "start_x":0,
+   "start_y":128,
+   "width":80,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"judge_bubble",
+   "start_x":80,
+   "start_y":112,
+   "width":32,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"judge_bubble_mask",
+   "start_x":80,
+   "start_y":128,
+   "width":32,
+   "height":16,
+   "generate_mask":false
+},
+{
+   "name":"very_good_bubble",
+   "start_x":112,
+   "start_y":112,
+   "width":48,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"very_good_bubble_mask",
+   "start_x":112,
+   "start_y":128,
+   "width":48,
+   "height":16,
+   "generate_mask":false
  },
   {"ignore":true}
  ]

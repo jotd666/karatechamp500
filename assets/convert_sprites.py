@@ -497,6 +497,12 @@ def process_tiles(json_file,out_asm_file=None,dump=False):
                 print("processing bob {}, mask {}...".format(name,generate_mask))
                 binname = "{}/{}".format(sprites_dir,name_dict.get(namei,namei))
                 binlist.append(binname)
+
+                if not generate_mask:
+                    # if 1 plane, no mask, manual mask frames, save only 1 plane, else save all 4 planes
+                    p = bitplanelib.palette_extract(img,palette_precision_mask=0xF0)
+                    used_palette = p if len(p)==2 else used_palette
+
                 bitplanelib.palette_image2raw(img,binname+".bin",used_palette,
                 palette_precision_mask=0xF0,generate_mask=generate_mask)
 

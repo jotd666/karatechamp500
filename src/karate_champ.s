@@ -48,6 +48,7 @@ INTERRUPTS_ON_MASK = $E038
 	ULONG	current_move_callback
 	ULONG	animation_struct
 	ULONG	current_move_name
+	ULONG	joystick_state
 	UWORD	xpos
 	UWORD	ypos
 	UWORD	previous_xpos
@@ -462,13 +463,14 @@ intro:
 	move.w	#1,cheat_keys	; enable cheat in that mode, we need to test the game
     bra.b   .restart
     ENDC
-    
+ 	lea		player_1(pc),a4
+   
 .intro_loop    
     cmp.w   #STATE_INTRO_SCREEN,current_state
     bne.b   .out_intro
     tst.b   quit_flag
     bne.b   .out
-    move.l  joystick_state(pc),d0
+    move.l  joystick_state(a4),d0
     btst    #JPB_BTN_RED,d0
     beq.b   .intro_loop
     clr.b   demo_mode
@@ -479,7 +481,7 @@ intro:
     move.w  #STATE_GAME_START_SCREEN,current_state
     
 .release
-    move.l  joystick_state(pc),d0
+    move.l  joystick_state(a4),d0
     btst    #JPB_BTN_RED,d0
     bne.b   .release
 
@@ -490,7 +492,7 @@ intro:
 
 .game_start_loop
     bsr random      ; so the enemies aren't going to do the same things at first game
-    move.l  joystick_state(pc),d0
+    move.l  joystick_state(a4),d0
     tst.b   quit_flag
     bne.b   .out
     btst    #JPB_BTN_RED,d0
@@ -499,7 +501,7 @@ intro:
 .no_credit
 
 .wait_fire_release
-    move.l  joystick_state(pc),d0
+    move.l  joystick_state(a4),d0
     btst    #JPB_BTN_RED,d0
     bne.b   .wait_fire_release    
 .restart    
@@ -1036,6 +1038,7 @@ hide_sprites:
 
 
 init_player_common
+	clr.l	joystick_state(a4)
 	clr.b	turn_back_flag(a4)
 	bsr		get_background_picture_index
 	add.w	d0,d0
@@ -1071,6 +1074,8 @@ init_player_common
 	rts
 	
 init_players:
+	clr.w	current_score_x
+	
     ; no moves (zeroes direction flags)
     clr.w  move_controls(a4)  	; and attack controls
 
@@ -2266,13 +2271,13 @@ level3_interrupt:
     movem.l (a7)+,d0-a6
     rte    
 .vblank
+	
     moveq.l #1,d0
     bsr _read_joystick
     
-    
     btst    #JPB_BTN_PLAY,d0
     beq.b   .no_second
-    move.l  joystick_state(pc),d2
+    move.l  player_1+joystick_state(pc),d2
     btst    #JPB_BTN_PLAY,d2
     bne.b   .no_second
 
@@ -2310,7 +2315,30 @@ level3_interrupt:
 	; set RIGHT
     bset    #JPB_BTN_RIGHT,d0
 .no_right    
-    move.l  d0,joystick_state
+    move.l  d0,player_1+joystick_state
+	; player 2
+	lea		player_2(pc),a4
+	tst.b	is_cpu(a4)
+	bne.b	.cpu
+    moveq.l #0,d0
+    bsr _read_joystick
+    btst    #JPB_BTN_PLAY,d0
+    beq.b   .no_second2
+    move.l  joystick_state(a4),d2
+    btst    #JPB_BTN_PLAY,d2
+    bne.b   .no_second2
+
+    ; no pause if not in game
+    cmp.w   #STATE_PLAYING,current_state
+    bne.b   .no_second2
+    tst.b   demo_mode
+    bne.b   .no_second2
+    
+    bsr		toggle_pause
+.no_second2
+    move.l  d0,joystick_state(a4)
+	
+.cpu
     move.w  #$0020,(intreq,a5)
     movem.l (a7)+,d0-a6
     rte
@@ -2416,6 +2444,21 @@ update_break
 	rts
 	
 update_practice
+	move.l	current_score_display_timer(pc),d0
+	beq.b	.no_score_hide
+	subq.l	#1,d0
+	move.l	d0,current_score_display_timer
+	bne.b	.no_score_hide
+	move.w	current_score_x(pc),d0
+	move.w	current_score_y(pc),d1
+	move.w	#4,d2
+	move.w	#16,d3
+	bsr		restore_background
+	; so display routine knows it's possible again
+	; to display score next time
+	clr.w	current_score_x
+.no_score_hide
+
 	move.l	state_timer(pc),d0
 	cmp.l	#PRACTICE_SKIP_MESSAGE_LEN,d0
 	bcs.b	.nothing
@@ -2496,7 +2539,6 @@ play_loop_fx
 ; < A4 player structure
    
 update_player
-
     move.w  player_killed_timer(pc),d6
     bmi.b   .alive
     moveq.w #8,d0
@@ -2521,7 +2563,7 @@ update_player
 	bra.b	.no_demo
 	
 .human_player	
-    move.l  joystick_state(pc),d0		; ATM 1 player only
+    move.l  joystick_state(a4),d0
     IFD    RECORD_INPUT_TABLE_SIZE
     bsr     record_input
     ENDC
@@ -2691,6 +2733,22 @@ update_player
 .move_routine
 	move.l	d0,a0
 	clr.l	current_move_name(a4)	; default: no move name
+	
+	cmp.w	#GM_PRACTICE,level_type
+	bne.b	.no_practice
+	; compare current technique to the dictated one, score points
+	; if it's the same
+	move.l	joystick_state(a4),d0
+	beq.b	.no_practice
+	;cmp.l	current_move_key_message(pc),d0
+	;bne.b	.no_practice
+	; same move: award points
+	move.l	#200,d0
+	bsr		add_to_score
+	moveq.l	#2,d0
+	bsr		show_awarded_score
+	
+.no_practice	
 	; call move routine
 	jsr		(a0)	
 .skip
@@ -2779,6 +2837,45 @@ trans_move_dropped
 	; don't cancel possible rollback
 
 	rts
+	
+; what: shows score value above the player
+; < D0: score index 1:100, ... 10:1000
+; < A4: player structure
+; trashes: D0
+show_awarded_score:
+	tst.w	current_score_x
+	bne.b	.out
+	movem.l	a0/d1-d3,-(a7)
+	lea	score_table(pc),a0
+	add.w	d0,d0
+	add.w	d0,d0
+	move.l	(a0,d0.w),a0
+	move.w	xpos(a4),d0
+	add.w	#10,d0
+	move.w	ypos(a4),d1
+	sub.w	#20,d1
+	move.w	d0,current_score_x
+	move.w	d1,current_score_y
+	move.w	#4,d2
+	move.w	#16,d3
+	bsr		blit_4_planes_cookie_cut
+	move.l	#200,current_score_display_timer
+	movem.l	(a7)+,a0/d1-d3
+.out
+	rts
+	
+score_table
+	dc.l	0
+	dc.l	score_100
+	dc.l	score_200
+	dc.l	score_300
+	dc.l	score_400
+	dc.l	score_500
+	dc.l	score_600
+	dc.l	score_700
+	dc.l	score_800
+	dc.l	score_900
+	dc.l	score_1000
 	
 ; what: animate & move player according to animation table & player direction
 ; < a0: current frame set (right/left)
@@ -4036,8 +4133,6 @@ gfxbase_copperlist
     
 previous_random
     dc.l    0
-joystick_state
-    dc.l    0
 record_data_pointer
     dc.l    0
 record_data_end
@@ -4389,7 +4484,7 @@ do_move_back:
 ; * reverse: medium block (shuto-uke)
 ; * forward: high block (utchi-uke)
 ; * rev+fwd: low block (gedan-barai)
-	move.l	joystick_state(pc),d0
+	move.l	joystick_state(a4),d0
 	btst	#JPB_BTN_FORWARD,d0
 	beq.b	.no_forward
 	bset	#2,d1
@@ -4474,6 +4569,13 @@ SOUND_ENTRY:MACRO
 game_palette
     include "palette.s"
     
+current_score_x:
+	dc.w	0
+current_score_y
+	dc.w	0
+current_score_display_timer
+	dc.l	0
+	
 picked_practice_table:
 	dc.l	0
 current_practice_move_timer:
