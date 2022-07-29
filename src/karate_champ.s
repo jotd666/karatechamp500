@@ -42,21 +42,35 @@ INTERRUPTS_ON_MASK = $E038
     UWORD   color3
     LABEL   SpritePalette_SIZEOF
     
-	STRUCTURE	Player,0
+	STRUCTURE Character,0
     ULONG   character_id
+	UWORD	xpos
+	UWORD	ypos
+    UWORD   frame
+	UWORD	direction   ; sprite orientation
+	UWORD	previous_xpos
+	UWORD	previous_ypos
+	LABEL	Character_SIZEOF
+	
+	STRUCTURE	Referee,0
+	STRUCT	_referee_base,Character_SIZEOF
+	UWORD	bubble_type
+	UWORD	bubble_timer
+	UWORD	min_xpos
+	UWORD	max_xpos
+	UBYTE	hand_right_flag
+	UBYTE	hand_left_flag
+	LABEL	Referee_SIZEOF
+	
+	STRUCTURE	Player,0
+	STRUCT	_player_base,Character_SIZEOF
 	ULONG	frame_set
 	ULONG	current_move_callback
 	ULONG	animation_struct
 	ULONG	current_move_name
 	ULONG	joystick_state
-	UWORD	xpos
-	UWORD	ypos
-	UWORD	previous_xpos
-	UWORD	previous_ypos
-	UWORD	direction   ; sprite orientation
 	UWORD	previous_direction   ; previous sprite orientation
 	UWORD	current_frame_countdown
-    UWORD   frame
     UBYTE   move_controls
 	UBYTE	attack_controls
     UBYTE   is_jumping
@@ -93,6 +107,10 @@ GM_PRACTICE = 1<<2
 GM_BULL = 2<<2
 GM_BREAK = 3<<2
 GM_EVADE = 3<<2
+
+REFEREE_LEFT_LEG_DOWN = 0
+REFEREE_RIGHT_LEG_DOWN = 1*4
+REFEREE_LEGS_DOWN = 2*4
 
 ; test bonus screen 
 ;BONUS_SCREEN_TEST
@@ -888,10 +906,14 @@ draw_background_pic
 	bsr		draw_joys
 	lea		techniques,a0
 	move.w	#64/8+2,d2
-	move.w	#32,d3
+	move.w	#24,d3
 	move.w	#160,d0
 	move.w	#224,d1
 	bsr		blit_4_planes
+	move.w	#224+24,d1
+	move.w	#8,d3
+	bsr		erase_4_planes
+	
 .no_practice
 	rts
     
@@ -901,19 +923,13 @@ PANEL_X = 24
 
 draw_joys:
 	lea	_custom,a5
-	moveq.w	#NB_PLANES-1,d7
-	lea		screen_data,a2
-.clrloop
 	moveq	#0,d0
 	move.w	#256-32,d1
 	move.w	#8,d2
-	move.w	#-1,d3
-	move.w	#32,d4
-	move.l	a2,a1
-	move.l	a2,a3
-	bsr		clear_plane_any_blitter_internal	
-	lea		(SCREEN_PLANE_SIZE,a3),a2
-	dbf		d7,.clrloop
+	move.w	#32,d3
+	bsr		erase_4_planes
+	
+
 	; blit control sprite
 	lea		controls,a0
 	move.w	#6,d2
@@ -925,6 +941,30 @@ draw_joys:
 	move.w	#224,d1
 	bra		blit_4_planes
 
+; what: erases 4 plane rectangle
+; < D0: x
+; < D1: y
+; < D2: width (+2 bytes)
+; < D3: height
+
+erase_4_planes:
+	movem.l	a2-a3/d3-d4/d7,-(a7)
+	moveq.w	#NB_PLANES-1,d7
+	lea		screen_data,a2
+	move.l	d3,d4
+	moveq.l	#-1,d3
+	movem.l	d0-d4,-(a7)
+.clrloop
+	move.l	a2,a1
+	move.l	a2,a3
+	bsr		clear_plane_any_blitter_internal	
+	lea		(SCREEN_PLANE_SIZE,a3),a2
+	movem.l	(a7),d0-d4
+	dbf		d7,.clrloop
+	add.w	#20,a7
+	movem.l	(a7)+,a2-a3/d3-d4/d7
+	rts
+	
 draw_panel
 	lea	panel,a0
 	move.w	#PANEL_WIDTH,d2
@@ -1074,6 +1114,25 @@ init_player_common
 	rts
 	
 init_players:
+	lea	referee(pc),a4
+	; init referee
+	cmp.w	#GM_PRACTICE,level_type
+	bne.b	.no_practice
+	move.w	#104,xpos(a4)
+	move.w	#72,ypos(a4)
+	move.l	xpos(a4),max_xpos(a4)	; x and y
+	move.l	xpos(a4),min_xpos(a4)	; x and y
+.no_practice
+	move.w	#REFEREE_LEGS_DOWN,frame(a4)
+	move.w	#RIGHT,direction(a4)
+	clr.w	bubble_type(a4)
+	clr.w	bubble_timer(a4)
+	clr.b	hand_right_flag(a4)
+	clr.b	hand_left_flag(a4)
+	clr.l	previous_xpos(a4)	; x and y
+
+
+	; no score displayed
 	clr.w	current_score_x
 	
     ; no moves (zeroes direction flags)
@@ -1367,8 +1426,10 @@ draw_practice:
 	beq.b	.erase_practice_message
 	bcc.b	draw_normal
 .draw_practice_message:
+	bsr	draw_referee
+
 	; draw message. This is suboptimal but works
-	lea		message_list(pc),a1
+	lea		practice_message_list(pc),a1
 .loop
 	move.w	(a1)+,d0
 	bmi.b	.out_msg
@@ -1388,7 +1449,9 @@ draw_practice:
 	bsr		write_color_string
 	bra.b	.loop
 .out_msg
+
 	rts
+
 	
 UP_ARROW_Y = 256-32+2
 ARROW_LEFT_X = 84
@@ -1491,17 +1554,93 @@ ARROW_HORIZ_X_SHIFT = 24
 
 	rts
 	
+
+draw_red_bubble
+	lea	red_bubble,a0
+	lea	red_right_bubble_leg,a1
+	move.w	#6,d2
+	move.w	#16,d3
+	clr.w	d4
+	bra		draw_bubble
+
+	
+
+draw_judge_bubble
+	lea	judge_bubble,a0
+	bra		draw_32_white_bubble
+
+draw_stop_bubble
+	lea	stop_bubble,a0
+	bra		draw_32_white_bubble
+draw_begin_bubble
+	lea	begin_bubble,a0
+	bra		draw_32_white_bubble
+	
+draw_32_white_bubble
+	lea	white_right_bubble_leg,a1
+	move.w	#6,d2
+	move.w	#16,d3
+	clr.w	d4
+	bra		draw_bubble
+
+draw_very_good_bubble
+	lea	very_good_bubble,a0
+	lea	white_right_bubble_leg,a1
+	move.w	#8,d2
+	move.w	#16,d3
+	clr.w	d4
+	bra		draw_bubble
+	
+; < a0: bubble bitmap
+; < a1: bubble leg bitmap
+; < d2: bubble width (nb bytes, inc mask)
+; < d3: bubble height
+; < d4: bubble leg x offset
+; < a4: character structure
+
+draw_bubble
+	move.w	xpos(a4),d0
+	move.w	ypos(a4),d1
+	add.w	#16,d0
+	sub.w	#24,d1
+	bsr		blit_4_planes_cookie_cut
+	move.l	a1,a0
+	add.w	#16,d1
+	add.w	d4,d0
+	move.w	#4,d2
+	move.w	#8,d3
+	bra		blit_4_planes_cookie_cut
+	
+draw_test_bubble
+draw_white_bubble
+	lea	white_bubble,a0
+	move.w	xpos(a4),d0
+	move.w	ypos(a4),d1
+	sub.w	#24,d0
+	sub.w	#24,d1
+	move.w	#6,d2
+	move.w	#16,d3
+	bsr		blit_4_planes_cookie_cut
+	lea	white_left_bubble_leg,a0
+	add.w	#8,d0
+	add.w	#16,d1
+	move.w	#4,d2
+	move.w	#8,d3
+	bra		blit_4_planes_cookie_cut
+	
 draw_evade
 draw_break
 draw_bull
 	rts
 	
 draw_normal:
+	bsr	erase_referee
 	lea	player_1(pc),a4
 	bsr	erase_player
 	lea	player_2(pc),a4
 	bsr	erase_player
 
+	bsr	draw_referee
 	lea	player_1(pc),a4
     bsr draw_player
 	lea	player_2(pc),a4
@@ -1600,7 +1739,7 @@ draw_start_screen
     dc.b    "1 PLAYER ONLY",0
     even
     
-message_list
+practice_message_list
 	dc.w	56,112
 	dc.l	blank_13_message
 	dc.l	if_you_do_not_message 
@@ -3010,6 +3149,20 @@ check_hit
 	movem.l	(a7)+,d2-d3
 .out1
 	rts
+
+erase_referee:
+	lea	referee(pc),a4
+	move.w	previous_ypos(a4),d3
+	beq.b	.out		; 0: not possible: first draw
+	move.w	previous_xpos(a4),d2
+	move.l	d2,d0
+	move.l	d3,d1
+	move.w	#32,d2	; width (no shifting)
+	move.w	#48,d3	; height
+	bra.b		restore_background
+
+.out
+	rts
 	
 ; < A4: player struct   
 erase_player:
@@ -3106,6 +3259,30 @@ blit_back_plane:
 	move.l a1,bltdpt(a5)	;destination top left corner
 	move.w  d3,bltsize(a5)	;rectangle size, starts blit
     rts
+
+; < A4: referee structure
+draw_referee
+	lea	referee(pc),a4
+	bsr	draw_test_bubble
+	
+	move.w	xpos(a4),d0
+	move.w	ypos(a4),d1
+	move.w	#4,d2
+	move.w	#16,d3
+	lea	referee_head,a0
+	bsr	blit_4_planes_cookie_cut
+	add.w	d3,d1
+	move.w	#8,d3
+	lea	referee_body_0,a0
+	bsr	blit_4_planes_cookie_cut
+	add.w	d3,d1
+	move.w	#16,d3
+	lea	referee_leg_table(pc),a0
+	move.w	frame(a4),d4
+	move.l	(a0,d4.w),a0
+	bsr	blit_4_planes_cookie_cut
+	
+	rts
 
 ; < A4: player structure
 draw_player:
@@ -3474,10 +3651,10 @@ blit_plane_any_internal_cookie_cut:
 ; < D1: Y
 ; < D2: width in bytes (pls include 2 bytes for shifting)
 ; < D3: height
-; trashes: D0-D1
+; trashes: none
 
-blit_4_planes
-    movem.l d2-d6/a0-a1/a5,-(a7)
+blit_4_planes:
+    movem.l d0-d6/a0-a1/a5,-(a7)
     lea $DFF000,A5
     lea     screen_data,a1
     moveq.l #3,d7
@@ -3492,20 +3669,20 @@ blit_4_planes
     add.w   #SCREEN_PLANE_SIZE,a1
     add.w   D5,a0
     dbf d7,.loop
-    movem.l (a7)+,d2-d6/a0-a1/a5
+    movem.l (a7)+,d0-d6/a0-a1/a5
     rts
 ; what: blits data on 4 planes (cookie cut)
 ; shifted, full mask, W/H generic
 ; args:
-; < A0: data (16x16)
+; < A0: data
 ; < D0: X
 ; < D1: Y
 ; < D2: width in bytes (pls include 2 bytes for shifting)
 ; < D3: height
-; trashes: D0-D1
+; trashes: nothing
 
 blit_4_planes_cookie_cut
-    movem.l d2-d6/a0-a3/a5,-(a7)
+    movem.l d0-d6/a0-a3/a5,-(a7)
     lea $DFF000,A5
     lea     screen_data,a1
     moveq.l #3,d7
@@ -3526,7 +3703,7 @@ blit_4_planes_cookie_cut
     add.w   #SCREEN_PLANE_SIZE,a1
     add.w   D5,a0
     dbf d7,.loop
-    movem.l (a7)+,d2-d6/a0-a3/a5
+    movem.l (a7)+,d0-d6/a0-a3/a5
     rts
 
 wait_blit
@@ -4542,6 +4719,27 @@ player_start_y_table
 	dc.w	150	; ???
 	dc.w	150	; ???
 	dc.w	150	; ???
+referee_start_xy_table
+	;dc.w	
+	dc.w	112,96	; ???
+	dc.w	112,96
+	dc.w	112,96	; ???
+	dc.w	112,96	; ???
+	dc.w	112,96	; ???
+	dc.w	112,96	; ???
+	dc.w	112,96	; ???
+	dc.w	112,96	; ???
+	dc.w	112,96	; ???
+	dc.w	112,96	; ???
+	dc.w	112,96	; ???
+	dc.w	112,96	; ???
+	dc.w	112,96	; ???
+	dc.w	112,96	; ???
+	dc.w	112,96	; ???
+	
+referee_leg_table
+	dc.l	referee_left_leg_down,referee_right_leg_down,referee_legs_down
+	
 block_table
 	dc.l	normal_backing_away,do_high_block,do_medium_block,do_low_block
 	
@@ -4593,6 +4791,8 @@ player_1:
     ds.b    Player_SIZEOF
 player_2:
     ds.b    Player_SIZEOF
+referee:
+	ds.b	Referee_SIZEOF
     even
 
     

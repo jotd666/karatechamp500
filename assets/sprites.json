@@ -220,6 +220,111 @@
    "height":16,
    "generate_mask":false
  },
+{
+   "name":"referee_body",
+   "start_x":0,
+   "start_y":56,
+   "width":16,
+   "height":8,
+   "generate_mask":true,
+   "frames":2
+ },
+{
+   "name":"referee_head",
+   "start_x":160,
+   "start_y":112,
+   "width":16,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"referee_head_mask",
+   "start_x":160,
+   "start_y":128,
+   "width":16,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"referee_left_leg_down",
+   "start_x":176,
+   "start_y":112,
+   "width":16,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"referee_left_leg_down_mask",
+   "start_x":176,
+   "start_y":128,
+   "width":16,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"referee_right_leg_down",
+   "start_x":192,
+   "start_y":112,
+   "width":16,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"referee_right_leg_down_mask",
+   "start_x":192,
+   "start_y":128,
+   "width":16,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"referee_legs_down",
+   "start_x":208,
+   "start_y":112,
+   "width":16,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"referee_legs_down_mask",
+   "start_x":208,
+   "start_y":128,
+   "width":16,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"referee_left_arm_down",
+   "start_x":224,
+   "start_y":112,
+   "width":16,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"referee_left_arm_down_mask",
+   "start_x":224,
+   "start_y":128,
+   "width":16,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"referee_right_arm_down",
+   "start_x":240,
+   "start_y":112,
+   "width":16,
+   "height":16,
+   "generate_mask":false
+ },
+{
+   "name":"referee_right_arm_down_mask",
+   "start_x":240,
+   "start_y":128,
+   "width":16,
+   "height":16,
+   "generate_mask":false
+ },
   {"ignore":true}
  ]
 }
