@@ -50,16 +50,23 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	direction   ; sprite orientation
 	UWORD	previous_xpos
 	UWORD	previous_ypos
+	UWORD	previous_bubble_xpos
+	UWORD	previous_bubble_ypos
+	UWORD	previous_bubble_width
+	UWORD	previous_bubble_height
 	LABEL	Character_SIZEOF
 	
+	; do not change field order, there are some optimizations
+	; with grouped fields
+	; insert required fields in the end of the structure!!
 	STRUCTURE	Referee,0
 	STRUCT	_referee_base,Character_SIZEOF
 	UWORD	bubble_type
 	UWORD	bubble_timer
 	UWORD	min_xpos
 	UWORD	max_xpos
-	UBYTE	hand_right_flag
-	UBYTE	hand_left_flag
+	UBYTE	hand_red_or_japan_flag	; 0, 1 (red) or 3 (japan)
+	UBYTE	hand_white_flag	; 0 or 1 (white)
 	LABEL	Referee_SIZEOF
 	
 	STRUCTURE	Player,0
@@ -100,6 +107,11 @@ Execbase  = 4
 
 ; if set skips intro, game starts immediately
 DIRECT_GAME_START
+; practice has only 1 move
+SHORT_PRACTICE
+
+
+
 
 ; do NOT change those enums without changing the update/draw function tables
 GM_NORMAL = 0
@@ -108,9 +120,22 @@ GM_BULL = 2<<2
 GM_BREAK = 3<<2
 GM_EVADE = 3<<2
 
+; do NOT change those enums without changing the update/draw function tables
+BUBBLE_NONE = 0
+BUBBLE_VERY_GOOD = 1<<2
+BUBBLE_WHITE = 2<<2
+BUBBLE_RED = 3<<2
+BUBBLE_STOP = 4<<2
+BUBBLE_JUDGE = 5<<2
+BUBBLE_BEGIN = 6<<2
+BUBBLE_BETTER_LUCK = 7<<2
+BUBBLE_MY_HERO = 8<<2
+
+
+; do NOT change those enums without changing the update/draw function tables
 REFEREE_LEFT_LEG_DOWN = 0
-REFEREE_RIGHT_LEG_DOWN = 1*4
-REFEREE_LEGS_DOWN = 2*4
+REFEREE_RIGHT_LEG_DOWN = 1<<2
+REFEREE_LEGS_DOWN = 2<<2
 
 ; test bonus screen 
 ;BONUS_SCREEN_TEST
@@ -545,7 +570,7 @@ intro:
 
     bra.b   .normal_level
 	
-    bsr init_players
+    bsr init_players_and_referee
 
     bsr wait_bof
 
@@ -565,7 +590,7 @@ intro:
 .new_life
     moveq.l #1,d0
 .from_level_start
-    bsr init_players
+    bsr init_players_and_referee
     
     bsr wait_bof
 
@@ -609,7 +634,6 @@ intro:
     ; to be inserted in high score table
     move.l  score(pc),d0
     lea     hiscore_table(pc),a0
-	move.l	a0,$110
     moveq.w  #NB_HIGH_SCORES-1,d1
     move.w   #-1,high_score_position
 .hiloop
@@ -812,46 +836,6 @@ init_new_play:
 	clr.w	practice_move_index
     rts
 
-practice_tables:
-	dc.l	practice_table_1
-	dc.l	practice_table_2
-	dc.l	practice_table_3
-	dc.l	practice_table_2
-	dc.l	practice_table_1
-	dc.l	practice_table_2
-	dc.l	practice_table_3
-	dc.l	practice_table_1
-	
-practice_table_1:
-	dc.l	JPF_BTN_AUP|JPF_BTN_RIGHT	; lunge punch
-	dc.l	JPF_BTN_ARIGHT	; front kick	
-	dc.l	JPF_BTN_ALEFT	; back kick
-	dc.l	JPF_BTN_ADOWN	; low kick
-	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT	; lunge punch
-	dc.l	JPF_BTN_UP|JPF_BTN_ALEFT	; jumping back kick
-	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
-	dc.l	JPF_BTN_AUP					; round kick
-	dc.l	0
-practice_table_2	
-	dc.l	JPF_BTN_AUP	; round kick
-	dc.l	JPF_BTN_ADOWN	; low kick
-	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT	; lunge punch (high, still)
-	dc.l	JPF_BTN_LEFT|JPF_BTN_ARIGHT	; back round kick
-	dc.l	JPF_BTN_ARIGHT	; front kick
-	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
-	dc.l	JPF_BTN_ALEFT	; back kick
-	dc.l	JPF_BTN_AUP|JPF_BTN_RIGHT	; lunge punch (high, forward)
-	dc.l	0
-practice_table_3
-	dc.l	JPF_BTN_ARIGHT	; front kick
-	dc.l	JPF_BTN_AUP	; round kick
-	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
-	dc.l	JPF_BTN_ADOWN	; low kick
-	dc.l	JPF_BTN_ALEFT	; back kick
-	dc.l	JPF_BTN_DOWN|JPF_BTN_AUP	; reverse punch
-	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT	; lunge punch (high, still)
-	dc.l	JPF_BTN_UP|JPF_BTN_ALEFT	; jumping back kick
-	dc.l	0
 	
 init_level: 
 	clr.l	state_timer
@@ -1113,7 +1097,7 @@ init_player_common
 	clr.b	skip_frame_reset(a4)
 	rts
 	
-init_players:
+init_players_and_referee:
 	lea	referee(pc),a4
 	; init referee
 	cmp.w	#GM_PRACTICE,level_type
@@ -1123,12 +1107,13 @@ init_players:
 	move.l	xpos(a4),max_xpos(a4)	; x and y
 	move.l	xpos(a4),min_xpos(a4)	; x and y
 .no_practice
+	move.b	#2,character_id(a4)
 	move.w	#REFEREE_LEGS_DOWN,frame(a4)
 	move.w	#RIGHT,direction(a4)
+	clr.l	previous_bubble_xpos(a4)
 	clr.w	bubble_type(a4)
 	clr.w	bubble_timer(a4)
-	clr.b	hand_right_flag(a4)
-	clr.b	hand_left_flag(a4)
+	clr.w	hand_red_or_japan_flag(a4)	; both hands
 	clr.l	previous_xpos(a4)	; x and y
 
 
@@ -1553,18 +1538,28 @@ ARROW_HORIZ_X_SHIFT = 24
 	bsr		restore_background
 
 	rts
-	
 
+; < a4 character structure
+erase_bubble
+	move.w	previous_bubble_xpos(a4),d0
+	beq.b	.no_erase
+	move.w	previous_bubble_ypos(a4),d1
+	move.w	previous_bubble_width(a4),d2
+	move.w	previous_bubble_height(a4),d3
+	bra		restore_background
+.no_erase
+	rts
+	
 draw_red_bubble
 	lea	red_bubble,a0
 	lea	red_right_bubble_leg,a1
 	move.w	#6,d2
-	move.w	#16,d3
 	clr.w	d4
 	bra		draw_bubble
 
+draw_no_bubble
+	rts
 	
-
 draw_judge_bubble
 	lea	judge_bubble,a0
 	bra		draw_32_white_bubble
@@ -1576,10 +1571,10 @@ draw_begin_bubble
 	lea	begin_bubble,a0
 	bra		draw_32_white_bubble
 	
+
 draw_32_white_bubble
 	lea	white_right_bubble_leg,a1
 	move.w	#6,d2
-	move.w	#16,d3
 	clr.w	d4
 	bra		draw_bubble
 
@@ -1587,20 +1582,34 @@ draw_very_good_bubble
 	lea	very_good_bubble,a0
 	lea	white_right_bubble_leg,a1
 	move.w	#8,d2
-	move.w	#16,d3
 	clr.w	d4
 	bra		draw_bubble
 	
+draw_better_luck_bubble
+	lea	better_luck_bubble,a0
+	lea	white_right_bubble_leg,a1
+	move.w	#12,d2
+	clr.w	d4
+	bra		draw_bubble
+	
+draw_my_hero_bubble
+	lea	my_hero_bubble,a0
+	lea	yellow_right_bubble_leg,a1
+	move.w	#12,d2
+	clr.w	d4
+	bra		draw_bubble
+	
+; what: generic bubble draw (to the right)
 ; < a0: bubble bitmap
 ; < a1: bubble leg bitmap
 ; < d2: bubble width (nb bytes, inc mask)
-; < d3: bubble height
 ; < d4: bubble leg x offset
 ; < a4: character structure
 
 draw_bubble
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
+	move.w	#16,d3		; height is always 16
 	add.w	#16,d0
 	sub.w	#24,d1
 	bsr		blit_4_planes_cookie_cut
@@ -1611,7 +1620,7 @@ draw_bubble
 	move.w	#8,d3
 	bra		blit_4_planes_cookie_cut
 	
-draw_test_bubble
+; what: draw "white" bubble (the only one to the left)
 draw_white_bubble
 	lea	white_bubble,a0
 	move.w	xpos(a4),d0
@@ -1620,6 +1629,10 @@ draw_white_bubble
 	sub.w	#24,d1
 	move.w	#6,d2
 	move.w	#16,d3
+	move.w	d0,previous_bubble_xpos(a4)
+	move.w	d1,previous_bubble_ypos(a4)
+	move.w	d2,previous_bubble_width(a4)
+	move.w	d3,previous_bubble_height(a4)
 	bsr		blit_4_planes_cookie_cut
 	lea	white_left_bubble_leg,a0
 	add.w	#8,d0
@@ -1631,7 +1644,27 @@ draw_white_bubble
 draw_evade
 draw_break
 draw_bull
+	tst.l	state_timer
+	bne.b	.no_update
+	bsr		clear_screen
+	lea		demo_message(pc),a0
+	move.w	#16,d0
+	move.w	#80,d1
+	move.w	#$FFF,d2
+	bsr		write_color_string
+	lea		demo_message_2(pc),a0
+	move.w	#16,d0
+	move.w	#96,d1
+	move.w	#$FFF,d2
+	bsr		write_color_string
+.no_update
 	rts
+	
+demo_message
+	dc.b	"END OF KARATE CHAMP DEMO",0
+demo_message_2
+	dc.b	" STAY TUNED FOR UPDATES",0
+	even
 	
 draw_normal:
 	bsr	erase_referee
@@ -2141,7 +2174,7 @@ exc10
     lea .illegal_error(pc),a0
     bra.b lockup
 .illegal_error:
-    dc.b    "ILLEGAL INSTRUCTION AT ",0
+    dc.b    "ILLEGAL INSTR AT ",0
     even
 
 lockup
@@ -2564,8 +2597,11 @@ update_normal:
 	subq.w	#1,time_left
 	bne.b	.no_sec
 	; out of time
-	;;blitz
+	lea	referee(pc),a4
+	move.w	#BUBBLE_STOP,bubble_type(a4)
+	move.w	#NB_TICKS_PER_SEC*2,bubble_timer(a4)
 .no_sec
+	bsr	update_referee
     lea     player_1(pc),a4
     bsr update_player
     lea     player_2(pc),a4
@@ -2580,6 +2616,24 @@ update_evade
 	bsr		update_active_player
 	rts
 update_break
+	rts
+	
+update_referee
+	lea	referee(pc),a4
+	; check bubble & timer
+	tst.w	bubble_type(a4)
+	beq.b	.no_bubble
+	subq.w	#1,bubble_timer(a4)
+	beq.b	referee_bubble_timeout
+.no_bubble
+	rts
+
+; what: do something when referee bubble times out
+; generally, either display another bubble, or change game state
+; this makes the referee control most game events :)
+; < A4: referee structure
+referee_bubble_timeout
+	move.w	bubble_type(a4),d0	; decide what to do
 	rts
 	
 update_practice
@@ -2597,7 +2651,7 @@ update_practice
 	; to display score next time
 	clr.w	current_score_x
 .no_score_hide
-
+	bsr		update_referee
 	move.l	state_timer(pc),d0
 	cmp.l	#PRACTICE_SKIP_MESSAGE_LEN,d0
 	bcs.b	.nothing
@@ -2842,7 +2896,6 @@ update_player
 	; times 16
 	lsl.w	#4,d7
 	move.l	(a0,d7.w),d0
-
 	tst.l	(4,a0,d7.w)		; is jump argument
 	bne.b	.do_move		; jumping move is responsible for handing interruptions by other jumps
 	; not a jumping move. Are we jumping ?
@@ -2876,7 +2929,7 @@ update_player
 	cmp.w	#GM_PRACTICE,level_type
 	bne.b	.no_practice
 	; compare current technique to the dictated one, score points
-	; if it's the same
+	; if it's the same (doesn't work)
 	move.l	joystick_state(a4),d0
 	beq.b	.no_practice
 	;cmp.l	current_move_key_message(pc),d0
@@ -3263,8 +3316,6 @@ blit_back_plane:
 ; < A4: referee structure
 draw_referee
 	lea	referee(pc),a4
-	bsr	draw_test_bubble
-	
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
 	move.w	#4,d2
@@ -3273,8 +3324,17 @@ draw_referee
 	bsr	blit_4_planes_cookie_cut
 	add.w	d3,d1
 	move.w	#8,d3
+	move.w	hand_red_or_japan_flag(a4),d5	; test both flags
+	move.w	#$0101,d4
+	and.w	d4,d5
+	bne.b	.no_normal_body
+	lea	referee_body_1,a0
+	cmp.w	d4,d5
+	beq.b	.both_arms_up
 	lea	referee_body_0,a0
+.both_arms_up
 	bsr	blit_4_planes_cookie_cut
+.no_normal_body
 	add.w	d3,d1
 	move.w	#16,d3
 	lea	referee_leg_table(pc),a0
@@ -3282,6 +3342,54 @@ draw_referee
 	move.l	(a0,d4.w),a0
 	bsr	blit_4_planes_cookie_cut
 	
+	move.b	hand_red_or_japan_flag(a4),d6
+	beq.b	.no_red_flag
+	sub.w	#8,d1
+	cmp.w	#$101,d5
+	beq.b	.skip_arm_1
+	lea		referee_right_arm_down,a0
+	bsr	blit_4_planes_cookie_cut
+.skip_arm_1
+	lea		red_fan_arm,a0
+	cmp.b	#1,d6
+	beq.b	.rf
+	lea		japan_fan_arm,a0
+.rf
+	move.w	#16,d3
+	add.w	d3,d0
+	sub.w	#12,d1
+	bsr		blit_4_planes_cookie_cut
+	
+.no_red_flag
+
+	move.b	hand_white_flag(a4),d6
+	beq.b	.no_white_flag
+
+	cmp.w	#$101,d5
+	beq.b	.skip_arm_2
+	move.w	xpos(a4),d0
+	move.w	ypos(a4),d1
+	add.w	#16,d1
+	lea		referee_left_arm_down,a0
+	bsr	blit_4_planes_cookie_cut
+.skip_arm_2
+	move.w	xpos(a4),d0
+	move.w	ypos(a4),d1
+	lea		white_fan_arm,a0
+	move.w	#16,d3
+	sub.w	d3,d0
+	add.w	#4,d1
+	bsr		blit_4_planes_cookie_cut
+.no_white_flag	
+	
+	; handle bubbles
+	move.w	bubble_type(a4),d0
+	beq.b	.no_bubble
+	lea		bubble_table(pc),a0
+	move.l	(a0,d0.w),a0
+	jsr	(a0)
+.no_bubble
+
 	rts
 
 ; < A4: player structure
@@ -3350,9 +3458,10 @@ handle_ai
 	moveq.l	#0,d0
 	cmp.w	#GM_PRACTICE,level_type
 	bne.b	.normal
+	move.l	a4,-(a7)
 	; practice
 	bsr		update_practice_moves
-
+	move.l	(a7)+,a4
 	rts
 	
 .normal
@@ -3368,7 +3477,8 @@ update_practice_moves
 	move.l	practice_current_move_key(pc),d0
 	bne.b	.out
 	; training is over
-	blitz
+	move.w	#GM_BULL,level_type
+	clr.l	state_timer
 	bra.b	.out
 .not_performing_move
 	subq.l	#1,next_practice_move_timer
@@ -3381,9 +3491,16 @@ update_practice_moves
 	move.l	#PRACTICE_MOVE_DURATION,current_practice_move_timer
 	move.l	picked_practice_table(pc),a0
 	move.w	practice_move_index(pc),d0
+	tst.l	(4,a0,d0.w)
+	bne.b	.no_last_move
+	lea	referee(pc),a1
+	move.w	#BUBBLE_VERY_GOOD,bubble_type(a1)
+	move.w	#2*NB_TICKS_PER_SEC,bubble_timer(a1)	; 2 seconds?	
+.no_last_move
 	move.l	(a0,d0.w),d0
 	move.l	d0,practice_current_move_key
 	move.l	d0,current_move_key_message
+	beq.b	.no_more_moves
 	cmp.l	#JPF_BTN_UP|JPF_BTN_ALEFT,d0	; jumping side kick, ends some sequences
 	bne.b	.no_jsk
 	; longer wait after last move
@@ -3392,6 +3509,7 @@ update_practice_moves
 	move.l	#PRACTICE_MOVE_DURATION/2,current_practice_move_timer
 .no_jsk
 	addq.w	#4,practice_move_index
+.no_more_moves
 	; signal message system to display move name
 	moveq.l	#0,d0	; no move
 	rts
@@ -3413,23 +3531,6 @@ store_sprite_pos
     or.l	(a1,d1.w),d0
     movem.l  (a7)+,d1/a0/a1
     rts
-
-
-    
-HW_SpriteXTable
-  rept 320
-x   set REPTN+$80
-    dc.b  0, x>>1, 0, x&1
-  endr
-
-
-HW_SpriteYTable
-  rept 260
-ys  set REPTN+$2c
-ye  set ys+16       ; size = 16
-    dc.b  ys&255, 0, ye&255, ((ys>>6)&%100) | ((ye>>7)&%10)
-  endr
-
 
     
 ; what: blits 16x16 data on one plane
@@ -4280,200 +4381,7 @@ save_highscores
     rts
     ENDC
     
-_dosbase
-    dc.l    0
-_gfxbase
-    dc.l    0
-_resload
-    dc.l    0
-io_request:
-	dc.l	0
-_keyexit
-    dc.b    $59
-scores_name
-    dc.b    "kchampvs.high",0
-highscore_needs_saving
-    dc.b    0
-cdtvname:
-	dc.b	"cdtv.device",0
-graphicsname:   dc.b "graphics.library",0
-dosname
-        dc.b    "dos.library",0
-            even
 
-    include ReadJoyPad.s
-    include	RNC_1C.s
-	
-    ; variables
-gfxbase_copperlist
-    dc.l    0
-    
-previous_random
-    dc.l    0
-record_data_pointer
-    dc.l    0
-record_data_end
-	dc.l	0
-record_input_clock
-    dc.w    0
-previous_move
-	dc.b	0
-	even
-    IFD    RECORD_INPUT_TABLE_SIZE
-prev_record_joystick_state
-    dc.l    0
-
-    ENDC
-
-  
-current_state:
-    dc.w    0
-score:
-    dc.l    0
-displayed_score:
-    dc.l    0
-previous_score:
-    dc.l    0
-
-
-; general purpose timer for non-game states (intro, game over...)
-state_timer:
-    dc.l    0
-intro_text_message:
-    dc.w    0
-previous_player_address
-    dc.l    0
-previous_valid_direction
-    dc.l    0
-
-; 0: level 1
-level_number:
-    dc.w    0
-level_type:
-	dc.w	0
-loaded_level:
-	dc.w	-1
-demo_level_number:
-    dc.w    0
-enemy_kill_timer
-    dc.w    0
-player_killed_timer:
-    dc.w    -1
-bonus_score_timer:
-    dc.w    0
-cheat_sequence_pointer
-    dc.l    cheat_sequence
-
-cheat_keys
-    dc.w    0
-death_frame_offset
-    dc.w    0
-
-level_completed_flag
-	dc.b	0
-rustler_level:
-    dc.b    0
-
-
-music_playing:    
-    dc.b    0
-pause_flag
-    dc.b    0
-quit_flag
-    dc.b    0
-
-invincible_cheat_flag
-    dc.b    0
-debug_flag
-    dc.b    0
-demo_mode
-    dc.b    0
-music_played
-    dc.b    0
-
-
-cheat_sequence
-    dc.b    $26,$18,$14,$22,0
-    even
-
-
-digits:
-    incbin  "digits_0.bin"
-    incbin  "digits_1.bin"
-    incbin  "digits_2.bin"
-    incbin  "digits_3.bin"
-    incbin  "digits_4.bin"
-    incbin  "digits_5.bin"
-    incbin  "digits_6.bin"
-    incbin  "digits_7.bin"
-    incbin  "digits_8.bin"
-    incbin  "digits_9.bin"
-letters
-    incbin	"letters_1_0.bin"
-    incbin	"letters_1_1.bin"
-    incbin	"letters_1_2.bin"
-    incbin	"letters_1_3.bin"
-    incbin	"letters_1_4.bin"
-    incbin	"letters_1_5.bin"
-    incbin	"letters_1_6.bin"
-    incbin	"letters_1_7.bin"
-    incbin	"letters_1_8.bin"
-    incbin	"letters_1_9.bin"
-    incbin	"letters_1_10.bin"
-    incbin	"letters_1_11.bin"
-    incbin	"letters_1_12.bin"
-    incbin	"letters_1_13.bin"
-    incbin	"letters_1_14.bin"
-    incbin	"letters_1_15.bin"
-    incbin	"letters_1_16.bin"
-    incbin	"letters_1_17.bin"
-    incbin	"letters_1_18.bin"
-    incbin	"letters_1_19.bin"
-    incbin	"letters_1_20.bin"
-    incbin	"letters_1_21.bin"
-    incbin	"letters_2_0.bin"
-    incbin	"letters_2_1.bin"
-    incbin	"letters_2_2.bin"
-    incbin	"letters_2_3.bin"
-    
-
-dash
-    incbin  "dash.bin"
-dot
-    incbin  "dot.bin"
-
-square
-    REPT	8
-	dc.b	$FF
-	ENDR
-
-heart
-    incbin  "heart.bin"
-copyright
-    incbin  "copyright.bin"
-space
-    ds.b    8,0
-    
-hiscore_string
-	dc.b	"HISCORE",0
-zero_string
-	dc.b	"0",0
-p1_string
-    dc.b    "     1UP",0
-level_string
-    dc.b    "   LEVEL",0
-score_string
-    dc.b    "       00",0
-game_over_string
-    dc.b    "GAME##OVER",0
-player_one_string
-    dc.b    "PLAYER ONE",0
-player_one_string_clear
-    dc.b    "          ",0
-
-
-
-    even
 
 	
     MUL_TABLE   40
@@ -4702,6 +4610,264 @@ turn_back
 .no_turn
 	rts
 	
+_dosbase
+    dc.l    0
+_gfxbase
+    dc.l    0
+_resload
+    dc.l    0
+io_request:
+	dc.l	0
+_keyexit
+    dc.b    $59
+scores_name
+    dc.b    "kchampvs.high",0
+highscore_needs_saving
+    dc.b    0
+cdtvname:
+	dc.b	"cdtv.device",0
+graphicsname:   dc.b "graphics.library",0
+dosname
+        dc.b    "dos.library",0
+            even
+
+    include ReadJoyPad.s
+    include	RNC_1C.s
+	
+    ; variables
+gfxbase_copperlist
+    dc.l    0
+    
+previous_random
+    dc.l    0
+record_data_pointer
+    dc.l    0
+record_data_end
+	dc.l	0
+record_input_clock
+    dc.w    0
+previous_move
+	dc.b	0
+	even
+    IFD    RECORD_INPUT_TABLE_SIZE
+prev_record_joystick_state
+    dc.l    0
+
+    ENDC
+
+  
+current_state:
+    dc.w    0
+score:
+    dc.l    0
+displayed_score:
+    dc.l    0
+previous_score:
+    dc.l    0
+
+
+; general purpose timer for non-game states (intro, game over...)
+state_timer:
+    dc.l    0
+intro_text_message:
+    dc.w    0
+previous_player_address
+    dc.l    0
+previous_valid_direction
+    dc.l    0
+
+; 0: level 1
+level_number:
+    dc.w    0
+level_type:
+	dc.w	0
+loaded_level:
+	dc.w	-1
+demo_level_number:
+    dc.w    0
+enemy_kill_timer
+    dc.w    0
+player_killed_timer:
+    dc.w    -1
+bonus_score_timer:
+    dc.w    0
+cheat_sequence_pointer
+    dc.l    cheat_sequence
+
+cheat_keys
+    dc.w    0
+death_frame_offset
+    dc.w    0
+
+level_completed_flag
+	dc.b	0
+rustler_level:
+    dc.b    0
+
+
+music_playing:    
+    dc.b    0
+pause_flag
+    dc.b    0
+quit_flag
+    dc.b    0
+
+invincible_cheat_flag
+    dc.b    0
+debug_flag
+    dc.b    0
+demo_mode
+    dc.b    0
+music_played
+    dc.b    0
+
+
+cheat_sequence
+    dc.b    $26,$18,$14,$22,0
+    even
+
+
+digits:
+    incbin  "digits_0.bin"
+    incbin  "digits_1.bin"
+    incbin  "digits_2.bin"
+    incbin  "digits_3.bin"
+    incbin  "digits_4.bin"
+    incbin  "digits_5.bin"
+    incbin  "digits_6.bin"
+    incbin  "digits_7.bin"
+    incbin  "digits_8.bin"
+    incbin  "digits_9.bin"
+letters
+    incbin	"letters_1_0.bin"
+    incbin	"letters_1_1.bin"
+    incbin	"letters_1_2.bin"
+    incbin	"letters_1_3.bin"
+    incbin	"letters_1_4.bin"
+    incbin	"letters_1_5.bin"
+    incbin	"letters_1_6.bin"
+    incbin	"letters_1_7.bin"
+    incbin	"letters_1_8.bin"
+    incbin	"letters_1_9.bin"
+    incbin	"letters_1_10.bin"
+    incbin	"letters_1_11.bin"
+    incbin	"letters_1_12.bin"
+    incbin	"letters_1_13.bin"
+    incbin	"letters_1_14.bin"
+    incbin	"letters_1_15.bin"
+    incbin	"letters_1_16.bin"
+    incbin	"letters_1_17.bin"
+    incbin	"letters_1_18.bin"
+    incbin	"letters_1_19.bin"
+    incbin	"letters_1_20.bin"
+    incbin	"letters_1_21.bin"
+    incbin	"letters_2_0.bin"
+    incbin	"letters_2_1.bin"
+    incbin	"letters_2_2.bin"
+    incbin	"letters_2_3.bin"
+    
+
+dash
+    incbin  "dash.bin"
+dot
+    incbin  "dot.bin"
+
+square
+    REPT	8
+	dc.b	$FF
+	ENDR
+
+heart
+    incbin  "heart.bin"
+copyright
+    incbin  "copyright.bin"
+space
+    ds.b    8,0
+    
+hiscore_string
+	dc.b	"HISCORE",0
+zero_string
+	dc.b	"0",0
+p1_string
+    dc.b    "     1UP",0
+level_string
+    dc.b    "   LEVEL",0
+score_string
+    dc.b    "       00",0
+game_over_string
+    dc.b    "GAME##OVER",0
+player_one_string
+    dc.b    "PLAYER ONE",0
+player_one_string_clear
+    dc.b    "          ",0
+    even
+; game main tables
+
+
+practice_tables:
+	dc.l	practice_table_1
+	dc.l	practice_table_2
+	dc.l	practice_table_3
+	dc.l	practice_table_2
+	dc.l	practice_table_1
+	dc.l	practice_table_2
+	dc.l	practice_table_3
+	dc.l	practice_table_1
+	
+practice_table_1:
+	dc.l	JPF_BTN_AUP|JPF_BTN_RIGHT	; lunge punch
+	IFD		SHORT_PRACTICE
+	dc.l	0
+	ENDC
+	dc.l	JPF_BTN_ARIGHT	; front kick	
+	dc.l	JPF_BTN_ALEFT	; back kick
+	dc.l	JPF_BTN_ADOWN	; low kick
+	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT	; lunge punch
+	dc.l	JPF_BTN_UP|JPF_BTN_ALEFT	; jumping back kick
+	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
+	dc.l	JPF_BTN_AUP					; round kick
+	dc.l	0
+practice_table_2	
+	dc.l	JPF_BTN_AUP	; round kick
+	IFD		SHORT_PRACTICE
+	dc.l	0
+	ENDC
+	dc.l	JPF_BTN_ADOWN	; low kick
+	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT	; lunge punch (high, still)
+	dc.l	JPF_BTN_LEFT|JPF_BTN_ARIGHT	; back round kick
+	dc.l	JPF_BTN_ARIGHT	; front kick
+	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
+	dc.l	JPF_BTN_ALEFT	; back kick
+	dc.l	JPF_BTN_AUP|JPF_BTN_RIGHT	; lunge punch (high, forward)
+	dc.l	0
+practice_table_3
+	dc.l	JPF_BTN_ARIGHT	; front kick
+	IFD		SHORT_PRACTICE
+	dc.l	0
+	ENDC
+	dc.l	JPF_BTN_AUP	; round kick
+	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
+	dc.l	JPF_BTN_ADOWN	; low kick
+	dc.l	JPF_BTN_ALEFT	; back kick
+	dc.l	JPF_BTN_DOWN|JPF_BTN_AUP	; reverse punch
+	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT	; lunge punch (high, still)
+	dc.l	JPF_BTN_UP|JPF_BTN_ALEFT	; jumping back kick
+	dc.l	0
+    
+HW_SpriteXTable
+  rept 320
+x   set REPTN+$80
+    dc.b  0, x>>1, 0, x&1
+  endr
+
+
+HW_SpriteYTable
+  rept 260
+ys  set REPTN+$2c
+ye  set ys+16       ; size = 16
+    dc.b  ys&255, 0, ye&255, ((ys>>6)&%100) | ((ye>>7)&%10)
+  endr
+
 player_start_y_table
 	dc.w	176
 	dc.w	176	; ???
@@ -4737,6 +4903,20 @@ referee_start_xy_table
 	dc.w	112,96	; ???
 	dc.w	112,96	; ???
 	
+bubble_table
+	; those are used by the referee
+	dc.l	draw_no_bubble
+	dc.l	draw_very_good_bubble
+	dc.l	draw_white_bubble
+	dc.l	draw_red_bubble
+	dc.l	draw_stop_bubble
+	dc.l	draw_judge_bubble
+	dc.l	draw_begin_bubble
+	; those are used by the girls
+	dc.l	draw_better_luck_bubble
+	dc.l	draw_my_hero_bubble
+
+
 referee_leg_table
 	dc.l	referee_left_leg_down,referee_right_leg_down,referee_legs_down
 	
