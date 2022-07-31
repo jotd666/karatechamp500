@@ -10,11 +10,13 @@ then connect to crouch
 jump special case just for jumping side kick (connect from jump)
 jumping side kick y looks wrong: re-capture
 jump not correct: re-capture
-
-generate frame: compute min/max y                
+       
 				
-debug mode: show hitboxes
-block moves on xmin/xmax
+debug mode: show hitboxes: problem when facing left
+rip girls
+rip evade obstacles
+rip breaking wood
+rip bull
 
-yellow arrow sprites
-practice mode with move names
+
+

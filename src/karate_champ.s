@@ -108,7 +108,7 @@ Execbase  = 4
 ; if set skips intro, game starts immediately
 DIRECT_GAME_START
 ; practice has only 1 move
-SHORT_PRACTICE
+;SHORT_PRACTICE
 
 
 
@@ -1409,6 +1409,7 @@ draw_practice:
 	beq.b	.erase_practice_message
 	bcc.b	draw_normal
 .draw_practice_message:
+	
 	bsr	draw_referee
 
 	; draw message. This is suboptimal but works
@@ -2649,7 +2650,7 @@ update_practice
 	move.w	current_score_y(pc),d1
 	move.w	#4,d2
 	move.w	#16,d3
-	bsr		restore_background
+	;bsr		restore_background
 	; so display routine knows it's possible again
 	; to display score next time
 	clr.w	current_score_x
@@ -3127,7 +3128,7 @@ move_player:
 	clr.w	d0		; starts over again (looping animations, basically walks)
 .fup
 	move.w	d0,frame(a4)
-	; a1 holds frame structure. we only need delta x/y
+	; a1 holds frame structure
 
 	add.w	d0,a1
 	tst.b	rollback(a4)
@@ -3456,6 +3457,60 @@ draw_player:
 .white:
 	
     bsr blit_plane_any_internal_cookie_cut
+	
+	tst.b	draw_hit_zones_flag
+	beq.b	.out
+	bsr		wait_blit
+	; debug only: draw hit/vulnerable/invisible zones
+.out
+	move.l	frame_set(a4),a0
+	add.w	frame(a4),a0
+	move.l	(hit_data,a0),a1
+	move.w	#$F00,d2
+	move.w	xpos(a4),d3
+	move.w	ypos(a4),d4
+	; if facing left, we have to perform a symmetry
+	cmp.w	#RIGHT,direction(a4)
+	sne		d5
+	beq.b	.hit_draw
+	; facing left
+	add.w	bob_width(a0),d3
+	sub.w	#16,d3
+.hit_draw:
+	move.w	(a1)+,d0
+	bmi.b	.done
+	move.w	(a1)+,d1
+	tst.b	d5
+	beq.b	.pos
+	neg.w	d0
+.pos
+	add.w	d3,d0
+	add.w	d4,d1
+	bsr		write_2x2_box
+	bra.b	.hit_draw
+.done
+	; draw mask if defence in mask
+	move.l	(target_data,a0),a1
+	move.w	bob_height(a0),d6
+	subq.w	#1,d6
+	move.w	ypos(a4),d4
+.yloop
+	move.w	bob_width(a0),d7
+	subq.w	#1,d7
+	move.w	xpos(a4),d3	; X
+.xloop
+	move.b	(a1)+,d2
+	cmp.b	#FT_BLOCK,d2
+	bne.b	.no_block
+	move.w	d3,d0
+	move.w	d4,d1
+	move.w	#$00F,d2
+	bsr		write_2x2_box
+.no_block
+	addq	#2,d3
+	dbf		d7,.xloop
+	addq	#2,d4
+	dbf		d6,.yloop
 	rts
 
 handle_ai
@@ -4085,6 +4140,70 @@ color_lookup
 .color_found
 	tst		d5	; probably useless, N is not set
 	rts
+
+; what: writes a pixel in a given color
+; (note: this is very inefficient, debug purposes only)
+; args:
+; < D0: X
+; < D1: Y
+; < D2: RGB4 color (must be in palette!)
+; trashes: none
+	
+write_2x2_box:
+    movem.l D0-D5/A1-A2,-(a7)    
+	bsr		color_lookup
+	bmi.b	.out	
+    lea	screen_data,a1
+	move.w	d5,d4
+	; save d0 3 first bits in d2
+	move.b	d0,d2
+    ADD_XY_TO_A1_40    a2
+	move.l	a1,a2
+	and.b	#7,d2
+	neg.b	d2
+	addq	#7,d2
+.noshift
+    moveq   #3,d3
+.plane_loop
+    btst    #0,d5
+    beq.b   .clr
+	bset.b	d2,(a1)
+	bset.b	d2,(NB_BYTES_PER_LINE,a1)
+	bra.b	.next
+.clr
+	bclr.b	d2,(a1)
+	bclr.b	d2,(NB_BYTES_PER_LINE,a1)
+.next
+    lsr.w   #1,d5
+    add.w   #SCREEN_PLANE_SIZE,a1
+    dbf d3,.plane_loop
+	move.l	a2,a1	; restore a1
+	; second row
+    moveq   #3,d3
+	move.w	d4,d5
+	tst.b	d2
+	bne.b	.same_byte
+	move.w	#7,d2
+	addq.w	#1,a1
+	bra.b	.plane_loop2
+.same_byte
+	subq.l	#1,d2
+.plane_loop2
+    btst    #0,d5
+    beq.b   .clr2
+	bset.b	d2,(a1)
+	bset.b	d2,(NB_BYTES_PER_LINE,a1)
+	bra.b	.next2
+.clr2
+	bclr.b	d2,(a1)
+	bclr.b	d2,(NB_BYTES_PER_LINE,a1)
+.next2
+    lsr.w   #1,d5
+    add.w   #SCREEN_PLANE_SIZE,a1
+    dbf d3,.plane_loop2
+.out
+    movem.l (a7)+,D0-D5/A1-A2
+    rts
 	
 ; what: writes a pixel in a given color
 ; (note: this is very inefficient, debug purposes only)

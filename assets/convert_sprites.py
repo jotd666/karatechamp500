@@ -324,10 +324,12 @@ def process_player_tiles():
             f.write("\tdc.l\t{}_mask\n".format(frame))
             f.write("\tdc.l\t{}_hit_list\n".format(frame))
             # image size info, x/y variations, logical infos (padding ATM)
-            row_size = ((width//8)+2)
-            plane_size = row_size*height
+            bob_nb_bytes_per_row = ((width//8)+2)   # blitter adds 16 bits
+            plane_size = bob_nb_bytes_per_row*height
             # plane_size is redundant but saves a multiplication by 48 in-game
-            f.write("\tdc.w\t{},{},{},{},{},{}\n".format(plane_size,row_size,(dx - prev_dx)*x_sign,dy - prev_dy,df,int(i<3)))
+            #
+            f.write("\tdc.w\t{},{},{},{},{},{},{},{}\n".format(plane_size,width,
+                            height,bob_nb_bytes_per_row,(dx - prev_dx)*x_sign,dy - prev_dy,df,int(i<3)))
             prev_dx = dx
             prev_dy = dy
         f.write("\tdc.l\t0,0,0,0\n")
@@ -347,6 +349,8 @@ def process_player_tiles():
     APTR    target_data
 	APTR	hit_data
     UWORD   bob_plane_size
+    UWORD   bob_width
+    UWORD   bob_height
     UWORD   bob_nb_bytes_per_row
     UWORD   delta_x
     UWORD   delta_y
@@ -593,9 +597,9 @@ bitplanelib.palette_dump(palette,os.path.join(source_dir,"palette.s"),as_copperl
 
 #process_backgrounds(palette)
 
-process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
+#process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
 
-#process_player_tiles()
+process_player_tiles()
 
 process_fonts(dump_fonts)
 
