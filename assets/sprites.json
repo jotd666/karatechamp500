@@ -194,7 +194,8 @@
    "start_y":112,
    "width":32,
    "height":16,
-   "generate_mask":false
+   "generate_mask":false,
+   "force_all_bitplanes":true
  },
 {
    "name":"judge_bubble_mask",

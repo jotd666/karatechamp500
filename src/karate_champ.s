@@ -318,18 +318,16 @@ ADD_XY_TO_A1_40:MACRO
     lea mul40_table(pc),\1
     add.w   d1,d1
     lsr.w   #3,d0
-    move.w  (\1,d1.w),d1
+    add.w  (\1,d1.w),a1
     add.w   d0,a1       ; plane address
-    add.w   d1,a1       ; plane address
     ENDM
 
 ADD_XY_TO_A1_28:MACRO
     lea mul28_table(pc),\1
     add.w   d1,d1
     lsr.w   #3,d0
-    move.w  (\1,d1.w),d1
+    add.w  (\1,d1.w),a1
     add.w   d0,a1       ; plane address
-    add.w   d1,a1       ; plane address
     ENDM
 
 
@@ -2255,6 +2253,7 @@ saved_intena
 ; F3: toggle infinite lives
 ; F4: show debug info
 ; F5: re-draw background pic
+; F6: draw hit zones
 ; left-ctrl: fast-forward (no player controls during that)
 ; when going away:
 ; * reverse: medium block (shuto-uke)
@@ -2356,7 +2355,11 @@ level2_interrupt:
 	movem.l	(a7)+,d0-a6
     bra.b   .no_playing
 .no_redraw
-
+    cmp.b   #$55,d0     ; F5
+    bne.b   .toggle_hit_zones
+	eor.b   #1,draw_hit_zones_flag
+    bra.b   .no_playing
+.toggle_hit_zones
 .no_playing
 
     cmp.b   _keyexit(pc),d0
@@ -3316,6 +3319,7 @@ blit_back_plane:
 ; < A4: referee structure
 draw_referee
 	lea	referee(pc),a4
+	
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
 	move.w	#4,d2
@@ -4061,7 +4065,64 @@ write_blanked_color_string:
 .out
     movem.l (a7)+,D1-D6/A1
     rts
-    
+
+; utility method for write_pixel/string
+; trashes D3-D5
+; > D5: palette index, negative if not found
+; > N set if not found
+
+color_lookup
+    lea game_palette(pc),a1
+    moveq   #15,d3
+.search
+    move.w  (a1)+,d4
+    cmp.w   d4,d2
+    beq.b   .color_found
+    addq.w  #1,d5
+    dbf d3,.search
+	moveq	#-1,d5
+    rts
+.color_found
+	tst		d5	; probably useless, N is not set
+	rts
+	
+; what: writes a pixel in a given color
+; (note: this is very inefficient, debug purposes only)
+; args:
+; < D0: X
+; < D1: Y
+; < D2: RGB4 color (must be in palette!)
+; trashes: none
+
+write_pixel:
+    movem.l D0-D5/A1-A2,-(a7)    
+	bsr		color_lookup
+	bmi.b	.out	
+    lea	screen_data,a1
+	; save d0 3 first bits in d2
+	move.b	d0,d2
+    ADD_XY_TO_A1_40    a2
+	and.b	#7,d2
+	neg.b	d2
+	addq	#7,d2
+.noshift
+    moveq   #3,d3
+.plane_loop
+    btst    #0,d5
+    beq.b   .clr
+	bset.b	d2,(a1)
+	bra.b	.next
+.clr
+	bclr.b	d2,(a1)
+.next
+    lsr.w   #1,d5
+    add.w   #SCREEN_PLANE_SIZE,a1
+    dbf d3,.plane_loop	
+.out
+    movem.l (a7)+,D0-D5/A1-A2
+    rts
+
+	
 ; what: writes a text in a given color
 ; args:
 ; < A0: c string
@@ -4073,18 +4134,8 @@ write_blanked_color_string:
 
 write_color_string:
     movem.l D1-D5/A1,-(a7)
-    lea game_palette(pc),a1
-    moveq   #15,d3
-    moveq   #0,d5
-.search
-    move.w  (a1)+,d4
-    cmp.w   d4,d2
-    beq.b   .color_found
-    addq.w  #1,d5
-    dbf d3,.search
-    moveq   #0,d0   ; nothing written
-    bra.b   .out
-.color_found
+	bsr.b		color_lookup
+	bmi.b	.out	
     ; d5: color index
     lea screen_data,a1
     moveq   #3,d3
@@ -4092,11 +4143,6 @@ write_color_string:
 	tst.w	d5
 	beq.b	.erase_loop
 .plane_loop
-; < A0: c string
-; < A1: plane
-; < D0: X (multiple of 8)
-; < D1: Y
-; > D0: number of characters written
     btst    #0,d5
     beq.b   .skip_plane
     move.w  d4,d0
@@ -4718,12 +4764,14 @@ debug_flag
     dc.b    0
 demo_mode
     dc.b    0
+draw_hit_zones_flag
+	dc.b	1
 music_played
     dc.b    0
 
 
 cheat_sequence
-    dc.b    $26,$18,$14,$22,0
+    dc.b    $26,$18,$14,$22,0	; "JOTD" in raw keycodes
     even
 
 

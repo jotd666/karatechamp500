@@ -423,6 +423,7 @@ def process_tiles(json_file,out_asm_file=None,dump=False):
         if object.get("ignore"):
             continue
         generate_mask = object.get("generate_mask",master_generate_mask)
+        force_all_bitplanes = object.get("force_all_bitplanes",False)
 
         blit_pad = object.get("blit_pad",master_blit_pad)
         gap = object.get("gap",0)
@@ -498,7 +499,7 @@ def process_tiles(json_file,out_asm_file=None,dump=False):
                 binname = "{}/{}".format(sprites_dir,name_dict.get(namei,namei))
                 binlist.append(binname)
 
-                if not generate_mask:
+                if not generate_mask and not force_all_bitplanes:
                     # if 1 plane, no mask, manual mask frames, save only 1 plane, else save all 4 planes
                     p = bitplanelib.palette_extract(img,palette_precision_mask=0xF0)
                     used_palette = p if len(p)==2 else used_palette
