@@ -109,7 +109,8 @@ Execbase  = 4
 DIRECT_GAME_START
 ; practice has only 1 move
 ;SHORT_PRACTICE
-
+; repeat a long time just to test moves
+REPEAT_PRACTICE = 10
 
 
 
@@ -1706,7 +1707,7 @@ decode_technique_name
 	CONTROL_TEST	AUP,UP,.out2
 	CONTROL_TEST	ARIGHT,RIGHT,.out2
 	CONTROL_TEST	ALEFT,LEFT,.out2
-.out2	
+.out2
 	lsl.w	#4,d1	; shift moves
 	CONTROL_TEST	DOWN,DOWN,.out1
 	CONTROL_TEST	UP,UP,.out1
@@ -1725,11 +1726,8 @@ decode_technique_name
 ; trashes: D0,D1
 add_to_score:
 	tst.b	demo_mode
-
     move.l  score(pc),previous_score
-
     add.l   d0,score
-
     rts
     
 random:
@@ -3181,7 +3179,7 @@ move_player:
 	bsr		turn_back
 
 .no_turn_back
-	lea		walk_forward_frames(pc),a0
+	lea		walk_forward_frames,a0
 	bra		load_walk_frame
 
 
@@ -3466,16 +3464,21 @@ draw_player:
 	move.l	frame_set(a4),a0
 	add.w	frame(a4),a0
 	move.l	(hit_data,a0),a1
-	move.w	#$F00,d2
 	move.w	xpos(a4),d3
 	move.w	ypos(a4),d4
+	move.w	#$F00,d2
 	; if facing left, we have to perform a symmetry
 	cmp.w	#RIGHT,direction(a4)
 	sne		d5
 	beq.b	.hit_draw
 	; facing left
-	add.w	bob_width(a0),d3
-	sub.w	#16,d3
+	move.w	bob_nb_bytes_per_row(a0),d3
+	sub.w	#6,d3	; minus 48 to center character
+	lsl.w	#3,d3	; times 8
+	sub.w	d3,d0	; subtract if facing left
+
+	;add.w	bob_width(a0),d3
+	;sub.w	#16,d3
 .hit_draw:
 	move.w	(a1)+,d0
 	bmi.b	.done
@@ -3498,13 +3501,15 @@ draw_player:
 .yloop
 	move.w	bob_width(a0),d7
 	lsr.w	#1,d7
+	move.w	d7,d5		; store (optimization for left side)
 	subq.w	#1,d7
 	move.w	xpos(a4),d0	; X
+	cmp.w	#RIGHT,direction(a4)
+	bne.b	.case_left	
 .xloop
-	move.b	(a1)+,d2
-	cmp.b	#FT_HIT,d2
-	bne.b	.no_block
-	move.w	#$00F,d2
+	tst.b	(a1)+
+	beq.b	.no_block
+	move.w	#$FFF,d2
 	bsr		write_2x2_box
 .no_block
 	addq	#2,d0
@@ -3512,7 +3517,24 @@ draw_player:
 	addq	#2,d1
 	dbf		d6,.yloop
 	rts
-
+.case_left
+	move.w	bob_nb_bytes_per_row(a0),d3
+	sub.w	#6,d3	; minus 48 to center character
+	lsl.w	#3,d3	; times 8
+	sub.w	d3,d0	; subtract if facing left
+.xloop_left
+	tst.b	(a1,d7.w)
+	beq.b	.no_block_left
+	move.w	#$FFF,d2
+	bsr		write_2x2_box
+.no_block_left
+	addq	#2,d0
+	dbf		d7,.xloop_left
+	add.w	d5,a1
+	addq	#2,d1
+	dbf		d6,.yloop
+	rts
+	
 handle_ai
 	moveq.l	#0,d0
 	cmp.w	#GM_PRACTICE,level_type
@@ -4127,6 +4149,7 @@ write_blanked_color_string:
 ; > N set if not found
 
 color_lookup
+	moveq.l	#0,d5
     lea game_palette(pc),a1
     moveq   #15,d3
 .search
@@ -4162,7 +4185,6 @@ write_2x2_box:
 	and.b	#7,d2
 	neg.b	d2
 	addq	#7,d2
-.noshift
     moveq   #3,d3
 .plane_loop
     btst    #0,d5
@@ -4982,6 +5004,7 @@ practice_tables:
 	dc.l	practice_table_1
 	
 practice_table_1:
+	REPT	REPEAT_PRACTICE
 	dc.l	JPF_BTN_AUP|JPF_BTN_RIGHT	; lunge punch
 	IFD		SHORT_PRACTICE
 	dc.l	0
@@ -4993,8 +5016,10 @@ practice_table_1:
 	dc.l	JPF_BTN_UP|JPF_BTN_ALEFT	; jumping back kick
 	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
 	dc.l	JPF_BTN_AUP					; round kick
+	ENDR
 	dc.l	0
 practice_table_2	
+	REPT	REPEAT_PRACTICE
 	dc.l	JPF_BTN_AUP	; round kick
 	IFD		SHORT_PRACTICE
 	dc.l	0
@@ -5006,8 +5031,10 @@ practice_table_2
 	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
 	dc.l	JPF_BTN_ALEFT	; back kick
 	dc.l	JPF_BTN_AUP|JPF_BTN_RIGHT	; lunge punch (high, forward)
+	ENDR
 	dc.l	0
 practice_table_3
+	REPT	REPEAT_PRACTICE
 	dc.l	JPF_BTN_ARIGHT	; front kick
 	IFD		SHORT_PRACTICE
 	dc.l	0
@@ -5019,6 +5046,7 @@ practice_table_3
 	dc.l	JPF_BTN_DOWN|JPF_BTN_AUP	; reverse punch
 	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT	; lunge punch (high, still)
 	dc.l	JPF_BTN_UP|JPF_BTN_ALEFT	; jumping back kick
+	ENDR
 	dc.l	0
     
 HW_SpriteXTable
