@@ -3492,24 +3492,24 @@ draw_player:
 	; draw mask if defence in mask
 	move.l	(target_data,a0),a1
 	move.w	bob_height(a0),d6
+	lsr.w	#1,d6
 	subq.w	#1,d6
-	move.w	ypos(a4),d4
+	move.w	ypos(a4),d1
 .yloop
 	move.w	bob_width(a0),d7
+	lsr.w	#1,d7
 	subq.w	#1,d7
-	move.w	xpos(a4),d3	; X
+	move.w	xpos(a4),d0	; X
 .xloop
 	move.b	(a1)+,d2
-	cmp.b	#FT_BLOCK,d2
+	cmp.b	#FT_HIT,d2
 	bne.b	.no_block
-	move.w	d3,d0
-	move.w	d4,d1
 	move.w	#$00F,d2
 	bsr		write_2x2_box
 .no_block
-	addq	#2,d3
+	addq	#2,d0
 	dbf		d7,.xloop
-	addq	#2,d4
+	addq	#2,d1
 	dbf		d6,.yloop
 	rts
 
