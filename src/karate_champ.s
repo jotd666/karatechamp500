@@ -78,6 +78,7 @@ INTERRUPTS_ON_MASK = $E038
 	STRUCT	_referee_base,Character_SIZEOF
 	UWORD	bubble_type
 	UWORD	bubble_timer
+	UWORD	walk_timer
 	UWORD	min_xpos
 	UWORD	max_xpos
 	UBYTE	hand_red_or_japan_flag	; 0, 1 (red) or 3 (japan)
@@ -201,6 +202,8 @@ NULL = 0
 PRACTICE_SKIP_MESSAGE_LEN = 210
 PRACTICE_WAIT_BEFORE_NEXT_MOVE = 45
 PRACTICE_MOVE_DURATION = PRACTICE_WAIT_BEFORE_NEXT_MOVE*2
+
+START_ROUND_NB_TICKS = 110
 
 NB_RECORDED_MOVES = 100
 
@@ -852,7 +855,7 @@ init_new_play:
 
 	
 init_level:
-	clr.l	state_timer 
+	clr.l	state_timer
 	lea		init_level_type_table(pc),a0
 	move.w	level_type(pc),d0
 	move.l	(a0,d0.w),a0
@@ -1046,6 +1049,13 @@ draw_score:
 	
 	bsr		draw_high_score
 
+    move.w  #136,d0
+    move.w  #32,d1
+	move.l	score(pc),d2
+    move.w  #6,d3
+    move.w  #$FFF,d4    
+    bsr write_color_decimal_number
+
 	rts
 .zero
 		dc.b	"0",0
@@ -1139,7 +1149,7 @@ init_players_and_referee:
 	move.w	referee_ypos(a1),ypos(a4)
 	move.l	referee_max_xpos(a1),max_xpos(a4)	; x and y
 	move.l	referee_min_xpos(a1),min_xpos(a4)	; x and y
-
+	clr.w	walk_timer(a4)
 	move.b	#2,character_id(a4)
 	move.w	#REFEREE_LEGS_DOWN,frame(a4)
 	move.w	#RIGHT,direction(a4)
@@ -1559,6 +1569,7 @@ erase_bubble
 	move.w	previous_bubble_ypos(a4),d1
 	move.w	previous_bubble_width(a4),d2
 	move.w	previous_bubble_height(a4),d3
+	addq.w	#8,d3	; bubble leg
 	bra		restore_background
 .no_erase
 	rts
@@ -1625,7 +1636,12 @@ draw_bubble
 	move.w	#16,d3		; height is always 16
 	add.w	#16,d0
 	sub.w	#24,d1
+	move.w	d0,previous_bubble_xpos(a4)
+	move.w	d1,previous_bubble_ypos(a4)
+	move.w	d3,previous_bubble_height(a4)
 	bsr		blit_4_planes_cookie_cut
+	lsl.w	#3,d2	; times 8
+	move.w	d2,previous_bubble_width(a4)
 	move.l	a1,a0
 	add.w	#16,d1
 	add.w	d4,d0
@@ -1644,9 +1660,10 @@ draw_white_bubble
 	move.w	#16,d3
 	move.w	d0,previous_bubble_xpos(a4)
 	move.w	d1,previous_bubble_ypos(a4)
-	move.w	d2,previous_bubble_width(a4)
 	move.w	d3,previous_bubble_height(a4)
 	bsr		blit_4_planes_cookie_cut
+	lsl.w	#3,d2	; times 8
+	move.w	d2,previous_bubble_width(a4)
 	lea	white_left_bubble_leg,a0
 	add.w	#8,d0
 	add.w	#16,d1
@@ -2606,7 +2623,28 @@ update_all
 	jmp		(a0)
 	
 update_normal:
-	; time
+	; TODO start music timer on first round
+	move.w	start_round_timer(pc),d0
+	beq.b	.normal
+	subq.w	#1,d0
+	move.w	d0,start_round_timer
+	beq.b	.go_normal
+	; check if we must display "begin" bubble
+	cmp.w	#START_ROUND_NB_TICKS-50,d0
+	beq.b	.display_begin
+	rts
+.display_begin
+	lea	referee(pc),a4
+	move.w	#BUBBLE_BEGIN,bubble_type(a4)
+	move.w	#NB_TICKS_PER_SEC,bubble_timer(a4)
+	lea		begin_sound,a0
+	bsr		play_fx
+	rts
+.go_normal
+	; start round
+	lea	referee(pc),a4
+	move.w	#REFEREE_LEFT_LEG_DOWN,frame(a4)
+.normal
 	subq.w	#1,time_ticks
 	bne.b	.no_sec
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
@@ -2622,7 +2660,7 @@ update_normal:
     bsr update_player
     lea     player_2(pc),a4
     bsr update_player
-
+.wait
     rts
 	
 update_bull
@@ -2641,7 +2679,45 @@ update_referee
 	beq.b	.no_bubble
 	subq.w	#1,bubble_timer(a4)
 	beq.b	referee_bubble_timeout
+	rts
 .no_bubble
+	move.w	walk_timer(a4),d0
+	addq.w	#1,d0
+	cmp.w	#NB_TICKS_PER_SEC/3,d0
+	bne.b	.no_wto
+	move.w	xpos(a4),d1
+	; toggle legs
+	move.w	frame(a4),d0
+	neg.w	d0
+	addq.w	#4,d0
+	move.w	d0,frame(a4)
+	
+	move.w	#8,d0
+	cmp.w	#RIGHT,direction(a4)
+	beq.b	.wr
+	; walk left
+	cmp.w	min_xpos(a4),d1
+	bcc.b	.not_min
+	; min: turn back
+	move.w	#RIGHT,direction(a4)
+	neg.w	d0
+.not_min
+	sub.w	d0,d1
+	move.w	d1,xpos(a4)
+	bra.b	.wdone
+.wr
+	cmp.w	max_xpos(a4),d1
+	bcs.b	.not_max
+	; max: turn back
+	move.w	#LEFT,direction(a4)
+	neg.w	d0
+.not_max
+	add.w	d0,d1
+	move.w	d1,xpos(a4)
+.wdone
+	clr.w	d0
+.no_wto
+	move.w	d0,walk_timer(a4)
 	rts
 
 ; what: do something when referee bubble times out
@@ -2649,7 +2725,9 @@ update_referee
 ; this makes the referee control most game events :)
 ; < A4: referee structure
 referee_bubble_timeout
-	move.w	bubble_type(a4),d0	; decide what to do
+	;;move.w	bubble_type(a4),d0	; decide what to do
+	st.b	erase_referee_bubble_message
+	clr.w	bubble_type(a4)
 	rts
 	
 update_practice
@@ -2721,6 +2799,8 @@ init_level_type_table
 
 init_normal:
 	; todo reset hits, maybe call init players
+	move.w	#START_ROUND_NB_TICKS,start_round_timer
+
 	rts
 	
 init_practice
@@ -2770,7 +2850,7 @@ update_player
 .no_second_frame
 
 .frame_done    
-    move.w  d0,death_frame_offset   ; 0,4,8
+    ;;move.w  d0,death_frame_offset   ; 0,4,8
     rts
 .alive
 
@@ -3229,11 +3309,9 @@ check_hit
 
 erase_referee:
 	lea	referee(pc),a4
-	move.w	previous_ypos(a4),d3
+	move.w	previous_xpos(a4),d0
 	beq.b	.out		; 0: not possible: first draw
-	move.w	previous_xpos(a4),d2
-	move.l	d2,d0
-	move.l	d3,d1
+	move.w	ypos(a4),d1
 	move.w	#32,d2	; width (no shifting)
 	move.w	#48,d3	; height
 	bra.b		restore_background
@@ -3343,6 +3421,7 @@ draw_referee
 	
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
+	move.w	d0,previous_xpos(a4)
 	move.w	#4,d2
 	move.w	#16,d3
 	lea	referee_head,a0
@@ -3406,7 +3485,8 @@ draw_referee
 	add.w	#4,d1
 	bsr		blit_4_planes_cookie_cut
 .no_white_flag	
-	
+	tst.b	erase_referee_bubble_message
+	bne.b	.erase_bubble
 	; handle bubbles
 	move.w	bubble_type(a4),d0
 	beq.b	.no_bubble
@@ -3417,6 +3497,11 @@ draw_referee
 
 	rts
 
+.erase_bubble
+	clr.b	erase_referee_bubble_message
+	bsr		erase_bubble
+	rts
+	
 ; < A4: player structure
 draw_player:
     lea _custom,A5
@@ -4897,6 +4982,9 @@ previous_player_address
 previous_valid_direction
     dc.l    0
 
+start_round_timer
+	dc.w	0
+	
 ; 0: practice
 level_number:
     dc.w    0
@@ -4917,12 +5005,11 @@ cheat_sequence_pointer
 
 cheat_keys
     dc.w    0
-death_frame_offset
-    dc.w    0
+
 
 level_completed_flag
 	dc.b	0
-rustler_level:
+erase_referee_bubble_message:
     dc.b    0
 
 
@@ -5140,9 +5227,15 @@ SOUND_ENTRY:MACRO
     ENDM
     
     ; radix, ,channel (0-3)
-    SOUND_ENTRY kiai_1,2,SOUNDFREQ,29
-    SOUND_ENTRY kiai_2,2,SOUNDFREQ,17
-
+    SOUND_ENTRY begin,2,SOUNDFREQ,34
+    SOUND_ENTRY fall,2,SOUNDFREQ,25
+    SOUND_ENTRY full_point,2,SOUNDFREQ,34
+    SOUND_ENTRY half_point,2,SOUNDFREQ,15
+    SOUND_ENTRY judge,2,SOUNDFREQ,39
+    SOUND_ENTRY kiai_1,1,SOUNDFREQ,29
+    SOUND_ENTRY kiai_2,1,SOUNDFREQ,17
+    SOUND_ENTRY stop,2,SOUNDFREQ,31
+	
 game_palette
     include "palette.s"
     
@@ -5240,15 +5333,27 @@ practice_level
 
 pier_level
 	dc.l	pl1
-	dc.w	22
+	dc.w	24
 	dc.w	176
-	dc.w	148
+	dc.w	152
 	dc.w	0
 	; referee
 	dc.w	104
-	dc.w	72
-	dc.w	140
-	dc.w	80		; wrong
+	dc.w	112
+	dc.w	32
+	dc.w	-32
+	
+fuji_level
+	dc.l	pl1
+	dc.w	22
+	dc.w	190
+	dc.w	152
+	dc.w	0
+	; referee
+	dc.w	104
+	dc.w	124
+	dc.w	32
+	dc.w	-32
 	
 	   
 pl1:
@@ -5356,6 +5461,31 @@ empty_48x48_bob
     ds.b    BOB_64X48_PLANE_SIZE,0
 
 ; sound samples
+begin_raw
+    incbin  "begin.raw"
+    even
+begin_raw_end
+
+fall_raw
+    incbin  "fall.raw"
+    even
+fall_raw_end
+
+full_point_raw
+    incbin  "full_point.raw"
+    even
+full_point_raw_end
+
+half_point_raw
+    incbin  "half_point.raw"
+    even
+half_point_raw_end
+
+judge_raw
+    incbin  "judge.raw"
+    even
+judge_raw_end
+
 kiai_1_raw
     incbin  "kiai_1.raw"
     even
@@ -5365,6 +5495,11 @@ kiai_2_raw
     incbin  "kiai_2.raw"
     even
 kiai_2_raw_end
+
+stop_raw
+    incbin  "stop.raw"
+    even
+stop_raw_end
 
 
 	include	"player_bobs.s"
