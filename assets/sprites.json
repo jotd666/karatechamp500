@@ -46,6 +46,13 @@
    "height":16
  },
  {
+   "name":"evade",
+   "start_x":144,
+   "start_y":32,
+   "width":64,
+   "height":24
+ },
+ {
    "name":"techniques",
    "start_x":0,
    "start_y":32,

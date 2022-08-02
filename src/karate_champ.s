@@ -42,6 +42,21 @@ INTERRUPTS_ON_MASK = $E038
     UWORD   color3
     LABEL   SpritePalette_SIZEOF
     
+    STRUCTURE   LevelParams,0
+	APTR	background_picture
+    UWORD   p1_init_xpos
+    UWORD   p1_init_ypos
+    UWORD   p2_init_xpos
+    UWORD   p2_init_ypos
+	UWORD	referee_xpos
+	UWORD	referee_ypos
+	UWORD	referee_max_xpos
+	UWORD	referee_min_xpos
+    LABEL   LevelParams_SIZEOF
+    
+	
+
+	
 	STRUCTURE Character,0
     ULONG   character_id
 	UWORD	xpos
@@ -108,9 +123,9 @@ Execbase  = 4
 ; if set skips intro, game starts immediately
 DIRECT_GAME_START
 ; practice has only 1 move
-;SHORT_PRACTICE
+SHORT_PRACTICE
 ; repeat a long time just to test moves
-REPEAT_PRACTICE = 10
+;REPEAT_PRACTICE = 10
 
 
 
@@ -552,7 +567,7 @@ intro:
     
     bsr init_new_play
 
-.new_level  
+.new_level
     bsr clear_screen  
     bsr init_level
     lea _custom,a5
@@ -836,31 +851,25 @@ init_new_play:
     rts
 
 	
-init_level: 
-	clr.l	state_timer
-    ; sets initial number of dots
-
-    
+init_level:
+	clr.l	state_timer 
+	lea		init_level_type_table(pc),a0
+	move.w	level_type(pc),d0
+	move.l	(a0,d0.w),a0
+	jsr		(a0)
     rts
-
-get_background_picture_index
-	move.w	level_number(pc),d0
-	cmp.w	#GM_PRACTICE,level_type
-	bne.b	.no_practice
-	move.w	#2,d0		; practice uses third level background
-.no_practice
-	rts
 	
 
 draw_background_pic
-	bsr	get_background_picture_index
+	move.w	level_number(pc),d0
 	cmp.w	loaded_level(pc),d0
 	beq.b	.unpacked
 	move.w	d0,loaded_level
 	add.w	d0,d0
 	add.w	d0,d0
-	lea	background_pics,a0
+	lea	level_params_table,a0
 	move.l	(a0,d0.w),a0
+	move.l	background_picture(a0),a0
 	lea	backbuffer,a1
 	bsr	Unpack
 .unpacked
@@ -988,8 +997,20 @@ draw_panel
 	move.w	#32,d0
 	move.w	#40,d1
 	bsr		blit_4_planes_cookie_cut	
+	bra.b	.hiscore
 .no_practice
-
+	cmp.w	#GM_EVADE,level_type
+	bne.b	.no_evade
+	lea		evade,a0
+	move.w	#64/8+2,d2
+	move.w	#24,d3
+	move.w	#32,d0
+	move.w	#38,d1
+	bsr		blit_4_planes_cookie_cut
+	bra.b	.hiscore
+.no_evade
+	nop
+.hiscore
 	; draw "HISCORE"
 	move.w	#136,d0
 	move.w	#8,d1
@@ -1059,53 +1080,66 @@ hide_sprites:
     dbf d1,.emptyspr
     rts
 
-
+; < A4 struct
 init_player_common
 	clr.l	joystick_state(a4)
 	clr.b	turn_back_flag(a4)
-	bsr		get_background_picture_index
-	add.w	d0,d0
-	lea		player_start_y_table(pc),a0
-    move.w	(a0,d0.w),ypos(a4)
-	
-	move.w 	#RIGHT,direction(a4)
-	tst		character_id(a4)
-	beq.b	.p1
-	; player 2/cpu
-	cmp.w	#GM_PRACTICE,level_type
-	bne.b	.no_practice
-	; practice: player 2 is higher
-	move.w	#96,ypos(a4)
-	move.w  #112,xpos(a4)
-	bra.b	.cont	
-.no_practice
-	move.w 	#LEFT,direction(a4)
-	move.w  #148,xpos(a4)
-	bra.b	.cont
-.p1
-	move.w  #22,xpos(a4)
-	cmp.w	#GM_PRACTICE,level_type
-	bne.b	.no_practice2
-	move.w  #40,xpos(a4)
-	move.w  #152,ypos(a4)
-	
-.no_practice2
-.cont
 	clr.l	previous_xpos(a4)	; x and y
 	clr.l	animation_struct(a4)
 	clr.b	skip_frame_reset(a4)
+    ; no moves (zeroes direction flags)
+    clr.w  move_controls(a4)  	; and attack controls
 	rts
 	
 init_players_and_referee:
+    lea player_1(pc),a4
+	move.b	#0,character_id(a4)
+	bsr		init_player_common
+	clr.b	is_cpu(a4)
+	move.w 	#RIGHT,direction(a4)
+	
+    lea player_2(pc),a4
+	bsr		init_player_common
+	move.b	#1,character_id(a4)
+	st.b	is_cpu(a4)			; ATM 1 player mode
+	move.w 	#RIGHT,direction(a4)
+	move.w	level_number(pc),d0
+	beq.b	.pract
+	move.w 	#LEFT,direction(a4)
+.pract	
+	add.w	d0,d0
+	add.w	d0,d0
+	lea		level_params_table,a1
+	move.l		(a1,d0.w),a1
+	
+	
+	lea		walk_forward_frames,a0
+	bsr		load_walk_frame
+
+
+    lea player_1(pc),a4
+    move.w	p1_init_xpos(a1),xpos(a4)
+    move.w	p1_init_ypos(a1),d6		; save for p2 y
+	move.w	d6,ypos(a4)
+ 	lea		walk_forward_frames,a0
+	bsr		load_walk_frame 
+
+	lea player_2(pc),a4
+    move.w	p2_init_xpos(a1),xpos(a4)
+    move.w	p2_init_ypos(a1),ypos(a4)
+	bne.b	.no_zero
+	move.w	d6,ypos(a4)		; 0 means same y as p1
+.no_zero
+ 	lea		walk_forward_frames,a0
+	bsr		load_walk_frame 
+
 	lea	referee(pc),a4
 	; init referee
-	cmp.w	#GM_PRACTICE,level_type
-	bne.b	.no_practice
-	move.w	#104,xpos(a4)
-	move.w	#72,ypos(a4)
-	move.l	xpos(a4),max_xpos(a4)	; x and y
-	move.l	xpos(a4),min_xpos(a4)	; x and y
-.no_practice
+	move.w	referee_xpos(a1),xpos(a4)
+	move.w	referee_ypos(a1),ypos(a4)
+	move.l	referee_max_xpos(a1),max_xpos(a4)	; x and y
+	move.l	referee_min_xpos(a1),min_xpos(a4)	; x and y
+
 	move.b	#2,character_id(a4)
 	move.w	#REFEREE_LEGS_DOWN,frame(a4)
 	move.w	#RIGHT,direction(a4)
@@ -1115,35 +1149,14 @@ init_players_and_referee:
 	clr.w	hand_red_or_japan_flag(a4)	; both hands
 	clr.l	previous_xpos(a4)	; x and y
 
-
 	; no score displayed
 	clr.w	current_score_x
 	
-    ; no moves (zeroes direction flags)
-    clr.w  move_controls(a4)  	; and attack controls
 
 	move.w	#30,time_left
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
 	
-
-    lea player_1(pc),a4
-	move.b	#0,character_id(a4)
-	bsr		init_player_common
-    
-	clr.b	turn_back_flag(a4)
-	clr.b	is_cpu(a4)
 	
-	lea		walk_forward_frames,a0
-	bsr		load_walk_frame
-	
-    lea player_2(pc),a4
-	move.b	#1,character_id(a4)
-	st.b	is_cpu(a4)			; ATM 1 player mode
-	bsr		init_player_common
- 
-	
-	lea		walk_forward_frames,a0
-	bsr		load_walk_frame
     
     move.w  #ORIGINAL_TICKS_PER_SEC,D0   
     tst.b   music_played
@@ -1846,6 +1859,7 @@ draw_intro_screen
 
 
 pos_table  
+    dc.l    pos1		; practice
     dc.l    pos1
     dc.l    pos2
     dc.l    pos3
@@ -2661,8 +2675,16 @@ update_practice
     bsr update_player
     lea     player_2(pc),a4
     bsr update_player
-	
+	rts
 .nothing
+    lea     player_1(pc),a4
+	move.l	joystick_state(a4),d0
+	; check if FIRE is pressed
+	btst	#JPB_BTN_RED,D0
+	beq.b	.no_skip
+	move.w	#GM_NORMAL,level_type
+	move.w	#STATE_NEXT_LEVEL,current_state
+.no_skip
 	rts
 	
 .intro_music_played
@@ -3566,7 +3588,11 @@ update_practice_moves
 	move.l	practice_current_move_key(pc),d0
 	bne.b	.out
 	; training is over
-	move.w	#GM_BULL,level_type
+
+	;move.w	#GM_BULL,level_type	; ends at demo
+	
+	move.w	#GM_NORMAL,level_type
+	move.w	#STATE_NEXT_LEVEL,current_state
 	clr.l	state_timer
 	bra.b	.out
 .not_performing_move
@@ -4871,7 +4897,7 @@ previous_player_address
 previous_valid_direction
     dc.l    0
 
-; 0: level 1
+; 0: practice
 level_number:
     dc.w    0
 level_type:
@@ -5011,6 +5037,10 @@ practice_tables:
 	dc.l	practice_table_3
 	dc.l	practice_table_1
 	
+	IFND	REPEAT_PRACTICE
+REPEAT_PRACTICE = 1
+	ENDC
+	
 practice_table_1:
 	REPT	REPEAT_PRACTICE
 	dc.l	JPF_BTN_AUP|JPF_BTN_RIGHT	; lunge punch
@@ -5071,40 +5101,6 @@ ye  set ys+16       ; size = 16
     dc.b  ys&255, 0, ye&255, ((ys>>6)&%100) | ((ye>>7)&%10)
   endr
 
-player_start_y_table
-	dc.w	176
-	dc.w	176	; ???
-	dc.w	150
-	dc.w	150	; ???
-	dc.w	150	; ???
-	dc.w	150	; ???
-	dc.w	150	; ???
-	dc.w	150	; ???
-	dc.w	150	; ???
-	dc.w	150	; ???
-	dc.w	150	; ???
-	dc.w	150	; ???
-	dc.w	150	; ???
-	dc.w	150	; ???
-	dc.w	150	; ???
-	dc.w	150	; ???
-referee_start_xy_table
-	;dc.w	
-	dc.w	112,96	; ???
-	dc.w	112,96
-	dc.w	112,96	; ???
-	dc.w	112,96	; ???
-	dc.w	112,96	; ???
-	dc.w	112,96	; ???
-	dc.w	112,96	; ???
-	dc.w	112,96	; ???
-	dc.w	112,96	; ???
-	dc.w	112,96	; ???
-	dc.w	112,96	; ???
-	dc.w	112,96	; ???
-	dc.w	112,96	; ???
-	dc.w	112,96	; ???
-	dc.w	112,96	; ???
 	
 bubble_table
 	; those are used by the referee
@@ -5208,9 +5204,52 @@ blank_19_message
 	include	player_frames.s
 	include	hit_lists.s
 
+level_params_table
+	dc.l	practice_level
+	dc.l	pier_level
+	dc.l	pier_level
+	dc.l	pier_level
+	dc.l	pier_level
+	dc.l	pier_level
+	dc.l	pier_level
+	dc.l	pier_level
+	dc.l	pier_level
+	dc.l	pier_level
+	dc.l	pier_level
+	dc.l	pier_level
+	dc.l	pier_level
+	dc.l	pier_level
+	dc.l	pier_level
+	dc.l	pier_level
+	
+	
 
-background_pics:
-	dc.l	pl1,pl2,pl3,pl4,pl5,pl6,pl7,pl8,pl9,pl10,pl11,pl12
+	
+	; LevelParams
+practice_level
+	dc.l	pl3
+	dc.w	40
+	dc.w	152
+	dc.w	112
+	dc.w	96
+	; referee
+	dc.w	104
+	dc.w	72
+	dc.w	104
+	dc.w	104
+
+pier_level
+	dc.l	pl1
+	dc.w	22
+	dc.w	176
+	dc.w	148
+	dc.w	0
+	; referee
+	dc.w	104
+	dc.w	72
+	dc.w	140
+	dc.w	80		; wrong
+	
 	   
 pl1:
 	incbin	"back_01.bin.RNC"
