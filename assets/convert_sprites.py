@@ -20,10 +20,9 @@ name_dict = {"score_{}".format(i):"score_{}".format((i+1)*100) for i in range(0,
 HIT_NONE = 0
 HIT_VALID = 1
 HIT_ATTACK = 2
-HIT_BLOCK = 3
 
-BLACK,WHITE,RED,GREEN,BLUE = (0,0,0),(255,255,255),(255,0,0),(0,255,0),(0,0,255)
-hit_mask_dict = {v:i for i,v in enumerate((BLACK,WHITE,RED,GREEN))}
+BLACK,WHITE,RED,BLUE = (0,0,0),(255,255,255),(255,0,0),(0,0,255)
+hit_mask_dict = {v:i for i,v in enumerate((BLACK,WHITE,RED))}
 hit_mask_dict[BLUE] = HIT_NONE
 
 outdir = "tiles"
@@ -31,9 +30,28 @@ hit_mask_dir = "hit_masks"
 
 null = -1
 
-# where to insert "FT_HIT" for moves that don't have a stopping point
-# (negative frame counter)
+hm="HEIGHT_MEDIUM"
+hh="HEIGHT_HIGH"
+hl="HEIGHT_LOW"
+hn="HEIGHT_NONE"
 
+# left_shift is a manual x-offset make-up for left side
+move_param_dict = {
+"back_kick":{"score":400,"height":hm},
+"front_kick":{"score":200,"height":hm,"left_shift":12},
+"back_round_kick":{"score":1000,"height":hh},
+"foot_sweep_back":{"score":200,"height":hl},
+"foot_sweep_front":{"score":200,"height":hl},
+"jumping_back_kick":{"score":1000,"height":hh},
+"jumping_side_kick":{"score":1000,"height":hh},
+"low_kick":{"score":200,"height":hl,"left_shift":12},
+"lunge_punch_1000":{"score":1000,"height":hh},
+"lunge_punch_400":{"score":400,"height":hm},
+"lunge_punch_600":{"score":600,"height":hh},
+"reverse_punch_800":{"score":800,"height":hm},
+"round_kick":{"score":600,"height":hh,"left_shift":12},
+"weak_reverse_punch":{"score":100,"height":hm},
+}
 
 def mirror(img):
     m = img.transpose(Image.FLIP_LEFT_RIGHT)
@@ -130,9 +148,10 @@ def process_player_tiles():
 
     player_palette = [(0,0,0),(240,240,240),(240,192,192),(96, 80, 80)]
 
-    mask_palette = Image.new("RGB",(32,64))
+    colors = [WHITE,RED,BLUE]
+    mask_palette = Image.new("RGB",(32,len(colors)*16))
     y = 0
-    for rgb in [WHITE,RED,GREEN,BLUE]:
+    for rgb in colors:
         for i in range(16):
             for x in range(32):
                 mask_palette.putpixel((x,y),rgb)
@@ -341,8 +360,16 @@ def process_player_tiles():
     STRUCTURE   PlayerFrameSet,0
     APTR    right_frame_set
     APTR    left_frame_set
+    ULONG   hit_score
+    UWORD   hit_height
+    UWORD   hit_left_shift
     UWORD   fs_animation_loops
     LABEL   PlayerFrameSet_SIZEOF
+
+HEIGHT_NONE = 0
+HEIGHT_LOW = 1<<2
+HEIGHT_MEDIUM = 2<<2
+HEIGHT_HIGH = 3<<2
 
     STRUCTURE   PlayerFrame,0
     APTR    bob_data
@@ -369,6 +396,10 @@ FT_BLOCK = 2
             if create_mirror_objects:
                 f.write("\tdc.l\t{0}_right_frames,{0}_left_frames\n".format(name))
                 iwa = name in walking_anims
+                params = move_param_dict.get(name,{"score":0,"height":hn,"left_shift":0})
+                params["left_shift"] = params.get("left_shift",0)
+
+                f.write("\tdc.l\t{score}\n\tdc.w\t{height}\n\tdc.w\t{left_shift}\n".format(**params))
                 f.write("\tdc.w\t{}\t; {}\n".format(int(iwa),"looping" if iwa else "runs once"))
                 create_frame_sequence("_right",1)
                 hit_found = create_frame_sequence("_left",-1)

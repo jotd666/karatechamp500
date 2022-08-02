@@ -11,6 +11,7 @@ DOWN_BUTTON = 1<<7
 
 KIAI_1 = "kiai_1_sound"
 KIAI_2 = "kiai_2_sound"
+SWOOSH = "kiai_2_sound"
 
 sound_table = {'back_kick':KIAI_1,
  'back_round_kick_left':KIAI_2,
@@ -20,7 +21,7 @@ sound_table = {'back_kick':KIAI_1,
  'front_kick':KIAI_1,
  'jumping_back_kick':KIAI_2,
  'jumping_side_kick':KIAI_2,
- 'low_kick':KIAI_1,
+ 'low_kick':SWOOSH,
  'lunge_punch_1000':KIAI_2,
  'lunge_punch_400':KIAI_1,
  'lunge_punch_600':KIAI_1,

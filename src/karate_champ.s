@@ -3464,6 +3464,8 @@ draw_player:
 	move.l	frame_set(a4),a0
 	add.w	frame(a4),a0
 	move.l	(hit_data,a0),a1
+	tst.w	(a1)
+	bmi.b	.done	; optim: no hit data
 	move.w	xpos(a4),d3
 	move.w	ypos(a4),d4
 	move.w	#$F00,d2
@@ -3475,10 +3477,12 @@ draw_player:
 	move.w	bob_nb_bytes_per_row(a0),d3
 	sub.w	#6,d3	; minus 48 to center character
 	lsl.w	#3,d3	; times 8
-	sub.w	d3,d0	; subtract if facing left
-
-	;add.w	bob_width(a0),d3
-	;sub.w	#16,d3
+	add.w	xpos(a4),d3
+	; can't seem to make it right
+	; not going to spend hours on that symmetry issue
+	; which depends on the original size: manual fix
+	move.l	animation_struct(a4),a2
+	add.w	(hit_left_shift,a2),d3
 .hit_draw:
 	move.w	(a1)+,d0
 	bmi.b	.done
@@ -3492,6 +3496,7 @@ draw_player:
 	bsr		write_2x2_box
 	bra.b	.hit_draw
 .done
+	rts
 	; draw mask if defence in mask
 	move.l	(target_data,a0),a1
 	move.w	bob_height(a0),d6
@@ -3522,6 +3527,9 @@ draw_player:
 	sub.w	#6,d3	; minus 48 to center character
 	lsl.w	#3,d3	; times 8
 	sub.w	d3,d0	; subtract if facing left
+	; the symmetry is easier to perform with a matrix
+	; of dots instead of an offset list like the hit
+	; xy list above
 .xloop_left
 	tst.b	(a1,d7.w)
 	beq.b	.no_block_left
