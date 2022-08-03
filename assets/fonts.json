@@ -90,6 +90,12 @@
    "frames":1,
    "start_x":128,
    "start_y":8
+ },
+{
+   "name":"ellipse",
+   "frames":1,
+   "start_x":152,
+   "start_y":8
  }
  ]
 }

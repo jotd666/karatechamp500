@@ -622,13 +622,17 @@ bitplanelib.palette_dump(palette,os.path.join(source_dir,"palette.s"),as_copperl
 
 #bitplanelib.palette_to_image(palette,"palette.png")
 
+
+# all below must be uncommented to generate everything
+# comment out to save time if you know that there were no changes in such or such
+
 # status panel
-#bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
-#        palette,palette_precision_mask=0xF0,blit_pad=True)
+bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
+        palette,palette_precision_mask=0xF0,blit_pad=True)
 
 #process_backgrounds(palette)
 
-process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
+#process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
 
 #process_player_tiles()
 

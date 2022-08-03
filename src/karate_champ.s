@@ -50,8 +50,8 @@ INTERRUPTS_ON_MASK = $E038
     UWORD   p2_init_ypos
 	UWORD	referee_xpos
 	UWORD	referee_ypos
-	UWORD	referee_max_xpos
-	UWORD	referee_min_xpos
+	UWORD	referee_max_xdelta
+	UWORD	referee_min_xdelta
     LABEL   LevelParams_SIZEOF
     
 	
@@ -1056,12 +1056,47 @@ draw_score:
     move.w  #$FFF,d4    
     bsr write_color_decimal_number
 
+	; draw points
+	moveq	#0,d0
+	bsr		draw_2_upper_points
+
+	moveq	#8,d0
+	bsr		draw_lower_point
+	
+	move.w	#40,d0
+	bsr		draw_2_upper_points
+
+	moveq	#40,d0
+	bsr		draw_lower_point
+	
 	rts
 .zero
 		dc.b	"0",0
 		even
+
+draw_2_upper_points
+	add.w	#32,d0
+	move.w	d0,d3
+	move.w	#16,d1
+	move.w	#$0bbb,d2
+	lea		one_ellipse(pc),a0
+	bsr		write_color_string
+	add.w	#8,d3
+	move.w	d3,d0
+	lea		one_ellipse(pc),a0
+	bra		write_color_string
 	
-    
+draw_lower_point
+	add.w	#32,d0
+	move.w	d0,d3
+	move.w	#24,d1
+	move.w	#$0bbb,d2
+	lea		one_ellipse(pc),a0
+	bra		write_color_string
+one_ellipse
+		dc.b	"o",0
+ 		even
+   
 ; < D2 score
 ; trashes D0-D3
 draw_current_score:
@@ -1147,8 +1182,12 @@ init_players_and_referee:
 	; init referee
 	move.w	referee_xpos(a1),xpos(a4)
 	move.w	referee_ypos(a1),ypos(a4)
-	move.l	referee_max_xpos(a1),max_xpos(a4)	; x and y
-	move.l	referee_min_xpos(a1),min_xpos(a4)	; x and y
+	move.w	xpos(a4),max_xpos(a4)
+	move.w	referee_max_xdelta(a1),d0
+	add.w	d0,max_xpos(a4)
+	move.w	xpos(a4),min_xpos(a4)
+	move.w	referee_min_xdelta(a1),d0
+	add.w	d0,min_xpos(a4)
 	clr.w	walk_timer(a4)
 	move.b	#2,character_id(a4)
 	move.w	#REFEREE_LEGS_DOWN,frame(a4)
@@ -1161,7 +1200,8 @@ init_players_and_referee:
 
 	; no score displayed
 	clr.w	current_score_x
-	
+	; controls are active
+	clr.b	controls_blocked_flag
 
 	move.w	#30,time_left
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
@@ -2654,6 +2694,10 @@ update_normal:
 	lea	referee(pc),a4
 	move.w	#BUBBLE_STOP,bubble_type(a4)
 	move.w	#NB_TICKS_PER_SEC*2,bubble_timer(a4)
+	lea		stop_sound,a0
+	bsr		play_fx
+	; block the controls (jump moves can finish or that would be silly)
+	st.b	controls_blocked_flag
 .no_sec
 	bsr	update_referee
     lea     player_1(pc),a4
@@ -2679,8 +2723,12 @@ update_referee
 	beq.b	.no_bubble
 	subq.w	#1,bubble_timer(a4)
 	beq.b	referee_bubble_timeout
+.out
 	rts
 .no_bubble
+	move.w	max_xpos(a4),d0
+	cmp.w	min_xpos(a4),d0
+	beq.b	.out		; min=max: no move
 	move.w	walk_timer(a4),d0
 	addq.w	#1,d0
 	cmp.w	#NB_TICKS_PER_SEC/3,d0
@@ -2853,13 +2901,17 @@ update_player
     ;;move.w  d0,death_frame_offset   ; 0,4,8
     rts
 .alive
-
+	tst.b	controls_blocked_flag
+	beq.b	.no_blocked
+	moveq.l	#0,d0
+	bra.b	.no_demo
+.no_blocked
     tst.b	is_cpu(a4)
 	beq.b	.human_player
 	bsr		handle_ai
 	bra.b	.no_demo
 	
-.human_player	
+.human_player
     move.l  joystick_state(a4),d0
     IFD    RECORD_INPUT_TABLE_SIZE
     bsr     record_input
@@ -4500,6 +4552,12 @@ write_string_internal:
     moveq.l #0,d2
     bra.b   .wl
 .nospace    
+    cmp.b   #'o',d2
+    bne.b   .noellipse
+    lea ellipse(pc),a2
+    moveq.l #0,d2
+    bra.b   .wl
+.noellipse
     cmp.b   #'-',d2
     bne.b   .nodash
     lea dash(pc),a2
@@ -5007,7 +5065,9 @@ cheat_keys
     dc.w    0
 
 
-level_completed_flag
+level_completed_flag:
+	dc.b	0
+controls_blocked_flag:
 	dc.b	0
 erase_referee_bubble_message:
     dc.b    0
@@ -5077,21 +5137,22 @@ letters
     incbin	"letters_2_3.bin"
     
 
-dash
+dash:
     incbin  "dash.bin"
-dot
+dot:
     incbin  "dot.bin"
-
-square
+ellipse:
+	incbin	"ellipse.bin"
+square:
     REPT	8
 	dc.b	$FF
 	ENDR
 
-heart
+heart:
     incbin  "heart.bin"
-copyright
+copyright:
     incbin  "copyright.bin"
-space
+space:
     ds.b    8,0
     
 hiscore_string
@@ -5328,8 +5389,8 @@ practice_level
 	; referee
 	dc.w	104
 	dc.w	72
-	dc.w	104
-	dc.w	104
+	dc.w	0
+	dc.w	0
 
 pier_level
 	dc.l	pl1

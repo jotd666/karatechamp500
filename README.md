@@ -10,13 +10,13 @@ then connect to crouch
 jump special case just for jumping side kick (connect from jump)
 jumping side kick y looks wrong: re-capture
 jump not correct: re-capture
-       
+timer fonts bug       
 				
-debug mode: show hitboxes: problem when facing left
 rip girls
 rip evade obstacles
 rip breaking wood
 rip bull
 
+stop/judge
 
 
