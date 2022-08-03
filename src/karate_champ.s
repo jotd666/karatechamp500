@@ -175,6 +175,9 @@ REFEREE_LEGS_DOWN = 2<<2
 ;RECORD_INPUT_TABLE_SIZE = 100*ORIGINAL_TICKS_PER_SEC
 ; 1 or 2, 2 is default, 1 is to record level 1 demo moves
 ;INIT_DEMO_LEVEL_NUMBER = 1
+; set this to create full colision matrix & blitz with a0 loaded with
+; matrix: S matrix ra0 !160*!55
+;DEBUG_COLLISIONS
 
 ; ******************** end test defines *********************************
 
@@ -1207,7 +1210,6 @@ init_players_and_referee:
 	add.w	d0,d0
 	lea		level_params_table,a1
 	move.l		(a1,d0.w),a1
-	
 	
 	lea		walk_forward_frames,a0
 	bsr		load_walk_frame
@@ -3427,7 +3429,7 @@ check_hit
 	; apart from the A.I. this is the most crucial part
 	; of the code (in 2 player game, A.I. isn't active, this
 	; code is active.
-	movem.l	d0-d7/a0-a6,-(a7)
+	movem.l	d1-d6/a0-a5,-(a7)
 	
 	; first, clear collision matrix
 	
@@ -3444,25 +3446,21 @@ check_hit
 	move.l	(a1,d0.w),a1
 	jsr		(a1)
 
-
-	movem.l	(a7)+,d0-d7/a0-a6
-	rts
+	; now check this zone with hit points
+	bsr		check_collisions
 	
-	movem.l	d2-d3,-(a7)
-	move.w	xpos(a4),d2
-	move.w	ypos(a4),d3	
-.loop
-	move.w	(a0)+,d0	; delta x
-	bmi.b	.out
-	move.w	(a0)+,d1	; delta y
-	; TODO adjust according to facing direction
-	; if left, we have to perform a symmetry in x
-	add.w	d2,d0
-	add.w	d3,d1
-	; TEMP draw something there!!
-.out
-	movem.l	(a7)+,d2-d3
+	IFD	DEBUG_COLLISIONS
+	; debug it: save it here: S matrix ra0 !160*!55
+	lea		collision_matrix,a0
+	blitz	; so we can dump the matrix
+	ENDC
 	
+	tst.l	d0
+	beq.b	.no_collision
+	lea		blow_sound,a0
+	bsr		play_fx
+.no_collision
+	movem.l	(a7)+,d1-d6/a0-a5
 	; only works when the hit arrives, not afterwards
 	; (if player is stuck with kick, opponent can't
 	; recieve a blow)
@@ -3482,6 +3480,62 @@ fill_opponent_evade
 fill_opponent_break
 fill_opponent_bull
 fill_opponent_practice
+	rts
+
+check_collisions:
+	move.l	frame_set(a4),a1
+	add.w	frame(a4),a1
+	move.l	(hit_data,a1),a2
+	tst.w	(a2)
+	bmi.b	.done	; optim: no hit data
+	move.w	xpos(a4),d3
+	move.w	ypos(a4),d4
+	sub.w	level_players_y_min(pc),d4	; can't be negative
+
+	; if facing left, we have to perform a symmetry
+	cmp.w	#RIGHT,direction(a4)
+	sne		d5
+	beq.b	.do_check
+	; facing left
+	move.w	bob_nb_bytes_per_row(a1),d6
+	sub.w	#6,d6	; minus 48 to center character
+	lsl.w	#3,d6	; times 8
+	add.w	d6,d3
+	; can't seem to make it right
+	; not going to spend hours on that symmetry issue
+	; which depends on the original size: manual fix
+	move.l	animation_struct(a4),a5
+	add.w	(hit_left_shift,a5),d3
+.do_check:
+	lea		mulCOLLISION_NB_COLS_table(pc),a5
+.do_check_loop:
+	move.w	(a2)+,d0
+	bmi.b	.done
+	move.w	(a2)+,d1
+	tst.b	d5
+	beq.b	.pos
+	neg.w	d0
+.pos
+	add.w	d3,d0
+	add.w	d4,d1
+	; divide
+	lsr.w	#1,d0
+	bclr	#0,d1	; avoids to shift right then left
+	lea		collision_matrix,a0
+	add.w	(a5,d1.w),a0
+	add.w	d0,a0
+	IFD	DEBUG_COLLISIONS
+	move.b	#2,(a0)		; debug: mark map
+	ELSE
+	tst.b	(a0)
+	bne.b	.blow_landed
+	ENDC
+	bra.b	.do_check_loop
+.done
+	moveq.l	#0,d0
+	rts	
+.blow_landed
+	moveq.l	#1,d0
 	rts
 	
 ; < A0: collision matrix
@@ -3529,21 +3583,11 @@ fill_opponent_normal
 	add.w	d0,a0	; add X
 .xloop
 	move.b	(a2)+,(a0)+
-	beq.b	.no_block
-	
-.no_block
 	dbf		d7,.xloop
 .xloop_end
-	add.w	d5,a2			; next source row
 	lea     (COLLISION_NB_COLS,a3),a3
 	move.l	a3,a0	; next target row
 	dbf		d6,.yloop
-	nop
-	; debug it: save it here: S matrix ra0 !160*!55
-	lea		collision_matrix,a0
-	blitz
-	nop
-	
 	rts
 .case_left
 	move.w	bob_nb_bytes_per_row(a1),d3
@@ -3559,6 +3603,7 @@ fill_opponent_normal
 .xloop_left
 	move.b	(a2,d7.w),(a0)+
 	dbf		d7,.xloop_left
+	add.w	d5,a2			; next source row
 	bra.b	.xloop_end
 	
 erase_referee:
@@ -3821,7 +3866,7 @@ draw_player:
 	beq.b	.out
 	bsr		wait_blit
 	; debug only: draw hit/vulnerable/invisible zones
-.out
+
 	move.l	frame_set(a4),a0
 	add.w	frame(a4),a0
 	move.l	(hit_data,a0),a1
@@ -3857,7 +3902,6 @@ draw_player:
 	bsr		write_2x2_box
 	bra.b	.hit_draw
 .done
-	rts
 	; draw mask if defence in mask
 	move.l	(target_data,a0),a1
 	move.w	bob_height(a0),d6
@@ -3902,6 +3946,7 @@ draw_player:
 	add.w	d5,a1
 	addq	#2,d1
 	dbf		d6,.yloop
+.out
 	rts
 	
 handle_ai
@@ -5292,7 +5337,7 @@ debug_flag
 demo_mode
     dc.b    0
 draw_hit_zones_flag
-	dc.b	1
+	dc.b	0
 music_played
     dc.b    0
 
@@ -5494,14 +5539,16 @@ SOUND_ENTRY:MACRO
     
     ; radix, ,channel (0-3)
     SOUND_ENTRY begin,2,SOUNDFREQ,34
+    SOUND_ENTRY blow,2,SOUNDFREQ,11
     SOUND_ENTRY fall,2,SOUNDFREQ,25
     SOUND_ENTRY full_point,2,SOUNDFREQ,34
-    SOUND_ENTRY half_point,2,SOUNDFREQ,15
+    SOUND_ENTRY half_point,2,SOUNDFREQ,14
     SOUND_ENTRY judge,2,SOUNDFREQ,39
-    SOUND_ENTRY kiai_1,1,SOUNDFREQ,29
-    SOUND_ENTRY kiai_2,1,SOUNDFREQ,17
+    SOUND_ENTRY kiai_1,2,SOUNDFREQ,29
+    SOUND_ENTRY kiai_2,2,SOUNDFREQ,17
     SOUND_ENTRY stop,2,SOUNDFREQ,31
-	
+    SOUND_ENTRY swoosh1,2,SOUNDFREQ,24
+    SOUND_ENTRY swoosh2,2,SOUNDFREQ,10	
 game_palette
     include "palette.s"
 level_players_y_min:
@@ -5735,6 +5782,11 @@ begin_raw
     even
 begin_raw_end
 
+blow_raw
+    incbin  "blow.raw"
+    even
+blow_raw_end
+
 fall_raw
     incbin  "fall.raw"
     even
@@ -5770,6 +5822,15 @@ stop_raw
     even
 stop_raw_end
 
+swoosh1_raw
+    incbin  "swoosh1.raw"
+    even
+swoosh1_raw_end
+
+swoosh2_raw
+    incbin  "swoosh2.raw"
+    even
+swoosh2_raw_end
 
 	include	"player_bobs.s"
 	include	"other_bobs.s"

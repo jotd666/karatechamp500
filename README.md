@@ -18,7 +18,10 @@ rip breaking wood
 rip bull
 
 forward close animation is broken
+optimization do not check hits if player distance is too high
 back blocks if current_hit_height of opponent is not none
 
-
+matrix creation / test done twice!!!
+half/full point palette red / orange?
+generate table with coords /2 + half/full point type
 
