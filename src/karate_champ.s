@@ -92,8 +92,10 @@ INTERRUPTS_ON_MASK = $E038
 	ULONG	animation_struct
 	ULONG	current_move_name
 	ULONG	joystick_state
+	ULONG	score
 	UWORD	previous_direction   ; previous sprite orientation
 	UWORD	current_frame_countdown
+	UWORD	scored_points
     UBYTE   move_controls
 	UBYTE	attack_controls
     UBYTE   is_jumping
@@ -649,7 +651,8 @@ intro:
 
     ; game over: check if score is high enough 
     ; to be inserted in high score table
-    move.l  score(pc),d0
+	lea	player_1,a4		; which player???
+    move.l  score(a4),d0
     lea     hiscore_table(pc),a0
     moveq.w  #NB_HIGH_SCORES-1,d1
     move.w   #-1,high_score_position
@@ -838,9 +841,7 @@ init_new_play:
 	move.l	a1,record_data_end
 	
 .no_demo
-    move.l  #START_SCORE,score
-    clr.l   previous_score
-    clr.l   displayed_score
+	bsr		new_player
 	; random practice sequence
 	bsr		random
 	and.w	#7,d0
@@ -853,6 +854,9 @@ init_new_play:
 	clr.w	practice_move_index
     rts
 
+new_player
+    move.l  #0,score(a4)
+	rts
 	
 init_level:
 	clr.l	state_timer
@@ -1031,12 +1035,15 @@ draw_panel
 		
 ; draw score with titles and extra 0
 draw_score:
+	tst.b	score_update_message
+	beq.b	.no_update
+	clr.b	score_update_message
 	move.w	#104,d0
 	move.w	#40,d1
 	clr.l	d2
 	move.w	time_left(pc),d2
     move.w  #2,d3
-	
+	; timer 30-00
     move.w  #$FFF,d4
 	bsr write_blanked_color_decimal_number
 	cmp.w	#10,d2
@@ -1049,49 +1056,85 @@ draw_score:
 	
 	bsr		draw_high_score
 
+	lea		player_1,a4
+	tst.b	is_cpu(a4)
+	bne.b	.p1_cpu
     move.w  #136,d0
     move.w  #32,d1
-	move.l	score(pc),d2
+	move.l	score(a4),d2
     move.w  #6,d3
     move.w  #$FFF,d4    
     bsr write_color_decimal_number
-
+.p1_cpu
 	; draw points
+	move.w	scored_points(a4),d1
 	moveq	#0,d0
 	bsr		draw_2_upper_points
 
 	moveq	#8,d0
 	bsr		draw_lower_point
 	
+	lea		player_2,a4
+	tst.b	is_cpu(a4)
+	bne.b	.p2_cpu
+    move.w  #136,d0
+    move.w  #32+16,d1
+	move.l	score(a4),d2
+    move.w  #6,d3
+    move.w  #$FFF,d4    
+    bsr write_color_decimal_number
+
+.p2_cpu
+	move.w	scored_points(a4),d1
 	move.w	#40,d0
 	bsr		draw_2_upper_points
 
 	moveq	#40,d0
 	bsr		draw_lower_point
-	
+.no_update	
 	rts
 .zero
 		dc.b	"0",0
 		even
 
+POINT_SCORED_COLOR = $0ff0
+POINT_EMPTY_COLOR = $bbb
+
+; < D0: lower shift
+; < D1: number of points
 draw_2_upper_points
-	add.w	#32,d0
+	move.w	#POINT_EMPTY_COLOR,d2	
+	lea		one_ellipse(pc),a0
+	move.w	d1,d4
+	cmp.w	#2,d4
+	bcs.b	.h1
+	move.w	#POINT_SCORED_COLOR,d2	
+.h1
+	add.w	#40,d0
 	move.w	d0,d3
 	move.w	#16,d1
-	move.w	#$0bbb,d2
-	lea		one_ellipse(pc),a0
 	bsr		write_color_string
-	add.w	#8,d3
+	
+	move.w	#POINT_EMPTY_COLOR,d2	
+	cmp.w	#4,d4
+	bcs.b	.h2
+	move.w	#POINT_SCORED_COLOR,d2	
+.h2
+
+	sub.w	#8,d3
 	move.w	d3,d0
-	lea		one_ellipse(pc),a0
 	bra		write_color_string
 	
 draw_lower_point
+	move.w	#POINT_SCORED_COLOR,d2
+	btst	#0,d1
+	bne.b	.score
+	move.w	#POINT_EMPTY_COLOR,d2	
+.score
+	lea		one_ellipse(pc),a0
 	add.w	#32,d0
 	move.w	d0,d3
 	move.w	#24,d1
-	move.w	#$0bbb,d2
-	lea		one_ellipse(pc),a0
 	bra		write_color_string
 one_ellipse
 		dc.b	"o",0
@@ -1205,7 +1248,7 @@ init_players_and_referee:
 
 	move.w	#30,time_left
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
-	
+	st.b	score_update_message
 	
     
     move.w  #ORIGINAL_TICKS_PER_SEC,D0   
@@ -1424,18 +1467,6 @@ PLAYER_ONE_Y = 102-14
 .after_draw
         
 
-    ; score
-    lea	screen_data+SCREEN_PLANE_SIZE*3,a1  ; white
-    
-    move.l  score(pc),d0
-    move.l  displayed_score(pc),d1
-    cmp.l   d0,d1
-    beq.b   .no_score_update
-    
-    move.l  d0,displayed_score
-
-    move.l  d0,d2
-    bsr draw_current_score
     
     ; handle highscore in draw routine eek
     move.l  high_score(pc),d4
@@ -1791,15 +1822,29 @@ decode_technique_name
 	move.l	(a0,d1.w),d0
 	rts
 	
-    
+; < A4: player structure
 ; < D0: score (/10)
 ; trashes: D0,D1
 add_to_score:
 	tst.b	demo_mode
-    move.l  score(pc),previous_score
-    add.l   d0,score
+    
+	st.b	score_update_message
+    add.l   d0,score(a4)
     rts
     
+; < A4: player structure
+; < D0: points (1 or 2)
+; trashes: D0,D1
+add_to_points:
+	move.w	scored_points(a4),d1
+	add.w	d0,d1
+	cmp.w	#6,d1
+	bcc.b	.not_maxed
+	move.w	#5,d1
+.not_maxed
+	move.w	d1,scored_points(a4)
+	rts
+	
 random:
     move.l  previous_random(pc),d0
 	;;; EAB simple random generator
@@ -2000,10 +2045,10 @@ draw_title
 ; < A1: dest (must be even)
 ; < D0: X (multiple of 8)
 ; < D1: Y
-; < D2: blit width in bytes (even, 2 must be added same interface as blitter)
+; < D2: width in bytes (not blit width, can be odd and all)
 ; trashes: none
 
-clear_plane_any_cpu
+clear_plane_any_cpu:
     move.w  d3,-(a7)
     move.w  #16,d3
     bsr     clear_plane_any_cpu_any_height
@@ -2043,7 +2088,7 @@ clear_plane_any_cpu_any_height
     clr.b   (a0)+
     dbf d1,.xloop
     ; next line
-    add.w   #NB_BYTES_PER_LINE,a1
+    lea   (NB_BYTES_PER_LINE,a1),a1
     dbf d0,.yloop
 .out
     movem.l (a7)+,d0-D3/a0-a2
@@ -2685,13 +2730,17 @@ update_normal:
 	lea	referee(pc),a4
 	move.w	#REFEREE_LEFT_LEG_DOWN,frame(a4)
 .normal
+	tst.w	time_left
+	beq.b	.no_sec		; zero: no more timer update
 	subq.w	#1,time_ticks
 	bne.b	.no_sec
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
+	st.b	score_update_message
 	subq.w	#1,time_left
 	bne.b	.no_sec
 	; out of time
 	lea	referee(pc),a4
+	move.w	#REFEREE_LEGS_DOWN,frame(a4)
 	move.w	#BUBBLE_STOP,bubble_type(a4)
 	move.w	#NB_TICKS_PER_SEC*2,bubble_timer(a4)
 	lea		stop_sound,a0
@@ -2726,6 +2775,9 @@ update_referee
 .out
 	rts
 .no_bubble
+	tst.b	controls_blocked_flag
+	beq.b	.out		; no left/right move when fight is stopped
+	; move referee
 	move.w	max_xpos(a4),d0
 	cmp.w	min_xpos(a4),d0
 	beq.b	.out		; min=max: no move
@@ -2773,7 +2825,16 @@ update_referee
 ; this makes the referee control most game events :)
 ; < A4: referee structure
 referee_bubble_timeout
-	;;move.w	bubble_type(a4),d0	; decide what to do
+	move.w	bubble_type(a4),d0	; decide what to do
+	cmp.w	#BUBBLE_STOP,d0
+	bne.b	.no_stop
+	move.w	#BUBBLE_JUDGE,bubble_type(a4)
+	move.w	#NB_TICKS_PER_SEC,bubble_timer(a4)
+	lea		judge_sound,a0
+	bsr		play_fx
+	rts
+.no_stop
+
 	st.b	erase_referee_bubble_message
 	clr.w	bubble_type(a4)
 	rts
@@ -4250,7 +4311,7 @@ convert_number
 
 ; what: writes a text in a given color, clears
 ; non-written planes (just in case another color was
-; written earlier)
+; written earlier) so background is color 0 (black)
 ; args:
 ; < A0: c string
 ; < D0: X (multiple of 8)
@@ -4269,16 +4330,8 @@ write_blanked_color_string:
     addq.w  #1,d6
     bra.b   .strlen
 .outstrlen
-    ; D6 has string length
-    lea game_palette(pc),a1
-    moveq   #15,d3
-    moveq   #0,d5
-.search
-    move.w  (a1)+,d4
-    cmp.w   d4,d2
-    beq.b   .color_found
-    addq.w  #1,d5
-    dbf d3,.search
+	bsr		color_lookup
+	bpl.b	.color_found
     moveq   #0,d0   ; nothing written
     bra.b   .out
 .color_found
@@ -4295,7 +4348,7 @@ write_blanked_color_string:
     move.w  d4,d0
     btst    #0,d5
     beq.b   .clear_plane
-    bsr write_string
+    bsr overwrite_string
     bra.b   .next_plane
 .clear_plane
     movem.l d0-d6/a1/a5,-(a7)
@@ -4495,6 +4548,12 @@ write_string
 	bsr		write_string_internal
 	move.l	(a7)+,d3
 	rts
+overwrite_string
+	move.l	d3,-(a7)
+	moveq.l	#2,d3
+	bsr		write_string_internal
+	move.l	(a7)+,d3
+	rts
 carve_string
 	move.l	d3,-(a7)
 	moveq.l	#0,d3
@@ -4533,6 +4592,15 @@ write_string_internal:
     add.w   d2,a2
 	tst.w	d3
 	beq.b	.carve
+	cmp.w	#1,d3
+	beq.b	.orit
+	; overwrite
+	REPT	8
+	move.b	(a2)+,(NB_BYTES_PER_LINE*REPTN,a1)
+	ENDR
+    bra.b   .next
+	
+.orit
 	REPT	8
 	move.b	(a2)+,d4
     or.b  d4,(NB_BYTES_PER_LINE*REPTN,a1)
@@ -5022,12 +5090,7 @@ prev_record_joystick_state
   
 current_state:
     dc.w    0
-score:
-    dc.l    0
-displayed_score:
-    dc.l    0
-previous_score:
-    dc.l    0
+
 
 
 ; general purpose timer for non-game states (intro, game over...)
@@ -5071,7 +5134,8 @@ controls_blocked_flag:
 	dc.b	0
 erase_referee_bubble_message:
     dc.b    0
-
+score_update_message:
+	dc.b	0
 
 music_playing:    
     dc.b    0
