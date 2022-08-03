@@ -87,6 +87,7 @@ INTERRUPTS_ON_MASK = $E038
 	
 	STRUCTURE	Player,0
 	STRUCT	_player_base,Character_SIZEOF
+	APTR	opponent
 	ULONG	frame_set
 	ULONG	current_move_callback
 	ULONG	animation_struct
@@ -96,6 +97,7 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	previous_direction   ; previous sprite orientation
 	UWORD	current_frame_countdown
 	UWORD	scored_points
+	UWORD	current_hit_height	; copied from hit_height
     UBYTE   move_controls
 	UBYTE	attack_controls
     UBYTE   is_jumping
@@ -208,6 +210,9 @@ PRACTICE_MOVE_DURATION = PRACTICE_WAIT_BEFORE_NEXT_MOVE*2
 START_ROUND_NB_TICKS = 110
 
 NB_RECORDED_MOVES = 100
+
+COLLISION_NB_COLS = NB_BYTES_PER_LINE*4
+COLLISION_NB_ROWS = 110/2
 
 WINUAE_PAD_CONTROLS
 
@@ -1181,12 +1186,15 @@ init_player_common
 	
 init_players_and_referee:
     lea player_1(pc),a4
+	move.l	#player_2,opponent(a4)
 	move.b	#0,character_id(a4)
 	bsr		init_player_common
 	clr.b	is_cpu(a4)
 	move.w 	#RIGHT,direction(a4)
+	move.l	a4,d0
 	
     lea player_2(pc),a4
+	move.l	d0,opponent(a4)
 	bsr		init_player_common
 	move.b	#1,character_id(a4)
 	st.b	is_cpu(a4)			; ATM 1 player mode
@@ -1208,6 +1216,7 @@ init_players_and_referee:
     lea player_1(pc),a4
     move.w	p1_init_xpos(a1),xpos(a4)
     move.w	p1_init_ypos(a1),d6		; save for p2 y
+	
 	move.w	d6,ypos(a4)
  	lea		walk_forward_frames,a0
 	bsr		load_walk_frame 
@@ -1218,6 +1227,9 @@ init_players_and_referee:
 	bne.b	.no_zero
 	move.w	d6,ypos(a4)		; 0 means same y as p1
 .no_zero
+	sub.w	#50,d6	; margin y where players can't go
+	move.w	d6,level_players_y_min
+
  	lea		walk_forward_frames,a0
 	bsr		load_walk_frame 
 
@@ -2776,7 +2788,7 @@ update_referee
 	rts
 .no_bubble
 	tst.b	controls_blocked_flag
-	beq.b	.out		; no left/right move when fight is stopped
+	bne.b	.out		; no left/right move when fight is stopped
 	; move referee
 	move.w	max_xpos(a4),d0
 	cmp.w	min_xpos(a4),d0
@@ -3305,7 +3317,11 @@ move_player:
 	beq.b	.no_frame_set_change
 	; change frame set
 	move.l	a0,frame_set(a4)
-	move.l	a0,a1
+	; re-set hit height so next hit is active again
+	move.l	animation_struct(a4),a1
+	move.l	hit_height(a1),current_hit_height(a4)
+	
+	move.l	a0,a1	; a0 transferred in a1 (not really useful apparently..)
 	; reset all counters
 	clr.w	current_frame_countdown(a4)
 	; don't reset current frame if connecting move
@@ -3359,7 +3375,7 @@ move_player:
 	move.l	(hit_data,a1),a0		; hit list
 	; check if there are some hit points
 	bsr		check_hit
-	
+
 	; convert "can_rollback" to lock
 	tst.w	(can_rollback,a1)
 	seq		rollback_lock(a4)
@@ -3402,7 +3418,36 @@ move_player:
 ; < A4: player struct   
 check_hit
 	tst.w	(a0)
-	bmi.b	.out1	; optim if no hit points
+	bmi.b	.no_hit	; optim if no hit points
+	move.w	current_hit_height(a4),d0
+	cmp.w	#HEIGHT_NONE,d0
+	beq.b	.no_hit
+	; first frame of the hit frame of the technique
+	; there's some heavy processing to be done here
+	; apart from the A.I. this is the most crucial part
+	; of the code (in 2 player game, A.I. isn't active, this
+	; code is active.
+	movem.l	d0-d7/a0-a6,-(a7)
+	
+	; first, clear collision matrix
+	
+	move.l	#(COLLISION_NB_COLS*COLLISION_NB_ROWS)/8-1,d0
+	lea		collision_matrix,a1
+	move.l	a1,a0
+.clr
+	clr.l	(a1)+
+	clr.l	(a1)+
+	dbf		d0,.clr
+	
+	move.w	level_type(pc),d0
+	lea		fill_opponent_routine_table(pc),a1
+	move.l	(a1,d0.w),a1
+	jsr		(a1)
+
+
+	movem.l	(a7)+,d0-d7/a0-a6
+	rts
+	
 	movem.l	d2-d3,-(a7)
 	move.w	xpos(a4),d2
 	move.w	ypos(a4),d3	
@@ -3417,9 +3462,105 @@ check_hit
 	; TEMP draw something there!!
 .out
 	movem.l	(a7)+,d2-d3
-.out1
+	
+	; only works when the hit arrives, not afterwards
+	; (if player is stuck with kick, opponent can't
+	; recieve a blow)
+	move.w	#HEIGHT_NONE,current_hit_height(a4)
+
+.no_hit
 	rts
 
+fill_opponent_routine_table:
+	dc.l	fill_opponent_normal
+	dc.l	fill_opponent_practice
+	dc.l	fill_opponent_bull
+	dc.l	fill_opponent_break
+	dc.l	fill_opponent_evade
+
+fill_opponent_evade
+fill_opponent_break
+fill_opponent_bull
+fill_opponent_practice
+	rts
+	
+; < A0: collision matrix
+; < A4: player structure
+
+fill_opponent_normal
+	move.l	opponent(a4),a5
+	
+	move.w	ypos(a5),d1
+	sub.w	level_players_y_min(pc),d1	; can't be negative
+	; sanity check
+	bpl.b	.ok
+	illegal
+.ok
+	cmp.w	#(COLLISION_NB_ROWS*2)-48,d1
+	bcs.b	.ok2
+	illegal
+.ok2
+	lsr.w	#1,d1
+	move.w	xpos(a5),d0
+	lsr.w	#1,d0
+	; divided coordinates of opponent
+	; now plot the opponent in the matrix
+	
+	move.l	frame_set(a5),a1
+	add.w	frame(a5),a1
+	; draw mask if defence in mask
+	move.l	(target_data,a1),a2
+	move.w	bob_height(a1),d6
+	lsr.w	#1,d6
+	subq.w	#1,d6
+	; compute start of source
+	lea		mulCOLLISION_NB_COLS_table(pc),a3
+	move.w	d1,d4
+	add.w	d4,d4
+	add.w	(a3,d4.w),a0	; add y*COLLISION_NB_COLS
+	move.l	a0,a3		; save a0 in a3: start of row
+.yloop
+	move.w	bob_width(a1),d7
+	lsr.w	#1,d7
+	move.w	d7,d5		; store half bob width
+	subq.w	#1,d7
+	cmp.w	#RIGHT,direction(a5)
+	bne.b	.case_left
+	add.w	d0,a0	; add X
+.xloop
+	move.b	(a2)+,(a0)+
+	beq.b	.no_block
+	
+.no_block
+	dbf		d7,.xloop
+.xloop_end
+	add.w	d5,a2			; next source row
+	lea     (COLLISION_NB_COLS,a3),a3
+	move.l	a3,a0	; next target row
+	dbf		d6,.yloop
+	nop
+	; debug it: save it here: S matrix ra0 !160*!55
+	lea		collision_matrix,a0
+	blitz
+	nop
+	
+	rts
+.case_left
+	move.w	bob_nb_bytes_per_row(a1),d3
+	sub.w	#6,d3	; minus 48 to center character
+	beq.b	.zap	; optim
+	lsl.w	#2,d3	; times 4 (not 8)
+	sub.w	d3,d0	; subtract if facing left
+.zap
+	; the symmetry is easier to perform with a matrix
+	; of dots instead of an offset list like the hit
+	; xy list above
+	add.w	d0,a0		; add X
+.xloop_left
+	move.b	(a2,d7.w),(a0)+
+	dbf		d7,.xloop_left
+	bra.b	.xloop_end
+	
 erase_referee:
 	lea	referee(pc),a4
 	move.w	previous_xpos(a4),d0
@@ -4814,7 +4955,7 @@ save_highscores
     ENDC
     
 
-
+	MUL_TABLE	COLLISION_NB_COLS
 	
     MUL_TABLE   40
     MUL_TABLE   28
@@ -5363,7 +5504,8 @@ SOUND_ENTRY:MACRO
 	
 game_palette
     include "palette.s"
-    
+level_players_y_min:
+	dc.w	0
 current_score_x:
 	dc.w	0
 current_score_y
@@ -5523,7 +5665,9 @@ player_move_buffer
     ds.l    NB_RECORDED_MOVES
     even
     
-    
+; resolution 1/2 compared to the original resolution
+collision_matrix:
+	ds.b	COLLISION_NB_COLS*COLLISION_NB_ROWS
     SECTION  S4,CODE
     include ptplayer.s
 
