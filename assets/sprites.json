@@ -27,6 +27,11 @@
  "objects":[
  {
    "name":"score",
+   "sprite_number":1,
+   "sprite_palette":[[0, 0, 0],
+ [240, 240, 240],
+ [0, 0, 0],
+ [0, 0, 0]],
    "start_x":64,
    "start_y":0,
    "frames":10

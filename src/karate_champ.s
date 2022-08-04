@@ -88,6 +88,8 @@ INTERRUPTS_ON_MASK = $E038
 	STRUCTURE	Player,0
 	STRUCT	_player_base,Character_SIZEOF
 	APTR	opponent
+	APTR	score_table
+	APTR	score_sprite
 	ULONG	frame_set
 	ULONG	current_move_callback
 	ULONG	animation_struct
@@ -128,7 +130,7 @@ Execbase  = 4
 ; if set skips intro, game starts immediately
 DIRECT_GAME_START
 ; practice has only 1 move
-SHORT_PRACTICE
+;SHORT_PRACTICE
 ; repeat a long time just to test moves
 ;REPEAT_PRACTICE = 10
 
@@ -481,10 +483,13 @@ Start:
 
     lea game_palette,a0
     lea _custom+color,a1
-    move.w  #31,d0
+    move.w  #15,d0
 .copy
     move.w  (a0)+,(a1)+
     dbf d0,.copy
+	; 2 more colors for score sprites (white & red)
+	move.w	#$FFF,(2,a1)
+	move.w	#$F00,(10,a1)
 ;COPPER init
 		
     move.l	#coplist,cop1lc(a5)
@@ -1031,10 +1036,10 @@ draw_panel
 	move.w	#8,d1
     move.w  #$0fff,d2
     lea hiscore_string(pc),a0
-    bsr write_color_string
-	rts
+    bsr write_blanked_color_string
+
 	; draw trailing "0"
-	move.w	#136+56,d0
+	move.w	#136+6*8,d0
 	move.w	#16,d1
     move.w  #$0fff,d2
     lea zero_string(pc),a0
@@ -1072,7 +1077,7 @@ draw_score:
 	move.l	score(a4),d2
     move.w  #6,d3
     move.w  #$FFF,d4    
-    bsr write_color_decimal_number
+    bsr write_blanked_color_decimal_number
 .p1_cpu
 	; draw points
 	move.w	scored_points(a4),d1
@@ -1190,6 +1195,8 @@ init_player_common
 init_players_and_referee:
     lea player_1(pc),a4
 	move.l	#player_2,opponent(a4)
+	move.l	#score_table_white,score_table(a4)
+	move.l	#score_sprite_white,score_sprite(a4)
 	move.b	#0,character_id(a4)
 	bsr		init_player_common
 	clr.b	is_cpu(a4)
@@ -1197,6 +1204,8 @@ init_players_and_referee:
 	move.l	a4,d0
 	
     lea player_2(pc),a4
+	move.l	#score_table_red,score_table(a4)
+	move.l	#score_sprite_red,score_sprite(a4)
 	move.l	d0,opponent(a4)
 	bsr		init_player_common
 	move.b	#1,character_id(a4)
@@ -1259,7 +1268,9 @@ init_players_and_referee:
 	clr.w	current_score_x
 	; controls are active
 	clr.b	controls_blocked_flag
-
+	; level is not over
+	clr.b	level_completed_flag
+	
 	move.w	#30,time_left
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
 	st.b	score_update_message
@@ -1507,7 +1518,7 @@ draw_level_type_table
 
 draw_practice:
 	; draw moves names & controls
-	move.l	current_move_key_message(pc),d0
+	tst.b	current_move_key_message
 	bmi.b	.erase_move_message
 	bne.b	.draw_move_message
 	
@@ -1557,8 +1568,7 @@ HORIZ_ARROW_Y = UP_ARROW_Y+10
 ARROW_HORIZ_X_SHIFT = 24
 
 .draw_move_message
-	; D0: move key
-	move.l	d0,d4
+	move.l	current_move_key(pc),d4
 	moveq.w	#4,d2
 	moveq.w	#8,d3
 	move.w	#ARROW_LEFT_X,d0
@@ -1631,11 +1641,11 @@ ARROW_HORIZ_X_SHIFT = 24
 	add.w	#8,d1
 	bra.b	.wl
 .no_tech
-	clr.l	current_move_key_message	; ack
+	clr.b	current_move_key_message	; ack
 	rts
 	
 .erase_move_message
-	clr.l	current_move_key_message	; ack
+	clr.b	current_move_key_message	; ack
 	bra	draw_joys	
 
 .erase_practice_message
@@ -2848,9 +2858,14 @@ referee_bubble_timeout
 	bsr		play_fx
 	rts
 .no_stop
-
+	cmp.w	#BUBBLE_VERY_GOOD,d0
+	beq.b	.phase_over
 	st.b	erase_referee_bubble_message
 	clr.w	bubble_type(a4)
+	rts
+.phase_over
+	; timeout on "very good": set a new flag
+	st.b	level_completed_flag
 	rts
 	
 update_practice
@@ -3157,21 +3172,6 @@ update_player
 	move.l	d0,a0
 	clr.l	current_move_name(a4)	; default: no move name
 	
-	cmp.w	#GM_PRACTICE,level_type
-	bne.b	.no_practice
-	; compare current technique to the dictated one, score points
-	; if it's the same (doesn't work)
-	move.l	joystick_state(a4),d0
-	beq.b	.no_practice
-	;cmp.l	current_move_key_message(pc),d0
-	;bne.b	.no_practice
-	; same move: award points
-	move.l	#200,d0
-	bsr		add_to_score
-	moveq.l	#2,d0
-	bsr		show_awarded_score
-	
-.no_practice	
 	; call move routine
 	jsr		(a0)	
 .skip
@@ -3266,10 +3266,10 @@ trans_move_dropped
 ; < A4: player structure
 ; trashes: D0
 show_awarded_score:
-	tst.w	current_score_x
-	bne.b	.out
+	;tst.w	current_score_x
+	;bne.b	.out
 	movem.l	a0/d1-d3,-(a7)
-	lea	score_table(pc),a0
+	move.l	score_table(a4),a0
 	add.w	d0,d0
 	add.w	d0,d0
 	move.l	(a0,d0.w),a0
@@ -3277,28 +3277,45 @@ show_awarded_score:
 	add.w	#10,d0
 	move.w	ypos(a4),d1
 	sub.w	#20,d1
-	move.w	d0,current_score_x
-	move.w	d1,current_score_y
-	move.w	#4,d2
-	move.w	#16,d3
-	bsr		blit_4_planes_cookie_cut
+	;move.w	d0,current_score_x
+	;move.w	d1,current_score_y
+	bsr		store_sprite_pos
+	move.l	d0,(a0)
+	move.l	a0,d0
+	move.l	score_sprite(a4),a0
+	move.w	d0,(6,a0)
+	swap	d0
+	move.w	d0,(2,a0)
 	move.l	#200,current_score_display_timer
 	movem.l	(a7)+,a0/d1-d3
 .out
 	rts
 	
-score_table
+score_table_white
 	dc.l	0
-	dc.l	score_100
-	dc.l	score_200
-	dc.l	score_300
-	dc.l	score_400
-	dc.l	score_500
-	dc.l	score_600
-	dc.l	score_700
-	dc.l	score_800
-	dc.l	score_900
-	dc.l	score_1000
+	dc.l	score_100_white
+	dc.l	score_200_white
+	dc.l	score_300_white
+	dc.l	score_400_white
+	dc.l	score_500_white
+	dc.l	score_600_white
+	dc.l	score_700_white
+	dc.l	score_800_white
+	dc.l	score_900_white
+	dc.l	score_1000_white
+	
+score_table_red
+	dc.l	0
+	dc.l	score_100_red
+	dc.l	score_200_red
+	dc.l	score_300_red
+	dc.l	score_400_red
+	dc.l	score_500_red
+	dc.l	score_600_red
+	dc.l	score_700_red
+	dc.l	score_800_red
+	dc.l	score_900_red
+	dc.l	score_1000_red
 	
 ; what: animate & move player according to animation table & player direction
 ; < a0: current frame set (right/left)
@@ -3479,7 +3496,26 @@ fill_opponent_routine_table:
 fill_opponent_evade
 fill_opponent_break
 fill_opponent_bull
+	rts
+
+; there aren't any opponent, just take advantage of that
+; specific call just when the blow lands so we can compare
+; the technique with the shown technique
 fill_opponent_practice
+	tst.b	is_cpu(a4)		; only human
+	bne.b	.not_same
+	; compare current technique to the dictated one, score points
+	; if it's the same (doesn't work)
+	move.l	joystick_state(a4),d0
+	; special cases down+down is also foot sweep (front) TODO
+	cmp.l	current_move_key(pc),d0
+	bne.b	.not_same
+	; same move: award points
+	move.l	#200,d0
+	bsr		add_to_score
+	moveq.l	#2,d0
+	bsr		show_awarded_score
+.not_same
 	rts
 
 check_collisions:
@@ -3967,12 +4003,14 @@ update_practice_moves
 	beq.b	.not_performing_move
 	subq.l	#1,current_practice_move_timer
 	bne.b	.not_zero
-	move.l	#-1,current_move_key_message
+	; erase message
+	st		current_move_key_message
+	clr.l	current_move_key
+	rts
 .not_zero
-	move.l	practice_current_move_key(pc),d0
-	bne.b	.out
 	; training is over
-
+	tst.b	level_completed_flag
+	beq.b	.out
 	;move.w	#GM_BULL,level_type	; ends at demo
 	
 	move.w	#GM_NORMAL,level_type
@@ -3982,8 +4020,8 @@ update_practice_moves
 .not_performing_move
 	subq.l	#1,next_practice_move_timer
 	beq.b	.next_move
-	
 .out
+	move.l	current_move_key(pc),d0
 	rts
 .next_move
 	move.l	#PRACTICE_WAIT_BEFORE_NEXT_MOVE,next_practice_move_timer
@@ -3997,9 +4035,10 @@ update_practice_moves
 	move.w	#2*NB_TICKS_PER_SEC,bubble_timer(a1)	; 2 seconds?	
 .no_last_move
 	move.l	(a0,d0.w),d0
-	move.l	d0,practice_current_move_key
-	move.l	d0,current_move_key_message
 	beq.b	.no_more_moves
+	move.l	d0,current_move_key
+	move.b	#1,current_move_key_message	; display move message
+
 	cmp.l	#JPF_BTN_UP|JPF_BTN_ALEFT,d0	; jumping side kick, ends some sequences
 	bne.b	.no_jsk
 	; longer wait after last move
@@ -4010,7 +4049,6 @@ update_practice_moves
 	addq.w	#4,practice_move_index
 .no_more_moves
 	; signal message system to display move name
-	moveq.l	#0,d0	; no move
 	rts
 	
 ; < d0.w: x
@@ -5322,6 +5360,8 @@ erase_referee_bubble_message:
     dc.b    0
 score_update_message:
 	dc.b	0
+current_move_key_message:
+	dc.b	0
 
 music_playing:    
     dc.b    0
@@ -5566,9 +5606,7 @@ current_practice_move_timer:
 	dc.l	0
 next_practice_move_timer:
 	dc.l	0
-practice_current_move_key:
-	dc.l	0
-current_move_key_message:
+current_move_key:
 	dc.l	0
 practice_move_index:
 	dc.w	0
@@ -5736,13 +5774,14 @@ bitplanes:
 colors:
    dc.w color,0     ; fix black (so debug can flash color0)
 sprites:
-enemy_sprites:
+score_sprite_white:
     ; #0
     dc.w    sprpt+0,0
     dc.w    sprpt+2,0
     ; #1
     dc.w    sprpt+4,0
     dc.w    sprpt+6,0
+score_sprite_red:
     ; #2
     dc.w    sprpt+8,0
     dc.w    sprpt+10,0
@@ -5770,7 +5809,54 @@ end_color_copper:
    dc.w	 intreq,$8010            ; generate copper interrupt
     dc.l    -2					; end of copperlist
 
-   
+; score sprites
+SCORE_SPRITES:MACRO
+score_100_\1
+	dc.l	0
+	incbin	score_100.bin
+	dc.l	0
+score_200_\1
+	dc.l	0
+	incbin	score_200.bin
+	dc.l	0
+score_300_\1
+	dc.l	0
+	incbin	score_300.bin
+	dc.l	0
+score_400_\1
+	dc.l	0
+	incbin	score_400.bin
+	dc.l	0
+score_500_\1
+	dc.l	0
+	incbin	score_500.bin
+	dc.l	0
+score_600_\1
+	dc.l	0
+	incbin	score_600.bin
+	dc.l	0
+score_700_\1
+	dc.l	0
+	incbin	score_700.bin
+	dc.l	0
+score_800_\1
+	dc.l	0
+	incbin	score_800.bin
+	dc.l	0
+score_900_\1
+	dc.l	0
+	incbin	score_900.bin
+	dc.l	0
+score_1000_\1
+	dc.l	0
+	incbin	score_1000.bin
+	dc.l	0
+	ENDM
+	
+	SCORE_SPRITES	white
+	SCORE_SPRITES	red
+	
+	
 
 empty_16x16_bob
 empty_48x48_bob
