@@ -419,10 +419,15 @@ FT_BLOCK = 2
             for frame in frame_list:
                 frames_to_write["{}:\n".format(frame)] = "\tincbin\t{}.bin\n".format(frame)
 
-    with open("{}/{}_bobs.s".format(source_dir,radix),"w") as f:
+    # write masks in a separate file, it can be in fast memory, unlike left/right data which is blitter input
+    with open("{}/{}_bobs.s".format(source_dir,radix),"w") as f,open("{}/{}_bob_masks.s".format(source_dir,radix),"w") as fm:
         for a,b in sorted(frames_to_write.items()):
-            f.write(a)
-            f.write(b)
+            if "mask:" in a:
+                fm.write(a)
+                fm.write(b)
+            else:
+                f.write(a)
+                f.write(b)
     with open("{}/hit_lists.s".format(source_dir),"w") as f:
         for name,coords in sorted(hit_dict.items()):
             f.write("{}_hit_list:\n\tdc.w\t".format(name))
@@ -632,9 +637,11 @@ bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
 
 #process_backgrounds(palette)
 
-process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
+#process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
 
-#process_player_tiles()
+process_player_tiles()
+
+#process_girls()
 
 #process_fonts(dump_fonts)
 

@@ -506,7 +506,7 @@ Start:
 
     move.w #$4200,bplcon0(a5) ; 4 bitplanes
     clr.w bplcon1(a5)                     ; no scrolling
-    clr.w bplcon2(a5)                     ; no sprite priority
+    move.w #$24,bplcon2(a5)                     ; no sprite priority
 	; bplmod needs to be altered because
 	; of special arcade resolution & centering
     move.w #10,d0
@@ -3277,15 +3277,14 @@ show_awarded_score:
 	add.w	#10,d0
 	move.w	ypos(a4),d1
 	sub.w	#20,d1
+
 	;move.w	d0,current_score_x
 	;move.w	d1,current_score_y
 	bsr		store_sprite_pos
 	move.l	d0,(a0)
 	move.l	a0,d0
 	move.l	score_sprite(a4),a0
-	move.w	d0,(6,a0)
-	swap	d0
-	move.w	d0,(2,a0)
+	bsr		store_sprite_copperlist
 	move.l	#200,current_score_display_timer
 	movem.l	(a7)+,a0/d1-d3
 .out
@@ -5648,6 +5647,7 @@ blank_19_message
 
 	include	player_frames.s
 	include	hit_lists.s
+	include	player_bob_masks.s
 
 level_params_table
 	dc.l	practice_level
@@ -5803,7 +5803,7 @@ score_sprite_red:
 end_color_copper:
    ; proper sprite priority: above bitplanes
    ;dc.w  $0102,$0000            ;  BPLCON1 := 0x0000
-   ;dc.w  $0104,$0024            ;  BPLCON2 := 0x0024
+   ;dc.w  $0104,$0024            ;  BPLCON2 := 
    dc.w  $FFDF,$FFFE            ; PAL wait (256)
    dc.w  $2201,$FFFE            ; PAL extra wait (around 288)
    dc.w	 intreq,$8010            ; generate copper interrupt
@@ -5935,8 +5935,17 @@ panel_mask:
 	ENDR
 	
 empty_sprite
-    dc.l    0,0
-
+    dc.l    0
+	dc.l	-1	; TEMP
+	dc.l	-1
+	dc.l	-1
+	dc.l	-1
+	dc.l	-1
+	dc.l	-1
+	dc.l	-1
+	dc.l	-1
+	dc.l	-1
+	dc.l	0
     
     SECTION S_4,BSS,CHIP
 
