@@ -33,24 +33,25 @@ null = -1
 hm="HEIGHT_MEDIUM"
 hh="HEIGHT_HIGH"
 hl="HEIGHT_LOW"
+hsl="HEIGHT_SUPER_LOW"
 hn="HEIGHT_NONE"
 
 # left_shift is a manual x-offset make-up for left side
 move_param_dict = {
-"back_kick":{"score":400,"height":hm},
-"front_kick":{"score":200,"height":hm,"left_shift":12},
+"back_kick":{"score":400,"height":hl},
+"front_kick":{"score":200,"height":hl,"left_shift":12},
 "back_round_kick":{"score":1000,"height":hh},
-"foot_sweep_back":{"score":200,"height":hl},
-"foot_sweep_front":{"score":200,"height":hl},
+"foot_sweep_back":{"score":200,"height":hsl},
+"foot_sweep_front":{"score":200,"height":hsl},
 "jumping_back_kick":{"score":1000,"height":hh},
 "jumping_side_kick":{"score":1000,"height":hh},
-"low_kick":{"score":200,"height":hl,"left_shift":12},
+"low_kick":{"score":200,"height":hsl,"left_shift":12},
 "lunge_punch_1000":{"score":1000,"height":hh},
 "lunge_punch_400":{"score":400,"height":hm},
 "lunge_punch_600":{"score":600,"height":hh},
-"reverse_punch_800":{"score":800,"height":hm},
-"round_kick":{"score":600,"height":hh,"left_shift":12},
-"weak_reverse_punch":{"score":100,"height":hm},
+"reverse_punch_800":{"score":800,"height":hl},
+"round_kick":{"score":600,"height":hm,"left_shift":12},
+"weak_reverse_punch":{"score":100,"height":hl},
 }
 
 def mirror(img):
@@ -367,9 +368,10 @@ def process_player_tiles():
     LABEL   PlayerFrameSet_SIZEOF
 
 HEIGHT_NONE = 0
-HEIGHT_LOW = 1<<2
-HEIGHT_MEDIUM = 2<<2
-HEIGHT_HIGH = 3<<2
+HEIGHT_SUPER_LOW = 1<<2
+HEIGHT_LOW = 2<<2
+HEIGHT_MEDIUM = 3<<2
+HEIGHT_HIGH = 4<<2
 
     STRUCTURE   PlayerFrame,0
     APTR    bob_data
@@ -509,7 +511,11 @@ def process_tiles(json_file,out_asm_file=None,dump=False):
                 else:
                     sprite_palette_offset = 16+(sprite_number//2)*4
                     sprite_palette = game_palette[sprite_palette_offset:sprite_palette_offset+4]
-                bin_base = "{}/{}_{}.bin".format(sprites_dir,name,i) if nb_frames != 1 else "{}/{}.bin".format(sprites_dir,name)
+
+                namei = "{}_{}".format(name,i) if nb_frames!=1 else name
+                namet = name_dict.get(namei,namei)
+
+                bin_base = "{}/{}.bin".format(sprites_dir,namet)
                 print("processing sprite {}...".format(name))
 
                 if x_size < 16:
@@ -643,5 +649,5 @@ process_player_tiles()
 
 #process_girls()
 
-#process_fonts(dump_fonts)
+process_fonts(dump_fonts)
 

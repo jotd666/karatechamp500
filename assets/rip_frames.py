@@ -8,7 +8,7 @@ from PIL import Image
 # default parameters are configured for a real image per image capture of level 2 2 player fight
 # images must be called "moves<frome number>.png". frame number can be zero padded to 4 digits.
 
-def analyze_frames(frames_directory,start,end,output_directory,is_jump=False,x_min = 0,
+def analyze_frames(frames_directory,start,end,output_directory,prefix="",is_jump=False,x_min = 0,
                     x_max = 160, y_min = 130, y_max = 228, bgcolor = (204,204,0), width = 64, height = 48,zero_padded_count = False):
     previous = None
     prev_idx = start
@@ -21,9 +21,9 @@ def analyze_frames(frames_directory,start,end,output_directory,is_jump=False,x_m
     deltas = []
     for idx in range(start,end):
         if zero_padded_count:
-            bn = "moves{:04d}.png".format(idx)
+            bn = "{}{:04d}.png".format(prefix,idx)
         else:
-            bn = "moves{}.png".format(idx)
+            bn = "{}{}.png".format(prefix,idx)
 
         imgname = os.path.join(frames_directory,bn)
 
@@ -39,13 +39,12 @@ def analyze_frames(frames_directory,start,end,output_directory,is_jump=False,x_m
 
         for i in range(max_x_search):
             for j in range(clipped.size[1]):
-                pix = clipped.getpixel((i,j))
+                pix = clipped.getpixel((i,j))[0:3]  # remove alpha if any
                 if pix != bgcolor:
                     if i < min_x:
                         min_x = i
                     if j > max_y:
                         max_y = j
-
         max_y += 1
         frame = clipped.crop((min_x,max_y-height,min_x+width,max_y))
         if not previous or list(previous.getdata()) != list(frame.getdata()):

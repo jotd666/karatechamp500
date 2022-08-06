@@ -16,18 +16,19 @@ rip evade obstacles
 rip breaking wood
 rip bull
 
-forward close animation is broken
+forward close walk animation is broken
 optimization do not check hits if player distance is too high
-back blocks if current_hit_height of opponent is not none
 
-hit masks are located in chipmem!!!
 half/full point: either add one row of half points at the rightmost pos or replace rightmost hitpos
 generate table with coords /2 + half/full point type
 
 scores to sprites position & timeout (practice)
-practice: last move doesn't record score (because too short, jumping back kick!!)
 player 2 controls
+walk if right/left + opponent in front: blocked: frame not ok otherwise ok
+test flags judge/stop
 
 start screen with 1P/2P
 
-play & rip stage 2 2players low/medium/high hits
+play & rip stage 2 2players coup ventre
+
+evade sequence: plant high, bottle high, apple low, rock low, plank mid-back (+ mirror)

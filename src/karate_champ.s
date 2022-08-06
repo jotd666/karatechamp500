@@ -53,9 +53,7 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	referee_max_xdelta
 	UWORD	referee_min_xdelta
     LABEL   LevelParams_SIZEOF
-    
-	
-
+   
 	
 	STRUCTURE Character,0
     ULONG   character_id
@@ -96,6 +94,7 @@ INTERRUPTS_ON_MASK = $E038
 	ULONG	current_move_name
 	ULONG	joystick_state
 	ULONG	score
+	UWORD	block_lock
 	UWORD	previous_direction   ; previous sprite orientation
 	UWORD	current_frame_countdown
 	UWORD	scored_points
@@ -828,7 +827,9 @@ clear_playfield_plane
 init_new_play:
 	clr.b	previous_move
     clr.l   state_timer
- 
+	clr.l	current_move_key_last_jump
+	clr.l	current_move_key
+	
 	move.w	#GM_PRACTICE,level_type
 	
     clr.b    music_played
@@ -1181,8 +1182,10 @@ hide_sprites:
     dbf d1,.emptyspr
     rts
 
+; what: initialize base player properties before each round
 ; < A4 struct
 init_player_common
+	clr.w	block_lock(a4)
 	clr.l	joystick_state(a4)
 	clr.b	turn_back_flag(a4)
 	clr.l	previous_xpos(a4)	; x and y
@@ -1210,6 +1213,7 @@ init_players_and_referee:
 	bsr		init_player_common
 	move.b	#1,character_id(a4)
 	st.b	is_cpu(a4)			; ATM 1 player mode
+	clr.b	is_cpu(a4)
 	move.w 	#RIGHT,direction(a4)
 	move.w	level_number(pc),d0
 	beq.b	.pract
@@ -1568,7 +1572,10 @@ HORIZ_ARROW_Y = UP_ARROW_Y+10
 ARROW_HORIZ_X_SHIFT = 24
 
 .draw_move_message
+	move.l	current_move_key_last_jump(pc),d4
+	bne.b	.last
 	move.l	current_move_key(pc),d4
+.last
 	moveq.w	#4,d2
 	moveq.w	#8,d3
 	move.w	#ARROW_LEFT_X,d0
@@ -2282,33 +2289,37 @@ init_interrupts
     
     rts
     
+FATAL_EXC:MACRO
+	movem.l	D0-a6,$100.W
+	lea	.\1(pc),a0
+	bra.b	lockup
+	ENDM
+	
 exc8
-    lea .bus_error(pc),a0
-    bra.b lockup
+	FATAL_EXC	bus_error
 .bus_error:
     dc.b    "BUS ERROR AT ",0
     even
 excc
-    lea .address_error(pc),a0
-    bra.b lockup
+    FATAL_EXC	address_error
 .address_error:
     dc.b    "ADDRESS ERROR AT ",0
     even
 exc28
-    lea .linea_error(pc),a0
+    FATAL_EXC	linea_error
     bra.b lockup
 .linea_error:
     dc.b    "LINEA ERROR AT ",0
     even
 exc2f
-    lea .linef_error(pc),a0
+    FATAL_EXC	linef_error
     bra.b lockup
 .linef_error:
     dc.b    "LINEF ERROR AT ",0
     even
 
 exc10
-    lea .illegal_error(pc),a0
+    FATAL_EXC	illegal_error
     bra.b lockup
 .illegal_error:
     dc.b    "ILLEGAL INSTR AT ",0
@@ -2603,6 +2614,35 @@ level3_interrupt:
     
     bsr		toggle_pause
 .no_second
+
+    move.l  d0,player_1+joystick_state
+	; player 2
+	lea		player_2(pc),a4
+	tst.b	is_cpu(a4)
+	bne.b	.cpu
+    moveq.l #0,d0
+	
+	tst.b	controller_joypad_0
+	beq.b	.no_joy2
+	
+    bsr _read_joystick
+    btst    #JPB_BTN_PLAY,d0
+    beq.b   .store_p2_controls
+    move.l  joystick_state(a4),d2
+    btst    #JPB_BTN_PLAY,d2
+    bne.b   .store_p2_controls
+
+    ; no pause if not in game
+    cmp.w   #STATE_PLAYING,current_state
+    bne.b   .store_p2_controls
+    tst.b   demo_mode
+    bne.b   .store_p2_controls
+    
+    bsr		toggle_pause
+	bra.b	.store_p2_controls
+.no_joy2
+
+	; keyboard for player 2
     lea keyboard_table(pc),a0
     tst.b   ($40,a0)    ; up key
     beq.b   .no_fire
@@ -2610,46 +2650,47 @@ level3_interrupt:
 .no_fire 
     tst.b   ($4C,a0)    ; up key
     beq.b   .no_up
-    bset    #JPB_BTN_UP,d0
+    bset    #JPB_BTN_AUP,d0
     bra.b   .no_down
 .no_up    
     tst.b   ($4D,a0)    ; down key
     beq.b   .no_down
 	; set DOWN
-    bset    #JPB_BTN_DOWN,d0
+    bset    #JPB_BTN_ADOWN,d0
 .no_down    
     tst.b   ($4F,a0)    ; left key
     beq.b   .no_left
 	; set LEFT
-    bset    #JPB_BTN_LEFT,d0
+    bset    #JPB_BTN_ALEFT,d0
     bra.b   .no_right   
 .no_left
     tst.b   ($4E,a0)    ; right key
     beq.b   .no_right
 	; set RIGHT
-    bset    #JPB_BTN_RIGHT,d0
+    bset    #JPB_BTN_ARIGHT,d0
 .no_right    
-    move.l  d0,player_1+joystick_state
-	; player 2
-	lea		player_2(pc),a4
-	tst.b	is_cpu(a4)
-	bne.b	.cpu
-    moveq.l #0,d0
-    bsr _read_joystick
-    btst    #JPB_BTN_PLAY,d0
-    beq.b   .no_second2
-    move.l  joystick_state(a4),d2
-    btst    #JPB_BTN_PLAY,d2
-    bne.b   .no_second2
-
-    ; no pause if not in game
-    cmp.w   #STATE_PLAYING,current_state
-    bne.b   .no_second2
-    tst.b   demo_mode
-    bne.b   .no_second2
-    
-    bsr		toggle_pause
-.no_second2
+    tst.b   ($3E,a0)    ; "8" key
+    beq.b   .no_up_2
+    bset    #JPB_BTN_UP,d0
+    bra.b   .no_down_2
+.no_up_2
+    tst.b   ($1E,a0)    ; "2" key
+    beq.b   .no_down_2
+	; set DOWN
+    bset    #JPB_BTN_DOWN,d0
+.no_down_2
+    tst.b   ($2D,a0)    ; "4" key
+    beq.b   .no_left_2
+	; set LEFT
+    bset    #JPB_BTN_LEFT,d0
+    bra.b   .no_right_2
+.no_left_2
+    tst.b   ($2F,a0)    ; "6" key
+    beq.b   .no_right_2
+	; set RIGHT
+    bset    #JPB_BTN_RIGHT,d0
+.no_right_2   
+.store_p2_controls
     move.l  d0,joystick_state(a4)
 	
 .cpu
@@ -2766,6 +2807,9 @@ update_normal:
 	lea	referee(pc),a4
 	move.w	#REFEREE_LEGS_DOWN,frame(a4)
 	move.w	#BUBBLE_STOP,bubble_type(a4)
+	; both arms & flags
+	move.b	#1,hand_red_or_japan_flag(a4)	; 0, 1 (red) or 3 (japan)
+	move.b	#1,hand_white_flag(a4)
 	move.w	#NB_TICKS_PER_SEC*2,bubble_timer(a4)
 	lea		stop_sound,a0
 	bsr		play_fx
@@ -3337,7 +3381,7 @@ move_player:
 	move.l	a0,frame_set(a4)
 	; re-set hit height so next hit is active again
 	move.l	animation_struct(a4),a1
-	move.l	hit_height(a1),current_hit_height(a4)
+	move.w	hit_height(a1),current_hit_height(a4)
 	
 	move.l	a0,a1	; a0 transferred in a1 (not really useful apparently..)
 	; reset all counters
@@ -3506,8 +3550,19 @@ fill_opponent_practice
 	; compare current technique to the dictated one, score points
 	; if it's the same (doesn't work)
 	move.l	joystick_state(a4),d0
-	; special cases down+down is also foot sweep (front) TODO
-	cmp.l	current_move_key(pc),d0
+	; special cases down+down is also foot sweep (front)
+	cmp.l	#JPF_BTN_ADOWN|JPF_BTN_DOWN,d0
+	bne.b	.no_down_down
+	move.l	#JPF_BTN_ADOWN|JPF_BTN_RIGHT,d0
+	cmp.w	#RIGHT,direction(a4)
+	beq.b	.no_down_down
+	move.l	#JPF_BTN_ADOWN|JPF_BTN_LEFT,d0
+.no_down_down
+	move.l	current_move_key_last_jump(pc),d1
+	bne.b	.test_last
+	move.l	current_move_key(pc),d1
+.test_last
+	cmp.l	d0,d1
 	bne.b	.not_same
 	; same move: award points
 	move.l	#200,d0
@@ -4024,25 +4079,28 @@ update_practice_moves
 	rts
 .next_move
 	move.l	#PRACTICE_WAIT_BEFORE_NEXT_MOVE,next_practice_move_timer
-	move.l	#PRACTICE_MOVE_DURATION,current_practice_move_timer
+	move.l	#PRACTICE_MOVE_DURATION,d0
+	move.l	d0,current_practice_move_timer
 	move.l	picked_practice_table(pc),a0
 	move.w	practice_move_index(pc),d0
 	tst.l	(4,a0,d0.w)
 	bne.b	.no_last_move
 	lea	referee(pc),a1
+	move.b	#3,hand_red_or_japan_flag(a1)	; 0, 1 (red) or 3 (japan)
 	move.w	#BUBBLE_VERY_GOOD,bubble_type(a1)
 	move.w	#2*NB_TICKS_PER_SEC,bubble_timer(a1)	; 2 seconds?	
 .no_last_move
 	move.l	(a0,d0.w),d0
 	beq.b	.no_more_moves
-	move.l	d0,current_move_key
+	move.l	d0,current_move_key		; to direct A.I.
 	move.b	#1,current_move_key_message	; display move message
 
 	cmp.l	#JPF_BTN_UP|JPF_BTN_ALEFT,d0	; jumping side kick, ends some sequences
 	bne.b	.no_jsk
 	; longer wait after last move
+	move.l	d0,current_move_key_last_jump	; to compare to player moves
 	move.l	#PRACTICE_WAIT_BEFORE_NEXT_MOVE*2,next_practice_move_timer
-	; shorter move type
+	; shorter move type else A.I. would do the jumping kick twice
 	move.l	#PRACTICE_MOVE_DURATION/2,current_practice_move_timer
 .no_jsk
 	addq.w	#4,practice_move_index
@@ -5098,9 +5156,19 @@ get_player_distance
 .pos
 	rts
 	
-SIMPLE_MOVE_CALLBACK:MACRO
+MOVE_CALLBACK:MACRO
 do_\1:
 	lea	\1_frames(pc),a0
+	ENDM
+	
+BLOCK_CALLBACK:MACRO
+	; no block cancel
+	MOVE_CALLBACK	\1
+	bra.b	move_player
+	ENDM
+SIMPLE_MOVE_CALLBACK:MACRO
+	clr.w	block_lock(a4)		; no block
+	MOVE_CALLBACK	\1
 	bra.b	move_player
 	ENDM
 	
@@ -5108,9 +5176,9 @@ do_\1:
 ; < A4: player structure
 
 	
-	SIMPLE_MOVE_CALLBACK	low_block
-	SIMPLE_MOVE_CALLBACK	medium_block
-	SIMPLE_MOVE_CALLBACK	high_block
+	BLOCK_CALLBACK	low_block
+	BLOCK_CALLBACK	medium_block
+	BLOCK_CALLBACK	high_block
 	SIMPLE_MOVE_CALLBACK	low_kick
 	SIMPLE_MOVE_CALLBACK	crouch
 		
@@ -5123,7 +5191,7 @@ do_\1:
 	SIMPLE_MOVE_CALLBACK	sommersault
 	SIMPLE_MOVE_CALLBACK	sommersault_back
 
-do_reverse_punch_800	
+do_reverse_punch_800
 	lea	reverse_punch_800_frames(pc),a0
 	bra.b	do_foot_sweep_common
 
@@ -5134,6 +5202,7 @@ do_foot_sweep_back
 do_foot_sweep_front
 	lea	foot_sweep_front_frames(pc),a0
 do_foot_sweep_common
+	clr.w	block_lock(a4)		; no block
 	; are we crouching?
 	lea		crouch_frames(pc),a1
 	cmp.l	animation_struct(a4),a1
@@ -5144,6 +5213,7 @@ do_foot_sweep_common
 	bra.b	move_player
 	
 do_jumping_back_kick:
+	clr.w	block_lock(a4)		; no block
 	lea	jumping_back_kick_frames(pc),a0
 	move.l	animation_struct(a4),a1
 	cmp.l	a0,a1
@@ -5157,6 +5227,7 @@ do_jumping_back_kick:
 	bra.b	move_player
 	
 do_front_kick:
+	clr.w	block_lock(a4)		; no block
 	; check the distance to the other player
 	; if too close, then switch to weak reverse punch
 	;
@@ -5182,6 +5253,7 @@ do_front_kick:
 
 	
 do_back_round_kick_right:
+	clr.w	block_lock(a4)		; no block
 	move.w	direction(a4),d0
 	cmp.w	#RIGHT,d0
 	beq.b	.no_turn
@@ -5191,11 +5263,13 @@ do_back_round_kick_right:
 	bra.b	move_player
 
 do_jump:
+	clr.w	block_lock(a4)		; no block
 	lea	jump_frames(pc),a0
 	
 	bra.b	move_player
 	
 do_back_round_kick_left:
+	clr.w	block_lock(a4)		; no block
 	move.w	direction(a4),d0
 	cmp.w	#LEFT,d0
 	beq.b	.no_turn
@@ -5206,6 +5280,7 @@ do_back_round_kick_left:
 
 
 do_move_forward:
+	clr.w	block_lock(a4)		; no block
 	lea		walk_forward_frames(pc),a0
 	clr.b	rollback(a4)
 	clr.b	rollback_lock(a4)
@@ -5217,29 +5292,18 @@ do_move_forward:
 	bra.b	move_player
 
 do_move_back:
-	clr.l	d1
-	tst.w	cheat_keys
-	beq.b	.no_cheat
-; when going away:
-; * reverse: medium block (shuto-uke)
-; * forward: high block (utchi-uke)
-; * rev+fwd: low block (gedan-barai)
-	move.l	joystick_state(a4),d0
-	btst	#JPB_BTN_FORWARD,d0
-	beq.b	.no_forward
-	bset	#2,d1
-.no_forward
-	btst	#JPB_BTN_REVERSE,d0
-	beq.b	.no_reverse
-	bset	#3,d1
-.no_reverse
-	
-.no_cheat
-	; D1 contains enemy attack mode
-	; 0: no attack
-	; 4: high attack
-	; 8: medium attack
-	; 12: low attack
+	tst.b	is_cpu(a4)
+	bne.b	normal_backing_away	; CPU chooses if must block
+	move.w	block_lock(a4),d1
+	bne.b	.locked
+	bsr		check_if_facing_each_other
+	tst.l	d0
+	beq.b	normal_backing_away	; no block if not facing
+
+	move.l	opponent(a4),a0
+	; if opponent is attacking, convert to block instead
+	move.w	current_hit_height(a0),block_lock(a4)
+.locked	
 	lea	block_table(pc),a0
 	move.l	(a0,d1.w),a0
 	jmp	(a0)
@@ -5263,6 +5327,39 @@ turn_back
 	add.w	#LEFT,d0
 	move.w	d0,direction(a4)	
 .no_turn
+	rts
+
+; < A4: player structure (any player)
+; > D0: 0 if not facing, 1 if facing
+
+check_if_facing_each_other:
+	movem.l	d1/A0,-(a7)
+	cmp.w	#GM_NORMAL,level_type
+	bne.b	.not_facing		; not applicable in practice
+
+	
+	move.l	opponent(a4),a0
+	move.w	direction(a4),d0
+	cmp.w	direction(a0),d0
+	beq.b	.not_facing
+	; opposite direction, now we have to test xpos
+	move.w	xpos(a4),d1
+	cmp.w	xpos(a0),d1
+	bcc.b	.other_is_on_the_left
+	; other is on the right
+	cmp.w	#RIGHT,d0
+	bne.b	.facing
+	bra.b	.not_facing
+.other_is_on_the_left
+	cmp.w	#RIGHT,d0
+	beq.b	.not_facing
+.facing
+	moveq.l	#1,d0
+	movem.l	(a7)+,D1/A0
+	rts
+.not_facing
+	moveq.l	#0,d0
+	movem.l	(a7)+,D1/A0
 	rts
 	
 _dosbase
@@ -5557,7 +5654,12 @@ referee_leg_table
 	dc.l	referee_left_leg_down,referee_right_leg_down,referee_legs_down
 	
 block_table
-	dc.l	normal_backing_away,do_high_block,do_medium_block,do_low_block
+	dc.l	normal_backing_away		; no blow
+	dc.l	normal_backing_away		; super low: can't block
+	dc.l	do_low_block
+	dc.l	do_medium_block
+	dc.l	do_high_block
+
 	
 moves_table
 	dc.l	move_table_right,move_table_left
@@ -5606,6 +5708,8 @@ current_practice_move_timer:
 next_practice_move_timer:
 	dc.l	0
 current_move_key:
+	dc.l	0
+current_move_key_last_jump:
 	dc.l	0
 practice_move_index:
 	dc.w	0
