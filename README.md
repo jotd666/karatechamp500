@@ -24,11 +24,15 @@ generate table with coords /2 + half/full point type
 
 scores to sprites position & timeout (practice)
 player 2 controls
-walk if right/left + opponent in front: blocked: frame not ok otherwise ok
-test flags judge/stop
+
+test flags judge/stop: missing judge body
 
 start screen with 1P/2P
 
 play & rip stage 2 2players coup ventre
+
+check_if_facing_each_other not working
+
+if you don't want to... practice write red fail
 
 evade sequence: plant high, bottle high, apple low, rock low, plank mid-back (+ mirror)

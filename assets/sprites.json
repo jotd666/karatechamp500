@@ -1,21 +1,6 @@
 {
 "source":"sprites.png",
-"palette":[[0, 0, 0],
- [240, 240, 240],
- [240, 192, 192],
- [176, 176, 176],
- [0, 0, 240],
- [0, 192, 0],
- [64, 192, 240],
- [128, 0, 192],
- [128, 240, 0],
- [240, 0, 0],
- [192, 128, 0],
- [192, 160, 48],
- [192, 192, 0],
- [240, 192, 0],
- [240, 240, 0],
- [240, 240, 192]],
+"palette":"palette.json",
  "mask_color_index":0,
  "generate_mask":true,
  "create_mirror_objects":false,
@@ -174,6 +159,13 @@
    "start_x":128,
    "start_y":64,
    "width":80,
+   "height":16
+ },
+{
+   "name":"moo_bubble",
+   "start_x":208,
+   "start_y":64,
+   "width":64,
    "height":16
  },
 {

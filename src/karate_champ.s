@@ -1553,7 +1553,7 @@ draw_practice:
 	bsr		write_color_string
 	; add characters
 	move.w	d3,d0
-	move.w	#$F00,d2
+	move.w	#$f00,d2
 	bsr		write_color_string
 	bra.b	.loop
 .out_msg

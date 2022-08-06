@@ -14,6 +14,7 @@ dump_fonts = True
 
 c_gray = (192,192,192)
 b_gray = (0xB0,0xB0,0xB0)
+approx_colors_dict = {c_gray:b_gray,(0xC0,0xA0,0x30):(0xC0,0x80,0)}
 
 name_dict = {"score_{}".format(i):"score_{}".format((i+1)*100) for i in range(0,10)}
 
@@ -74,42 +75,50 @@ def mirror(img):
 ##    return img_mirror
 
 def compute_palette():
-    common = set()
-    for i in range(1,13):
-        img = Image.open("backgrounds/{:04d}.png".format(i))
-        # remove status panel before extracting the palette
-##        for x in range(24,176+24):
-##            for y in range(64):
-##                img.putpixel((x,y),(0,0,0))
-
-        p = bitplanelib.palette_extract(img,0xf0)
-        common.update(p)
-
+    main_sprites = Image.open("sprites.png")
+    common_palette = bitplanelib.palette_extract(main_sprites,0xf0)
+    # 2 colors are remaining
     # common has 16 items, now we need to impose some ordering
     # for black, red and white (blue is there too, because we need
     # white to be color 1 and red to be color 3 so we can blit the characters
     # using different bitplanes but using the same source
-
     palette = [(0,0,0),(240, 240, 240),(240, 192, 192),(240,0,0)]
+    palette_set = set(palette)
+    for c in common_palette:
+        if c in palette_set:
+            pass
+        else:
+            palette_set.add(c)
+            palette.append(c)
+    # find red in the palette
+    red_index = palette.index((240,0,0))
+    # swap with position 9 (imposed)
+    palette[red_index],palette[9] = palette[9],palette[red_index]
+    # palette should have 14 colors total
 
-    # now add the other colors, the order doesn't matter for them
-    # but we sort the source to avoid that it changes between runs of
-    # this script
+    # now find the specific palette (2 slots remaining)
+    common = set()
+    specific_colors_merged = set()
+    for i in range(1,13):
+        img = Image.open("backgrounds/{:04d}.png".format(i))
+        # remove status panel before extracting the palette
+        for x in range(24,176+24):
+            for y in range(64):
+                img.putpixel((x,y),(0,0,0))
 
-    # there are too many colors (1 too much) to do 16 colors. We could go dynamic
-    # or we could merge ccc and bbb as bbb.
-    # I don't know where c gray comes from, I have removed the panel and it still shows
-    # well, doesn't matter
+        image_palette = set(bitplanelib.palette_extract(img,0xf0))
+        # replace some colors by approximate colors
+        image_palette = {approx_colors_dict.get(pix,pix) for pix in image_palette}
+        # check which colors aren't in common palette
+        specific_colors = image_palette.difference(palette_set)
+        specific_colors_merged.update(specific_colors)
 
-    common.remove(c_gray)
+    lp = len(palette)
+    ls = len(specific_colors_merged)
+    if lp+ls != 16:
+        raise Exception("should be exactly 16 colors {}+{}".format(lp,ls))
 
-    palette += sorted(common - set(palette))
-
-    # now another requirement: due to sprite reuse between white and red player, put the red color
-    # as color 9, swap it with color 3
-
-    palette[3],palette[9] = palette[9],palette[3]
-
+    palette.extend(specific_colors_merged)
     return palette
 
 def extract_block(img,x=0,y=0,width=None,height=None):
@@ -132,8 +141,10 @@ def process_backgrounds(palette):
             for y in range(img.size[1]):
                 # replace 0xCCC by 0xBBB
                 pix = tuple(c & 0xF0 for c in img.getpixel((x,y)))
-                if pix == c_gray:
-                    img.putpixel((x,y),b_gray)
+                pix = approx_colors_dict.get(pix)
+                # replace some colors by approximate others
+                if pix:
+                    img.putpixel((x,y),pix)
 
         outfile = "{}/back_{:02d}.bin".format(sprites_dir,i)
         bitplanelib.palette_image2raw(img,outfile,
@@ -447,7 +458,14 @@ def process_tiles(json_file,out_asm_file=None,dump=False):
     default_height = tiles["height"]
     default_horizontal = tiles["horizontal"]
 
-    game_palette_8 = [tuple(x) for x in tiles["palette"]]
+    palette = tiles["palette"]
+
+    # can be a json file
+    if isinstance(palette,str):
+        with open(palette) as f:
+            palette = json.load(f)
+
+    game_palette_8 = [tuple(x) for x in palette]
 
     master_blit_pad = tiles.get("blit_pad",True)
     master_generate_mask = tiles.get("generate_mask",False)
@@ -629,6 +647,10 @@ def process_fonts(dump=False):
 # compute palette from background images
 palette = compute_palette()
 
+# dump as json so it can be inserted in .json sprite description sheets
+with open("palette.json","w") as f:
+    json.dump([list(x) for x in palette],f,indent=2)
+
 bitplanelib.palette_dump(palette,os.path.join(source_dir,"palette.s"),as_copperlist=False)
 
 #bitplanelib.palette_to_image(palette,"palette.png")
@@ -643,7 +665,7 @@ bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
 
 #process_backgrounds(palette)
 
-#process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
+process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
 
 process_player_tiles()
 
