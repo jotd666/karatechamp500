@@ -12,9 +12,6 @@ source_dir = "../src"
 dump_tiles = True
 dump_fonts = True
 
-c_gray = (192,192,192)
-b_gray = (0xB0,0xB0,0xB0)
-approx_colors_dict = {c_gray:b_gray,(0xC0,0xA0,0x30):(0xC0,0x80,0)}
 
 name_dict = {"score_{}".format(i):"score_{}".format((i+1)*100) for i in range(0,10)}
 
@@ -55,6 +52,14 @@ move_param_dict = {
 "weak_reverse_punch":{"score":100,"height":hl},
 }
 
+base_rep = {(0, 192, 0):(128, 0, 192)}
+color_replacement_dict = {3:base_rep,
+4:base_rep,
+6:base_rep,
+7:base_rep | {(192, 160, 48):(192, 128, 0)},
+10:base_rep,
+12:{(0,192,0):(240, 192, 0)}  # can't use (128,0,0) as the bull uses it
+}
 def mirror(img):
     m = img.transpose(Image.FLIP_LEFT_RIGHT)
     return m
@@ -74,7 +79,27 @@ def mirror(img):
 ##    img_mirror.paste(m,(-x,0,m.size[0]-x,m.size[1]))
 ##    return img_mirror
 
-def compute_palette():
+def get_background_pic(i):
+    imgname = "backgrounds/{:04d}.png".format(i)
+    img = Image.open(imgname)
+    # remove status panel before extracting the palette
+    for x in range(24,176+24):
+        for y in range(64):
+            img.putpixel((x,y),(0,0,0))
+
+    replacement_colors = color_replacement_dict.get(i)
+    if replacement_colors:
+        # apply color change
+        for x in range(img.size[0]):
+            for y in range(img.size[1]):
+                pix = img.getpixel((x,y))
+                pix = bitplanelib.round_color(pix,0xF0)
+                pix_rep = replacement_colors.get(pix)
+                if pix_rep:
+                    img.putpixel((x,y),pix_rep)
+    return img
+
+def compute_palettes():
     main_sprites = Image.open("sprites.png")
     common_palette = bitplanelib.palette_extract(main_sprites,0xf0)
     # 2 colors are remaining
@@ -82,8 +107,20 @@ def compute_palette():
     # for black, red and white (blue is there too, because we need
     # white to be color 1 and red to be color 3 so we can blit the characters
     # using different bitplanes but using the same source
-    palette = [(0,0,0),(240, 240, 240),(240, 192, 192),(240,0,0)]
+
+
+    palette = [(0,0,0),   # black
+    (240, 240, 240),  # white
+    (240, 192, 192), # pink (players/referee)
+    (240,0,0),  # red
+    (0x40,0xC0,0xF0),  # cyan used for panel
+    (0xF0,0xF0,0xC0),  # light gray for time
+    (0x00,0x00,0xF0),  # referee
+    ]
+    specific_palette = {}
     palette_set = set(palette)
+    # colors we need in each level
+    imposed_palette = palette_set.copy()
     for c in common_palette:
         if c in palette_set:
             pass
@@ -99,27 +136,32 @@ def compute_palette():
     # now find the specific palette (2 slots remaining)
     common = set()
     specific_colors_merged = set()
+    lp = len(palette)
     for i in range(1,13):
-        img = Image.open("backgrounds/{:04d}.png".format(i))
-        # remove status panel before extracting the palette
-        for x in range(24,176+24):
-            for y in range(64):
-                img.putpixel((x,y),(0,0,0))
+
+        img = get_background_pic(i)
 
         image_palette = set(bitplanelib.palette_extract(img,0xf0))
-        # replace some colors by approximate colors
-        image_palette = {approx_colors_dict.get(pix,pix) for pix in image_palette}
+
         # check which colors aren't in common palette
         specific_colors = image_palette.difference(palette_set)
-        specific_colors_merged.update(specific_colors)
+        unused_shared_colors = palette_set.difference(image_palette).difference(imposed_palette)
+        ls = len(specific_colors)
+        if lp+ls > 16:
+            # must replace colors when encoding image. We have to pick a color of the shared palette
+            # which cannot appear in the stage. For instance, we can't pick 0x800 (burgundy) if there's "evade"
+            # or "bull" stage because it's used there. In that case, we could choose a green instead (if not in the stage)
 
-    lp = len(palette)
-    ls = len(specific_colors_merged)
-    if lp+ls != 16:
-        raise Exception("should be exactly 16 colors {}+{}".format(lp,ls))
+            specific_rgb = [("{:02x}"*3).format(*p) for p in unused_shared_colors]
+            raise Exception("{}: should less than 16 colors {}+{}: try to replace {} of {} color(s) by one of {}".format(
+        imgname,lp,ls,lp+ls-16,specific_colors,unused_shared_colors))
 
-    palette.extend(specific_colors_merged)
-    return palette
+        specific_palette[i] = specific_colors
+
+    # pad to 16
+    palette = palette + [(0,0,0)]*(16-len(palette))
+
+    return palette,specific_palette
 
 def extract_block(img,x=0,y=0,width=None,height=None):
     if not width:
@@ -132,23 +174,12 @@ def extract_block(img,x=0,y=0,width=None,height=None):
 
 def process_backgrounds(palette):
     for i in range(1,13):
-        imgname = "backgrounds/{:04d}.png".format(i)
-        img = Image.open(imgname)
-        for x in range(24,176+24):
-            for y in range(64):
-                img.putpixel((x,y),(0,0,0))
-        for x in range(img.size[0]):
-            for y in range(img.size[1]):
-                # replace 0xCCC by 0xBBB
-                pix = tuple(c & 0xF0 for c in img.getpixel((x,y)))
-                pix = approx_colors_dict.get(pix)
-                # replace some colors by approximate others
-                if pix:
-                    img.putpixel((x,y),pix)
-
+        img = get_background_pic(i)
         outfile = "{}/back_{:02d}.bin".format(sprites_dir,i)
+        specific_palette = list(specific_palettes[i])
+
         bitplanelib.palette_image2raw(img,outfile,
-                palette,palette_precision_mask=0xF0)
+                palette+specific_palette,palette_precision_mask=0xF0)
         # compress the bitmaps
         subprocess.check_call(["propack","p",outfile,outfile+".rnc"])
         os.remove(outfile)
@@ -645,13 +676,39 @@ def process_fonts(dump=False):
             bitplanelib.palette_image2raw(img,outfile,used_palette,palette_precision_mask=0xF0)
 
 # compute palette from background images
-palette = compute_palette()
+palette,specific_palettes = compute_palettes()
 
 # dump as json so it can be inserted in .json sprite description sheets
 with open("palette.json","w") as f:
     json.dump([list(x) for x in palette],f,indent=2)
 
 bitplanelib.palette_dump(palette,os.path.join(source_dir,"palette.s"),as_copperlist=False)
+
+with open(os.path.join(source_dir,"background_palette.s"),"w") as f:
+    f.write("""    STRUCTURE   SpecificPalette,0
+	ULONG	color_change_1
+	ULONG	color_change_2
+    UWORD   bg_color_14
+    UWORD   bg_color_15
+    LABEL   SpecificPalette_SIZEOF
+
+""")
+
+    # create a specific palette table for backgrounds
+    for i,colors in sorted(specific_palettes.items()):
+        cl = list(colors) + [(0,0,0)]*(2-len(colors))    # padding
+        f.write("pl{}_palette_data:\n".format(i))
+        rd = color_replacement_dict.get(i) or {}
+        items = [["${:x}".format(bitplanelib.to_rgb4_color(z)) for z in x] for x in rd.items()]
+        items = items + [("-1","-1")]*(2-len(items))   # padding
+        for t in items:
+            f.write("\tdc.w\t")
+            f.write(",".join(t))
+            f.write("\n")
+        for c in cl:
+            print(c)
+            f.write("\tdc.w\t${:x}\n".format(bitplanelib.to_rgb4_color(c)))
+
 
 #bitplanelib.palette_to_image(palette,"palette.png")
 
@@ -663,7 +720,7 @@ bitplanelib.palette_dump(palette,os.path.join(source_dir,"palette.s"),as_copperl
 bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
         palette,palette_precision_mask=0xF0,blit_pad=True)
 
-#process_backgrounds(palette)
+process_backgrounds(palette)
 
 process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
 

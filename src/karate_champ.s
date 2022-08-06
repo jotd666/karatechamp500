@@ -35,12 +35,7 @@
 
 INTERRUPTS_ON_MASK = $E038
 
-    STRUCTURE   SpritePalette,0
-    UWORD   color0
-    UWORD   color1
-    UWORD   color2
-    UWORD   color3
-    LABEL   SpritePalette_SIZEOF
+
     
     STRUCTURE   LevelParams,0
 	APTR	background_picture
@@ -52,6 +47,7 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	referee_ypos
 	UWORD	referee_max_xdelta
 	UWORD	referee_min_xdelta
+	ULONG	background_palette_data
     LABEL   LevelParams_SIZEOF
    
 	
@@ -479,16 +475,8 @@ Start:
 
     dbf d4,.mkcl
     
-
-    lea game_palette,a0
-    lea _custom+color,a1
-    move.w  #15,d0
-.copy
-    move.w  (a0)+,(a1)+
-    dbf d0,.copy
-	; 2 more colors for score sprites (white & red)
-	move.w	#$FFF,(2,a1)
-	move.w	#$F00,(10,a1)
+	bsr		load_default_palette
+	
 ;COPPER init
 		
     move.l	#coplist,cop1lc(a5)
@@ -888,8 +876,22 @@ draw_background_pic
 	move.w	d0,loaded_level
 	add.w	d0,d0
 	add.w	d0,d0
+	
+	bsr		load_default_palette
+	
 	lea	level_params_table,a0
 	move.l	(a0,d0.w),a0
+
+	move.l	(background_palette_data,a0),a2
+
+	lea	(color_change_1,a2),a1
+	bsr	change_color
+	lea	(color_change_2,a2),a1
+	bsr	change_color
+	; specific colors
+	move.w	(bg_color_14,a2),_custom+color+14*2
+	move.w	(bg_color_15,a2),_custom+color+15*2
+	
 	move.l	background_picture(a0),a0
 	lea	backbuffer,a1
 	bsr	Unpack
@@ -930,6 +932,25 @@ draw_background_pic
 .no_practice
 	rts
     
+; < A1 points to start/end color
+change_color:
+	move.w	(2,a1),d2
+	bmi.b	.out
+	move.w	(a1),d1
+
+	; change optional palette entries
+; trashes D3-D5
+; > D5: palette index, negative if not found
+; > N set if not found
+	bsr	color_lookup
+	bmi.b	.out
+	add.w	d5,d5
+	lea		_custom+color,a1
+	move.w	d1,(a1,d5.w)
+.out
+	rts
+	
+
 PANEL_PLANE_SIZE = (176/8+2)*64
 PANEL_WIDTH = 176/8+2
 PANEL_X = 24
@@ -4648,8 +4669,24 @@ write_blanked_color_string:
     movem.l (a7)+,D1-D6/A1
     rts
 
+load_default_palette:
+	movem.l	d0/a0-a1,-(a7)
+    lea game_palette,a0
+    lea _custom+color,a1
+    move.w  #15,d0
+.copy
+    move.w  (a0)+,(a1)+
+    dbf d0,.copy
+	; 2 more colors for score sprites (white & red)
+	move.w	#$FFF,(2,a1)
+	move.w	#$F00,(10,a1)
+	movem.l	(a7)+,d0/a0-a1
+	rts
+	
 ; utility method for write_pixel/string
+; crappy interface!
 ; trashes D3-D5
+; < D2 RGB4
 ; > D5: palette index, negative if not found
 ; > N set if not found
 
@@ -5756,23 +5793,23 @@ blank_19_message
 level_params_table
 	dc.l	practice_level
 	dc.l	pier_level
+	dc.l	fuji_level
+	dc.l	bamboo_level
+	dc.l	bridge_level
+	dc.l	boat_level
+	dc.l	mill_level
+	dc.l	city_level
 	dc.l	pier_level
 	dc.l	pier_level
 	dc.l	pier_level
 	dc.l	pier_level
 	dc.l	pier_level
+	dc.l	temple_level
 	dc.l	pier_level
-	dc.l	pier_level
-	dc.l	pier_level
-	dc.l	pier_level
-	dc.l	pier_level
-	dc.l	pier_level
-	dc.l	pier_level
-	dc.l	pier_level
-	dc.l	pier_level
+	dc.l	moon_level
 	
 	
-
+	include	background_palette.s
 	
 	; LevelParams
 practice_level
@@ -5786,6 +5823,8 @@ practice_level
 	dc.w	72
 	dc.w	0
 	dc.w	0
+	; color change
+	dc.l	pl3_palette_data
 
 pier_level
 	dc.l	pl1
@@ -5798,6 +5837,8 @@ pier_level
 	dc.w	112
 	dc.w	32
 	dc.w	-32
+	; palette adjustments
+	dc.l	pl1_palette_data
 	
 fuji_level
 	dc.l	pl1
@@ -5810,7 +5851,112 @@ fuji_level
 	dc.w	124
 	dc.w	32
 	dc.w	-32
+	dc.w	-1,-1
+	dc.w	-1,-1
 	
+bamboo_level
+	dc.l	pl3
+	dc.w	40
+	dc.w	152
+	dc.w	112
+	dc.w	96
+	; referee
+	dc.w	104
+	dc.w	72
+	dc.w	32
+	dc.w	-32
+	; color change
+	dc.w	$00F,$ca3
+	dc.w	-1,-1
+	
+bridge_level
+	dc.l	pl4
+	dc.w	40
+	dc.w	152
+	dc.w	112
+	dc.w	96
+	; referee
+	dc.w	104	; wrongo
+	dc.w	72
+	dc.w	32
+	dc.w	-32
+	; color change
+	dc.w	$00F,$ca3
+	dc.w	-1,-1
+	
+boat_level
+	dc.l	pl5
+	dc.w	22
+	dc.w	190
+	dc.w	152
+	dc.w	0
+	; referee
+	dc.w	104
+	dc.w	124
+	dc.w	32
+	dc.w	-32
+	dc.w	-1,-1
+	dc.w	-1,-1
+
+mill_level
+	dc.l	pl6
+	dc.w	40
+	dc.w	152
+	dc.w	112
+	dc.w	96
+	; referee
+	dc.w	104		; wrongo
+	dc.w	72
+	dc.w	32
+	dc.w	-32
+	; color change
+	dc.w	$00F,$ca3
+	dc.w	-1,-1
+	   
+city_level
+	dc.l	pl7
+	dc.w	40
+	dc.w	152
+	dc.w	112
+	dc.w	96
+	; referee
+	dc.w	104		; wrongo
+	dc.w	72
+	dc.w	32
+	dc.w	-32
+	; color change
+	dc.w	$80C,$CCC
+	dc.w	$8F0,$800
+	   
+temple_level
+	dc.l	pl10
+	dc.w	40
+	dc.w	152
+	dc.w	112
+	dc.w	96
+	; referee
+	dc.w	104		; wrongo
+	dc.w	72
+	dc.w	32
+	dc.w	-32
+	; color change
+	dc.w	$00F,$CCC
+	dc.w	-1,-1
+	
+moon_level
+	dc.l	pl12
+	dc.w	40
+	dc.w	152
+	dc.w	112
+	dc.w	96
+	; referee
+	dc.w	104		; wrongo
+	dc.w	72
+	dc.w	32
+	dc.w	-32
+	; color change
+	dc.w	$00F,$0c0
+	dc.w	-1,-1
 	   
 pl1:
 	incbin	"back_01.bin.RNC"
