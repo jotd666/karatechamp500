@@ -14,6 +14,7 @@ dump_fonts = True
 
 
 name_dict = {"score_{}".format(i):"score_{}".format((i+1)*100) for i in range(0,10)}
+hit_mask_exists_dict = {}
 
 HIT_NONE = 0
 HIT_VALID = 1
@@ -28,29 +29,44 @@ hit_mask_dir = "hit_masks"
 
 null = -1
 
+hn="HEIGHT_NONE"
+hl="HEIGHT_LOW"
 hm="HEIGHT_MEDIUM"
 hh="HEIGHT_HIGH"
-hl="HEIGHT_LOW"
-hsl="HEIGHT_SUPER_LOW"
-hn="HEIGHT_NONE"
 
-# left_shift is a manual x-offset make-up for left side
+block_heights = [hn,hl,hm,hh]
+
+bf = "BLOW_FRONT"
+bs = "BLOW_STOMACH"
+bl = "BLOW_LOW"
+br = "BLOW_ROUND"
+bb = "BLOW_BACK"
+bn = "BLOW_NONE"
+
+blow_types = [bn,bf,bs,bb,bl,br]
+# left_shift is a manual x-offset make-up for left side (optional)
+# height is the corresponding height of the block
+# blow_type is the opponent hit animation
+# back_blow_type is the opponent hit animation when players turn their backs on each other
 move_param_dict = {
-"back_kick":{"score":400,"height":hl},
-"front_kick":{"score":200,"height":hl,"left_shift":12},
-"back_round_kick":{"score":1000,"height":hh},
-"foot_sweep_back":{"score":200,"height":hsl},
-"foot_sweep_front":{"score":200,"height":hsl},
-"jumping_back_kick":{"score":1000,"height":hh},
-"jumping_side_kick":{"score":1000,"height":hh},
-"low_kick":{"score":200,"height":hsl,"left_shift":12},
-"lunge_punch_1000":{"score":1000,"height":hh},
-"lunge_punch_400":{"score":400,"height":hm},
-"lunge_punch_600":{"score":600,"height":hh},
-"reverse_punch_800":{"score":800,"height":hl},
-"round_kick":{"score":600,"height":hm,"left_shift":12},
-"weak_reverse_punch":{"score":100,"height":hl},
+"back_kick":{"score":400,"height":hl,"blow_type":bb,"back_blow_type":bs},
+"front_kick":{"score":200,"height":hl,"left_shift":12,"blow_type":bs,"back_blow_type":bb},
+"back_round_kick":{"score":1000,"height":hh,"blow_type":bl},  # low is the same has high
+"foot_sweep_back":{"score":200,"height":hn,"blow_type":bl},
+"foot_sweep_front":{"score":200,"height":hn,"blow_type":bl},
+"jumping_back_kick":{"score":1000,"height":hh,"blow_type":bb,"back_blow_type":bf},
+"jumping_side_kick":{"score":1000,"height":hh,"blow_type":bf,"back_blow_type":bb},
+"low_kick":{"score":200,"height":hn,"left_shift":12,"blow_type":bl},
+"lunge_punch_1000":{"score":1000,"height":hh,"blow_type":bf,"back_blow_type":bb},
+"lunge_punch_400":{"score":400,"height":hm,"blow_type":bs,"back_blow_type":bb},
+"lunge_punch_600":{"score":600,"height":hh,"blow_type":bf,"back_blow_type":bb},
+"reverse_punch_800":{"score":800,"height":hl,"blow_type":bs,"back_blow_type":bb},
+"round_kick":{"score":600,"height":hn,"left_shift":12,"blow_type":br},  # round kick can't be blocked
+"weak_reverse_punch":{"score":100,"height":hm,"blow_type":bs,"back_blow_type":bb},
 }
+# divide score by 100
+for d in move_param_dict.values():
+    d["score"] //= 100
 
 base_rep = {(0, 192, 0):(128, 0, 192)}
 color_replacement_dict = {3:base_rep,
@@ -221,6 +237,8 @@ def process_player_tiles():
         with open(os.path.join(moves_dir,d,"info.json")) as f:
             info = json.load(f)
         deltas = info["deltas"]
+        has_hit_mask = info.get("hit_mask",True)
+        hit_mask_exists_dict[d] = has_hit_mask
         # process each image, without last image which is player guard
         images_list = sorted([x for x in os.listdir(os.path.join(moves_dir,d)) if x.endswith(".png")],
         key=lambda x: int(os.path.splitext(x)[0]))
@@ -295,59 +313,60 @@ def process_player_tiles():
                 # blue: neutral (like part of leg/arm)
                 # green: block zone (blocks opponent hits)
 
-                hit_mask_filename = os.path.join(hit_mask_dir,name+".png")
-                if os.path.exists(hit_mask_filename):
-                    # load it and compare non-black colors, see if they match
-                    hit_mask = Image.open(hit_mask_filename)
-                    if hit_mask.size != mask_img.size:
-                        raise Exception("{}: hit mask size {} doesn't match mask size {}".format(
-                    name,hit_mask.size,mask_img.size))
+                if has_hit_mask:
+                    hit_mask_filename = os.path.join(hit_mask_dir,name+".png")
+                    if os.path.exists(hit_mask_filename):
+                        # load it and compare non-black colors, see if they match
+                        hit_mask = Image.open(hit_mask_filename)
+                        if hit_mask.size != mask_img.size:
+                            raise Exception("{}: hit mask size {} doesn't match mask size {}".format(
+                        name,hit_mask.size,mask_img.size))
 
-                    # create hit matrix from hit mask color codes
-                    hit_matrix = [[HIT_NONE]*hit_mask.size[0] for _ in range(hit_mask.size[1])]
+                        # create hit matrix from hit mask color codes
+                        hit_matrix = [[HIT_NONE]*hit_mask.size[0] for _ in range(hit_mask.size[1])]
 
-                    for x in range(0,hit_mask.size[0]):
-                        for y in range(hit_mask.size[1]):
-                            hmp = hit_mask.getpixel((x,y))
-                            nonblack1 = mask_img.getpixel((x,y)) != BLACK
-                            nonblack2 = hmp != BLACK
+                        for x in range(0,hit_mask.size[0]):
+                            for y in range(hit_mask.size[1]):
+                                hmp = hit_mask.getpixel((x,y))
+                                nonblack1 = mask_img.getpixel((x,y)) != BLACK
+                                nonblack2 = hmp != BLACK
 
-                            if nonblack1 != nonblack2:
-                                raise Exception("{}: hit maskdoesn't match mask (x={},y={})".format(name,x,y))
-                            if nonblack1:
-                                hit_matrix[y][x] = hit_mask_dict[hmp]
+                                if nonblack1 != nonblack2:
+                                    raise Exception("{}: hit maskdoesn't match mask (x={},y={})".format(name,x,y))
+                                if nonblack1:
+                                    hit_matrix[y][x] = hit_mask_dict[hmp]
 
-                    # rescale 50% to reduce mask size, hitbox will be accurate enough
-                    # the rescaling has a priority on active hitboxes
-                    hit_matrix_small = [[HIT_NONE]*(hit_mask.size[0]//2) for _ in range(hit_mask.size[1]//2)]
-                    hit_list = []
-                    for x in range(0,hit_mask.size[0]):
-                        x2 = x//2
-                        for y in range(hit_mask.size[1]):
-                            y2 = y//2
-                            # only HIT_VALID (hit target)
-                            # is considered in matrix mask, disregard all other categories,
-                            hit_type = hit_matrix[y][x]
-                            if hit_type == HIT_VALID:
-                                hit_matrix_small[y2][x2] = HIT_VALID
-                            # if hit attack, store in hit list. The game scans hit list
-                            # first and checks against hit matrix, this is way faster than
-                            # computing matrix to matrix collision at each frame
-                            elif hit_type == HIT_ATTACK:
-                                hit_list.append((x,y))  # store in real coords, this is an offset
-                            # other categories (block) are useless for the game (block = invisible)
-                            # but needed to make sure that the logical mask matches the real graphical data
-                            # when converting assets. Else it would be a nightmare to debug that
+                        # rescale 50% to reduce mask size, hitbox will be accurate enough
+                        # the rescaling has a priority on active hitboxes
+                        hit_matrix_small = [[HIT_NONE]*(hit_mask.size[0]//2) for _ in range(hit_mask.size[1]//2)]
+                        hit_list = []
+                        for x in range(0,hit_mask.size[0]):
+                            x2 = x//2
+                            for y in range(hit_mask.size[1]):
+                                y2 = y//2
+                                # only HIT_VALID (hit target)
+                                # is considered in matrix mask, disregard all other categories,
+                                hit_type = hit_matrix[y][x]
+                                if hit_type == HIT_VALID:
+                                    hit_matrix_small[y2][x2] = HIT_VALID
+                                # if hit attack, store in hit list. The game scans hit list
+                                # first and checks against hit matrix, this is way faster than
+                                # computing matrix to matrix collision at each frame
+                                elif hit_type == HIT_ATTACK:
+                                    hit_list.append((x,y))  # store in real coords, this is an offset
+                                # other categories (block) are useless for the game (block = invisible)
+                                # but needed to make sure that the logical mask matches the real graphical data
+                                # when converting assets. Else it would be a nightmare to debug that
 
-                    # dump hit matrix in sprites dir
-                    with open(os.path.join(sprites_dir,name+"_mask.bin"),"wb") as f:
-                        for hline in hit_matrix_small:
-                            a = bytearray(hline)
-                            f.write(a)
-                    hit_dict[name] = hit_list
-                else:
-                    print("creating monochrome hitmask {}".format(hit_mask_filename))
-                    mask_img.save(hit_mask_filename)
+                        # dump hit matrix in sprites dir
+                        with open(os.path.join(sprites_dir,name+"_mask.bin"),"wb") as f:
+                            for hline in hit_matrix_small:
+                                a = bytearray(hline)
+                                f.write(a)
+                        hit_dict[name] = hit_list
+                    else:
+                        print("creating monochrome hitmask {}".format(hit_mask_filename))
+                        mask_img.save(hit_mask_filename)
 
 
             frame_list.append([name,width,height,df,dx,dy])
@@ -381,8 +400,12 @@ def process_player_tiles():
 
         for i,(frame,width,height,df,dx,dy) in enumerate(frame_list):
             f.write("\tdc.l\t{}{}\n".format(frame,suffix))
-            f.write("\tdc.l\t{}_mask\n".format(frame))
-            f.write("\tdc.l\t{}_hit_list\n".format(frame))
+            if hit_mask_exists_dict[name]:
+                f.write("\tdc.l\t{}_mask\n".format(frame))
+                f.write("\tdc.l\t{}_hit_list\n".format(frame))
+            else:
+                f.write("\tdc.l\t0\t; no hit mask\n")
+                f.write("\tdc.l\t0\t; no hit list\n")
             # image size info, x/y variations, logical infos (padding ATM)
             bob_nb_bytes_per_row = ((width//8)+2)   # blitter adds 16 bits
             plane_size = bob_nb_bytes_per_row*height
@@ -395,23 +418,28 @@ def process_player_tiles():
         f.write("\tdc.l\t0,0,0,0\n")
         return True  # ATM ignore hit found
 
+    def gen_mask_enums(lst):
+        return "".join(["{} = {}<<2\n".format(h,i) for i,h in enumerate(lst)])
+
+    heights = gen_mask_enums(block_heights)
+    blows = gen_mask_enums(blow_types)
 
     with open("{}/{}_frames.s".format(source_dir,radix),"w") as f:
         f.write("""
     STRUCTURE   PlayerFrameSet,0
     APTR    right_frame_set
     APTR    left_frame_set
-    ULONG   hit_score
+    UWORD   hit_score
     UWORD   hit_height
     UWORD   hit_left_shift
+    UWORD   blow_type
+    UWORD   back_blow_type
     UWORD   fs_animation_loops
     LABEL   PlayerFrameSet_SIZEOF
 
-HEIGHT_NONE = 0
-HEIGHT_SUPER_LOW = 1<<2
-HEIGHT_LOW = 2<<2
-HEIGHT_MEDIUM = 3<<2
-HEIGHT_HIGH = 4<<2
+{blows}
+
+{heights}
 
     STRUCTURE   PlayerFrame,0
     APTR    bob_data
@@ -427,11 +455,8 @@ HEIGHT_HIGH = 4<<2
     UWORD   can_rollback
     LABEL   PlayerFrame_SIZEOF
 
-FT_NORMAL = 0
-FT_HIT = 1
-FT_BLOCK = 2
 
-""")
+""".format(blows=blows,heights=heights))
         for name,frame_list in sorted(rval.items()):
             f.write("{}_frames:\n".format(name))
             create_mirror_objects = name != "win"
@@ -440,13 +465,13 @@ FT_BLOCK = 2
                 iwa = name in walking_anims
                 params = move_param_dict.get(name,{"score":0,"height":hn,"left_shift":0})
                 params["left_shift"] = params.get("left_shift",0)
-
-                f.write("\tdc.l\t{score}\n\tdc.w\t{height}\n\tdc.w\t{left_shift}\n".format(**params))
+                params["blow_type"] = params.get("blow_type",bn)
+                params["back_blow_type"] = params.get("back_blow_type",params["blow_type"])
+                f.write(("\tdc.w\t{score}\n\tdc.w\t{height}\n\tdc.w\t{left_shift}\n"+
+                "\tdc.w\t{blow_type}\n\tdc.w\t{back_blow_type}\n").format(**params))
                 f.write("\tdc.w\t{}\t; {}\n".format(int(iwa),"looping" if iwa else "runs once"))
                 create_frame_sequence("_right",1)
-                hit_found = create_frame_sequence("_left",-1)
-                if not hit_found:
-                    print("Warning: no hit found for frame {}".format(name))
+                create_frame_sequence("_left",-1)
             else:
                 create_frame_sequence("",1)
     # include frames only once (may be used more than once)
@@ -454,7 +479,7 @@ FT_BLOCK = 2
     for name,frame_list in sorted(rval.items()):
         create_mirror_objects = name != "win"
         if create_mirror_objects:
-            for d in ["right","left","mask"]:
+            for d in ["right","left","mask"] if hit_mask_exists_dict[name] else ["right","left"]:
                 for frame,*_ in frame_list:
                     frames_to_write["{}_{}:\n".format(frame,d)] = "\tincbin\t{}_{}.bin\n".format(frame,d)
         else:
@@ -720,7 +745,7 @@ with open(os.path.join(source_dir,"background_palette.s"),"w") as f:
 bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
         palette,palette_precision_mask=0xF0,blit_pad=True)
 
-process_backgrounds(palette)
+#process_backgrounds(palette)
 
 process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
 

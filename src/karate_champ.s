@@ -86,8 +86,7 @@ INTERRUPTS_ON_MASK = $E038
 	APTR	score_sprite
 	ULONG	frame_set
 	ULONG	current_move_callback
-	ULONG	animation_struct
-	ULONG	current_move_name
+	ULONG	current_move_header
 	ULONG	joystick_state
 	ULONG	score
 	UWORD	block_lock
@@ -306,7 +305,7 @@ X_MIN = 20
 X_MAX = 200
 GUARD_X_DISTANCE = 60		; to confirm
 MIN_FRONT_KICK_DISTANCE = 20 ; to confirm
-
+BLOCK_X_DISTANCE = 32		; roughly
 ; jump table macro, used in draw and update
 DEF_STATE_CASE_TABLE:MACRO
     move.w  current_state(pc),d0
@@ -1213,7 +1212,7 @@ init_player_common
 	clr.l	joystick_state(a4)
 	clr.b	turn_back_flag(a4)
 	clr.l	previous_xpos(a4)	; x and y
-	clr.l	animation_struct(a4)
+	clr.l	current_move_header(a4)
 	clr.b	skip_frame_reset(a4)
     ; no moves (zeroes direction flags)
     clr.w  move_controls(a4)  	; and attack controls
@@ -1348,7 +1347,7 @@ load_walk_frame:
 	; so previous_direction still points to the proper move table
 	; even if player turns around
 	move.w	d0,previous_direction(a4)
-	move.l	a0,animation_struct(a4)
+	move.l	a0,current_move_header(a4)
 	move.l	(a0,d0.w),frame_set(a4)	
 	move.w	(fs_animation_loops,a0),d0
 	move.b	d0,animation_loops(a4)
@@ -3239,7 +3238,6 @@ update_player
 	move.l	d0,current_move_callback(a4)
 .move_routine
 	move.l	d0,a0
-	clr.l	current_move_name(a4)	; default: no move name
 	
 	; call move routine
 	jsr		(a0)	
@@ -3343,7 +3341,15 @@ show_awarded_score:
 	add.w	d0,d0
 	move.l	(a0,d0.w),a0
 	move.w	xpos(a4),d0
-	add.w	#10,d0
+	move.w	direction(a4),d1
+	cmp.w	#LEFT,d1
+	beq.b	.left
+	add.w	#48,d0
+	bra.b	.cont
+.left
+	sub.w	#48,d0
+.cont
+	
 	move.w	ypos(a4),d1
 	sub.w	#20,d1
 
@@ -3390,7 +3396,7 @@ score_table_red
 ; < a4: player structure
 
 move_player:
-	move.l	a0,animation_struct(a4)
+	move.l	a0,current_move_header(a4)
 	; update animation loop flag if required
 	move.w	(8,a0),d0
 	move.b	d0,animation_loops(a4)
@@ -3405,7 +3411,7 @@ move_player:
 	; change frame set
 	move.l	a0,frame_set(a4)
 	; re-set hit height so next hit is active again
-	move.l	animation_struct(a4),a1
+	move.l	current_move_header(a4),a1
 	move.w	hit_height(a1),current_hit_height(a4)
 	
 	move.l	a0,a1	; a0 transferred in a1 (not really useful apparently..)
@@ -3542,6 +3548,18 @@ check_hit
 	
 	tst.l	d0
 	beq.b	.no_collision
+	; show & award score
+	move.l	current_move_header(a4),a0
+	move.w	(hit_score,a0),d0
+	bsr		show_awarded_score
+	move.w	(hit_score,a0),d1
+	lea		hundreds_score_table(pc),a1
+	add.w	d1,d1
+	add.w	d1,d1
+	move.l	(a1,d1.w),d0
+	bsr		add_to_score
+	
+	; play the sound
 	lea		blow_sound,a0
 	bsr		play_fx
 .no_collision
@@ -3619,7 +3637,7 @@ check_collisions:
 	; can't seem to make it right
 	; not going to spend hours on that symmetry issue
 	; which depends on the original size: manual fix
-	move.l	animation_struct(a4),a5
+	move.l	current_move_header(a4),a5
 	add.w	(hit_left_shift,a5),d3
 .do_check:
 	lea		mulCOLLISION_NB_COLS_table(pc),a5
@@ -3678,7 +3696,9 @@ fill_opponent_normal
 	move.l	frame_set(a5),a1
 	add.w	frame(a5),a1
 	; draw mask if defence in mask
-	move.l	(target_data,a1),a2
+	move.l	(target_data,a1),d6
+	beq.b	.out		; no target data (blow frame), discard
+	move.l	d6,a2
 	move.w	bob_height(a1),d6
 	lsr.w	#1,d6
 	subq.w	#1,d6
@@ -3703,6 +3723,7 @@ fill_opponent_normal
 	lea     (COLLISION_NB_COLS,a3),a3
 	move.l	a3,a0	; next target row
 	dbf		d6,.yloop
+.out
 	rts
 .case_left
 	move.w	bob_nb_bytes_per_row(a1),d3
@@ -3832,7 +3853,6 @@ blit_back_plane:
 ; < A4: referee structure
 draw_referee
 	lea	referee(pc),a4
-	
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
 	move.w	d0,previous_xpos(a4)
@@ -3845,6 +3865,7 @@ draw_referee
 	move.w	hand_red_or_japan_flag(a4),d5	; test both flags
 	move.w	#$0101,d4
 	and.w	d4,d5
+	cmp.w	d4,d5
 	bne.b	.no_normal_body
 	lea	referee_body_1,a0
 	cmp.w	d4,d5
@@ -3984,7 +4005,9 @@ draw_player:
 
 	move.l	frame_set(a4),a0
 	add.w	frame(a4),a0
-	move.l	(hit_data,a0),a1
+	move.l	(hit_data,a0),d3
+	beq.b	.done
+	move.l	d3,a1
 	tst.w	(a1)
 	bmi.b	.done	; optim: no hit data
 	move.w	xpos(a4),d3
@@ -4002,7 +4025,7 @@ draw_player:
 	; can't seem to make it right
 	; not going to spend hours on that symmetry issue
 	; which depends on the original size: manual fix
-	move.l	animation_struct(a4),a2
+	move.l	current_move_header(a4),a2
 	add.w	(hit_left_shift,a2),d3
 .hit_draw:
 	move.w	(a1)+,d0
@@ -5220,7 +5243,12 @@ do_\1:
 	
 BLOCK_CALLBACK:MACRO
 	; no block cancel
-	MOVE_CALLBACK	\1
+	MOVE_CALLBACK	\1_block
+	bra.b	move_player
+	ENDM
+BLOW_CALLBACK:MACRO
+	; no block cancel
+	MOVE_CALLBACK	\1_blow
 	bra.b	move_player
 	ENDM
 SIMPLE_MOVE_CALLBACK:MACRO
@@ -5233,9 +5261,16 @@ SIMPLE_MOVE_CALLBACK:MACRO
 ; < A4: player structure
 
 	
-	BLOCK_CALLBACK	low_block
-	BLOCK_CALLBACK	medium_block
-	BLOCK_CALLBACK	high_block
+	BLOCK_CALLBACK	low
+	BLOCK_CALLBACK	medium
+	BLOCK_CALLBACK	high
+	
+	BLOW_CALLBACK	front
+	BLOW_CALLBACK	stomach
+	BLOW_CALLBACK	back
+	BLOW_CALLBACK	low
+	BLOW_CALLBACK	round
+	
 	SIMPLE_MOVE_CALLBACK	low_kick
 	SIMPLE_MOVE_CALLBACK	crouch
 		
@@ -5262,7 +5297,7 @@ do_foot_sweep_common
 	clr.w	block_lock(a4)		; no block
 	; are we crouching?
 	lea		crouch_frames(pc),a1
-	cmp.l	animation_struct(a4),a1
+	cmp.l	current_move_header(a4),a1
 	bne.b	move_player
 	; connect from crouch to move
 	move.w	#PlayerFrame_SIZEOF*3,frame(a4)
@@ -5272,7 +5307,7 @@ do_foot_sweep_common
 do_jumping_back_kick:
 	clr.w	block_lock(a4)		; no block
 	lea	jumping_back_kick_frames(pc),a0
-	move.l	animation_struct(a4),a1
+	move.l	current_move_header(a4),a1
 	cmp.l	a0,a1
 	bne.b	move_player
 	; already jumping back kick, check if last frame
@@ -5291,7 +5326,7 @@ do_front_kick:
 	; also, if reverse punch already running, don't switch
 	; to front kick (the opposite is also true)
 	bsr	get_player_distance
-	move.l	animation_struct(a4),a1
+	move.l	current_move_header(a4),a1
 	cmp.w	#MIN_FRONT_KICK_DISTANCE,d0
 	bcc.b	.kick
 	lea	front_kick_frames(pc),a2
@@ -5353,10 +5388,12 @@ do_move_back:
 	bne.b	normal_backing_away	; CPU chooses if must block
 	move.w	block_lock(a4),d1
 	bne.b	.locked
-	bsr		check_if_facing_each_other
-	tst.l	d0
-	beq.b	normal_backing_away	; no block if not facing
-
+	bsr		get_player_distance
+	cmp.w	#BLOCK_X_DISTANCE,d0
+	bcc.b	normal_backing_away
+	
+	; moving back at close range triggers block, no matter
+	; the facing configuration or the blow (back/front)
 	move.l	opponent(a4),a0
 	; if opponent is attacking, convert to block instead
 	move.w	current_hit_height(a0),block_lock(a4)
@@ -5617,7 +5654,11 @@ player_one_string_clear
     even
 ; game main tables
 
-
+hundreds_score_table
+	REPT	11
+	dc.l	REPTN*100
+	ENDR
+	
 practice_tables:
 	dc.l	practice_table_1
 	dc.l	practice_table_2
@@ -5711,13 +5752,19 @@ referee_leg_table
 	dc.l	referee_left_leg_down,referee_right_leg_down,referee_legs_down
 	
 block_table
-	dc.l	normal_backing_away		; no blow
-	dc.l	normal_backing_away		; super low: can't block
+	dc.l	normal_backing_away		; no blow, round kick or low techniques
 	dc.l	do_low_block
 	dc.l	do_medium_block
 	dc.l	do_high_block
 
-	
+blow_table
+	dc.l	0
+	dc.l	do_front_blow
+	dc.l	do_stomach_blow
+	dc.l	do_back_blow
+	dc.l	do_low_blow
+	dc.l	do_round_blow
+
 moves_table
 	dc.l	move_table_right,move_table_left
 	include	"move_tables.s"
@@ -5860,8 +5907,8 @@ pier_level
 	; referee
 	dc.w	104
 	dc.w	112
-	dc.w	32
-	dc.w	-32
+	dc.w	24
+	dc.w	-16
 	; palette adjustments
 	dc.l	pl1_palette_data
 	

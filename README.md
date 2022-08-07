@@ -33,6 +33,14 @@ play & rip stage 2 2players coup ventre
 
 check_if_facing_each_other not working
 
-if you don't want to... practice write red fail
+blocks: round kick: no block: special category
+lunge middle: soto uke
+front kick: gedan
+small reverse: soto
+high lunge: high block
+reverse: gedan
+
+round/low kick/back kick: no hit
+
 
 evade sequence: plant high, bottle high, apple low, rock low, plank mid-back (+ mirror)
