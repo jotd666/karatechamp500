@@ -158,8 +158,6 @@ def compute_palettes():
 
         specific_palette[i] = specific_colors
 
-    # pad to 16
-    palette = palette + [(0,0,0)]*(16-len(palette))
 
     return palette,specific_palette
 
@@ -682,7 +680,10 @@ palette,specific_palettes = compute_palettes()
 with open("palette.json","w") as f:
     json.dump([list(x) for x in palette],f,indent=2)
 
-bitplanelib.palette_dump(palette,os.path.join(source_dir,"palette.s"),as_copperlist=False)
+# pad to 16
+padded_palette = palette + [(0,0,0)]*(16-len(palette))
+
+bitplanelib.palette_dump(padded_palette,os.path.join(source_dir,"palette.s"),as_copperlist=False)
 
 with open(os.path.join(source_dir,"background_palette.s"),"w") as f:
     f.write("""    STRUCTURE   SpecificPalette,0
@@ -706,7 +707,6 @@ with open(os.path.join(source_dir,"background_palette.s"),"w") as f:
             f.write(",".join(t))
             f.write("\n")
         for c in cl:
-            print(c)
             f.write("\tdc.w\t${:x}\n".format(bitplanelib.to_rgb4_color(c)))
 
 

@@ -889,8 +889,12 @@ draw_background_pic
 	lea	(color_change_2,a2),a1
 	bsr	change_color
 	; specific colors
-	move.w	(bg_color_14,a2),_custom+color+14*2
-	move.w	(bg_color_15,a2),_custom+color+15*2
+	move.w	#14,d0
+	move.w	(bg_color_14,a2),d1
+	bsr		set_color
+	move.w	#15,d0
+	move.w	(bg_color_15,a2),d1
+	bsr		set_color
 	
 	move.l	background_picture(a0),a0
 	lea	backbuffer,a1
@@ -944,9 +948,8 @@ change_color:
 ; > N set if not found
 	bsr	color_lookup
 	bmi.b	.out
-	add.w	d5,d5
-	lea		_custom+color,a1
-	move.w	d1,(a1,d5.w)
+	move.w	d5,d0
+	bsr		set_color
 .out
 	rts
 	
@@ -1558,6 +1561,7 @@ draw_practice:
 	bsr	draw_referee
 
 	; draw message. This is suboptimal but works
+	; first we write just background recangle
 	lea		practice_message_list(pc),a1
 .loop
 	move.w	(a1)+,d0
@@ -1569,10 +1573,10 @@ draw_practice:
 	bsr		write_blanked_color_string
 	move.w	d3,d0
 	move.l	(a1)+,a0
-	; remove characters
+	; etch out characters (draw black)
 	moveq	#$0,d2
 	bsr		write_color_string
-	; add characters
+	; OR characters of the proper color
 	move.w	d3,d0
 	move.w	#$f00,d2
 	bsr		write_color_string
@@ -4669,13 +4673,28 @@ write_blanked_color_string:
     movem.l (a7)+,D1-D6/A1
     rts
 
+; what: sets color in palette & custom register
+; < D0: color index
+; < D1: rgb4
+set_color:
+	movem.l	d0/a0,-(a7)
+	add.w	d0,d0
+	lea		game_palette,a0
+	move.w	D1,(a0,d0.W)
+	lea		_custom+color,a0
+	move.w	d1,(a0,d0.w)
+	movem.l	(a7)+,d0/a0
+	rts
+	
 load_default_palette:
 	movem.l	d0/a0-a1,-(a7)
-    lea game_palette,a0
+    lea game_palette,a2
+	lea	original_palette,a0
     lea _custom+color,a1
     move.w  #15,d0
 .copy
-    move.w  (a0)+,(a1)+
+    move.w  (a0),(a1)+
+	move.w	(a0)+,(a2)+
     dbf d0,.copy
 	; 2 more colors for score sprites (white & red)
 	move.w	#$FFF,(2,a1)
@@ -4832,7 +4851,7 @@ write_color_string:
     bsr write_string
 .skip_plane
     lsr.w   #1,d5
-    add.w   #SCREEN_PLANE_SIZE,a1
+    lea   (SCREEN_PLANE_SIZE,a1),a1
     dbf d3,.plane_loop
 .out
     movem.l (a7)+,D1-D5/A1
@@ -4848,7 +4867,7 @@ write_color_string:
     bsr carve_string
 
     lsr.w   #1,d5
-    add.w   #SCREEN_PLANE_SIZE,a1
+    lea   (SCREEN_PLANE_SIZE,a1),a1
     dbf d3,.erase_loop
     bra.b	.out
 ; what: writes a text in a single plane
@@ -4927,7 +4946,8 @@ write_string_internal:
 .carve
 	REPT	8
 	move.b	(a2)+,d4
-    eor.b  d4,(NB_BYTES_PER_LINE*REPTN,a1)
+	not.b	d4
+    and.b  d4,(NB_BYTES_PER_LINE*REPTN,a1)
 	ENDR
     bra.b   .next
 
@@ -5727,8 +5747,13 @@ SOUND_ENTRY:MACRO
     SOUND_ENTRY stop,2,SOUNDFREQ,31
     SOUND_ENTRY swoosh1,2,SOUNDFREQ,24
     SOUND_ENTRY swoosh2,2,SOUNDFREQ,10	
-game_palette
+
+original_palette
     include "palette.s"
+	; the current palette, copied from game palette, with
+	; possible changes depending on the levels
+game_palette
+	ds.w	16
 level_players_y_min:
 	dc.w	0
 current_score_x:
