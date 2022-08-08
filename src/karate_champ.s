@@ -79,6 +79,8 @@ INTERRUPTS_ON_MASK = $E038
 	UBYTE	hand_white_flag	; 0 or 1 (white)
 	LABEL	Referee_SIZEOF
 	
+hand_both_flags = hand_red_or_japan_flag
+
 	STRUCTURE	Player,0
 	STRUCT	_player_base,Character_SIZEOF
 	APTR	opponent
@@ -89,6 +91,8 @@ INTERRUPTS_ON_MASK = $E038
 	ULONG	current_move_header
 	ULONG	joystick_state
 	ULONG	score
+	APTR	awarded_score_sprite
+	UWORD	awarded_score_display_timer	
 	UWORD	block_lock
 	UWORD	previous_direction   ; previous sprite orientation
 	UWORD	current_frame_countdown
@@ -303,9 +307,9 @@ STATE_GAME_START_SCREEN = 6*4
 
 X_MIN = 20
 X_MAX = 200
-GUARD_X_DISTANCE = 60		; to confirm
+GUARD_X_DISTANCE = 64		; to confirm
 MIN_FRONT_KICK_DISTANCE = 20 ; to confirm
-BLOCK_X_DISTANCE = 32		; roughly
+BLOCK_X_DISTANCE = 48		; roughly
 ; jump table macro, used in draw and update
 DEF_STATE_CASE_TABLE:MACRO
     move.w  current_state(pc),d0
@@ -1072,6 +1076,58 @@ draw_panel
 		
 ; draw score with titles and extra 0
 draw_score:
+	; 1UP/2UP flashing text
+	move.w	player_flashing_timer(pc),d0
+	addq.w	#1,d0
+	cmp.w	#NB_TICKS_PER_SEC,d0	; 1 second
+	bne.b	.no_timeout
+	; timeout
+	move.w	#144,d0
+	move.w	#24,d1
+
+	eor.b	#1,player_up_displayed_flag
+	beq.b	.clear
+	; display 1UP and/or 2UP
+	move.w	#$FFF,d2		; black
+	; clear 1UP and 2UP
+	tst.b	is_cpu+player_1
+	bne.b	.nop1w
+	lea		p1_string(pc),a0
+	bsr		write_blanked_color_string
+	move.w	#144,d0
+.nop1w
+	tst.b	is_cpu+player_2
+	bne.b	.flashout
+	add.w	#16,d1
+	lea		p2_string(pc),a0
+	bsr		write_blanked_color_string
+	bra.b	.flashout
+.clear
+	lea		up_clear(pc),a0
+	moveq	#0,d2		; black
+	; clear 1UP and 2UP
+	tst.b	is_cpu+player_1
+	bne.b	.nop1c
+	bsr		write_blanked_color_string
+	move.w	#144,d0
+.nop1c
+	tst.b	is_cpu+player_2
+	bne.b	.flashout
+	add.w	#16,d1
+	bsr		write_blanked_color_string
+.flashout
+	moveq	#0,d0
+.no_timeout
+	move.w	d0,player_flashing_timer
+	
+	; check if sprite must be hidden
+	lea		player_1(pc),a4
+	bsr		hide_awarded_score
+	lea		player_2(pc),a4
+	bsr		hide_awarded_score
+	
+	
+	; only draw score if needed
 	tst.b	score_update_message
 	beq.b	.no_update
 	clr.b	score_update_message
@@ -1134,6 +1190,22 @@ draw_score:
 		dc.b	"0",0
 		even
 
+; < A4: player structure
+hide_awarded_score:
+	move.w	awarded_score_display_timer(a4),d0
+	beq.b	.out
+	subq.w	#1,d0
+	bne.b	.no_hide
+	; hide
+	move.l	awarded_score_sprite(a4),d0
+	beq.b	.no_hide	; safety
+	move.l	d0,a0
+	clr.l	(a0)		; hide
+.no_hide
+	move.w	d0,awarded_score_display_timer(a4)
+.out
+	rts
+	
 POINT_SCORED_COLOR = $0ff0
 POINT_EMPTY_COLOR = $bbb
 
@@ -1288,15 +1360,18 @@ init_players_and_referee:
 	clr.l	previous_bubble_xpos(a4)
 	clr.w	bubble_type(a4)
 	clr.w	bubble_timer(a4)
-	clr.w	hand_red_or_japan_flag(a4)	; both hands
+	clr.w	hand_both_flags(a4)	; both hands
 	clr.l	previous_xpos(a4)	; x and y
 
-	; no score displayed
-	clr.w	current_score_x
+	; no score to hide
+	clr.w	awarded_score_display_timer(a4)
 	; controls are active
 	clr.b	controls_blocked_flag
 	; level is not over
 	clr.b	level_completed_flag
+	
+	clr.w	player_flashing_timer 
+	clr.b	player_up_displayed_flag
 	
 	move.w	#30,time_left
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
@@ -2832,8 +2907,7 @@ update_normal:
 	move.w	#REFEREE_LEGS_DOWN,frame(a4)
 	move.w	#BUBBLE_STOP,bubble_type(a4)
 	; both arms & flags
-	move.b	#1,hand_red_or_japan_flag(a4)	; 0, 1 (red) or 3 (japan)
-	move.b	#1,hand_white_flag(a4)
+	move.w	#$0101,hand_both_flags(a4)	; 0, 1 (red) or 3 (japan)
 	move.w	#NB_TICKS_PER_SEC*2,bubble_timer(a4)
 	lea		stop_sound,a0
 	bsr		play_fx
@@ -2921,6 +2995,7 @@ referee_bubble_timeout
 	cmp.w	#BUBBLE_STOP,d0
 	bne.b	.no_stop
 	move.w	#BUBBLE_JUDGE,bubble_type(a4)
+	clr.w	hand_both_flags(a4)	; 0, 1 (red) or 3 (japan)
 	move.w	#NB_TICKS_PER_SEC,bubble_timer(a4)
 	lea		judge_sound,a0
 	bsr		play_fx
@@ -2928,6 +3003,38 @@ referee_bubble_timeout
 .no_stop
 	cmp.w	#BUBBLE_VERY_GOOD,d0
 	beq.b	.phase_over
+	cmp.w	#BUBBLE_JUDGE,d0
+	bne.b	.erase
+	; let judge decide who won
+	lea		player_1(pc),a2
+	lea		player_2(pc),a3
+	move.w	scored_points(a2),d0
+	cmp.w	scored_points(a3),d0
+	beq.b	.tie
+	bcc.b	.p1_wins
+	; p2 wins
+.p2_wins
+	move.b	#1,hand_red_or_japan_flag(a4)
+	move.w	#BUBBLE_RED,bubble_type(a4)
+	bra.b	.round_ended
+.p1_wins
+	move.b	#1,hand_white_flag(a4)
+	move.w	#BUBBLE_WHITE,bubble_type(a4)
+	bra.b	.round_ended
+.tie
+	; if CPU is playing, CPU wins
+	tst.b	is_cpu(a2)
+	bne.b	.p1_wins
+	tst.b	is_cpu(a3)
+	bne.b	.p2_wins
+	; both human players: random
+	; (well, we could do better, by counting the technique scores
+	; during the current round, but what the hell)
+	bsr		random
+	btst	#0,d0
+	beq.b	.p1_wins
+	bra.b	.p2_wins
+.erase
 	st.b	erase_referee_bubble_message
 	clr.w	bubble_type(a4)
 	rts
@@ -2935,22 +3042,11 @@ referee_bubble_timeout
 	; timeout on "very good": set a new flag
 	st.b	level_completed_flag
 	rts
+.round_ended:
+	
+	rts
 	
 update_practice
-	move.l	current_score_display_timer(pc),d0
-	beq.b	.no_score_hide
-	subq.l	#1,d0
-	move.l	d0,current_score_display_timer
-	bne.b	.no_score_hide
-	move.w	current_score_x(pc),d0
-	move.w	current_score_y(pc),d1
-	move.w	#4,d2
-	move.w	#16,d3
-	;bsr		restore_background
-	; so display routine knows it's possible again
-	; to display score next time
-	clr.w	current_score_x
-.no_score_hide
 	bsr		update_referee
 	move.l	state_timer(pc),d0
 	cmp.l	#PRACTICE_SKIP_MESSAGE_LEN,d0
@@ -3333,8 +3429,6 @@ trans_move_dropped
 ; < A4: player structure
 ; trashes: D0
 show_awarded_score:
-	;tst.w	current_score_x
-	;bne.b	.out
 	movem.l	a0/d1-d3,-(a7)
 	move.l	score_table(a4),a0
 	add.w	d0,d0
@@ -3353,14 +3447,14 @@ show_awarded_score:
 	move.w	ypos(a4),d1
 	sub.w	#20,d1
 
-	;move.w	d0,current_score_x
-	;move.w	d1,current_score_y
 	bsr		store_sprite_pos
+	move.l	a0,awarded_score_sprite(a4)
 	move.l	d0,(a0)
 	move.l	a0,d0
 	move.l	score_sprite(a4),a0
 	bsr		store_sprite_copperlist
-	move.l	#200,current_score_display_timer
+	; show score during 2 seconds
+	move.w	#NB_TICKS_PER_SEC*2,awarded_score_display_timer(a4)
 	movem.l	(a7)+,a0/d1-d3
 .out
 	rts
@@ -3550,6 +3644,8 @@ check_hit
 	beq.b	.no_collision
 	; show & award score
 	move.l	current_move_header(a4),a0
+	tst.b	is_cpu(a4)
+	bne.b	.no_scoring		; cpu doesn't score points 	
 	move.w	(hit_score,a0),d0
 	bsr		show_awarded_score
 	move.w	(hit_score,a0),d1
@@ -3558,7 +3654,7 @@ check_hit
 	add.w	d1,d1
 	move.l	(a1,d1.w),d0
 	bsr		add_to_score
-	
+.no_scoring	
 	; play the sound
 	lea		blow_sound,a0
 	bsr		play_fx
@@ -3862,15 +3958,15 @@ draw_referee
 	bsr	blit_4_planes_cookie_cut
 	add.w	d3,d1
 	move.w	#8,d3
-	move.w	hand_red_or_japan_flag(a4),d5	; test both flags
+	move.w	hand_both_flags(a4),d5	; test both flags
 	move.w	#$0101,d4
 	and.w	d4,d5
-	cmp.w	d4,d5
-	bne.b	.no_normal_body
-	lea	referee_body_1,a0
+	lea	referee_body_1,a0		; both arms up
 	cmp.w	d4,d5
 	beq.b	.both_arms_up
-	lea	referee_body_0,a0
+	tst		d5
+	bne.b	.no_normal_body		; one arm down, one up, will be drawn later
+	lea	referee_body_0,a0		; hands tucked in vest
 .both_arms_up
 	bsr	blit_4_planes_cookie_cut
 .no_normal_body
@@ -5510,6 +5606,8 @@ current_state:
 ; general purpose timer for non-game states (intro, game over...)
 state_timer:
     dc.l    0
+player_flashing_timer:
+	dc.w	0
 intro_text_message:
     dc.w    0
 previous_player_address
@@ -5541,7 +5639,8 @@ cheat_sequence_pointer
 cheat_keys
     dc.w    0
 
-
+player_up_displayed_flag:
+	dc.b	0
 level_completed_flag:
 	dc.b	0
 controls_blocked_flag:
@@ -5640,9 +5739,11 @@ hiscore_string
 zero_string
 	dc.b	"0",0
 p1_string
-    dc.b    "     1UP",0
-level_string
-    dc.b    "   LEVEL",0
+    dc.b    "1UP",0
+p2_string
+    dc.b    "2UP",0
+up_clear
+	dc.b	"   ",0
 score_string
     dc.b    "       00",0
 game_over_string
@@ -5803,12 +5904,7 @@ game_palette
 	ds.w	16
 level_players_y_min:
 	dc.w	0
-current_score_x:
-	dc.w	0
-current_score_y
-	dc.w	0
-current_score_display_timer
-	dc.l	0
+
 	
 picked_practice_table:
 	dc.l	0
