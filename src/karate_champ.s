@@ -63,8 +63,9 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	previous_bubble_ypos
 	UWORD	previous_bubble_width
 	UWORD	previous_bubble_height
+	UWORD	hit_by_blow		; can be used for bull or objects too
 	LABEL	Character_SIZEOF
-	
+
 	; do not change field order, there are some optimizations
 	; with grouped fields
 	; insert required fields in the end of the structure!!
@@ -98,6 +99,8 @@ hand_both_flags = hand_red_or_japan_flag
 	UWORD	current_frame_countdown
 	UWORD	scored_points
 	UWORD	current_hit_height	; copied from hit_height
+	UWORD	current_blow_type	; copied from blow_type
+	UWORD	current_back_blow_type	; copied from back_blow_type
     UBYTE   move_controls
 	UBYTE	attack_controls
     UBYTE   is_jumping
@@ -1286,6 +1289,7 @@ init_player_common
 	clr.l	previous_xpos(a4)	; x and y
 	clr.l	current_move_header(a4)
 	clr.b	skip_frame_reset(a4)
+	move.w	#BLOW_NONE,hit_by_blow(a4)
     ; no moves (zeroes direction flags)
     clr.w  move_controls(a4)  	; and attack controls
 	rts
@@ -2995,7 +2999,7 @@ referee_bubble_timeout
 	cmp.w	#BUBBLE_STOP,d0
 	bne.b	.no_stop
 	move.w	#BUBBLE_JUDGE,bubble_type(a4)
-	clr.w	hand_both_flags(a4)	; 0, 1 (red) or 3 (japan)
+	clr.w	hand_both_flags(a4)	; no flags
 	move.w	#NB_TICKS_PER_SEC,bubble_timer(a4)
 	lea		judge_sound,a0
 	bsr		play_fx
@@ -3003,8 +3007,15 @@ referee_bubble_timeout
 .no_stop
 	cmp.w	#BUBBLE_VERY_GOOD,d0
 	beq.b	.phase_over
+	cmp.w	#BUBBLE_NONE,d0
+	beq.b	.after_judge
 	cmp.w	#BUBBLE_JUDGE,d0
 	bne.b	.erase
+	; judge bubble display ended: now erase it using no bubble
+	move.w	#NB_TICKS_PER_SEC,bubble_timer(a4)
+	move.w	#BUBBLE_NONE,bubble_type(a4)
+	bra.b	.erase
+.after_judge	
 	; let judge decide who won
 	lea		player_1(pc),a2
 	lea		player_2(pc),a3
@@ -3136,24 +3147,23 @@ play_loop_fx
     rts
  
 ; < A4 player structure
-   
-update_player
-    move.w  player_killed_timer(pc),d6
-    bmi.b   .alive
-    moveq.w #8,d0
-    cmp.w   #2*PLAYER_KILL_TIMER/3,d6
-    bcs.b   .no_first_frame
-    moveq.w #4,d0
-    bra.b   .frame_done
-.no_first_frame
-    cmp.w   #PLAYER_KILL_TIMER/3,d6
-    bcs.b   .no_second_frame
-    moveq.w #0,d0
-.no_second_frame
 
-.frame_done    
-    ;;move.w  d0,death_frame_offset   ; 0,4,8
-    rts
+update_player
+;;    move.w  player_killed_timer(pc),d6
+	move.w	hit_by_blow(a4),d0
+	cmp.w	#BLOW_NONE,d0
+	beq.b	.alive
+	; player is hit, just handle falling animation
+	lea		blow_table(pc),a0
+	move.w	hit_by_blow(a4),d0
+	move.l	(a0,d0.w),a0
+	jsr		(a0)
+
+	rts
+	
+.round_done
+	blitz
+	rts
 .alive
 	tst.b	controls_blocked_flag
 	beq.b	.no_blocked
@@ -3504,8 +3514,10 @@ move_player:
 	beq.b	.no_frame_set_change
 	; change frame set
 	move.l	a0,frame_set(a4)
-	; re-set hit height so next hit is active again
+	; re-set blow type & hit height so next hit is active again
 	move.l	current_move_header(a4),a1
+	move.w	blow_type(a1),current_blow_type(a4)
+	move.w	back_blow_type(a1),current_back_blow_type(a4)
 	move.w	hit_height(a1),current_hit_height(a4)
 	
 	move.l	a0,a1	; a0 transferred in a1 (not really useful apparently..)
@@ -3586,10 +3598,14 @@ move_player:
 	sub.w	d2,ypos(a4)
 	bra.b	.noy
 	
-; todo be able to change that default frame when player is hit
-; death anim + fall down
-; animation complete, back to walk/default
+; animation complete, back to walk/default, unless hit
 .animation_ended
+	move.w	hit_by_blow(a4),d0
+	cmp.w	#BLOW_NONE,d0
+	beq.b	.alive
+	; dead, stay dead
+	rts
+.alive
 	tst.b	turn_back_flag(a4)
 	beq.b	.no_turn_back
 	; set turn back as soon as rollback lock
@@ -3606,8 +3622,8 @@ move_player:
 check_hit
 	tst.w	(a0)
 	bmi.b	.no_hit	; optim if no hit points
-	move.w	current_hit_height(a4),d0
-	cmp.w	#HEIGHT_NONE,d0
+	move.w	current_blow_type(a4),d0
+	cmp.w	#BLOW_NONE,d0
 	beq.b	.no_hit
 	; first frame of the hit frame of the technique
 	; there's some heavy processing to be done here
@@ -3654,8 +3670,15 @@ check_hit
 	add.w	d1,d1
 	move.l	(a1,d1.w),d0
 	bsr		add_to_score
-.no_scoring	
-	; play the sound
+.no_scoring
+	move.l		opponent(a4),a0
+	; todo: back blow type when positions are compatible
+	move.w	current_blow_type(a4),hit_by_blow(a0)		; opponent is hit
+	clr.w	frame(a0)
+	; players can't be controlled anymore
+	st.b	controls_blocked_flag
+	
+	; opponent is hit: play the sound
 	lea		blow_sound,a0
 	bsr		play_fx
 .no_collision
@@ -3663,7 +3686,8 @@ check_hit
 	; only works when the hit arrives, not afterwards
 	; (if player is stuck with kick, opponent can't
 	; recieve a blow)
-	move.w	#HEIGHT_NONE,current_hit_height(a4)
+	move.w	#BLOW_NONE,current_blow_type(a4)
+	move.w	#BLOW_NONE,current_back_blow_type(a4)
 
 .no_hit
 	rts
@@ -4036,6 +4060,7 @@ draw_referee
 ; < A4: player structure
 draw_player:
     lea _custom,A5
+
 	
 	move.l	frame_set(a4),a0
 	add.w	frame(a4),a0
@@ -5356,16 +5381,16 @@ SIMPLE_MOVE_CALLBACK:MACRO
 ; each "do_xxx" function has the following input params
 ; < A4: player structure
 
+	; block moves: (me boasting my former brown belt in shotokan karate :))
+	BLOCK_CALLBACK	low			; aka Gedan Barai
+	BLOCK_CALLBACK	medium		; aka Soto Uke
+	BLOCK_CALLBACK	high		; aka Jodan Age Uke
 	
-	BLOCK_CALLBACK	low
-	BLOCK_CALLBACK	medium
-	BLOCK_CALLBACK	high
-	
-	BLOW_CALLBACK	front
-	BLOW_CALLBACK	stomach
-	BLOW_CALLBACK	back
-	BLOW_CALLBACK	low
-	BLOW_CALLBACK	round
+	BLOW_CALLBACK	front		; player hit by a high direct punch
+	BLOW_CALLBACK	stomach		; player hit by a front kick or reverse punch (or back kick)
+	BLOW_CALLBACK	back		; player hit in the back by medium or high attack
+	BLOW_CALLBACK	low			; player hit by low kick/sweep or back round kick (same animation)
+	BLOW_CALLBACK	round		; player hit by round kick (falling away from playfield)
 	
 	SIMPLE_MOVE_CALLBACK	low_kick
 	SIMPLE_MOVE_CALLBACK	crouch
@@ -5759,6 +5784,7 @@ hundreds_score_table
 	REPT	11
 	dc.l	REPTN*100
 	ENDR
+	
 	
 practice_tables:
 	dc.l	practice_table_1
