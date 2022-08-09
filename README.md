@@ -12,7 +12,7 @@ foot sweep on left displays on the right too
 rip girls side/end
 rip evade obstacles
 rip breaking wood
-rip bull
+rip bull separate specific sprite sheet (left/right)
 
 forward close walk animation is broken
 optimization do not check hits if player distance is too high
@@ -29,13 +29,15 @@ play & rip stage 2 2players coup ventre
 
 check_if_facing_each_other not working
 
-lunge middle: soto uke
-front kick: gedan
-small reverse: soto
-high lunge: high block
-reverse: gedan
+controls blocked = time blocked (including before BEGIN) to check begin.
+basically stage starts with control/time blocked
 
-round/low kick/back kick/jumping side: no hit
+- check back blow facing/not facing
+- controls blocked but keep the infinite technique a few frames
+- draw priority to the player which has an active hit to deliver (if possible)
+
+cheatkey to set time at 1
+cheatkey to allow being hit without falling, keep fighting
 
 
 evade sequence: plant high, bottle high, apple low, rock low, plank mid-back (+ mirror)

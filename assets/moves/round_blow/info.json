@@ -1,2 +1,2 @@
-{"name": "high_blow", "hit_mask": false, "deltas": 
-[[0, 0, 0], [16, -10, 0], [16, -29, 0]]}
+{"name": "round_blow", "hit_mask": false, "deltas": 
+[[0, 0, 0], [8, -10, 0], [8, -29, 0], [-1, -29, 0]]}

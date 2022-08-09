@@ -221,7 +221,7 @@ def process_player_tiles():
     sback = (192,192,0)     # background of level 2, uniform background, used for mask color
 
     height = 48
-    moves_list = set(os.listdir(moves_dir))
+    moves_list = {x for x in os.listdir(moves_dir) if os.path.isdir(os.path.join(moves_dir,x))}
     # walk/forward in priority
     walking_anims = ["walk_forward","forward","walk_backwards","backwards"]
     moves_list.difference_update(walking_anims)
@@ -241,8 +241,13 @@ def process_player_tiles():
         hit_mask_exists_dict[d] = has_hit_mask
         # process each image, without last image which is player guard
         images_list = sorted([x for x in os.listdir(os.path.join(moves_dir,d)) if x.endswith(".png")],
-        key=lambda x: int(os.path.splitext(x)[0]))
+        key=lambda x: int(os.path.splitext(x)[0]))  # numeric sort
         frame_list = []
+        dd = len(deltas)-len(images_list)
+        if dd > 0:
+            # more deltas than images, add the last image indefinitely so
+            # zip doesn't run out of frames
+            images_list += [images_list[-1]]*(dd)
 
         for i,((df,dx,dy),image_file) in enumerate(zip(deltas,images_list)):
             img = Image.open(os.path.join(moves_dir,d,image_file))
@@ -399,10 +404,10 @@ def process_player_tiles():
         prev_dy = 0
 
         for i,(frame,width,height,df,dx,dy) in enumerate(frame_list):
-            f.write("\tdc.l\t{}{}\n".format(frame,suffix))
+            f.write("\tdc.l\t{}{}\n".format(frame,suffix))  # bob_data
             if hit_mask_exists_dict[name]:
-                f.write("\tdc.l\t{}_mask\n".format(frame))
-                f.write("\tdc.l\t{}_hit_list\n".format(frame))
+                f.write("\tdc.l\t{}_mask\n".format(frame))  # target_data
+                f.write("\tdc.l\t{}_hit_list\n".format(frame))  # hit_data
             else:
                 f.write("\tdc.l\t0\t; no hit mask\n")
                 f.write("\tdc.l\t0\t; no hit list\n")
@@ -411,8 +416,11 @@ def process_player_tiles():
             plane_size = bob_nb_bytes_per_row*height
             # plane_size is redundant but saves a multiplication by 48 in-game
             #
+            # can rollback in 3 first frames (that's a guess) unless that an amination
+            # when player is hit
+            can_rollback = 0 if "_blow" in frame else int(i<3)
             f.write("\tdc.w\t{},{},{},{},{},{},{},{}\n".format(plane_size,width,
-                            height,bob_nb_bytes_per_row,(dx - prev_dx)*x_sign,dy - prev_dy,df,int(i<3)))
+                            height,bob_nb_bytes_per_row,(dx - prev_dx)*x_sign,dy - prev_dy,df,can_rollback))
             prev_dx = dx
             prev_dy = dy
         f.write("\tdc.l\t0,0,0,0\n")

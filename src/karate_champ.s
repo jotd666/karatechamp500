@@ -2898,6 +2898,8 @@ update_normal:
 	lea	referee(pc),a4
 	move.w	#REFEREE_LEFT_LEG_DOWN,frame(a4)
 .normal
+	tst.b	controls_blocked_flag
+	bne.b	.no_sec
 	tst.w	time_left
 	beq.b	.no_sec		; zero: no more timer update
 	subq.w	#1,time_ticks
@@ -3502,7 +3504,7 @@ score_table_red
 move_player:
 	move.l	a0,current_move_header(a4)
 	; update animation loop flag if required
-	move.w	(8,a0),d0
+	move.w	(fs_animation_loops,a0),d0
 	move.b	d0,animation_loops(a4)
 
 	move.w	direction(a4),d0
@@ -3538,6 +3540,7 @@ move_player:
 	; countdown at zero
 	; advance/next frame / move
 	move.w	frame(a4),d0
+	LOGPC	100
 	tst.b	rollback(a4)
 	beq.b	.forward
 	; backwards (rollbacking)
@@ -5368,8 +5371,10 @@ BLOCK_CALLBACK:MACRO
 	bra.b	move_player
 	ENDM
 BLOW_CALLBACK:MACRO
-	; no block cancel
 	MOVE_CALLBACK	\1_blow
+	; no rollback
+	clr.b	rollback(a4)
+	clr.b	rollback_lock(a4)	
 	bra.b	move_player
 	ENDM
 SIMPLE_MOVE_CALLBACK:MACRO
