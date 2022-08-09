@@ -41,3 +41,9 @@ cheatkey to allow being hit without falling, keep fighting
 
 
 evade sequence: plant high, bottle high, apple low, rock low, plank mid-back (+ mirror)
+
+plant mid
+bottle mid
+apple high back
+rock high back
+book low back

@@ -91,10 +91,12 @@ hand_both_flags = hand_red_or_japan_flag
 	ULONG	current_move_callback
 	ULONG	current_move_header
 	ULONG	joystick_state
+	ULONG	frozen_joystick_state
 	ULONG	score
 	APTR	awarded_score_sprite
 	UWORD	awarded_score_display_timer	
 	UWORD	block_lock
+	UWORD	frozen_controls_timer
 	UWORD	previous_direction   ; previous sprite orientation
 	UWORD	current_frame_countdown
 	UWORD	scored_points
@@ -129,7 +131,7 @@ Execbase  = 4
 ; ---------------debug/adjustable variables
 
 ; if set skips intro, game starts immediately
-DIRECT_GAME_START
+;DIRECT_GAME_START
 ; practice has only 1 move
 ;SHORT_PRACTICE
 ; repeat a long time just to test moves
@@ -220,6 +222,8 @@ NB_RECORDED_MOVES = 100
 COLLISION_NB_COLS = NB_BYTES_PER_LINE*4
 COLLISION_NB_ROWS = 110/2
 
+SCORE_X_POS = 144
+	
 WINUAE_PAD_CONTROLS
 
 	IFD	WINUAE_PAD_CONTROLS
@@ -441,7 +445,8 @@ Start:
 ;    jsr (_LVOWaitTOF,a6)
 ;    jsr (_LVOWaitTOF,a6)
 
-    move.w  #STATE_INTRO_SCREEN,current_state
+	; should be STATE_INTRO_SCREEN
+    move.w  #STATE_GAME_START_SCREEN,current_state
     
     
     IFND    RECORD_INPUT_TABLE_SIZE
@@ -545,7 +550,6 @@ intro:
 .out_intro    
 
 
-    clr.l   state_timer
     move.w  #STATE_GAME_START_SCREEN,current_state
     
 .release
@@ -553,6 +557,7 @@ intro:
     btst    #JPB_BTN_RED,d0
     bne.b   .release
 
+    clr.l   state_timer
     tst.b   demo_mode
     bne.b   .no_credit
     ;lea credit_sound(pc),a0
@@ -820,7 +825,6 @@ clear_playfield_plane
     
 init_new_play:
 	clr.b	previous_move
-    clr.l   state_timer
 	clr.l	current_move_key_last_jump
 	clr.l	current_move_key
 	
@@ -849,6 +853,11 @@ init_new_play:
 	move.l	a1,record_data_end
 	
 .no_demo
+	move.b	player_configuration(pc),d0
+	lea	player_1(pc),a4
+	bsr		new_player
+	move.b	player_configuration+1(pc),d0
+	lea	player_2(pc),a4
 	bsr		new_player
 	; random practice sequence
 	bsr		random
@@ -860,9 +869,13 @@ init_new_play:
 	clr.l	current_practice_move_timer
 	move.l	#PRACTICE_WAIT_BEFORE_NEXT_MOVE,next_practice_move_timer
 	clr.w	practice_move_index
+	
+    clr.l   state_timer
+	move.w	#STATE_PLAYING,current_state
     rts
 
 new_player
+	move.b	d0,is_cpu(a4)
     move.l  #0,score(a4)
 	rts
 	
@@ -1149,13 +1162,13 @@ draw_score:
 	bsr write_blanked_color_string
 	
 .more
-	
+
 	bsr		draw_high_score
 
 	lea		player_1,a4
 	tst.b	is_cpu(a4)
 	bne.b	.p1_cpu
-    move.w  #136,d0
+    move.w  #SCORE_X_POS,d0
     move.w  #32,d1
 	move.l	score(a4),d2
     move.w  #6,d3
@@ -1173,7 +1186,7 @@ draw_score:
 	lea		player_2,a4
 	tst.b	is_cpu(a4)
 	bne.b	.p2_cpu
-    move.w  #136,d0
+    move.w  #SCORE_X_POS,d0
     move.w  #32+16,d1
 	move.l	score(a4),d2
     move.w  #6,d3
@@ -1288,6 +1301,7 @@ init_player_common
 	clr.b	turn_back_flag(a4)
 	clr.l	previous_xpos(a4)	; x and y
 	clr.l	current_move_header(a4)
+	clr.w	frozen_controls_timer(a4)
 	clr.b	skip_frame_reset(a4)
 	move.w	#BLOW_NONE,hit_by_blow(a4)
     ; no moves (zeroes direction flags)
@@ -1301,7 +1315,6 @@ init_players_and_referee:
 	move.l	#score_sprite_white,score_sprite(a4)
 	move.b	#0,character_id(a4)
 	bsr		init_player_common
-	clr.b	is_cpu(a4)
 	move.w 	#RIGHT,direction(a4)
 	move.l	a4,d0
 	
@@ -1311,8 +1324,6 @@ init_players_and_referee:
 	move.l	d0,opponent(a4)
 	bsr		init_player_common
 	move.b	#1,character_id(a4)
-	st.b	is_cpu(a4)			; ATM 1 player mode
-	clr.b	is_cpu(a4)
 	move.w 	#RIGHT,direction(a4)
 	move.w	level_number(pc),d0
 	beq.b	.pract
@@ -1993,31 +2004,37 @@ random:
 draw_start_screen
     bsr hide_sprites
     bsr clear_screen
-    
-    bsr draw_title
-    
-	
-    lea .psb_string(pc),a0
-    move.w  #48,d0
-    move.w  #96,d1
-    move.w  #$0F0,d2
-    bsr write_color_string
-    
-    lea .opo_string(pc),a0
-    move.w  #48+16,d0
-    move.w  #116,d1
-    move.w  #$0f00,d2
-	
+	; draw message. This is suboptimal but works
+	; first we write just background recangle
+	lea		start_message_list(pc),a1
+.loop
+	move.w	(a1)+,d0
+	bmi.b	.out_msg
+	move.w	(a1)+,d1
+	move.l	(a1)+,a0
+	move.w	#$fff,d2
+	move.w	d0,d3
+	bsr		write_blanked_color_string
+	move.w	d3,d0
+	bra.b	.loop
+.out_msg
 
-    
-    rts
-    
-.psb_string
-    dc.b    "PUSH START BUTTON",0
-.opo_string:
-    dc.b    "1 PLAYER ONLY",0
-    even
-    
+	rts
+
+
+start_message_list
+	dc.w	24,80
+	dc.l	press_1p_button_for_message 
+	dc.w	24+32,80+16
+	dc.l	single_play_message 
+	dc.w	24,80+32
+	dc.l	press_2p_button_for_message 
+	dc.w	16,80+48
+	dc.l	twin_play_message 
+	dc.w	152,249
+	dc.l	credit_message 
+	dc.w	-1
+	
 practice_message_list
 	dc.w	56,112
 	dc.l	blank_13_message
@@ -2831,9 +2848,28 @@ update_all
     bne.b   .out
     addq.l   #1,state_timer
 .out
-
+	; check buttons
+	lea	player_1(pc),a4
+	move.l	joystick_state(a4),d0
+	btst	#JPB_BTN_RED,d0
+	beq.b	.no_1p
+	; start game, 1 player only
+	move.w	#$0001,player_configuration
+	bra.b	.play
+.no_1p
+	lea	player_2(pc),a4
+	move.l	joystick_state(a4),d0
+	btst	#JPB_BTN_RED,d0
+	beq.b	.no_2p
+	
+	; start game, 2 players
+	move.w	#$0000,player_configuration
+.no_2p
     rts
-    
+.play
+	move.w	#STATE_NEXT_LEVEL,current_state
+	rts
+	
 .life_lost
     rts
 
@@ -3060,10 +3096,12 @@ referee_bubble_timeout
 	rts
 	
 update_practice
+	; only update practice moves
 	bsr		update_referee
 	move.l	state_timer(pc),d0
 	cmp.l	#PRACTICE_SKIP_MESSAGE_LEN,d0
 	bcs.b	.nothing
+	bsr		update_practice_moves
     lea     player_1(pc),a4
     bsr update_player
     lea     player_2(pc),a4
@@ -3151,7 +3189,6 @@ play_loop_fx
 ; < A4 player structure
 
 update_player
-;;    move.w  player_killed_timer(pc),d6
 	move.w	hit_by_blow(a4),d0
 	cmp.w	#BLOW_NONE,d0
 	beq.b	.alive
@@ -3170,6 +3207,14 @@ update_player
 	tst.b	controls_blocked_flag
 	beq.b	.no_blocked
 	moveq.l	#0,d0
+	move.w	frozen_controls_timer(a4),d0
+	beq.b	.no_demo
+	; controls are frozen
+	subq.w	#1,d0
+	move.w	d0,frozen_controls_timer(a4)
+	; joystick/buttons state at the time
+	; controls were frozen
+	move.l	frozen_joystick_state(a4),d0
 	bra.b	.no_demo
 .no_blocked
     tst.b	is_cpu(a4)
@@ -3178,6 +3223,7 @@ update_player
 	bra.b	.no_demo
 	
 .human_player
+
     move.l  joystick_state(a4),d0
     IFD    RECORD_INPUT_TABLE_SIZE
     bsr     record_input
@@ -3237,9 +3283,6 @@ update_player
     
     ; read live or recorded controls
 .no_demo
-
-	; if move is rewound or is a jump move after enough frames, controls aren't active
-	; TODO
 	
 	move.b	move_controls(a4),d2		; previous value
 	clr.w	d1
@@ -3635,21 +3678,14 @@ check_hit
 	; code is active.
 	movem.l	d1-d6/a0-a5,-(a7)
 	
-	; first, clear collision matrix
-	
-	move.l	#(COLLISION_NB_COLS*COLLISION_NB_ROWS)/8-1,d0
-	lea		collision_matrix,a1
-	move.l	a1,a0
-.clr
-	clr.l	(a1)+
-	clr.l	(a1)+
-	dbf		d0,.clr
 	
 	move.w	level_type(pc),d0
 	lea		fill_opponent_routine_table(pc),a1
 	move.l	(a1,d0.w),a1
 	jsr		(a1)
 
+	cmp.w	#GM_PRACTICE,level_type
+	beq.b	.no_collision
 	; now check this zone with hit points
 	bsr		check_collisions
 	
@@ -3675,11 +3711,22 @@ check_hit
 	bsr		add_to_score
 .no_scoring
 	move.l		opponent(a4),a0
-	; todo: back blow type when positions are compatible
-	move.w	current_blow_type(a4),hit_by_blow(a0)		; opponent is hit
+	; back blow type when positions are compatible
+	
+;	; back blow type when positions are compatible
+	move.w	direction(a0),d1
+	move.w	current_blow_type(a4),d0
+	cmp.w	direction(a4),d1
+	bne.b	.opposed
+	move.w	current_back_blow_type(a4),d0
+.opposed
+	move.w	d0,hit_by_blow(a0)		; opponent is hit
 	clr.w	frame(a0)
 	; players can't be controlled anymore
 	st.b	controls_blocked_flag
+	; but maintain last technique a few frames
+	move.l	joystick_state(a4),frozen_joystick_state(a4)
+	move.w	#NB_TICKS_PER_SEC/2,frozen_controls_timer(a4)
 	
 	; opponent is hit: play the sound
 	lea		blow_sound,a0
@@ -3695,6 +3742,21 @@ check_hit
 .no_hit
 	rts
 
+; > A0: collision matrix
+
+clear_collision_matrix:
+	; first, clear collision matrix
+	
+	move.l	#(COLLISION_NB_COLS*COLLISION_NB_ROWS)/8-1,d0
+	lea		collision_matrix,a1
+	move.l	a1,a0
+.clr
+	clr.l	(a1)+
+	clr.l	(a1)+
+	dbf		d0,.clr
+	lea		collision_matrix,a0
+	rts
+	
 fill_opponent_routine_table:
 	dc.l	fill_opponent_normal
 	dc.l	fill_opponent_practice
@@ -3705,6 +3767,8 @@ fill_opponent_routine_table:
 fill_opponent_evade
 fill_opponent_break
 fill_opponent_bull
+	bsr	clear_collision_matrix
+
 	rts
 
 ; there aren't any opponent, just take advantage of that
@@ -3794,10 +3858,10 @@ check_collisions:
 	moveq.l	#1,d0
 	rts
 	
-; < A0: collision matrix
 ; < A4: player structure
 
 fill_opponent_normal
+	bsr		clear_collision_matrix
 	move.l	opponent(a4),a5
 	
 	move.w	ypos(a5),d1
@@ -4215,10 +4279,7 @@ handle_ai
 	moveq.l	#0,d0
 	cmp.w	#GM_PRACTICE,level_type
 	bne.b	.normal
-	move.l	a4,-(a7)
-	; practice
-	bsr		update_practice_moves
-	move.l	(a7)+,a4
+	move.l	current_move_key(pc),d0
 	rts
 	
 .normal
@@ -4246,8 +4307,7 @@ update_practice_moves
 .not_performing_move
 	subq.l	#1,next_practice_move_timer
 	beq.b	.next_move
-.out
-	move.l	current_move_key(pc),d0
+.out	
 	rts
 .next_move
 	move.l	#PRACTICE_WAIT_BEFORE_NEXT_MOVE,next_practice_move_timer
@@ -5936,7 +5996,8 @@ game_palette
 level_players_y_min:
 	dc.w	0
 
-	
+player_configuration:
+	dc.l	0
 picked_practice_table:
 	dc.l	0
 current_practice_move_timer:
@@ -5965,7 +6026,16 @@ keyboard_table:
 floppy_file
     dc.b    "floppy",0
 
-
+press_1p_button_for_message
+	dc.b	"PRESS 1P BUTTON FOR",0
+single_play_message
+	dc.b	"SINGLE PLAY",0
+press_2p_button_for_message
+	dc.b	"PRESS 2P BUTTON FOR",0
+twin_play_message
+	dc.b	"FIGHT BETWEEN PLAYERS",0
+credit_message
+	dc.b	"CREDIT 99",0
 if_you_do_not_message
 	dc.b	"IF YOU DO NOT",0
 want_practice_press_message 
