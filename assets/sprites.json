@@ -165,7 +165,7 @@
    "name":"moo_bubble",
    "start_x":208,
    "start_y":64,
-   "width":64,
+   "width":32,
    "height":16
  },
 {
@@ -329,6 +329,14 @@
    "width":16,
    "height":16,
    "generate_mask":false
+ },
+{
+   "name":"bull",
+   "start_x":0,
+   "start_y":216,
+   "width":64,
+   "height":40,
+   "frames":3
  },
   {"ignore":true}
  ]

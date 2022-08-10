@@ -66,6 +66,12 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	hit_by_blow		; can be used for bull or objects too
 	LABEL	Character_SIZEOF
 
+	STRUCTURE Bull,0
+	STRUCT	_bull_base,Character_SIZEOF
+	UBYTE	bull_bubble_counter
+	UBYTE	bpad
+	LABEL	Bull_SIZEOF
+	
 	; do not change field order, there are some optimizations
 	; with grouped fields
 	; insert required fields in the end of the structure!!
@@ -526,7 +532,11 @@ intro:
     clr.l  state_timer
     clr.w  vbl_counter
 
-   
+	; when game loads, bull flames are facing left
+	lea		bull(pc),a0
+	move.w	#LEFT,direction(a0)
+	clr.b	bull_bubble_counter(a0)
+	
     bsr wait_bof
     ; init sprite, bitplane, whatever dma
     move.w #$83E0,dmacon(a5)
@@ -1629,7 +1639,7 @@ stop_sounds
 draw_level_type_table
 	dc.l	draw_normal
 	dc.l	draw_practice
-	dc.l	draw_bull
+	dc.l	draw_bull_stage
 	dc.l	draw_break
 	dc.l	draw_evade
 
@@ -1839,6 +1849,29 @@ draw_my_hero_bubble
 	clr.w	d4
 	bra		draw_bubble
 	
+draw_moo_bubble_right
+	lea	moo_bubble,a0
+	lea	white_right_bubble_leg,a1
+	move.w	#6,d2
+	clr.w	d4
+	move.w	xpos(a4),d0
+	move.w	ypos(a4),d1
+	move.w	#16,d3		; height is always 16
+	add.w	#64,d0
+	sub.w	#24,d1
+	move.w	d0,previous_bubble_xpos(a4)
+	move.w	d1,previous_bubble_ypos(a4)
+	move.w	d3,previous_bubble_height(a4)
+	bsr		blit_4_planes_cookie_cut
+	lsl.w	#3,d2	; times 8
+	move.w	d2,previous_bubble_width(a4)
+	move.l	a1,a0
+	add.w	#16,d1
+	add.w	d4,d0
+	move.w	#4,d2
+	move.w	#8,d3
+	bra		blit_4_planes_cookie_cut
+	
 ; what: generic bubble draw (to the right)
 ; < a0: bubble bitmap
 ; < a1: bubble leg bitmap
@@ -1865,12 +1898,17 @@ draw_bubble
 	move.w	#8,d3
 	bra		blit_4_planes_cookie_cut
 	
+draw_moo_bubble_left
+	lea	moo_bubble,a0
+	bra.b	dwb
 ; what: draw "white" bubble (the only one to the left)
 draw_white_bubble
 	lea	white_bubble,a0
+dwb:
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
 	sub.w	#24,d0
+	bmi.b	.out
 	sub.w	#24,d1
 	move.w	#6,d2
 	move.w	#16,d3
@@ -1886,10 +1924,12 @@ draw_white_bubble
 	move.w	#4,d2
 	move.w	#8,d3
 	bra		blit_4_planes_cookie_cut
+.out
+	rts
 	
 draw_evade
 draw_break
-draw_bull
+draw_bull_stage
 	tst.l	state_timer
 	bne.b	.no_update
 	bsr		clear_screen
@@ -2018,10 +2058,94 @@ draw_start_screen
 	move.w	d3,d0
 	bra.b	.loop
 .out_msg
-
 	rts
 
+erase_bull
+	; todo
+	movem.l	a0-a1/d0-d3,-(a7)
+	lea	bull(pc),a4
+	bsr		erase_bubble
+	movem.l	(a7)+,a0-a1/d0-d3
+	rts
+	
+update_bull:
+	;bull_bubble_counter
+	rts
+	
+; < D0: x
+; < D1: y
+; < D2: direction
 
+draw_bull:
+	movem.l	a0/a4/d0-d3,-(a7)
+	lea	bull(pc),a4
+	lea	bull_0,a0
+	cmp.w	direction(a4),d2
+	beq.b	.no_mirror
+	move.w	d2,direction(a4)	; note down
+	move.w	d0,d2
+	move.w	d1,d3
+	move.w	#10,d0	; 64+16
+	move.w	#40,d1
+	bsr		mirror
+	move.w	d2,d0
+	move.w	d3,d1
+.no_mirror
+	move.w	#10,d2	; 64+16
+	move.w	#40,d3
+	move.w	d0,xpos(a4)
+	move.w	d1,ypos(a4)
+	add.w	frame(a4),a0
+	bsr		blit_4_planes_cookie_cut
+	; draw "moo" bubble if enabled
+	move.w	#3,D0
+	cmp.w	bull_bubble_counter(a4),d0
+	bcs.b	.no_bubble
+	move.w	direction(a4),d0
+	cmp.w	#RIGHT,d0
+	beq.b	.draw
+	bsr		draw_moo_bubble_left
+	bra.b	.no_bubble
+.draw
+	bsr		draw_moo_bubble_right
+.no_bubble
+	movem.l	(a7)+,a0/a1/d0-d3
+	rts
+	
+; < A0: bitmap (works in place) with 2 bytes shifting
+; < d0: width (bytes) counting 2 last bytes shifting
+; < d1: height
+mirror:
+	movem.l	d0-d7/a0-a1,-(a7)
+	lea	byte_mirror_table(pc),a1
+	subq.l	#1,d1
+	moveq	#4,d4	; 4 planes+mask
+	moveq	#0,d5
+	moveq	#0,d6
+.plane_loop
+	move	d1,d7
+.yloop
+	move.w	d0,d2
+	subq.l	#2,d2	; -2 for blitter
+	lsr.w	#1,d2	; halfway
+	move.w	d2,d3
+	subq.l	#1,d2	; -1 for dbf
+.xloop
+	move.b	(a0,d2.w),d5
+	move.b	(a1,d5.w),d5	; mirrored
+	move.b	(a0,d3.w),d6
+	move.b	d5,(a0,d3.w)
+	move.b	(a1,d6.w),d6	; mirrored
+	move.b	d6,(a0,d2.w)
+	addq	#1,d3
+	dbf	d2,.xloop
+	add.w	d0,a0
+	dbf	d7,.yloop
+	; next plane
+	dbf	d4,.plane_loop
+	movem.l	(a7)+,d0-d7/a0-a1
+	rts
+	
 start_message_list
 	dc.w	24,80
 	dc.l	press_1p_button_for_message 
@@ -2964,7 +3088,8 @@ update_normal:
 .wait
     rts
 	
-update_bull
+
+update_bull_stage
 	bsr		update_active_player
 	rts
 update_evade
@@ -4608,7 +4733,7 @@ blit_4_planes:
 ; < D3: height
 ; trashes: nothing
 
-blit_4_planes_cookie_cut
+blit_4_planes_cookie_cut:
     movem.l d0-d6/a0-a3/a5,-(a7)
     lea $DFF000,A5
     lea     screen_data,a1
@@ -5850,6 +5975,268 @@ hundreds_score_table
 	dc.l	REPTN*100
 	ENDR
 	
+; generated with python
+;for i in range(0,256):
+;    b = bin(i)[2:].zfill(8)[::-1]
+;    print("\tdc.b\t{}".format(int(b,2)))
+	
+byte_mirror_table:
+	dc.b	0
+	dc.b	128
+	dc.b	64
+	dc.b	192
+	dc.b	32
+	dc.b	160
+	dc.b	96
+	dc.b	224
+	dc.b	16
+	dc.b	144
+	dc.b	80
+	dc.b	208
+	dc.b	48
+	dc.b	176
+	dc.b	112
+	dc.b	240
+	dc.b	8
+	dc.b	136
+	dc.b	72
+	dc.b	200
+	dc.b	40
+	dc.b	168
+	dc.b	104
+	dc.b	232
+	dc.b	24
+	dc.b	152
+	dc.b	88
+	dc.b	216
+	dc.b	56
+	dc.b	184
+	dc.b	120
+	dc.b	248
+	dc.b	4
+	dc.b	132
+	dc.b	68
+	dc.b	196
+	dc.b	36
+	dc.b	164
+	dc.b	100
+	dc.b	228
+	dc.b	20
+	dc.b	148
+	dc.b	84
+	dc.b	212
+	dc.b	52
+	dc.b	180
+	dc.b	116
+	dc.b	244
+	dc.b	12
+	dc.b	140
+	dc.b	76
+	dc.b	204
+	dc.b	44
+	dc.b	172
+	dc.b	108
+	dc.b	236
+	dc.b	28
+	dc.b	156
+	dc.b	92
+	dc.b	220
+	dc.b	60
+	dc.b	188
+	dc.b	124
+	dc.b	252
+	dc.b	2
+	dc.b	130
+	dc.b	66
+	dc.b	194
+	dc.b	34
+	dc.b	162
+	dc.b	98
+	dc.b	226
+	dc.b	18
+	dc.b	146
+	dc.b	82
+	dc.b	210
+	dc.b	50
+	dc.b	178
+	dc.b	114
+	dc.b	242
+	dc.b	10
+	dc.b	138
+	dc.b	74
+	dc.b	202
+	dc.b	42
+	dc.b	170
+	dc.b	106
+	dc.b	234
+	dc.b	26
+	dc.b	154
+	dc.b	90
+	dc.b	218
+	dc.b	58
+	dc.b	186
+	dc.b	122
+	dc.b	250
+	dc.b	6
+	dc.b	134
+	dc.b	70
+	dc.b	198
+	dc.b	38
+	dc.b	166
+	dc.b	102
+	dc.b	230
+	dc.b	22
+	dc.b	150
+	dc.b	86
+	dc.b	214
+	dc.b	54
+	dc.b	182
+	dc.b	118
+	dc.b	246
+	dc.b	14
+	dc.b	142
+	dc.b	78
+	dc.b	206
+	dc.b	46
+	dc.b	174
+	dc.b	110
+	dc.b	238
+	dc.b	30
+	dc.b	158
+	dc.b	94
+	dc.b	222
+	dc.b	62
+	dc.b	190
+	dc.b	126
+	dc.b	254
+	dc.b	1
+	dc.b	129
+	dc.b	65
+	dc.b	193
+	dc.b	33
+	dc.b	161
+	dc.b	97
+	dc.b	225
+	dc.b	17
+	dc.b	145
+	dc.b	81
+	dc.b	209
+	dc.b	49
+	dc.b	177
+	dc.b	113
+	dc.b	241
+	dc.b	9
+	dc.b	137
+	dc.b	73
+	dc.b	201
+	dc.b	41
+	dc.b	169
+	dc.b	105
+	dc.b	233
+	dc.b	25
+	dc.b	153
+	dc.b	89
+	dc.b	217
+	dc.b	57
+	dc.b	185
+	dc.b	121
+	dc.b	249
+	dc.b	5
+	dc.b	133
+	dc.b	69
+	dc.b	197
+	dc.b	37
+	dc.b	165
+	dc.b	101
+	dc.b	229
+	dc.b	21
+	dc.b	149
+	dc.b	85
+	dc.b	213
+	dc.b	53
+	dc.b	181
+	dc.b	117
+	dc.b	245
+	dc.b	13
+	dc.b	141
+	dc.b	77
+	dc.b	205
+	dc.b	45
+	dc.b	173
+	dc.b	109
+	dc.b	237
+	dc.b	29
+	dc.b	157
+	dc.b	93
+	dc.b	221
+	dc.b	61
+	dc.b	189
+	dc.b	125
+	dc.b	253
+	dc.b	3
+	dc.b	131
+	dc.b	67
+	dc.b	195
+	dc.b	35
+	dc.b	163
+	dc.b	99
+	dc.b	227
+	dc.b	19
+	dc.b	147
+	dc.b	83
+	dc.b	211
+	dc.b	51
+	dc.b	179
+	dc.b	115
+	dc.b	243
+	dc.b	11
+	dc.b	139
+	dc.b	75
+	dc.b	203
+	dc.b	43
+	dc.b	171
+	dc.b	107
+	dc.b	235
+	dc.b	27
+	dc.b	155
+	dc.b	91
+	dc.b	219
+	dc.b	59
+	dc.b	187
+	dc.b	123
+	dc.b	251
+	dc.b	7
+	dc.b	135
+	dc.b	71
+	dc.b	199
+	dc.b	39
+	dc.b	167
+	dc.b	103
+	dc.b	231
+	dc.b	23
+	dc.b	151
+	dc.b	87
+	dc.b	215
+	dc.b	55
+	dc.b	183
+	dc.b	119
+	dc.b	247
+	dc.b	15
+	dc.b	143
+	dc.b	79
+	dc.b	207
+	dc.b	47
+	dc.b	175
+	dc.b	111
+	dc.b	239
+	dc.b	31
+	dc.b	159
+	dc.b	95
+	dc.b	223
+	dc.b	63
+	dc.b	191
+	dc.b	127
+	dc.b	255
 	
 practice_tables:
 	dc.l	practice_table_1
@@ -6017,6 +6404,8 @@ player_2:
     ds.b    Player_SIZEOF
 referee:
 	ds.b	Referee_SIZEOF
+bull:
+	ds.b	Bull_SIZEOF
     even
 
     
@@ -6455,15 +6844,15 @@ panel_mask:
 	
 empty_sprite
     dc.l    0
-	dc.l	-1	; TEMP
-	dc.l	-1
-	dc.l	-1
-	dc.l	-1
-	dc.l	-1
-	dc.l	-1
-	dc.l	-1
-	dc.l	-1
-	dc.l	-1
+	dc.l	0
+	dc.l	0
+	dc.l	0
+	dc.l	0
+	dc.l	0
+	dc.l	0
+	dc.l	0
+	dc.l	0
+	dc.l	0
 	dc.l	0
     
     SECTION S_4,BSS,CHIP
