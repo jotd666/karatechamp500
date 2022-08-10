@@ -23,11 +23,15 @@ generate table with coords /2 + half/full point type
 player 2 joypad controls
 
 
-start screen with 1P/2P
-
 play & rip stage 2 2players coup ventre
 
 check_if_facing_each_other not working
+
+if py<(py_start-32) (not jumping)
+if going left and 0<px-px_other<threshold, don't move left
+if going right and 0<px_other-px<threshold
+(group with test against xmax/xmin or compute xmin/xmax
+at each update)
 
 controls blocked = time blocked (including before BEGIN) to check begin.
 basically stage starts with control/time blocked

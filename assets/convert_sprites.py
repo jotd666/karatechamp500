@@ -18,11 +18,13 @@ hit_mask_exists_dict = {}
 
 HIT_NONE = 0
 HIT_VALID = 1
-HIT_ATTACK = 2
+HIT_FULL_ATTACK = 2
+HIT_HALF_ATTACK = 3
 
-BLACK,WHITE,RED,BLUE = (0,0,0),(255,255,255),(255,0,0),(0,0,255)
-hit_mask_dict = {v:i for i,v in enumerate((BLACK,WHITE,RED))}
+BLACK,WHITE,RED,YELLOW,BLUE = (0,0,0),(255,255,255),(255,0,0),(255,255,0),(0,0,255)
+hit_mask_dict = {v:i for i,v in enumerate((BLACK,WHITE,RED,YELLOW))}
 hit_mask_dict[BLUE] = HIT_NONE
+
 
 outdir = "tiles"
 hit_mask_dir = "hit_masks"
@@ -62,7 +64,7 @@ move_param_dict = {
 "lunge_punch_600":{"score":600,"height":hh,"blow_type":bf,"back_blow_type":bb},
 "reverse_punch_800":{"score":800,"height":hl,"blow_type":bs,"back_blow_type":bb},
 "round_kick":{"score":600,"height":hn,"left_shift":12,"blow_type":br},  # round kick can't be blocked
-"weak_reverse_punch":{"score":100,"height":hm,"blow_type":bs,"back_blow_type":bb},
+"weak_reverse_punch":{"score":200,"height":hm,"blow_type":bs,"back_blow_type":bb},
 }
 # divide score by 100
 for d in move_param_dict.values():
@@ -205,7 +207,7 @@ def process_player_tiles():
 
     player_palette = [(0,0,0),(240,240,240),(240,192,192),(96, 80, 80)]
 
-    colors = [WHITE,RED,BLUE]
+    colors = [WHITE,RED,BLUE,YELLOW]
     mask_palette = Image.new("RGB",(32,len(colors)*16))
     y = 0
     for rgb in colors:
@@ -344,10 +346,11 @@ def process_player_tiles():
                         # rescale 50% to reduce mask size, hitbox will be accurate enough
                         # the rescaling has a priority on active hitboxes
                         hit_matrix_small = [[HIT_NONE]*(hit_mask.size[0]//2) for _ in range(hit_mask.size[1]//2)]
-                        hit_list = []
-                        for x in range(0,hit_mask.size[0]):
+                        full_hit_list = []
+                        half_hit_list = []
+                        for x in range(0,hit_mask.size[0],2):
                             x2 = x//2
-                            for y in range(hit_mask.size[1]):
+                            for y in range(0,hit_mask.size[1],2):
                                 y2 = y//2
                                 # only HIT_VALID (hit target)
                                 # is considered in matrix mask, disregard all other categories,
@@ -357,8 +360,10 @@ def process_player_tiles():
                                 # if hit attack, store in hit list. The game scans hit list
                                 # first and checks against hit matrix, this is way faster than
                                 # computing matrix to matrix collision at each frame
-                                elif hit_type == HIT_ATTACK:
-                                    hit_list.append((x,y))  # store in real coords, this is an offset
+                                elif hit_type == HIT_FULL_ATTACK:
+                                    full_hit_list.append((x,y))  # store in real coords, this is an offset
+                                elif hit_type == HIT_HALF_ATTACK:
+                                    half_hit_list.append((x,y))  # store in real coords, this is an offset
                                 # other categories (block) are useless for the game (block = invisible)
                                 # but needed to make sure that the logical mask matches the real graphical data
                                 # when converting assets. Else it would be a nightmare to debug that
@@ -368,7 +373,12 @@ def process_player_tiles():
                             for hline in hit_matrix_small:
                                 a = bytearray(hline)
                                 f.write(a)
-                        hit_dict[name] = hit_list
+                        # now, we have to make a different between well-connecting blow (full score awarded,
+                        # possibly full/whole point if points > 500) from a average-connecting blow (half score
+                        # awarded, half point)
+                        #
+                        # hit
+                        hit_dict[name] = (full_hit_list,half_hit_list)
                     else:
                         print("creating monochrome hitmask {}".format(hit_mask_filename))
                         mask_img.save(hit_mask_filename)
@@ -407,10 +417,11 @@ def process_player_tiles():
             f.write("\tdc.l\t{}{}\n".format(frame,suffix))  # bob_data
             if hit_mask_exists_dict[name]:
                 f.write("\tdc.l\t{}_mask\n".format(frame))  # target_data
-                f.write("\tdc.l\t{}_hit_list\n".format(frame))  # hit_data
+                f.write("\tdc.l\t{}_full_hit_list\n".format(frame))  # hit_data
+                f.write("\tdc.l\t{}_half_hit_list\n".format(frame))  # hit_data
             else:
                 f.write("\tdc.l\t0\t; no hit mask\n")
-                f.write("\tdc.l\t0\t; no hit list\n")
+                f.write("\tdc.l\t0,0\t; no hit lists\n")
             # image size info, x/y variations, logical infos (padding ATM)
             bob_nb_bytes_per_row = ((width//8)+2)   # blitter adds 16 bits
             plane_size = bob_nb_bytes_per_row*height
@@ -452,7 +463,8 @@ def process_player_tiles():
     STRUCTURE   PlayerFrame,0
     APTR    bob_data
     APTR    target_data
-	APTR	hit_data
+	APTR	full_hit_data
+	APTR	half_hit_data
     UWORD   bob_plane_size
     UWORD   bob_width
     UWORD   bob_height
@@ -504,13 +516,13 @@ def process_player_tiles():
                 f.write(a)
                 f.write(b)
     with open("{}/hit_lists.s".format(source_dir),"w") as f:
-        for name,coords in sorted(hit_dict.items()):
-            f.write("{}_hit_list:\n\tdc.w\t".format(name))
-            for i,(x,y) in enumerate(coords):
-                f.write("{},{}".format(x,y))
-                f.write("," if (i==0 or i%8) else "\n\tdc.w\t")
-
-            f.write("-1,-1\n")  # end
+        for name,coord_lists in sorted(hit_dict.items()):
+            for hl,coords in zip(("full","half"),coord_lists):
+                f.write("{}_{}_hit_list:\n\tdc.w\t".format(name,hl))
+                for i,(x,y) in enumerate(coords):
+                    f.write("{},{}".format(x,y))
+                    f.write("," if (i==0 or i%8) else "\n\tdc.w\t")
+                f.write("-1,-1\n")  # end
 
 def process_tiles(json_file,out_asm_file=None,dump=False):
     with open(json_file) as f:
@@ -755,9 +767,9 @@ bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
 
 #process_backgrounds(palette)
 
-process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
+#process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
 
-#process_player_tiles()
+process_player_tiles()
 
 #process_girls()
 

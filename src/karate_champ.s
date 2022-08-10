@@ -102,6 +102,7 @@ hand_both_flags = hand_red_or_japan_flag
 	APTR	awarded_score_sprite
 	UWORD	awarded_score_display_timer	
 	UWORD	block_lock
+	UWORD	point_award_countdown
 	UWORD	frozen_controls_timer
 	UWORD	previous_direction   ; previous sprite orientation
 	UWORD	current_frame_countdown
@@ -118,7 +119,9 @@ hand_both_flags = hand_red_or_japan_flag
 	UBYTE	sound_playing
 	UBYTE	turn_back_flag
 	UBYTE	skip_frame_reset
+	UBYTE	half_points
 	UBYTE	is_cpu			; 1: controlled by A.I.
+	UBYTE	_ppad
     LABEL   Player_SIZEOF
     
     
@@ -1306,6 +1309,8 @@ hide_sprites:
 ; what: initialize base player properties before each round
 ; < A4 struct
 init_player_common
+	clr.b	half_points(a4)
+	clr.w	point_award_countdown(a4)
 	clr.w	block_lock(a4)
 	clr.l	joystick_state(a4)
 	clr.b	turn_back_flag(a4)
@@ -3322,12 +3327,44 @@ update_player
 	move.w	hit_by_blow(a4),d0
 	move.l	(a0,d0.w),a0
 	jsr		(a0)
-
+	; check if reached last frame
+	tst.w	current_frame_countdown(a4)
+	bpl.b	.not_done
+	; check if just starting count before point award
+	move.w	point_award_countdown(a4),d0
+	bne.b	.running
+	; initiate countdown
+	move.w	NB_TICKS_PER_SEC,point_award_countdown(a4)
+	; last frame: play fall sound
+	lea	fall_sound,a0
+	bsr	play_fx
+.not_done
+	rts
+	
+.running
+	subq.w	#1,d0
+	move.w	d0,point_award_countdown(a4)
+	bne.b	.no_timeout
+	; time for the referee to announce the point
+	; and the winner (which is the other player)
+	; reset timeout to a very long period, no need
+	; for another timer... the referee will restart
+	; the round long before this
+	move.w	#60*NB_TICKS_PER_SEC,point_award_countdown(a4)	
+	lea	full_point_sound,a0
+	move.l	opponent(a4),a1
+	tst.b	half_points(a1)
+	beq.b	.ps
+	lea	half_point_sound,a0
+.ps
+	bsr	play_fx
+.no_timeout
 	rts
 	
 .round_done
-	blitz
 	rts
+	
+	
 .alive
 	tst.b	controls_blocked_flag
 	beq.b	.no_blocked
@@ -3708,7 +3745,6 @@ move_player:
 	; countdown at zero
 	; advance/next frame / move
 	move.w	frame(a4),d0
-	LOGPC	100
 	tst.b	rollback(a4)
 	beq.b	.forward
 	; backwards (rollbacking)
@@ -3742,7 +3778,6 @@ move_player:
 	beq.b	.noy
 	add.w	d2,ypos(a4)
 .noy
-	move.l	(hit_data,a1),a0		; hit list
 	; check if there are some hit points
 	bsr		check_hit
 
@@ -3788,14 +3823,20 @@ move_player:
 	bra		load_walk_frame
 
 
-; < A0: X,Y hit list
+; < A1: player frame
 ; < A4: player struct   
 check_hit
-	tst.w	(a0)
-	bmi.b	.no_hit	; optim if no hit points
 	move.w	current_blow_type(a4),d0
 	cmp.w	#BLOW_NONE,d0
 	beq.b	.no_hit
+
+	move.l	frame_set(a4),a1
+	add.w	frame(a4),a1	
+	move.l	(full_hit_data,a1),a0		; hit list
+
+	tst.w	(a0)
+	bmi.b	.no_hit	; optim if no hit points
+	
 	; first frame of the hit frame of the technique
 	; there's some heavy processing to be done here
 	; apart from the A.I. this is the most crucial part
@@ -3803,7 +3844,9 @@ check_hit
 	; code is active.
 	movem.l	d1-d6/a0-a5,-(a7)
 	
-	
+	move.l	a1,a6		; save struct
+	; generate table where opponent can be hit
+	; (depends on level type)
 	move.w	level_type(pc),d0
 	lea		fill_opponent_routine_table(pc),a1
 	move.l	(a1,d0.w),a1
@@ -3812,51 +3855,24 @@ check_hit
 	cmp.w	#GM_PRACTICE,level_type
 	beq.b	.no_collision
 	; now check this zone with hit points
+	moveq.l	#1,d0		; full list
 	bsr		check_collisions
+	tst		d0
+	bne.b	.is_hit
+	; not hit with perfect connecting blow, try
+	; half-point blow
+	; D0 is 0 already (small time optim...)
+	bsr		check_collisions
+	; we don't need the return code
 	
 	IFD	DEBUG_COLLISIONS
 	; debug it: save it here: S matrix ra0 !160*!55
 	lea		collision_matrix,a0
 	blitz	; so we can dump the matrix
 	ENDC
-	
-	tst.l	d0
-	beq.b	.no_collision
-	; show & award score
-	move.l	current_move_header(a4),a0
-	tst.b	is_cpu(a4)
-	bne.b	.no_scoring		; cpu doesn't score points 	
-	move.w	(hit_score,a0),d0
-	bsr		show_awarded_score
-	move.w	(hit_score,a0),d1
-	lea		hundreds_score_table(pc),a1
-	add.w	d1,d1
-	add.w	d1,d1
-	move.l	(a1,d1.w),d0
-	bsr		add_to_score
-.no_scoring
-	move.l		opponent(a4),a0
-	; back blow type when positions are compatible
-	
-;	; back blow type when positions are compatible
-	move.w	direction(a0),d1
-	move.w	current_blow_type(a4),d0
-	cmp.w	direction(a4),d1
-	bne.b	.opposed
-	move.w	current_back_blow_type(a4),d0
-.opposed
-	move.w	d0,hit_by_blow(a0)		; opponent is hit
-	clr.w	frame(a0)
-	; players can't be controlled anymore
-	st.b	controls_blocked_flag
-	; but maintain last technique a few frames
-	move.l	joystick_state(a4),frozen_joystick_state(a4)
-	move.w	#NB_TICKS_PER_SEC/2,frozen_controls_timer(a4)
-	
-	; opponent is hit: play the sound
-	lea		blow_sound,a0
-	bsr		play_fx
+.is_hit
 .no_collision
+
 	movem.l	(a7)+,d1-d6/a0-a5
 	; only works when the hit arrives, not afterwards
 	; (if player is stuck with kick, opponent can't
@@ -3927,12 +3943,21 @@ fill_opponent_practice
 .not_same
 	rts
 
+; < A4: attacking player structure
+; < D0: 1 if full point hit list, 0 half
+; > D0: 1 if hit, 0 otherwise
+
 check_collisions:
 	move.l	frame_set(a4),a1
 	add.w	frame(a4),a1
-	move.l	(hit_data,a1),a2
-	tst.w	(a2)
+	move.l	(full_hit_data,a1),a0		; hit list
+	move	d0,d7	; save full/half in d7
+	bne.b	.full
+	move.l	(half_hit_data,a1),a0		; hit list
+.full
+	tst.w	(a0)
 	bmi.b	.done	; optim: no hit data
+
 	move.w	xpos(a4),d3
 	move.w	ypos(a4),d4
 	sub.w	level_players_y_min(pc),d4	; can't be negative
@@ -3980,6 +4005,47 @@ check_collisions:
 	moveq.l	#0,d0
 	rts	
 .blow_landed
+	; show & award score
+	move.l	current_move_header(a4),a0
+	tst.b	is_cpu(a4)
+	bne.b	.no_scoring		; cpu doesn't score points 	
+	move.w	(hit_score,a0),d0
+	tst		d7
+	bne.b	.full_point
+	lsr.w	#1,d0
+.full_point
+	cmp.w	#600,d0
+	scs.b	half_points(a4)
+	
+	bsr		show_awarded_score
+	move.w	(hit_score,a0),d1
+	lea		hundreds_score_table(pc),a1
+	add.w	d1,d1
+	add.w	d1,d1
+	move.l	(a1,d1.w),d0
+	bsr		add_to_score
+	
+.no_scoring
+	move.l		opponent(a4),a0
+	; back blow type when positions are compatible
+	
+	move.w	direction(a0),d1
+	move.w	current_blow_type(a4),d0
+	cmp.w	direction(a4),d1
+	bne.b	.opposed
+	move.w	current_back_blow_type(a4),d0
+.opposed
+	move.w	d0,hit_by_blow(a0)		; opponent is hit
+	clr.w	frame(a0)
+	; players can't be controlled anymore
+	st.b	controls_blocked_flag
+	; but maintain last technique a few frames
+	move.l	joystick_state(a4),frozen_joystick_state(a4)
+	move.w	#NB_TICKS_PER_SEC/2,frozen_controls_timer(a4)
+	
+	; opponent is hit: play the sound
+	lea		blow_sound,a0
+	bsr		play_fx
 	moveq.l	#1,d0
 	rts
 	
@@ -4318,7 +4384,7 @@ draw_player:
 
 	move.l	frame_set(a4),a0
 	add.w	frame(a4),a0
-	move.l	(hit_data,a0),d3
+	move.l	(full_hit_data,a0),d3
 	beq.b	.done
 	move.l	d3,a1
 	tst.w	(a1)
@@ -5644,10 +5710,10 @@ do_front_kick:
 	cmp.l	a2,a1
 	beq.b	.force_kick	; already kick, keep kick
 .force_punch
-	lea	weak_reverse_punch_frames(pc),a0
+	lea	weak_reverse_punch_frames,a0
 	bra.b	move_player
 .kick
-	lea	weak_reverse_punch_frames(pc),a2
+	lea	weak_reverse_punch_frames,a2
 	cmp.l	a2,a1
 	beq.b	.force_punch
 .force_kick

@@ -169,6 +169,14 @@
    "height":16
  },
 {
+   "name":"halo",
+   "start_x":0,
+   "start_y":96,
+   "width":96,
+   "height":16,
+   "frames":2
+ },
+{
    "name":"apple",
    "start_x":0,
    "start_y":0,
