@@ -317,9 +317,10 @@ STATE_PLAYING = 0
 STATE_GAME_OVER = 1*4
 STATE_BONUS_SCREEN = 2*4
 STATE_NEXT_LEVEL = 3*4
-STATE_LIFE_LOST = 4*4
-STATE_INTRO_SCREEN = 5*4
-STATE_GAME_START_SCREEN = 6*4
+STATE_NEXT_FIGHT = 4*4
+STATE_LIFE_LOST = 5*4
+STATE_INTRO_SCREEN = 6*4
+STATE_GAME_START_SCREEN = 7*4
 
 X_MIN = 20
 X_MAX = 200
@@ -338,6 +339,7 @@ DEF_STATE_CASE_TABLE:MACRO
     dc.l    .game_over
     dc.l    .bonus_screen
     dc.l    .next_level
+    dc.l    .next_fight
     dc.l    .life_lost
     dc.l    .intro_screen
     dc.l    .game_start_screen
@@ -607,12 +609,7 @@ intro:
 
     bsr wait_bof
     
-    ;;bsr draw_score
-    bsr hide_sprites
-	
-	bsr	draw_background_pic
-	bsr	draw_panel
-	
+    bsr	redraw_level
 
     bra.b   .normal_level
 	
@@ -656,6 +653,8 @@ intro:
 
 .game_over
     bra.b   .mainloop
+.next_fight
+    bra.b   .new_level
 .next_level
     add.w   #1,level_number
     bra.b   .new_level
@@ -1243,7 +1242,9 @@ POINT_EMPTY_COLOR = $bbb
 
 ; < D0: lower shift
 ; < D1: number of points
+; trashes: none
 draw_2_upper_points
+	movem.l	d0-d4,-(a7)
 	move.w	#POINT_EMPTY_COLOR,d2	
 	lea		one_ellipse(pc),a0
 	move.w	d1,d4
@@ -1264,7 +1265,9 @@ draw_2_upper_points
 
 	sub.w	#8,d3
 	move.w	d3,d0
-	bra		write_color_string
+	bsr		write_color_string
+	movem.l	(a7)+,d0-d4
+	rts
 	
 draw_lower_point
 	move.w	#POINT_SCORED_COLOR,d2
@@ -1592,6 +1595,7 @@ draw_all
     
 .life_lost
 .next_level
+.next_fight
 
     ; don't do anything
     rts
@@ -2029,10 +2033,11 @@ add_to_score:
 ; < D0: points (1 or 2)
 ; trashes: D0,D1
 add_to_points:
+	st.b	score_update_message
 	move.w	scored_points(a4),d1
 	add.w	d0,d1
 	cmp.w	#6,d1
-	bcc.b	.not_maxed
+	bcs.b	.not_maxed
 	move.w	#5,d1
 .not_maxed
 	move.w	d1,scored_points(a4)
@@ -2751,10 +2756,7 @@ level2_interrupt:
     cmp.b   #$54,d0     ; F5
     bne.b   .no_redraw
    
-	movem.l	d0-a6,-(a7)
-    bsr     draw_background_pic
-	bsr		draw_panel
-	movem.l	(a7)+,d0-a6
+	bsr		redraw_level
     bra.b   .no_playing
 .no_redraw
     cmp.b   #$55,d0     ; F5
@@ -2787,7 +2789,16 @@ toggle_pause
 .out
 	rts
 	
-    
+redraw_level
+	movem.l	d0-a6,-(a7)
+	bsr		hide_sprites	
+    bsr     draw_background_pic
+	bsr		draw_panel
+	st.b	score_update_message
+	bsr		draw_score
+	movem.l	(a7)+,d0-a6
+	rts
+	
 ; < D0: numbers of vertical positions to wait
 beamdelay
 .bd_loop1
@@ -3009,10 +3020,11 @@ update_all
     bsr hide_sprites
     bsr     stop_sounds
 .next_level
-     move.w  #STATE_NEXT_LEVEL,current_state
-     
+     ;;move.w  #STATE_NEXT_LEVEL,current_state
      rts
-     
+.next_fight
+	rts
+	
 .game_over
     cmp.l   #GAME_OVER_TIMER,state_timer
     bne.b   .no_first
@@ -3167,26 +3179,24 @@ update_referee
 ; < A4: referee structure
 referee_bubble_timeout
 	move.w	bubble_type(a4),d0	; decide what to do
-	cmp.w	#BUBBLE_STOP,d0
-	bne.b	.no_stop
-	move.w	#BUBBLE_JUDGE,bubble_type(a4)
-	clr.w	hand_both_flags(a4)	; no flags
-	move.w	#NB_TICKS_PER_SEC,bubble_timer(a4)
-	lea		judge_sound,a0
-	bsr		play_fx
-	rts
-.no_stop
-	cmp.w	#BUBBLE_VERY_GOOD,d0
-	beq.b	.phase_over
-	cmp.w	#BUBBLE_NONE,d0
-	beq.b	.after_judge
-	cmp.w	#BUBBLE_JUDGE,d0
-	bne.b	.erase
-	; judge bubble display ended: now erase it using no bubble
-	move.w	#NB_TICKS_PER_SEC,bubble_timer(a4)
-	move.w	#BUBBLE_NONE,bubble_type(a4)
-	bra.b	.erase
-.after_judge	
+	lea		bubble_timeout_table(pc),a0
+	move.l	(a0,d0.w),a0
+	jmp		(a0)
+
+bubble_timeout_table
+	dc.l	.bubble_none
+	dc.l	.bubble_very_good
+	dc.l	.bubble_white
+	dc.l	.bubble_red
+	dc.l	.bubble_stop
+	dc.l	.bubble_judge
+	dc.l	.erase	; .bubble_begin
+
+	
+.bubble_none
+	; we take benefit of the only fake BUBBLE_NONE
+	; display to make a pause after "judge"
+	
 	; let judge decide who won
 	lea		player_1(pc),a2
 	lea		player_2(pc),a3
@@ -3216,17 +3226,40 @@ referee_bubble_timeout
 	btst	#0,d0
 	beq.b	.p1_wins
 	bra.b	.p2_wins
+.round_ended:
+	; winner of the round has been designated
+	blitz
+	rts	
+
+.bubble_very_good
+	; phase_over
+	; timeout on "very good": set a new flag
+	st.b	level_completed_flag
+	rts
+	
+.bubble_white
+.bubble_red
+	move.w	#STATE_NEXT_FIGHT,current_state
+	clr.l	state_timer
+	rts
+.bubble_stop
+	move.w	#BUBBLE_JUDGE,bubble_type(a4)
+	clr.w	hand_both_flags(a4)	; no flags
+	move.w	#NB_TICKS_PER_SEC,bubble_timer(a4)
+	lea		judge_sound,a0
+	bsr		play_fx
+	rts
+.bubble_judge
+	; judge bubble display ended: now erase it using no bubble
+	move.w	#NB_TICKS_PER_SEC,bubble_timer(a4)
+	move.w	#BUBBLE_NONE,bubble_type(a4)
+	bra.b	.erase
+
 .erase
 	st.b	erase_referee_bubble_message
 	clr.w	bubble_type(a4)
 	rts
-.phase_over
-	; timeout on "very good": set a new flag
-	st.b	level_completed_flag
-	rts
-.round_ended:
-	
-	rts
+
 	
 update_practice
 	; only update practice moves
@@ -3357,24 +3390,30 @@ update_player
 	; referee designates the winner
 	
 	lea		referee(pc),a2
+	move.w	#REFEREE_LEGS_DOWN,frame(a2)
 	tst.b	character_id(a4)
 	beq.b	.white_lost
 	; red lost
 	move.w	#NB_TICKS_PER_SEC*2,bubble_timer(a2)
 	move.w	#BUBBLE_WHITE,bubble_type(a2)
-	move.b	#1,hand_white_flag
+	move.b	#1,hand_white_flag(a2)
 	bra.b	.cont2
 .white_lost
 	move.w	#BUBBLE_RED,bubble_type(a2)
-	move.b	#1,hand_red_or_japan_flag
+	move.b	#1,hand_red_or_japan_flag(a2)
 .cont2
 	move.w	#60*NB_TICKS_PER_SEC,point_award_countdown(a4)	
 	lea	full_point_sound,a0
 	move.l	opponent(a4),a1
+	moveq	#2,d0	; default: 2 points
 	tst.b	half_points(a1)
-	bne.b	.ps
+	beq.b	.ps
+	; award half point (1 point)
+	moveq	#1,d0
 	lea	half_point_sound,a0
 .ps
+	move.l	a1,a4	; opponent
+	bsr		add_to_points
 	bsr	play_fx
 .no_timeout
 	rts
@@ -4022,26 +4061,31 @@ check_collisions:
 	rts	
 .blow_landed
 	; show & award score
+	; don't show/award points yet. There's some
+	; suspense when computer scored because we
+	; don't see technique points so we have to
+	; wait until referee/points show
 	move.l	current_move_header(a4),a0
 	tst.b	is_cpu(a4)
 	bne.b	.no_scoring		; cpu doesn't score points 	
 	move.w	(hit_score,a0),d0
+
 	tst		d7
 	bne.b	.full_point
-	lsr.w	#1,d0
+	lsr.w	#1,d0	; technique isn't perfect
 .full_point
-	cmp.w	#600,d0
+	cmp.w	#6,d0	; below 600
 	scs.b	half_points(a4)
+	move.w	d0,d1		; save score in d1
 	
 	bsr		show_awarded_score
-	move.w	(hit_score,a0),d1
 	lea		hundreds_score_table(pc),a1
 	add.w	d1,d1
 	add.w	d1,d1
 	move.l	(a1,d1.w),d0
-	bsr		add_to_score
-	
+	bsr		add_to_score	
 .no_scoring
+
 	move.l		opponent(a4),a0
 	; back blow type when positions are compatible
 	
