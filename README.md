@@ -46,6 +46,8 @@ bugs
 
 - against CPU player blocks without reason
 - some blows don't connect (both players same direction): check debug pic
+- when hit, player falls too fast
+- weak reverse when distance is small: not working
 
 evade sequence: 
 

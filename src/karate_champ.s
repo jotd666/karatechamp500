@@ -575,6 +575,9 @@ intro:
     bne.b   .no_credit
     ;lea credit_sound(pc),a0
     ;bsr play_fx
+	
+	; TEMP
+	move.w	#1,cheat_keys	; enable cheat in that mode, we need to test the game
 
 .game_start_loop
     bsr random      ; so the enemies aren't going to do the same things at first game
@@ -3334,7 +3337,7 @@ update_player
 	move.w	point_award_countdown(a4),d0
 	bne.b	.running
 	; initiate countdown
-	move.w	NB_TICKS_PER_SEC,point_award_countdown(a4)
+	move.w	#NB_TICKS_PER_SEC,point_award_countdown(a4)
 	; last frame: play fall sound
 	lea	fall_sound,a0
 	bsr	play_fx
@@ -3350,11 +3353,26 @@ update_player
 	; reset timeout to a very long period, no need
 	; for another timer... the referee will restart
 	; the round long before this
+	
+	; referee designates the winner
+	
+	lea		referee(pc),a2
+	tst.b	character_id(a4)
+	beq.b	.white_lost
+	; red lost
+	move.w	#NB_TICKS_PER_SEC*2,bubble_timer(a2)
+	move.w	#BUBBLE_WHITE,bubble_type(a2)
+	move.b	#1,hand_white_flag
+	bra.b	.cont2
+.white_lost
+	move.w	#BUBBLE_RED,bubble_type(a2)
+	move.b	#1,hand_red_or_japan_flag
+.cont2
 	move.w	#60*NB_TICKS_PER_SEC,point_award_countdown(a4)	
 	lea	full_point_sound,a0
 	move.l	opponent(a4),a1
 	tst.b	half_points(a1)
-	beq.b	.ps
+	bne.b	.ps
 	lea	half_point_sound,a0
 .ps
 	bsr	play_fx
@@ -3863,8 +3881,7 @@ check_hit
 	; half-point blow
 	; D0 is 0 already (small time optim...)
 	bsr		check_collisions
-	; we don't need the return code
-	
+	; we don't need the return code	
 	IFD	DEBUG_COLLISIONS
 	; debug it: save it here: S matrix ra0 !160*!55
 	lea		collision_matrix,a0
@@ -3895,7 +3912,6 @@ clear_collision_matrix:
 	clr.l	(a1)+
 	clr.l	(a1)+
 	dbf		d0,.clr
-	lea		collision_matrix,a0
 	rts
 	
 fill_opponent_routine_table:
@@ -3946,16 +3962,16 @@ fill_opponent_practice
 ; < A4: attacking player structure
 ; < D0: 1 if full point hit list, 0 half
 ; > D0: 1 if hit, 0 otherwise
-
+; trashes: A1,A2,D1-D7
 check_collisions:
 	move.l	frame_set(a4),a1
 	add.w	frame(a4),a1
-	move.l	(full_hit_data,a1),a0		; hit list
+	move.l	(full_hit_data,a1),a2		; hit list
 	move	d0,d7	; save full/half in d7
 	bne.b	.full
-	move.l	(half_hit_data,a1),a0		; hit list
+	move.l	(half_hit_data,a1),a2		; hit list
 .full
-	tst.w	(a0)
+	tst.w	(a2)
 	bmi.b	.done	; optim: no hit data
 
 	move.w	xpos(a4),d3
@@ -4053,6 +4069,7 @@ check_collisions:
 
 fill_opponent_normal
 	bsr		clear_collision_matrix
+	; > A0: collision matrix
 	move.l	opponent(a4),a5
 	
 	move.w	ypos(a5),d1
@@ -4420,7 +4437,9 @@ draw_player:
 	bra.b	.hit_draw
 .done
 	; draw mask if defence in mask
-	move.l	(target_data,a0),a1
+	move.l	(target_data,a0),d6
+	beq.b	.out	; no mask happens (player hit)
+	move.l	d6,a1
 	move.w	bob_height(a0),d6
 	lsr.w	#1,d6
 	subq.w	#1,d6
