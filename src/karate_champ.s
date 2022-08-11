@@ -97,6 +97,7 @@ hand_both_flags = hand_red_or_japan_flag
 	ULONG	current_move_callback
 	ULONG	current_move_header
 	ULONG	joystick_state
+	ULONG	connecting_move_bits
 	ULONG	frozen_joystick_state
 	ULONG	score
 	APTR	awarded_score_sprite
@@ -1768,6 +1769,7 @@ ARROW_HORIZ_X_SHIFT = 24
 .no_tech_right
 	; now the technique name
 	move.l	d4,d0
+	lea		move_name_table_right(pc),a0
 	bsr		decode_technique_name
 	tst.l	d0
 	beq.b	.no_tech	; should not happen!!
@@ -1996,10 +1998,12 @@ CONTROL_TEST:MACRO
 .no_\1
     ENDM
 	
+; < A0: move name table (move_name_table_right or move_name_table_left)
+
 ; < D0: control bits
 ; > D0: pointer on words list for technique (or 0)
-; trashes: D1,A0
-decode_technique_name	
+; trashes: D1
+decode_technique_name:
 	moveq.l	#0,d1
 	CONTROL_TEST	ADOWN,DOWN,.out2
 	CONTROL_TEST	AUP,UP,.out2
@@ -2015,7 +2019,6 @@ decode_technique_name
 	; D1.B holds table index for move name
 	add.w	d1,d1
 	add.w	d1,d1
-	lea		move_name_table_right,a0	; ATM right is ok
 	move.l	(a0,d1.w),d0
 	rts
 	
@@ -3415,6 +3418,32 @@ update_player
 	move.l	a1,a4	; opponent
 	bsr		add_to_points
 	bsr	play_fx
+	; TEMP draw here
+	; decode technique name and ask to display it
+	move.l	connecting_move_bits(a4),d0
+	lea		move_name_table_right(pc),a0
+	move.w	direction(a4),d1
+	cmp.w	#RIGHT,d1
+	beq.b	.dr
+	lea		move_name_table_left(pc),a0
+.dr
+
+	bsr		decode_technique_name
+	tst.l	d0
+	beq.b	.no_tech	; should not happen!!
+	move.l	d0,a1
+	move.w	#38,d1
+.wl
+	move.l	(a1)+,d3
+	beq.b	.no_tech
+	; display word
+	move.l	d3,a0
+	move.w	#32,d0
+	move.w	#$FFF,d2
+	bsr		write_color_string
+	add.w	#8,d1
+	bra.b	.wl
+.no_tech	
 .no_timeout
 	rts
 	
@@ -4060,6 +4089,9 @@ check_collisions:
 	moveq.l	#0,d0
 	rts	
 .blow_landed
+	; note down the move
+	move.l	joystick_state(a4),connecting_move_bits(a4)
+	
 	; show & award score
 	; don't show/award points yet. There's some
 	; suspense when computer scored because we
@@ -6956,6 +6988,7 @@ swoosh2_raw
 swoosh2_raw_end
 
 	include	"player_bobs.s"
+	include	"girl_bobs.s"
 	include	"other_bobs.s"
 music:
     ;incbin  "amidar_music_conv.mod"

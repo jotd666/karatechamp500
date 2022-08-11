@@ -1,4 +1,4 @@
-import glob,os,json
+import glob,os,json,bitplanelib
 from PIL import Image
 
 def generate_mask_and_image(img,rgbmask):
@@ -16,15 +16,16 @@ def generate_mask_and_image(img,rgbmask):
     return mask,img
 
 dump = True
-
+max_level = 1 # TEMP
 
 def doit():
+    sprites_dir = "../sprites"
     if dump:
         outdir = "tiles/girls"
         if not os.path.exists(outdir):
             os.mkdir(outdir)
-    with open("palette.json") as f:
-        palette = json.load(f)
+    palette = bitplanelib.palette_load_from_json("palette.json")
+
 
     maskrgb = (0,0xC0,0)
     img = Image.open("girls.png")
@@ -37,18 +38,41 @@ def doit():
 
     img_frame,mask_frame = (Image.new("RGB",(16,16)) for _ in range(2))
 
-    for stage in range(0,1):
-        for girl_frame in range(6):
+    frame_name = ["top_front","top_left","top_right","top_end","legs_front","legs_end"]
+    bin_files = []
+    for stage in range(0,max_level):
+        for girl_frame,gfn in enumerate(frame_name):
             y = stage*16
             x = girl_frame*16
             img_frame.paste(img,(-x,-y))
             mask_frame.paste(mask,(-x,-y))
-            if dump:
-                img_frame.save(os.path.join(outdir,"girl_{}_{}.png").format(stage,girl_frame))
-                mask_frame.save(os.path.join(outdir,"girl_mask_{}_{}.png").format(stage,girl_frame))
+            data = bitplanelib.palette_image2raw(img_frame,None,palette,
+                    generate_mask=False,palette_precision_mask=0xF0)
+            data += bitplanelib.palette_image2raw(mask_frame,None,((0,0,0),(255,255,255)),
+                    generate_mask=False,blit_pad=True)
 
-##
-##        clipped = img.crop((x_min,y_min,x_max,y_max))
+            fn = "girl_{}_{}".format(stage,gfn)
+            bin_files.append(fn)
+            with open(os.path.join(sprites_dir,fn+".bin"),"wb") as f:
+                f.write(data)
+            if dump:
+
+                img_frame.save(os.path.join(outdir,"girl_{}_{}.png".format(stage,gfn)))
+                mask_frame.save(os.path.join(outdir,"girl_mask_{}_{}.png".format(stage,gfn)))
+
+    with open(os.path.join("../src/girl_bobs.s"),"w") as f:
+        f.write("girl_bob_table:\n")
+        for i in range(0,max_level):
+            f.write("\tdc.l\tgirl_{}_frames\n".format(i))
+        f.write("\n")
+
+        for i in range(0,max_level):
+            f.write("girl_{}_frames:\n".format(i))
+            for fn in frame_name:
+                f.write("\tdc.l\tgirl_{}_{}_frame\n".format(i,fn))
+            f.write("\n")
+        for bf in bin_files:
+            f.write("{0}_frame:\n\tincbin\t{0}.bin\n".format(bf))
 
 if __name__ == "__main__":
     doit()
