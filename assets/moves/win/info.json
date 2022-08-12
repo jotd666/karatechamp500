@@ -1,4 +1,5 @@
 {"name": "win", "hit_mask":false,
 "symmetrical":true,
 "loops":true,
-"deltas": [[0, 0, 0], [3, 3, -8], [16, 5, 0]]}
+"rollback_frame":-1,
+"deltas": [[0,0,-16], [16, 5, -16], [16, 5, -16]]}

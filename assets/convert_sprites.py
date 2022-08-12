@@ -242,10 +242,12 @@ def process_player_tiles():
         deltas = info["deltas"]
         has_hit_mask = info.get("hit_mask",True)
         is_symmetrical = info.get("symmetrical",False)
+        rollback_frame = info.get("rollback_frame",3)  # default rollback
         loops = info.get("loops",False)
         # make sure the properties are in the dict
         info["symmetrical"] = is_symmetrical
         info["hit_mask"] = has_hit_mask
+        info["rollback_frame"] = int(rollback_frame)
         info["loops"] = loops
         # store it for later
         info_dict[d] = info
@@ -439,7 +441,8 @@ def process_player_tiles():
             #
             # can rollback in 3 first frames (that's a guess) unless that an amination
             # when player is hit
-            can_rollback = 0 if "_blow" in frame else int(i<3)
+            rollback_frame = info_dict[name]["rollback_frame"]
+            can_rollback = 0 if rollback_frame == -1 else int(i<rollback_frame)
             f.write("\tdc.w\t{},{},{},{},{},{},{},{}\n".format(plane_size,width,
                             height,bob_nb_bytes_per_row,(dx - prev_dx)*x_sign,dy - prev_dy,df,can_rollback))
             prev_dx = dx

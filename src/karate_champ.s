@@ -122,7 +122,7 @@ hand_both_flags = hand_red_or_japan_flag
 	UBYTE	skip_frame_reset
 	UBYTE	half_points
 	UBYTE	is_cpu			; 1: controlled by A.I.
-	UBYTE	_ppad
+	UBYTE	round_winner
     LABEL   Player_SIZEOF
     
     
@@ -226,6 +226,11 @@ PRACTICE_WAIT_BEFORE_NEXT_MOVE = 45
 PRACTICE_MOVE_DURATION = PRACTICE_WAIT_BEFORE_NEXT_MOVE*2
 
 START_ROUND_NB_TICKS = 110
+END_ROUND_NB_TICKS = 110
+
+RP_START_ROUND = 0
+RP_END_ROUND = 1
+
 
 NB_RECORDED_MOVES = 100
 
@@ -278,7 +283,7 @@ ORIGINAL_TICKS_PER_SEC = 60
 NB_BYTES_PER_LINE = 40
 NB_BYTES_PER_BACKBUFFER_LINE = 28
 BOB_16X16_PLANE_SIZE = (16/8+2)*16
-BOB_64X48_PLANE_SIZE = (64/8+2)*48		; 64x48 pixels
+BOB_64X64_PLANE_SIZE = (64/8+2)*64		; 64x48 pixels
 BOB_8X8_PLANE_SIZE = 16
 NB_LINES = 256
 SCREEN_PLANE_SIZE = NB_BYTES_PER_LINE*NB_LINES
@@ -311,6 +316,7 @@ DIRF_RIGHT = 1<<DIRB_RIGHT
 DIRF_DOWN = 1<<DIRB_DOWN
 DIRF_LEFT = 1<<DIRB_LEFT
 DIRF_UP = 1<<DIRB_UP
+
 
 ; states, 4 by 4, starting by 0
 
@@ -1320,6 +1326,7 @@ hide_sprites:
 ; what: initialize base player properties before each round
 ; < A4 struct
 init_player_common
+	clr.b	round_winner(a4)
 	clr.b	half_points(a4)
 	clr.w	point_award_countdown(a4)
 	clr.w	block_lock(a4)
@@ -1339,7 +1346,13 @@ init_players_and_referee:
 	beq.b	.no_reinit
 	move.w	#30,time_left
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks	
+	clr.w	player_1+scored_points
+	clr.w	player_2+scored_points
 .no_reinit
+
+	move.w	#START_ROUND_NB_TICKS,pause_round_timer
+	move.w	#RP_START_ROUND,pause_round_type
+
     lea player_1(pc),a4
 	move.l	#player_2,opponent(a4)
 	move.l	#score_table_white,score_table(a4)
@@ -1418,9 +1431,9 @@ init_players_and_referee:
 	
 	clr.w	player_flashing_timer 
 	clr.b	player_up_displayed_flag
+	clr.w	time_countdown_flag
 	
 	st.b	score_update_message
-	
     
     move.w  #ORIGINAL_TICKS_PER_SEC,D0   
     tst.b   music_played
@@ -3090,15 +3103,19 @@ update_all
 	jmp		(a0)
 	
 update_normal:
-	; TODO start music timer on first round
-	move.w	start_round_timer(pc),d0
+	; TODO start music timer on first round, show girl
+	
+	move.w	pause_round_timer(pc),d0
 	beq.b	.normal
 	subq.w	#1,d0
-	move.w	d0,start_round_timer
+	move.w	d0,pause_round_timer
 	beq.b	.go_normal
+	cmp.w	#RP_START_ROUND,pause_round_type
+	bne.b	.pout
 	; check if we must display "begin" bubble
 	cmp.w	#START_ROUND_NB_TICKS-50,d0
 	beq.b	.display_begin
+.pout
 	rts
 .display_begin
 	lea	referee(pc),a4
@@ -3155,9 +3172,10 @@ update_break
 update_referee
 	lea	referee(pc),a4
 	; check bubble & timer
-	tst.w	bubble_type(a4)
-	beq.b	.no_bubble
-	subq.w	#1,bubble_timer(a4)
+	move.w	bubble_timer(a4),d0
+	beq.b	.out
+	subq	#1,d0
+	move.w	d0,bubble_timer(a4)
 	beq.b	referee_bubble_timeout
 .out
 	rts
@@ -3230,40 +3248,8 @@ bubble_timeout_table
 .bubble_none
 	; we take benefit of the only fake BUBBLE_NONE
 	; display to make a pause after "judge"
-	
-	; let judge decide who won
-	lea		player_1(pc),a2
-	lea		player_2(pc),a3
-	move.w	scored_points(a2),d0
-	cmp.w	scored_points(a3),d0
-	beq.b	.tie
-	bcc.b	.p1_wins
-	; p2 wins
-.p2_wins
-	move.b	#1,hand_red_or_japan_flag(a4)
-	move.w	#BUBBLE_RED,bubble_type(a4)
-	bra.b	.round_ended
-.p1_wins
-	move.b	#1,hand_white_flag(a4)
-	move.w	#BUBBLE_WHITE,bubble_type(a4)
-	bra.b	.round_ended
-.tie
-	; if CPU is playing, CPU wins
-	tst.b	is_cpu(a2)
-	bne.b	.p1_wins
-	tst.b	is_cpu(a3)
-	bne.b	.p2_wins
-	; both human players: random
-	; (well, we could do better, by counting the technique scores
-	; during the current round, but what the hell)
-	bsr		random
-	btst	#0,d0
-	beq.b	.p1_wins
-	bra.b	.p2_wins
-.round_ended:
-	; winner of the round has been designated
-	blitz
-	rts	
+	bra		judge_decision
+
 
 .bubble_very_good
 	; phase_over
@@ -3293,6 +3279,61 @@ bubble_timeout_table
 	st.b	erase_referee_bubble_message
 	clr.w	bubble_type(a4)
 	rts
+
+judge_decision:
+	lea		referee(pc),a4
+	; let judge decide who won
+	lea		player_1(pc),a2
+	lea		player_2(pc),a3
+	move.w	scored_points(a2),d0
+	cmp.w	scored_points(a3),d0
+	beq.b	.tie
+	bcc.b	.p1_wins
+	; p2 wins
+.p2_wins
+	st.b	round_winner(a3)
+	move.b	#1,hand_red_or_japan_flag(a4)
+	move.w	#BUBBLE_RED,bubble_type(a4)
+	sub.w	#16,ypos(a3)
+	lea		do_win(pc),a0
+	move.l	a0,current_move_callback(a3)
+	tst.w	time_left
+	bne.b	.round_ended
+	lea		do_lose(pc),a0
+	move.l	a0,current_move_callback(a2)
+	bra.b	.round_ended
+.p1_wins
+	st.b	round_winner(a2)
+	move.b	#1,hand_white_flag(a4)
+	move.w	#BUBBLE_WHITE,bubble_type(a4)
+	sub.w	#16,ypos(a2)
+	lea		do_win(pc),a0
+	move.l	a0,current_move_callback(a2)
+	tst.w	time_left
+	bne.b	.round_ended
+	; win by judge decision on timeout
+	lea		do_lose(pc),a0
+	move.l	a0,current_move_callback(a3)
+	bra.b	.round_ended
+.tie
+	; if CPU is playing, CPU wins
+	tst.b	is_cpu(a2)
+	bne.b	.p1_wins
+	tst.b	is_cpu(a3)
+	bne.b	.p2_wins
+	; both human players: random
+	; (well, we could do better, by counting the technique scores
+	; during the current round, but what the hell)
+	bsr		random
+	btst	#0,d0
+	beq.b	.p1_wins
+	bra.b	.p2_wins
+.round_ended:
+	; winner of the round has been designated
+	; TODO play round end music
+	move.w	#ORIGINAL_TICKS_PER_SEC*24,time_ticks	; some time before seconds countdown
+	st.b	time_countdown_flag
+	rts	
 
 	
 update_practice
@@ -3352,8 +3393,8 @@ init_level_type_table
 
 init_normal:
 	; todo reset hits, maybe call init players
-	move.w	#START_ROUND_NB_TICKS,start_round_timer
-
+	move.w	#START_ROUND_NB_TICKS,pause_round_timer
+	move.w	#RP_START_ROUND,pause_round_type
 	rts
 	
 init_practice
@@ -3389,6 +3430,22 @@ play_loop_fx
 ; < A4 player structure
 
 update_player
+	tst.b	time_countdown_flag
+	beq.b	.no_countdown
+	tst.w	time_left
+	beq.b	.blocked
+	; round pause timeout: do something
+	sub.w	#12,time_ticks
+	bpl.b	.no_timer_dec
+	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
+	subq.w	#1,time_left
+	; TODO play countdown
+	bne.b	.blocked
+	blitz
+.no_timer_dec
+	bra.b	.blocked
+.no_countdown
+
 	move.w	hit_by_blow(a4),d0
 	cmp.w	#BLOW_NONE,d0
 	beq.b	.alive
@@ -3461,16 +3518,20 @@ update_player
 	bsr		decode_technique_name
 	move.l	d0,technique_to_display
 
+	move.w	scored_points(a4),d0
+	cmp.w	#4,d0
+	bcc.b	judge_decision
+
 .no_timeout
 	rts
 	
-.round_done
-	rts
 	
 	
 .alive
 	tst.b	controls_blocked_flag
 	beq.b	.no_blocked
+.blocked
+
 	moveq.l	#0,d0
 	move.w	frozen_controls_timer(a4),d0
 	beq.b	.no_demo
@@ -3482,6 +3543,7 @@ update_player
 	move.l	frozen_joystick_state(a4),d0
 	bra.b	.no_demo
 .no_blocked
+
     tst.b	is_cpu(a4)
 	beq.b	.human_player
 	bsr		handle_ai
@@ -3595,9 +3657,11 @@ update_player
 	; update d4 and d5 if changed
 	move.b	d4,move_controls(a4)
 	move.b	d5,attack_controls(a4)
+	
 	; setting it can be ignored by animation if move got passed rollback max frame
 	; (can_rollback flag is false after a few frames for jumps 
 	; or when ground technique has completed for ground moves)
+	
 	tst.b	rollback_lock(a4)
 	bne.b	.not_reached_blocking_move	; keep on playing animation
 	move.b	d6,rollback(a4)
@@ -3609,15 +3673,15 @@ update_player
 	clr.b	rollback(a4)		; cancel rollback, continue move
 	move.w	#1,current_frame_countdown(a4)
 .not_reached_blocking_move
-	; rollback: use previous move if exists
+	; rollback or keep playing: use previous move if exists
 	move.l	current_move_callback(a4),d0
 	bne.b	.move_routine
 .perform
 	tst.w	d7
-	beq.b	.out
+	beq.b	.out	; no controls
 ;	cmp.b	#144,d1
 ;	bcc.b	.out		; not possible
-
+.animate
 	; select proper direction
 	lea		moves_table(pc),a0
 	move.w	previous_direction(a4),d0
@@ -3654,7 +3718,6 @@ update_player
 	move.l	d0,current_move_callback(a4)
 .move_routine
 	move.l	d0,a0
-	
 	; call move routine
 	jsr		(a0)	
 .skip
@@ -4430,12 +4493,12 @@ draw_referee
 draw_player:
     lea _custom,A5
 
-	
 	move.l	frame_set(a4),a0
 	add.w	frame(a4),a0
 
 	move.w	bob_plane_size(a0),d5
 	move.w	bob_nb_bytes_per_row(a0),d2
+    move.w  bob_height(a0),d4  ; generally 48 pixels height  
 	move.l	bob_data(a0),a0
 	lea		screen_data,a1
 	move.l	a1,a2
@@ -4457,7 +4520,6 @@ draw_player:
 	move.w	d0,previous_xpos(a4)
 	move.w	d1,previous_ypos(a4)
 	moveq.l #-1,d3	;masking of first/last word    
-    move.w  #48,d4      ; 48 pixels height  
 
     bsr blit_plane_any_internal_cookie_cut
 
@@ -4466,7 +4528,7 @@ draw_player:
 	move.l	a2,a1
     bsr blit_plane_any_internal_cookie_cut
 
-	lea		empty_48x48_bob,a0
+	lea		empty_48x64_bob,a0	; more than enough
 	add.w	#SCREEN_PLANE_SIZE,a2
 	move.l	a2,a1
 	
@@ -5726,7 +5788,7 @@ get_player_distance
 	
 MOVE_CALLBACK:MACRO
 do_\1:
-	lea	\1_frames(pc),a0
+	lea	\1_frames,a0
 	ENDM
 	
 BLOCK_CALLBACK:MACRO
@@ -5738,12 +5800,20 @@ BLOW_CALLBACK:MACRO
 	MOVE_CALLBACK	\1_blow
 	; no rollback
 	clr.b	rollback(a4)
-	clr.b	rollback_lock(a4)	
+	st.b	rollback_lock(a4)
 	bra.b	move_player
 	ENDM
-SIMPLE_MOVE_CALLBACK:MACRO
-	clr.w	block_lock(a4)		; no block
+OTHER_CALLBACK:MACRO
 	MOVE_CALLBACK	\1
+	; no rollback
+	clr.b	rollback(a4)
+	st.b	rollback_lock(a4)	
+	bra.b		move_player
+	ENDM
+	
+SIMPLE_MOVE_CALLBACK:MACRO
+	MOVE_CALLBACK	\1
+	clr.w	block_lock(a4)		; no block
 	bra.b	move_player
 	ENDM
 	
@@ -5760,6 +5830,9 @@ SIMPLE_MOVE_CALLBACK:MACRO
 	BLOW_CALLBACK	back		; player hit in the back by medium or high attack
 	BLOW_CALLBACK	low			; player hit by low kick/sweep or back round kick (same animation)
 	BLOW_CALLBACK	round		; player hit by round kick (falling away from playfield)
+	
+	OTHER_CALLBACK	win
+	OTHER_CALLBACK	lose
 	
 	SIMPLE_MOVE_CALLBACK	low_kick
 	SIMPLE_MOVE_CALLBACK	crouch
@@ -5996,7 +6069,6 @@ current_state:
     dc.w    0
 
 
-
 ; general purpose timer for non-game states (intro, game over...)
 state_timer:
     dc.l    0
@@ -6010,7 +6082,11 @@ previous_valid_direction
     dc.l    0
 technique_to_display
 	dc.l	0
-start_round_timer
+	
+; timer used to pause round now and then (start and end)
+pause_round_timer
+	dc.w	0
+pause_round_type
 	dc.w	0
 	
 ; 0: practice
@@ -6042,6 +6118,8 @@ player_up_displayed_flag:
 level_completed_flag:
 	dc.b	0
 controls_blocked_flag:
+	dc.b	0
+time_countdown_flag:
 	dc.b	0
 erase_referee_bubble_message:
     dc.b    0
@@ -6950,8 +7028,8 @@ score_1000_\1
 	
 
 empty_16x16_bob
-empty_48x48_bob
-    ds.b    BOB_64X48_PLANE_SIZE,0
+empty_48x64_bob
+    ds.b    BOB_64X64_PLANE_SIZE,0
 
 ; sound samples
 begin_raw

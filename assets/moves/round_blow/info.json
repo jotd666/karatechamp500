@@ -1,2 +1,4 @@
-{"name": "round_blow", "hit_mask": false, "deltas": 
+{"name": "round_blow", "hit_mask": false,
+"rollback_frame":-1,
+"deltas": 
 [[0, 0, 0], [8, -10, 0], [8, -29, 0], [-1, -29, 0]]}
