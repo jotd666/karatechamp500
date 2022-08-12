@@ -38,7 +38,7 @@ def doit():
 
     img_frame,mask_frame = (Image.new("RGB",(16,16)) for _ in range(2))
 
-    frame_name = ["top_front","top_left","top_right","top_end","legs_front","legs_end"]
+    frame_name = ["top_front","top_left","top_right","top_end_win","top_end_lose","legs_front","legs_end"]
     bin_files = []
     for stage in range(0,max_level):
         for girl_frame,gfn in enumerate(frame_name):

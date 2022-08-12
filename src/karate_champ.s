@@ -602,6 +602,7 @@ intro:
     
     bsr init_new_play
 
+; new level or new round
 .new_level
     bsr clear_screen  
     bsr init_level
@@ -612,33 +613,34 @@ intro:
     
     bsr	redraw_level
 
-    bra.b   .normal_level
-	
-    bsr init_players_and_referee
-
-    bsr wait_bof
-
-    move.w  #STATE_BONUS_SCREEN,current_state
-    move.w #INTERRUPTS_ON_MASK,intena(a5)
-    
-    bra.b   .mainloop
+;;;    bra.b   .normal_level
+;;;	; not reached
+;;;	moveq	#1,d0	; reinit everything
+;;;    bsr init_players_and_referee
+;;;
+;;;    bsr wait_bof
+;;;
+;;;    move.w  #STATE_BONUS_SCREEN,current_state
+;;;    move.w #INTERRUPTS_ON_MASK,intena(a5)
+;;;    
+;;;    bra.b   .mainloop
 .normal_level    
     ; for debug
     ;;bsr draw_bounds
     
     bsr hide_sprites
 
-    ; enable copper interrupts, mainly
-    moveq.l #0,d0
-    bra.b   .from_level_start
-.new_life
-    moveq.l #1,d0
-.from_level_start
+	
+	; first fight: more needs to be done
+	; reset points, reset timer
+	move.w	first_fight_flag(pc),d0
+	clr.w	first_fight_flag
     bsr init_players_and_referee
     
     bsr wait_bof
 
     move.w  #STATE_PLAYING,current_state
+    ; enable copper interrupts, mainly
     move.w #INTERRUPTS_ON_MASK,intena(a5)
 .mainloop
     tst.b   quit_flag
@@ -658,6 +660,7 @@ intro:
     bra.b   .new_level
 .next_level
     add.w   #1,level_number
+	move.w	#1,first_fight_flag
     bra.b   .new_level
 .life_lost
     IFD    RECORD_INPUT_TABLE_SIZE
@@ -843,6 +846,7 @@ init_new_play:
 	clr.b	previous_move
 	clr.l	current_move_key_last_jump
 	clr.l	current_move_key
+	move.w	#1,first_fight_flag
 	
 	move.w	#GM_PRACTICE,level_type
 	
@@ -1331,6 +1335,11 @@ init_player_common
 	rts
 	
 init_players_and_referee:
+	tst	d0
+	beq.b	.no_reinit
+	move.w	#30,time_left
+	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks	
+.no_reinit
     lea player_1(pc),a4
 	move.l	#player_2,opponent(a4)
 	move.l	#score_table_white,score_table(a4)
@@ -1410,8 +1419,6 @@ init_players_and_referee:
 	clr.w	player_flashing_timer 
 	clr.b	player_up_displayed_flag
 	
-	move.w	#30,time_left
-	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
 	st.b	score_update_message
 	
     
@@ -1978,6 +1985,24 @@ draw_normal:
     bsr draw_player
 	lea	player_2(pc),a4
     bsr draw_player
+	
+	move.l	technique_to_display(pc),d0
+	beq.b	.no_tech
+	clr.l	technique_to_display
+	move.l	d0,a1
+	move.w	#38,d1
+.wl
+	move.l	(a1)+,d3
+	beq.b	.no_tech
+	; display word
+	move.l	d3,a0
+	move.w	#32,d0
+	move.w	#$FFF,d2
+	bsr		write_color_string
+	add.w	#8,d1
+	bra.b	.wl
+.no_tech		
+	
 	rts
 	
 ; < D2: highscore
@@ -2664,6 +2689,7 @@ saved_intena
 ; F4: show debug info
 ; F5: re-draw background pic
 ; F6: draw hit zones
+; F7: set out of time
 ; left-ctrl: fast-forward (no player controls during that)
 ; when going away:
 ; * reverse: medium block (shuto-uke)
@@ -2762,11 +2788,16 @@ level2_interrupt:
 	bsr		redraw_level
     bra.b   .no_playing
 .no_redraw
-    cmp.b   #$55,d0     ; F5
+    cmp.b   #$55,d0     ; F6
     bne.b   .toggle_hit_zones
 	eor.b   #1,draw_hit_zones_flag
     bra.b   .no_playing
 .toggle_hit_zones
+    cmp.b   #$56,d0     ; F7
+    bne.b   .no_timeout
+	move.w	#1,time_left
+    bra.b   .no_playing
+.no_timeout
 .no_playing
 
     cmp.b   _keyexit(pc),d0
@@ -3418,7 +3449,6 @@ update_player
 	move.l	a1,a4	; opponent
 	bsr		add_to_points
 	bsr	play_fx
-	; TEMP draw here
 	; decode technique name and ask to display it
 	move.l	connecting_move_bits(a4),d0
 	lea		move_name_table_right(pc),a0
@@ -3429,21 +3459,8 @@ update_player
 .dr
 
 	bsr		decode_technique_name
-	tst.l	d0
-	beq.b	.no_tech	; should not happen!!
-	move.l	d0,a1
-	move.w	#38,d1
-.wl
-	move.l	(a1)+,d3
-	beq.b	.no_tech
-	; display word
-	move.l	d3,a0
-	move.w	#32,d0
-	move.w	#$FFF,d2
-	bsr		write_color_string
-	add.w	#8,d1
-	bra.b	.wl
-.no_tech	
+	move.l	d0,technique_to_display
+
 .no_timeout
 	rts
 	
@@ -4218,7 +4235,8 @@ erase_referee:
 	move.w	previous_xpos(a4),d0
 	beq.b	.out		; 0: not possible: first draw
 	move.w	ypos(a4),d1
-	move.w	#32,d2	; width (no shifting)
+	sub.w	#16,d0	; add 16 from both sides
+	move.w	#64,d2	; width (no shifting)
 	move.w	#48,d3	; height
 	bra.b		restore_background
 
@@ -5990,7 +6008,8 @@ previous_player_address
     dc.l    0
 previous_valid_direction
     dc.l    0
-
+technique_to_display
+	dc.l	0
 start_round_timer
 	dc.w	0
 	
@@ -6015,6 +6034,9 @@ cheat_sequence_pointer
 cheat_keys
     dc.w    0
 
+first_fight_flag:
+	dc.w	0
+	
 player_up_displayed_flag:
 	dc.b	0
 level_completed_flag:

@@ -14,7 +14,7 @@ dump_fonts = True
 
 
 name_dict = {"score_{}".format(i):"score_{}".format((i+1)*100) for i in range(0,10)}
-hit_mask_exists_dict = {}
+info_dict = {}
 
 HIT_NONE = 0
 HIT_VALID = 1
@@ -224,6 +224,7 @@ def process_player_tiles():
 
     height = 48
     moves_list = {x for x in os.listdir(moves_dir) if os.path.isdir(os.path.join(moves_dir,x))}
+
     # walk/forward in priority
     walking_anims = ["walk_forward","forward","walk_backwards","backwards"]
     moves_list.difference_update(walking_anims)
@@ -234,13 +235,20 @@ def process_player_tiles():
 
     walking_anims = set(walking_anims)
 
-    for d in moves_list[0:-1]:
+    for d in moves_list:
         # load info
         with open(os.path.join(moves_dir,d,"info.json")) as f:
             info = json.load(f)
         deltas = info["deltas"]
         has_hit_mask = info.get("hit_mask",True)
-        hit_mask_exists_dict[d] = has_hit_mask
+        is_symmetrical = info.get("symmetrical",False)
+        loops = info.get("loops",False)
+        # make sure the properties are in the dict
+        info["symmetrical"] = is_symmetrical
+        info["hit_mask"] = has_hit_mask
+        info["loops"] = loops
+        # store it for later
+        info_dict[d] = info
         # process each image, without last image which is player guard
         images_list = sorted([x for x in os.listdir(os.path.join(moves_dir,d)) if x.endswith(".png")],
         key=lambda x: int(os.path.splitext(x)[0]))  # numeric sort
@@ -254,8 +262,8 @@ def process_player_tiles():
         for i,((df,dx,dy),image_file) in enumerate(zip(deltas,images_list)):
             img = Image.open(os.path.join(moves_dir,d,image_file))
             width = img.size[0]
-            if height != img.size[1]:
-                raise Exception("{} height != {}".format(image_file,height))
+            height = img.size[1]  # 48 but in some cases (win animation) can be 64
+
             mask = Image.new("RGB",img.size)
             # we need to generate mask manually then remove the color so picture conversion
             # won't generate active bitplanes for it (it has to be index 0 of palette)
@@ -274,8 +282,9 @@ def process_player_tiles():
             if dump_tiles:
                 mask.save(os.path.join(outdir,"{}_mask_{}_right.png".format(d,i)))
                 img.save(os.path.join(outdir,"{}_{}_right.png".format(d,i)))
-                mirror(img).save(os.path.join(outdir,"{}_{}_left.png".format(d,i)))
-                mirror(mask).save(os.path.join(outdir,"{}_mask_{}_left.png".format(d,i)))
+                if not is_symmetrical:
+                    mirror(img).save(os.path.join(outdir,"{}_{}_left.png".format(d,i)))
+                    mirror(mask).save(os.path.join(outdir,"{}_mask_{}_left.png".format(d,i)))
 
             blk = extract_block(img)
             existing = move_dict.get(blk)
@@ -305,10 +314,11 @@ def process_player_tiles():
 
                 create_bob(img,mask_img,"{}/{}_right.bin".format(sprites_dir,name))
 
-                img_mirror = mirror(img)
-                mask_img_mirror = mirror(mask_img)
+                if not is_symmetrical:
+                    img_mirror = mirror(img)
+                    mask_img_mirror = mirror(mask_img)
 
-                create_bob(img_mirror,mask_img_mirror,"{}/{}_left.bin".format(sprites_dir,name))
+                    create_bob(img_mirror,mask_img_mirror,"{}/{}_left.bin".format(sprites_dir,name))
 
                 # save mask image in hit masks dir if doesn't exist, or load it/compare to see if still matches
                 # the actual mask (which could have been updated)
@@ -415,7 +425,7 @@ def process_player_tiles():
 
         for i,(frame,width,height,df,dx,dy) in enumerate(frame_list):
             f.write("\tdc.l\t{}{}\n".format(frame,suffix))  # bob_data
-            if hit_mask_exists_dict[name]:
+            if info_dict[name].get("hit_mask"):
                 f.write("\tdc.l\t{}_mask\n".format(frame))  # target_data
                 f.write("\tdc.l\t{}_full_hit_list\n".format(frame))  # hit_data
                 f.write("\tdc.l\t{}_half_hit_list\n".format(frame))  # hit_data
@@ -479,32 +489,31 @@ def process_player_tiles():
 """.format(blows=blows,heights=heights))
         for name,frame_list in sorted(rval.items()):
             f.write("{}_frames:\n".format(name))
-            create_mirror_objects = name != "win"
-            if create_mirror_objects:
-                f.write("\tdc.l\t{0}_right_frames,{0}_left_frames\n".format(name))
-                iwa = name in walking_anims
-                params = move_param_dict.get(name,{"score":0,"height":hn,"left_shift":0})
-                params["left_shift"] = params.get("left_shift",0)
-                params["blow_type"] = params.get("blow_type",bn)
-                params["back_blow_type"] = params.get("back_blow_type",params["blow_type"])
-                f.write(("\tdc.w\t{score}\n\tdc.w\t{height}\n\tdc.w\t{left_shift}\n"+
-                "\tdc.w\t{blow_type}\n\tdc.w\t{back_blow_type}\n").format(**params))
-                f.write("\tdc.w\t{}\t; {}\n".format(int(iwa),"looping" if iwa else "runs once"))
-                create_frame_sequence("_right",1)
-                create_frame_sequence("_left",-1)
-            else:
-                create_frame_sequence("",1)
+            infd = info_dict[name]
+            create_mirror_objects = not infd["symmetrical"]
+            right_left_template = "\tdc.l\t{0}_right_frames,{0}_left_frames\n"
+            f.write(right_left_template.format(name))
+            iwa = infd["loops"]
+            params = move_param_dict.get(name,{"score":0,"height":hn,"left_shift":0})
+            params["left_shift"] = params.get("left_shift",0)
+            params["blow_type"] = params.get("blow_type",bn)
+            params["back_blow_type"] = params.get("back_blow_type",params["blow_type"])
+            f.write(("\tdc.w\t{score}\n\tdc.w\t{height}\n\tdc.w\t{left_shift}\n"+
+            "\tdc.w\t{blow_type}\n\tdc.w\t{back_blow_type}\n").format(**params))
+            f.write("\tdc.w\t{}\t; {}\n".format(int(iwa),"looping" if iwa else "runs once"))
+            create_frame_sequence("_right",1)
+            create_frame_sequence("_left",-1)
+
     # include frames only once (may be used more than once)
     frames_to_write = dict()
     for name,frame_list in sorted(rval.items()):
-        create_mirror_objects = name != "win"
-        if create_mirror_objects:
-            for d in ["right","left","mask"] if hit_mask_exists_dict[name] else ["right","left"]:
-                for frame,*_ in frame_list:
-                    frames_to_write["{}_{}:\n".format(frame,d)] = "\tincbin\t{}_{}.bin\n".format(frame,d)
-        else:
-            for frame in frame_list:
-                frames_to_write["{}:\n".format(frame)] = "\tincbin\t{}.bin\n".format(frame)
+        create_mirror_objects = not info_dict[name]["symmetrical"]
+        for d in ["right","left","mask"] if info_dict[name]["hit_mask"] else ["right","left"]:
+            # don't generate a left frame if no mirroring is needed, just point on the same pic
+            suffix = "right" if (d != "mask" and not create_mirror_objects) else d
+
+            for frame,*_ in frame_list:
+                frames_to_write["{}_{}:\n".format(frame,d)] = "\tincbin\t{}_{}.bin\n".format(frame,suffix)
 
     # write masks in a separate file, it can be in fast memory, unlike left/right data which is blitter input
     with open("{}/{}_bobs.s".format(source_dir,radix),"w") as f,open("{}/{}_bob_masks.s".format(source_dir,radix),"w") as fm:
