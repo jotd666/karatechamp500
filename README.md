@@ -44,15 +44,21 @@ bugs
 - some blows don't connect (both players same direction): check debug pic
 - when hit, player falls too fast
 - weak reverse when distance is small: not working
-- final timer countdown broken
+- final timer countdown: should wait a bit after countdown
 - animation for win sequence to fix
 - 2 player mode - 1ST - => 1ST   1ST non-cpu player with
   highest level leads the current stage: level_number refactoring by player
 - win a round: timer not reset, points not reset
+- count how many rounds have been won... next level...
 - 2p mode: missing score 1 - 0 ... etc.
+- win a round by KO: countdown doesn't work, points not reset
+- clarify what to set to 0: start of round, start of fight, start of level
 
 evade sequence: 
 
 plant high, bottle high, apple low, rock low, plank mid-back (+ mirror)
 plant mid,bottle mid,apple high back,rock high back,book low back (+ probably mirror)
 
+break planks:
+
+all planks = 2000 + very good

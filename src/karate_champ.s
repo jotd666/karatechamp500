@@ -41,8 +41,8 @@ INTERRUPTS_ON_MASK = $E038
 	APTR	background_picture
     UWORD   p1_init_xpos
     UWORD   p1_init_ypos
-    UWORD   p2_init_xpos
-    UWORD   p2_init_ypos
+    UWORD   p2_init_xpos	; 0: symmetrical vs p1 x
+    UWORD   p2_init_ypos	; 0: same as p1 y
 	UWORD	referee_xpos
 	UWORD	referee_ypos
 	UWORD	referee_max_xdelta
@@ -103,6 +103,8 @@ hand_both_flags = hand_red_or_japan_flag
 	APTR	awarded_score_sprite
 	UWORD	awarded_score_display_timer	
 	UWORD	block_lock
+	UWORD	nb_rounds_won
+	UWORD	nb_levels_won
 	UWORD	point_award_countdown
 	UWORD	frozen_controls_timer
 	UWORD	previous_direction   ; previous sprite orientation
@@ -325,7 +327,7 @@ STATE_GAME_OVER = 1*4
 STATE_BONUS_SCREEN = 2*4
 STATE_NEXT_LEVEL = 3*4
 STATE_NEXT_FIGHT = 4*4
-STATE_LIFE_LOST = 5*4
+STATE_NEXT_ROUND = 5*4
 STATE_INTRO_SCREEN = 6*4
 STATE_GAME_START_SCREEN = 7*4
 
@@ -347,7 +349,7 @@ DEF_STATE_CASE_TABLE:MACRO
     dc.l    .bonus_screen
     dc.l    .next_level
     dc.l    .next_fight
-    dc.l    .life_lost
+    dc.l    .next_round
     dc.l    .intro_screen
     dc.l    .game_start_screen
 
@@ -369,7 +371,7 @@ mul\1_table
     ENDM
     
 ADD_XY_TO_A1_40:MACRO
-    lea mul40_table(pc),\1
+    lea mulNB_BYTES_PER_LINE_table(pc),\1
     add.w   d1,d1
     lsr.w   #3,d0
     add.w  (\1,d1.w),a1
@@ -377,7 +379,7 @@ ADD_XY_TO_A1_40:MACRO
     ENDM
 
 ADD_XY_TO_A1_28:MACRO
-    lea mul28_table(pc),\1
+    lea mulNB_BYTES_PER_BACKBUFFER_LINE_table(pc),\1
     add.w   d1,d1
     lsr.w   #3,d0
     add.w  (\1,d1.w),a1
@@ -582,8 +584,8 @@ intro:
     clr.l   state_timer
     tst.b   demo_mode
     bne.b   .no_credit
-    ;lea credit_sound(pc),a0
-    ;bsr play_fx
+    lea credit_sound(pc),a0
+    bsr play_fx
 	
 	; TEMP
 	move.w	#1,cheat_keys	; enable cheat in that mode, we need to test the game
@@ -668,13 +670,7 @@ intro:
     add.w   #1,level_number
 	move.w	#1,first_fight_flag
     bra.b   .new_level
-.life_lost
-    IFD    RECORD_INPUT_TABLE_SIZE
-    lea record_input_table,a0
-    move.l  record_data_pointer(pc),a1
-    ; pause so debugger can grab data
-    blitz
-    ENDC
+.next_round
 
     tst.b   demo_mode
     beq.b   .no_demo
@@ -944,6 +940,8 @@ draw_background_pic
 	move.l	background_picture(a0),a0
 	lea	backbuffer,a1
 	bsr	Unpack
+	; blit the panel
+	bsr		draw_panel_bitmap
 .unpacked
 	lea	backbuffer,a0
 	move.w	#NB_BYTES_PER_BACKBUFFER_LINE,d2
@@ -1047,13 +1045,13 @@ erase_4_planes:
 	movem.l	(a7)+,a2-a3/d3-d4/d7
 	rts
 	
-draw_panel
+draw_panel_bitmap:
 	lea	panel,a0
 	move.w	#PANEL_WIDTH,d2
 	moveq.l	#-1,d3
 	move.w	#64,d4
 	move.w	#NB_PLANES-1,d7
-	lea		screen_data,a4
+	lea		backbuffer,a4
 	lea		panel_mask,a3
 	lea		_custom,a5
 .loop
@@ -1062,12 +1060,15 @@ draw_panel
 	move.l	a4,a1
 	move.l	a1,a2  
 	movem.l d2-d7/a2-a4,-(a7)
-    bsr blit_plane_any_internal_cookie_cut	
+
+    bsr blit_plane_any_internal_cookie_cut_28	
 	movem.l (a7)+,d2-d7/a2-a4
-	add.w	#SCREEN_PLANE_SIZE,a4
+	add.w	#BACKBUFFER_PLANE_SIZE,a4
 	add.w	#PANEL_PLANE_SIZE,a0
 	dbf		d7,.loop
+	rts
 	
+draw_panel:
 	; current level
 	move.w	level_number(pc),d0
 	add.w	d0,d0
@@ -1339,15 +1340,21 @@ init_player_common
 	move.w	#BLOW_NONE,hit_by_blow(a4)
     ; no moves (zeroes direction flags)
     clr.w  move_controls(a4)  	; and attack controls
+	clr.w	nb_rounds_won(a4)
+
 	rts
+
 	
 init_players_and_referee:
 	tst	d0
 	beq.b	.no_reinit
 	move.w	#30,time_left
-	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks	
-	clr.w	player_1+scored_points
-	clr.w	player_2+scored_points
+	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
+	lea		player_1(pc),a4
+	; new round/level: clear scored points
+	clr.w	scored_points+player_1
+	clr.w	scored_points+player_2
+
 .no_reinit
 
 	move.w	#START_ROUND_NB_TICKS,pause_round_timer
@@ -1392,10 +1399,16 @@ init_players_and_referee:
 
 	lea player_2(pc),a4
     move.w	p2_init_xpos(a1),xpos(a4)
+	bne.b	.no_zero_x
+	; symmetrical
+	move.w	#224-48,d5
+	sub.w	p1_init_xpos(a1),d5
+	move.w	d5,xpos(a4)
+.no_zero_x
     move.w	p2_init_ypos(a1),ypos(a4)
-	bne.b	.no_zero
+	bne.b	.no_zero_y
 	move.w	d6,ypos(a4)		; 0 means same y as p1
-.no_zero
+.no_zero_y
 	sub.w	#50,d6	; margin y where players can't go
 	move.w	d6,level_players_y_min
 
@@ -1614,7 +1627,7 @@ draw_all
     beq.b   draw_start_screen
     rts
     
-.life_lost
+.next_round
 .next_level
 .next_fight
 
@@ -2388,7 +2401,7 @@ clear_plane_any_cpu_any_height
     movem.l d0-D3/a0-a2,-(a7)
     subq.w  #1,d3
     bmi.b   .out
-    lea mul40_table(pc),a2
+    lea mulNB_BYTES_PER_LINE_table(pc),a2
     add.w   d1,d1
     beq.b   .no_add
     move.w  (a2,d1.w),d1
@@ -2497,7 +2510,7 @@ clear_plane_any_blitter:
 ; > A1: even address where blit was done
 clear_plane_any_blitter_internal:
     ; pre-compute the maximum of shit here
-    lea mul40_table(pc),a2
+    lea mulNB_BYTES_PER_LINE_table(pc),a2
     add.w   d1,d1
     beq.b   .d1_zero    ; optim
     move.w  (a2,d1.w),d1
@@ -2703,6 +2716,7 @@ saved_intena
 ; F5: re-draw background pic
 ; F6: draw hit zones
 ; F7: set out of time
+; F8: player 1 wins
 ; left-ctrl: fast-forward (no player controls during that)
 ; when going away:
 ; * reverse: medium block (shuto-uke)
@@ -2811,6 +2825,11 @@ level2_interrupt:
 	move.w	#1,time_left
     bra.b   .no_playing
 .no_timeout
+    cmp.b   #$57,d0     ; F8
+    bne.b   .no_1p_wins
+	move.w	#10,time_left
+    bra.b   .no_playing
+.no_1p_wins
 .no_playing
 
     cmp.b   _keyexit(pc),d0
@@ -3060,7 +3079,7 @@ update_all
 	move.w	#STATE_NEXT_LEVEL,current_state
 	rts
 	
-.life_lost
+.next_round
     rts
 
 .bonus_level_completed
@@ -3070,6 +3089,13 @@ update_all
      ;;move.w  #STATE_NEXT_LEVEL,current_state
      rts
 .next_fight
+    IFD    RECORD_INPUT_TABLE_SIZE
+    lea record_input_table,a0
+    move.l  record_data_pointer(pc),a1
+    ; pause so debugger can grab data
+    blitz
+    ENDC
+
 	rts
 	
 .game_over
@@ -3282,9 +3308,10 @@ bubble_timeout_table
 
 judge_decision:
 	lea		referee(pc),a4
-	; let judge decide who won
+	; time out: let judge decide who won
 	lea		player_1(pc),a2
 	lea		player_2(pc),a3
+	st.b	score_update_message
 	move.w	scored_points(a2),d0
 	cmp.w	scored_points(a3),d0
 	beq.b	.tie
@@ -3330,6 +3357,10 @@ judge_decision:
 	bra.b	.p2_wins
 .round_ended:
 	; winner of the round has been designated
+	; clear scored points here (simpler)
+	clr.w	scored_points(a2)
+	clr.w	scored_points(a3)
+	
 	; TODO play round end music
 	move.w	#ORIGINAL_TICKS_PER_SEC*24,time_ticks	; some time before seconds countdown
 	st.b	time_countdown_flag
@@ -3435,15 +3466,20 @@ update_player
 	tst.w	time_left
 	beq.b	.blocked
 	; round pause timeout: do something
-	sub.w	#12,time_ticks
+	sub.w	#ORIGINAL_TICKS_PER_SEC/10,time_ticks
 	bpl.b	.no_timer_dec
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
 	subq.w	#1,time_left
-	; TODO play countdown
-	bne.b	.blocked
-	blitz
+	beq.b	.countdown_over
+	st.b	score_update_message
+	lea		second_sound,a0
+	bsr		play_fx
 .no_timer_dec
 	bra.b	.blocked
+.countdown_over
+	move.w	#STATE_NEXT_ROUND,current_state
+	rts
+	
 .no_countdown
 
 	move.w	hit_by_blow(a4),d0
@@ -4800,7 +4836,7 @@ blit_plane_any:
 ; > A1: even address where blit was done
 blit_plane_any_internal:
     ; pre-compute the maximum of shit here
-    lea mul40_table(pc),a2
+    lea mulNB_BYTES_PER_LINE_table(pc),a2
     swap    d1
     clr.w   d1
     swap    d1
@@ -4845,7 +4881,16 @@ blit_plane_any_internal:
 	move.w  d4,bltsize(a5)	;rectangle size, starts blit
     rts
 
-
+blit_plane_any_internal_cookie_cut_28
+    ; change to 28 bytes per line (to draw into backbuffer)
+    move.l #mulNB_BYTES_PER_BACKBUFFER_LINE_table,blit_mul_table
+	move.w	#NB_BYTES_PER_BACKBUFFER_LINE,blit_nb_bytes_per_row
+	bsr.b	blit_plane_any_internal_cookie_cut
+	; restore to 40 bytes per line (screen)
+	move.l #mulNB_BYTES_PER_LINE_table,blit_mul_table
+	move.w	#NB_BYTES_PER_LINE,blit_nb_bytes_per_row
+	rts
+	
 ; quoting mcgeezer:
 ; "You have to feed the blitter with a mask of your sprite through channel A,
 ; you feed your actual bob bitmap through channel B,
@@ -4867,7 +4912,7 @@ blit_plane_any_internal:
 blit_plane_any_internal_cookie_cut:
     movem.l d0-d6/a2/a4,-(a7)
     ; pre-compute the maximum of shit here
-    lea mul40_table(pc),a4
+    move.l	blit_mul_table(pc),a4
     swap    d1
     clr.w   d1
     swap    d1
@@ -4903,7 +4948,7 @@ blit_plane_any_internal_cookie_cut:
 
     add.w   d6,a2       ; X offset for background
 
-	move.w #NB_BYTES_PER_LINE,d0
+	move.w blit_nb_bytes_per_row(pc),d0
 
     sub.w   d2,d0       ; blit width
 
@@ -4935,7 +4980,10 @@ blit_plane_any_internal_cookie_cut:
     movem.l (a7)+,d0-d6/a2/a4
     rts
 
-
+blit_mul_table
+	dc.l	mulNB_BYTES_PER_LINE_table
+blit_nb_bytes_per_row
+	dc.w	NB_BYTES_PER_LINE
 ; what: blits data on 4 planes (no cookie cut)
 ; shifted, full mask, W/H generic
 ; args:
@@ -5727,8 +5775,8 @@ save_highscores
 
 	MUL_TABLE	COLLISION_NB_COLS
 	
-    MUL_TABLE   40
-    MUL_TABLE   28
+    MUL_TABLE   NB_BYTES_PER_LINE
+    MUL_TABLE   NB_BYTES_PER_BACKBUFFER_LINE
 
 
 	STRUCTURE	Sound,0
@@ -6623,17 +6671,7 @@ SOUND_ENTRY:MACRO
     ENDM
     
     ; radix, ,channel (0-3)
-    SOUND_ENTRY begin,2,SOUNDFREQ,34
-    SOUND_ENTRY blow,2,SOUNDFREQ,11
-    SOUND_ENTRY fall,2,SOUNDFREQ,25
-    SOUND_ENTRY full_point,2,SOUNDFREQ,34
-    SOUND_ENTRY half_point,2,SOUNDFREQ,14
-    SOUND_ENTRY judge,2,SOUNDFREQ,39
-    SOUND_ENTRY kiai_1,2,SOUNDFREQ,29
-    SOUND_ENTRY kiai_2,2,SOUNDFREQ,17
-    SOUND_ENTRY stop,2,SOUNDFREQ,31
-    SOUND_ENTRY swoosh1,2,SOUNDFREQ,24
-    SOUND_ENTRY swoosh2,2,SOUNDFREQ,10	
+	include	sound_table.s
 
 original_palette
     include "palette.s"
@@ -6722,7 +6760,7 @@ level_params_table
 	dc.l	pier_level
 	dc.l	pier_level
 	dc.l	pier_level
-	dc.l	pier_level
+	dc.l	teepee_level
 	dc.l	temple_level
 	dc.l	pier_level
 	dc.l	moon_level
@@ -6749,7 +6787,7 @@ pier_level
 	dc.l	pl1
 	dc.w	24
 	dc.w	176
-	dc.w	152
+	dc.w	0
 	dc.w	0
 	; referee
 	dc.w	104
@@ -6763,7 +6801,7 @@ fuji_level
 	dc.l	pl1
 	dc.w	22
 	dc.w	190
-	dc.w	152
+	dc.w	0
 	dc.w	0
 	; referee
 	dc.w	104
@@ -6777,8 +6815,8 @@ bamboo_level
 	dc.l	pl3
 	dc.w	40
 	dc.w	152
-	dc.w	112
-	dc.w	96
+	dc.w	0
+	dc.w	0
 	; referee
 	dc.w	104
 	dc.w	72
@@ -6790,28 +6828,28 @@ bamboo_level
 	
 bridge_level
 	dc.l	pl4
-	dc.w	40
-	dc.w	152
-	dc.w	112
-	dc.w	96
+	dc.w	24
+	dc.w	144
+	dc.w	0
+	dc.w	0
 	; referee
-	dc.w	104	; wrongo
+	dc.w	176
 	dc.w	72
 	dc.w	32
-	dc.w	-32
+	dc.w	-16
 	; color change
 	dc.w	$00F,$ca3
 	dc.w	-1,-1
 	
 boat_level
 	dc.l	pl5
-	dc.w	22
-	dc.w	190
-	dc.w	152
+	dc.w	24
+	dc.w	176
+	dc.w	0
 	dc.w	0
 	; referee
 	dc.w	104
-	dc.w	124
+	dc.w	112
 	dc.w	32
 	dc.w	-32
 	dc.w	-1,-1
@@ -6819,13 +6857,13 @@ boat_level
 
 mill_level
 	dc.l	pl6
-	dc.w	40
-	dc.w	152
-	dc.w	112
-	dc.w	96
+	dc.w	24
+	dc.w	176
+	dc.w	0
+	dc.w	0
 	; referee
-	dc.w	104		; wrongo
-	dc.w	72
+	dc.w	104
+	dc.w	112
 	dc.w	32
 	dc.w	-32
 	; color change
@@ -6836,8 +6874,8 @@ city_level
 	dc.l	pl7
 	dc.w	40
 	dc.w	152
-	dc.w	112
-	dc.w	96
+	dc.w	0
+	dc.w	0
 	; referee
 	dc.w	104		; wrongo
 	dc.w	72
@@ -6846,13 +6884,28 @@ city_level
 	; color change
 	dc.w	$80C,$CCC
 	dc.w	$8F0,$800
+
+teepee_level
+	dc.l	pl9
+	dc.w	26
+	dc.w	176
+	dc.w	0
+	dc.w	0
+	; referee
+	dc.w	104		; wrongo
+	dc.w	72
+	dc.w	32
+	dc.w	-32
+	; color change
+	dc.w	-1,-1
+	dc.w	-1,-1
 	   
 temple_level
 	dc.l	pl10
-	dc.w	40
-	dc.w	152
-	dc.w	112
-	dc.w	96
+	dc.w	24
+	dc.w	176
+	dc.w	0
+	dc.w	0
 	; referee
 	dc.w	104		; wrongo
 	dc.w	72
@@ -6866,8 +6919,8 @@ moon_level
 	dc.l	pl12
 	dc.w	40
 	dc.w	152
-	dc.w	112
-	dc.w	96
+	dc.w	0
+	dc.w	0
 	; referee
 	dc.w	104		; wrongo
 	dc.w	72
@@ -7032,61 +7085,8 @@ empty_48x64_bob
     ds.b    BOB_64X64_PLANE_SIZE,0
 
 ; sound samples
-begin_raw
-    incbin  "begin.raw"
-    even
-begin_raw_end
 
-blow_raw
-    incbin  "blow.raw"
-    even
-blow_raw_end
-
-fall_raw
-    incbin  "fall.raw"
-    even
-fall_raw_end
-
-full_point_raw
-    incbin  "full_point.raw"
-    even
-full_point_raw_end
-
-half_point_raw
-    incbin  "half_point.raw"
-    even
-half_point_raw_end
-
-judge_raw
-    incbin  "judge.raw"
-    even
-judge_raw_end
-
-kiai_1_raw
-    incbin  "kiai_1.raw"
-    even
-kiai_1_raw_end
-
-kiai_2_raw
-    incbin  "kiai_2.raw"
-    even
-kiai_2_raw_end
-
-stop_raw
-    incbin  "stop.raw"
-    even
-stop_raw_end
-
-swoosh1_raw
-    incbin  "swoosh1.raw"
-    even
-swoosh1_raw_end
-
-swoosh2_raw
-    incbin  "swoosh2.raw"
-    even
-swoosh2_raw_end
-
+	include	"sound_data.s"
 	include	"player_bobs.s"
 	include	"girl_bobs.s"
 	include	"other_bobs.s"

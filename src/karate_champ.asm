@@ -3,6 +3,8 @@
 ; - CPU A.I.
 ; - animations
 ;
+; CF02: time when entering highscore (BCD)
+;
 ; current level info is copied at 3 locations which mean different things:
 ;
 ; C0DC: number (1ST, 2ND...)
