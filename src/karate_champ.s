@@ -56,6 +56,7 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	xpos
 	UWORD	ypos
     UWORD   frame
+	UWORD	current_frame_countdown
 	UWORD	direction   ; sprite orientation
 	UWORD	previous_xpos
 	UWORD	previous_ypos
@@ -108,7 +109,6 @@ hand_both_flags = hand_red_or_japan_flag
 	UWORD	point_award_countdown
 	UWORD	frozen_controls_timer
 	UWORD	previous_direction   ; previous sprite orientation
-	UWORD	current_frame_countdown
 	UWORD	scored_points
 	UWORD	current_hit_height	; copied from hit_height
 	UWORD	current_blow_type	; copied from blow_type
@@ -182,7 +182,8 @@ REFEREE_LEGS_DOWN = 2<<2
 
 ; 
 ;START_SCORE = 1000/10
-START_LEVEL = 7
+;START_LEVEL = 7
+START_LEVEL_TYPE = GM_BULL
 
 ; temp if nonzero, then records game input, intro music doesn't play
 ; and when one life is lost, blitzes and a0 points to move record table
@@ -218,6 +219,10 @@ START_LEVEL = INIT_DEMO_LEVEL_NUMBER
 		ELSE
 START_LEVEL = 0
 		ENDC
+	ENDC
+	
+	IFND	START_LEVEL_TYPE
+START_LEVEL_TYPE = GM_PRACTICE
 	ENDC
 	
 NULL = 0
@@ -850,11 +855,11 @@ init_new_play:
 	clr.l	current_move_key
 	move.w	#1,first_fight_flag
 	
-	move.w	#GM_PRACTICE,level_type
+	move.w	#START_LEVEL_TYPE,level_type
     move.w  #START_LEVEL,level_number
-	beq.b	.start_by_practice
+	beq.b	.sk
 	move.w	#GM_NORMAL,level_type
-.start_by_practice
+.sk
 	
     clr.b    music_played
  
@@ -1980,19 +1985,15 @@ dwb:
 draw_evade
 draw_break
 draw_bull_stage
-	tst.l	state_timer
-	bne.b	.no_update
-	bsr		clear_screen
-	lea		demo_message(pc),a0
-	move.w	#16,d0
-	move.w	#80,d1
-	move.w	#$FFF,d2
-	bsr		write_color_string
-	lea		demo_message_2(pc),a0
-	move.w	#16,d0
-	move.w	#96,d1
-	move.w	#$FFF,d2
-	bsr		write_color_string
+	; draw normal if message has been read
+	;move.l	state_timer(pc),d0
+	;beq.b	.draw_practice_message
+	bsr		draw_active_player
+	lea		bull(pc),a2
+	move.w	xpos(a2),d0
+	move.w	ypos(a2),d1
+	move.w	bull_direction(pc),d2
+	bsr		draw_bull
 .no_update
 	rts
 	
@@ -2139,7 +2140,23 @@ erase_bull
 	rts
 	
 update_bull:
+	lea	bull(pc),a2
 	;bull_bubble_counter
+	move.w	current_frame_countdown(a2),d0
+	addq.w	#1,d0
+	move.w	d0,d1
+	and.w	#$7,d1
+	bne.b	.no_bull_sound
+	; TODO play bull sound
+	nop
+.no_bull_sound
+	move.w	d0,d1
+	and.w	#$1F,d1
+	bne.b	.no_fchange
+	nop
+.no_fchange
+
+	move.w	d0,current_frame_countdown(a2)
 	rts
 	
 ; < D0: x
@@ -3191,6 +3208,7 @@ update_normal:
 
 update_bull_stage
 	bsr		update_active_player
+	bsr		update_bull
 	rts
 update_evade
 	bsr		update_active_player
@@ -3399,15 +3417,23 @@ update_practice
 start_music_countdown
     dc.w    0
 
-; know which player is still alive after a fight phase
-; at this point only one player is still playing
-
-update_active_player
+get_active_player
 	lea	player_1(pc),a4
 	tst.b	is_cpu(a4)
 	beq.b	.upd
 	lea	player_2(pc),a4
 .upd
+	rts
+	
+draw_active_player
+	bsr.b	get_active_player
+	bra	draw_player
+	
+; know which player is still alive after a fight phase
+; at this point only one player is still playing
+
+update_active_player
+	bsr.b	get_active_player
 	bra	update_player
 	
 update_level_type_table
@@ -3421,7 +3447,7 @@ update_level_type_table
 init_level_type_table
 	dc.l	init_normal
 	dc.l	init_practice
-	dc.l	init_bull
+	dc.l	init_bull_phase
 	dc.l	init_break
 	dc.l	init_evade
 
@@ -3434,7 +3460,33 @@ init_normal:
 init_practice
 	rts
 
+init_bull_phase
+	bsr	get_active_player
+
+	; player is at the centre
+	move.w	#40,xpos(a4)
+	move.w	#152,ypos(a4)
+	
+	
+	clr.w	bull_index
+	bsr		init_bull
+	
+	rts
+	
 init_bull
+	bsr	get_active_player
+	lea	bull(pc),a2
+	move.w	ypos(a4),ypos(a2)
+	clr.w	frame(a2)
+	clr.w	current_frame_countdown(a2)
+	move.w	#224-24,xpos(a2)
+	move.w	bull_index(pc),d0
+	lea		bull_table(pc),a0
+	move.w	(a0,d0.w),xpos(a2)
+	move.w	(2,a0,d0.w),bull_direction
+	addq.w	#4,bull_index
+	rts
+	
 init_break	
 init_evade	
 	rts
@@ -6119,6 +6171,10 @@ prev_record_joystick_state
 current_state:
     dc.w    0
 
+bull_index:
+	dc.w	0
+bull_direction:
+	dc.w	0
 
 ; general purpose timer for non-game states (intro, game over...)
 state_timer:
@@ -6282,6 +6338,9 @@ player_one_string_clear
     even
 ; game main tables
 
+bull_table
+	dc.w	224-24,LEFT,48,RIGHT,224-24,LEFT
+	
 hundreds_score_table
 	REPT	11
 	dc.l	REPTN*100
