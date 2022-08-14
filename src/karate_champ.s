@@ -182,7 +182,7 @@ REFEREE_LEGS_DOWN = 2<<2
 
 ; 
 ;START_SCORE = 1000/10
-;START_LEVEL = 10
+START_LEVEL = 7
 
 ; temp if nonzero, then records game input, intro music doesn't play
 ; and when one life is lost, blitzes and a0 points to move record table
@@ -216,7 +216,7 @@ START_SCORE = 0
 		IFD		RECORD_INPUT_TABLE_SIZE
 START_LEVEL = INIT_DEMO_LEVEL_NUMBER
 		ELSE
-START_LEVEL = 1
+START_LEVEL = 0
 		ENDC
 	ENDC
 	
@@ -851,9 +851,12 @@ init_new_play:
 	move.w	#1,first_fight_flag
 	
 	move.w	#GM_PRACTICE,level_type
+    move.w  #START_LEVEL,level_number
+	beq.b	.start_by_practice
+	move.w	#GM_NORMAL,level_type
+.start_by_practice
 	
     clr.b    music_played
-    move.w  #START_LEVEL-1,level_number
  
     ; global init at game start
 	
@@ -6749,22 +6752,20 @@ blank_19_message
 
 level_params_table
 	dc.l	practice_level
-	dc.l	pier_level
-	dc.l	fuji_level
-	dc.l	bamboo_level
-	dc.l	bridge_level
-	dc.l	boat_level
-	dc.l	mill_level
-	dc.l	city_level
-	dc.l	pier_level
-	dc.l	pier_level
-	dc.l	pier_level
-	dc.l	pier_level
-	dc.l	teepee_level
-	dc.l	temple_level
-	dc.l	pier_level
-	dc.l	moon_level
-	
+	REPT	2
+	dc.l	pier_level	; 1
+	dc.l	fuji_level	; 2
+	dc.l	bamboo_level	; 3
+	dc.l	bridge_level	; 4
+	dc.l	boat_level	; 5
+	dc.l	mill_level	; 6
+	dc.l	city_level	; 7
+	dc.l	field_level	; 8
+	dc.l	teepee_level	; 9
+	dc.l	temple_level	; 10
+	dc.l	dojo_level	; 11
+	dc.l	moon_level	; 12
+	ENDR
 	
 	include	background_palette.s
 	
@@ -6798,8 +6799,8 @@ pier_level
 	dc.l	pl1_palette_data
 	
 fuji_level
-	dc.l	pl1
-	dc.w	22
+	dc.l	pl2
+	dc.w	24
 	dc.w	190
 	dc.w	0
 	dc.w	0
@@ -6808,8 +6809,7 @@ fuji_level
 	dc.w	124
 	dc.w	32
 	dc.w	-32
-	dc.w	-1,-1
-	dc.w	-1,-1
+	dc.l	pl2_palette_data
 	
 bamboo_level
 	dc.l	pl3
@@ -6823,8 +6823,7 @@ bamboo_level
 	dc.w	32
 	dc.w	-32
 	; color change
-	dc.w	$00F,$ca3
-	dc.w	-1,-1
+	dc.l	pl3_palette_data
 	
 bridge_level
 	dc.l	pl4
@@ -6838,8 +6837,7 @@ bridge_level
 	dc.w	32
 	dc.w	-16
 	; color change
-	dc.w	$00F,$ca3
-	dc.w	-1,-1
+	dc.l	pl4_palette_data
 	
 boat_level
 	dc.l	pl5
@@ -6854,6 +6852,8 @@ boat_level
 	dc.w	-32
 	dc.w	-1,-1
 	dc.w	-1,-1
+	; color change
+	dc.l	pl5_palette_data
 
 mill_level
 	dc.l	pl6
@@ -6867,8 +6867,7 @@ mill_level
 	dc.w	32
 	dc.w	-32
 	; color change
-	dc.w	$00F,$ca3
-	dc.w	-1,-1
+	dc.l	pl6_palette_data
 	   
 city_level
 	dc.l	pl7
@@ -6882,8 +6881,7 @@ city_level
 	dc.w	32
 	dc.w	-32
 	; color change
-	dc.w	$80C,$CCC
-	dc.w	$8F0,$800
+	dc.l	pl7_palette_data
 
 teepee_level
 	dc.l	pl9
@@ -6897,8 +6895,7 @@ teepee_level
 	dc.w	32
 	dc.w	-32
 	; color change
-	dc.w	-1,-1
-	dc.w	-1,-1
+	dc.l	pl8_palette_data
 	   
 temple_level
 	dc.l	pl10
@@ -6912,8 +6909,7 @@ temple_level
 	dc.w	32
 	dc.w	-32
 	; color change
-	dc.w	$00F,$CCC
-	dc.w	-1,-1
+	dc.l	pl10_palette_data
 	
 moon_level
 	dc.l	pl12
@@ -6927,8 +6923,36 @@ moon_level
 	dc.w	32
 	dc.w	-32
 	; color change
-	dc.w	$00F,$0c0
-	dc.w	-1,-1
+	dc.l	pl12_palette_data
+
+
+field_level
+	dc.l	pl8
+	dc.w	40
+	dc.w	152
+	dc.w	0
+	dc.w	0
+	; referee
+	dc.w	104		; wrongo
+	dc.w	72
+	dc.w	32
+	dc.w	-32
+	; color change
+	dc.l	pl8_palette_data
+	   
+dojo_level
+	dc.l	pl11
+	dc.w	40
+	dc.w	152
+	dc.w	0
+	dc.w	0
+	; referee
+	dc.w	104		; wrongo
+	dc.w	72
+	dc.w	32
+	dc.w	-32
+	; color change
+	dc.l	pl11_palette_data
 	   
 pl1:
 	incbin	"back_01.bin.RNC"
