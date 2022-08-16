@@ -37,8 +37,15 @@
  },
  {
    "name":"evade",
+   "start_x":80,
+   "start_y":144,
+   "width":64,
+   "height":24
+ },
+{
+   "name":"demo",
    "start_x":144,
-   "start_y":32,
+   "start_y":144,
    "width":64,
    "height":24
  },

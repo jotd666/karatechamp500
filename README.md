@@ -53,11 +53,13 @@ bugs
 - clarify what to set to 0: start of round, start of fight, start of level
 - player2 start not working
 
-evade sequence: 
-
-plant high, bottle high, apple low, rock low, plank mid-back (+ mirror)
-plant mid,bottle mid,apple high back,rock high back,book low back (+ probably mirror)
 
 break planks:
 
 all planks = 2000 + very good
+
+easy dev:
+
+bull
+evade
+girls

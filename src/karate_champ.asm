@@ -29,7 +29,8 @@
 ; TODO: figure out more values from that structure, specially:
 ; +07/+08: frame id/pointer on frame structure, used as input of check_hl_in_ix_list_B009 by A.I
   so the CPU can recognize the moves
-; +09/+0A: 
+; +09:
+; +0A: current move index (at least during practice)
 ; +0B/+0C: like 07/08
 
 ; +0F ($C22F): 
