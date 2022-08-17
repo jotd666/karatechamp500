@@ -88,15 +88,10 @@
 
 ; TODO:
 
-; * record all moves to .avi and extract all pics from level 2 C02D = F
-; * find a random routine if there's one
+; * record all moves to .avi and extract all pics from level 2 C02D = F: done
 ; * figure out how cpu_attacks_player_AB2E works how sequences work (master_cpu_move_table_AB58, random??)
-; * figure out where the joystick is read
-; * figure out the move timing tables and x offsets: each move frame has a different timing
-;   and each move frame has a x-offset associated to it
 ; * check & understand ai jump tables computer_ai_jump_table_A5B1
 ; * understand tables located table_AABD
-; * understand what B0EE does
 ; * understand what AB1D does, what's the value of iy
 ; * understand the diff between cpu_move_forward_towards_enemy_A6D4/A6E7
 ; * undestand A53B
@@ -7856,11 +7851,14 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 48AE: 01 10 00    ld   bc,$0010
 48B1: CD 81 B0    call $B021
 48B4: CD 51 B0    call $B051
+; evade sequence index
 48B7: 3A 12 63    ld   a,($C918)
 48BA: FE 0C       cp   $06
+; not possible that it's >= 06
 48BC: D4 D5 B0    call nc,display_error_text_B075
 48BF: FE 09       cp   $03
 48C1: DA 6C 42    jp   c,$48C6
+; > 3, just make it symmetrical
 48C4: D6 09       sub  $03
 48C6: FD 77 0B    ld   (iy+$0b),a
 48C9: 3A 12 63    ld   a,($C918)
@@ -8505,7 +8503,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 4E22: 56          ld   d,(hl)
 4E23: 1E 09       ld   e,$03
 4E25: C5          push bc
-4E26: CD 0C B0    call $B006
+4E26: CD 0C B0    call random_B006
 4E29: C1          pop  bc
 4E2A: 81          add  a,c
 4E2B: DD 77 08    ld   (ix+$02),a
@@ -9707,8 +9705,10 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 5739: 32 4D 61    ld   ($C147),a
 573C: 21 8E 60    ld   hl,periodic_counter_16bit_C02E
 573F: 56          ld   d,(hl)
+; choose among 6 evade sequences
+; 3 sequences + mirrored
 5740: 1E 0C       ld   e,$06
-5742: CD 0C B0    call $B006
+5742: CD 0C B0    call random_B006
 5745: 32 12 63    ld   ($C918),a
 5748: 3A 42 61    ld   a,($C148)
 574B: FE 09       cp   $03
@@ -10875,7 +10875,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 608A: 21 8E 60    ld   hl,periodic_counter_16bit_C02E
 608D: 56          ld   d,(hl)
 608E: 1E 09       ld   e,$03
-6090: CD 0C B0    call $B006
+6090: CD 0C B0    call random_B006
 6093: FD 77 06    ld   (iy+$0c),a
 6096: 3A 87 60    ld   a,(player_2_is_cpu_flags_C02D)
 6099: CB 5F       bit  3,a
@@ -23110,12 +23110,12 @@ AB39: 06 00       ld   b,$00
 AB3B: DD 09       add  ix,bc
 AB3D: DD 6E 00    ld   l,(ix+$00)
 AB40: DD 66 01    ld   h,(ix+$01)
-; get msb of 16 bit counter? probably for randomness
+; get msb of 16 bit counter for randomness
 AB43: ED 5B 8E 60 ld   de,(periodic_counter_16bit_C02E)
 AB47: 5E          ld   e,(hl)
 AB48: 23          inc  hl
 AB49: E5          push hl
-AB4A: CD 0C B0    call $B006
+AB4A: CD 0C B0    call random_B006
 AB4D: E1          pop  hl
 AB4E: 06 00       ld   b,$00
 AB50: 4F          ld   c,a
@@ -23139,8 +23139,9 @@ master_cpu_move_table_AB58:
 	dc.w  move_list_AB84
 	dc.w  move_list_AB84
 
+; move list starts by number of moves
 move_list_AB62:
-	; jsk, back, jbk, footsweep, front kick/punch, back round, lunge, jsk, round, lunge, lunge, revpunch, lowk
+	; 13 moves: back, jbk, footsweep, front kick/punch, back round, lunge, jsk, round, lunge, lunge, revpunch, lowk
 	dc.b	0D 05 08 09 0A 0B 0C 0D 0E 0F 10 11 13 14 
 	; lunge lunge backroundkick lungemedium jsk 0E(???) round lunge, lunge, revpunch, lowkick
 move_list_AB70:
@@ -23172,6 +23173,7 @@ AB6A: 0E 0F       ld   c,$0F
 AB6C: 10 11       djnz $AB7F
 AB6E: 19          add  hl,de
 AB6F: 14          inc  d
+; move list see move_list_AB70
 AB70: 0A          ld   a,(bc)
 AB71: 0A          ld   a,(bc)
 AB72: 0B          dec  bc
@@ -24060,7 +24062,7 @@ AFFE: 00          nop
 AFFF: 00          nop
 B000: C3 69 B0    jp   $B0C3
 B003: C3 7B B0    jp   $B0DB
-B006: C3 EE B0    jp   $B0EE
+random_B006: C3 EE B0    jp   $B0EE
 B009: C3 FF B0    jp   check_hl_in_ix_list_B0FF
 B00C: C3 84 B1    jp   $B124
 table_linear_search_B00F: C3 42 B1    jp   table_linear_search_B148
@@ -24149,10 +24151,11 @@ B0E9: CB C5       set  0,l
 B0EB: 10 F1       djnz $B0DE
 B0ED: C9          ret
 
-; < de
-; > a
+; random method
+; < d: seed from timer
+; < e: max value (not included)
+; > a: value between 0 and e (not included)
 ; > d
-; what it does???
 B0EE: AF          xor  a	;  clears a
 B0EF: 06 02       ld   b,$08  ; b <- $08	; do it 8 times at least
 B0F1: CB 22       sla  d	; d *= 2

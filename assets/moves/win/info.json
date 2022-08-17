@@ -2,4 +2,4 @@
 "symmetrical":true,
 "loops":true,
 "rollback_frame":-1,
-"deltas": [[0,0,-16], [30, 0, -16], [30, 0, 16]]}
+"deltas": [[0,0,0], [30, 0, -16], [30, 0, 16]]}

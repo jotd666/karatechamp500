@@ -12,7 +12,6 @@ foot sweep on left displays on the right too
 rip girls side/end
 rip evade obstacles (stone, breaking it, breaking plank)
 rip evade sound
-rip bull separate specific sprite sheet (left/right)
 
 forward close walk animation is broken
 optimization: do not check hits if player distance is too high
@@ -46,7 +45,7 @@ bugs
 - animation for win sequence to fix
 - 2 player mode - 1ST - => 1ST   1ST non-cpu player with
   number of rounds won+1
-- win a round: timer not reset, points not reset
+- win a round: timer not reset
 - count how many rounds have been won... next level...
 - 2p mode: missing score 1 - 0 ... etc.
 - win a round by KO: countdown doesn't work, points not reset
@@ -58,6 +57,9 @@ break planks:
 
 all planks = 2000 + very good
 
+snapshot just before planks
+video planks frappe dans le vide: rip frames
+check min/max x planks pour score min/max
 easy dev:
 
 bull

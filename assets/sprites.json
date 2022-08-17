@@ -29,6 +29,13 @@
    "height":32
  },
  {
+   "name":"halo",
+   "start_x":0,
+   "start_y":96,
+   "width":96,
+   "height":16
+ },
+ {
    "name":"practice",
    "start_x":0,
    "start_y":16,
@@ -174,14 +181,6 @@
    "start_y":64,
    "width":32,
    "height":16
- },
-{
-   "name":"halo",
-   "start_x":0,
-   "start_y":96,
-   "width":96,
-   "height":16,
-   "frames":2
  },
 {
    "name":"apple",
