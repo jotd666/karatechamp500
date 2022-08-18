@@ -39,6 +39,7 @@ INTERRUPTS_ON_MASK = $E038
     
     STRUCTURE   LevelParams,0
 	APTR	background_picture
+	APTR	girl_structure
     UWORD   p1_init_xpos
     UWORD   p1_init_ypos
     UWORD   p2_init_xpos	; 0: symmetrical vs p1 x
@@ -182,7 +183,7 @@ REFEREE_LEGS_DOWN = 2<<2
 ; 
 ;START_SCORE = 1000/10
 ;START_LEVEL = 7
-START_LEVEL_TYPE = GM_BULL
+;;START_LEVEL_TYPE = GM_BULL
 
 ; temp if nonzero, then records game input, intro music doesn't play
 ; and when one life is lost, blitzes and a0 points to move record table
@@ -231,11 +232,14 @@ PRACTICE_SKIP_MESSAGE_LEN = 210
 PRACTICE_WAIT_BEFORE_NEXT_MOVE = 45
 PRACTICE_MOVE_DURATION = PRACTICE_WAIT_BEFORE_NEXT_MOVE*2
 
+GIRL_ANIM_NB_TICKS = NB_TICKS_PER_SEC/3
 START_ROUND_NB_TICKS = 110
+START_LEVEL_NB_TICKS = NB_TICKS_PER_SEC*12
 END_ROUND_NB_TICKS = 110
 
 RP_START_ROUND = 0
 RP_END_ROUND = 1
+RP_START_LEVEL = 2
 
 SCREEN_WIDTH = NB_BYTES_PER_BACKBUFFER_LINE*8		; 224
 
@@ -645,10 +649,8 @@ intro:
 	
 	; first fight: more needs to be done
 	; reset points, reset timer
-	move.w	first_fight_flag(pc),d0
-	clr.w	first_fight_flag
-    bsr init_players_and_referee
-    
+
+    bsr init_players_and_referee 
     bsr wait_bof
 
     move.w  #STATE_PLAYING,current_state
@@ -669,12 +671,14 @@ intro:
 .game_over
     bra.b   .mainloop
 .next_fight
+	clr.w	players_reinit_flag
     bra.b   .new_level
 .next_level
     add.w   #1,level_number
-	move.w	#1,first_fight_flag
+	move.w	#2,players_reinit_flag
     bra.b   .new_level
 .next_round
+	move.w	#1,players_reinit_flag
 
     tst.b   demo_mode
     beq.b   .no_demo
@@ -852,7 +856,7 @@ init_new_play:
 	clr.b	previous_move
 	clr.l	current_move_key_last_jump
 	clr.l	current_move_key
-	move.w	#1,first_fight_flag
+	move.w	#2,players_reinit_flag
 	
 	move.w	#START_LEVEL_TYPE,level_type
     move.w  #START_LEVEL,level_number
@@ -1388,20 +1392,42 @@ init_referee:
 	move.l	(a7)+,a4
 	rts
 	
+; < D0: 0: reinit fight
+;       1: reinit round
+;       2: reinit level
+
 init_players_and_referee:
-	tst	d0
-	beq.b	.no_reinit
-	move.w	#30,time_left
-	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
-	lea		player_1(pc),a4
-	; new round/level: clear scored points
-	clr.w	scored_points+player_1
-	clr.w	scored_points+player_2
-
-.no_reinit
-
 	move.w	#START_ROUND_NB_TICKS,pause_round_timer
 	move.w	#RP_START_ROUND,pause_round_type
+
+	move.w	players_reinit_flag(pc),d0
+	tst	d0
+	beq.b	.reinit_fight		; reinit fight
+	; round/level
+	
+	move.w	#30,time_left
+	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
+	; new round: clear scored points
+	lea		player_1(pc),a4
+	clr.w	scored_points(a4)
+	lea		player_2(pc),a4
+	clr.w	scored_points(a4)
+
+	cmp.w	#1,d0
+	beq.b	.reinit_fight
+	; new level
+	lea		player_1(pc),a4
+	clr.w	nb_rounds_won(a4)
+	lea		player_2(pc),a4
+	clr.w	nb_rounds_won(a4)
+	
+	move.w	#START_LEVEL_NB_TICKS,pause_round_timer
+	move.w	#RP_START_LEVEL,pause_round_type
+	move.w	#GIRL_ANIM_NB_TICKS,girl_frame_timer
+	clr.w	girl_frame_index
+
+.reinit_fight
+
 
     lea player_1(pc),a4
 	move.l	#player_2,opponent(a4)
@@ -1444,7 +1470,7 @@ init_players_and_referee:
     move.w	p2_init_xpos(a1),xpos(a4)
 	bne.b	.no_zero_x
 	; symmetrical
-	move.w	#SCREEN_WIDTH-48,d5
+	move.w	#SCREEN_WIDTH-32,d5
 	sub.w	p1_init_xpos(a1),d5
 	move.w	d5,xpos(a4)
 .no_zero_x
@@ -1494,7 +1520,7 @@ init_players_and_referee:
     ENDC
 
     clr.w   record_input_clock                      ; start of time
-    
+    clr.w	players_reinit_flag
 
 
     rts
@@ -2026,13 +2052,35 @@ demo_message_2
 	even
 	
 draw_normal:
+	tst.b	erase_girl_message
+	bne.b	.force_erase
+	tst.w	pause_round_timer
+	beq.b	.no_start_level
+	cmp.w	#RP_START_LEVEL,pause_round_type
+	bne.b	.no_start_level
+.force_erase
+	clr.b	erase_girl_message
+	bsr	erase_girl
+.no_start_level
+
 	bsr	erase_referee
 	lea	player_1(pc),a4
 	bsr	erase_player
 	lea	player_2(pc),a4
 	bsr	erase_player
 
+	tst.w	pause_round_timer
+	beq.b	.no_start_level2
+	cmp.w	#RP_START_LEVEL,pause_round_type
+	bne.b	.no_start_level2
+	bsr	draw_girl
+.no_start_level2
+
+	tst.w	girl_frame_index
+	bpl.b	.no_referee
+	; girl showing, no referee
 	bsr	draw_referee
+.no_referee
 	lea	player_1(pc),a4
     bsr draw_player
 	lea	player_2(pc),a4
@@ -2057,6 +2105,67 @@ draw_normal:
 	
 	rts
 	
+erase_girl
+	; erase girl
+	move.w	level_number(pc),d0
+	add.w	d0,d0
+	add.w	d0,d0
+	lea		level_params_table,a1
+	move.l	(a1,d0.w),a1
+	move.w	p1_init_ypos(a1),d1
+
+	; erase girl/halo
+	sub.w	#8,d1
+	move.w	#SCREEN_WIDTH/2-48,D0
+	move.w	#56,d3
+	move.w	#96,d2
+	bra		restore_background
+		
+draw_girl
+	move.w	girl_frame_index(pc),d4
+	bmi.b	.no_draw
+	
+	; draw girl
+	move.w	level_number(pc),d0
+	add.w	d0,d0
+	add.w	d0,d0
+	lea		level_params_table,a1
+	move.l	(a1,d0.w),a1
+	move.w	p1_init_ypos(a1),d1
+
+	add.w	#16,d1
+	move.w	#16,d3
+	move.w	#SCREEN_WIDTH/2-8,D0
+	move.w	#4,d2
+	move.l	girl_structure(a1),a2
+	lea		.girl_frames(pc),a3
+	move.w	(a3,d4.w),d4
+	move.l	(a2,d4.w),a0
+	bsr		blit_4_planes_cookie_cut
+	add.w	#16,d1
+	move.l	(legs_front_frame,a2),a0
+	bsr		blit_4_planes_cookie_cut
+	sub.w	#40,d1
+	move.w	#SCREEN_WIDTH/2-48,D0
+	lea		halo,a0
+	move.w	#16,d3
+	move.w	#96/8+2,d2
+	bsr		blit_4_planes_cookie_cut
+.no_draw
+	rts
+		
+.girl_frames:
+	dc.w	top_front_frame
+	dc.w	top_front_frame
+	dc.w	top_left_frame
+	dc.w	top_left_frame
+	dc.w	top_front_frame
+	dc.w	top_front_frame
+	dc.w	top_right_frame
+	dc.w	top_right_frame
+
+
+
 ; < D2: highscore
 draw_high_score
     move.w  #136,d0
@@ -2213,6 +2322,15 @@ update_bull:
 .no_move
 	move.w	d0,current_frame_countdown(a2)
 	
+	rts
+	
+mirror_halo
+	movem.l	a0/d0-d1,-(a7)
+	lea		halo,a0
+	move.w	#96/8+2,d0
+	move.w	#16,d1
+	bsr		mirror
+	movem.l	(a7)+,a0/d0-d1
 	rts
 	
 ; < D0: LEFT/RIGHT
@@ -3205,16 +3323,47 @@ update_all
 	move.l	(a0,d0.w),a0
 	jmp		(a0)
 	
-update_normal:
-	; TODO start music timer on first round, show girl
-	
+update_normal:	
 	move.w	pause_round_timer(pc),d0
 	beq.b	.normal
+	cmp.w	#RP_START_LEVEL,pause_round_type
+	bne.b	.no_start_level
+	tst.w	girl_frame_index
+	bmi.b	.no_girl_change	; negative: don't draw
+	; start level
+	; update girl
+	sub.w	#1,girl_frame_timer
+	bne.b	.no_girl_change
+	move.w	#GIRL_ANIM_NB_TICKS,girl_frame_timer
+	bsr		mirror_halo
+	addq.w	#2,girl_frame_index
+	cmp.w	#4*4,girl_frame_index
+	bne.b	.no_gf_reset
+	clr.w	girl_frame_index
+.no_gf_reset
+
+.no_girl_change
+
+	cmp.w	#START_LEVEL_NB_TICKS,d0
+	bne.b	.no_start_music
+	move.l	d0,-(a7)
+	moveq	#0,d0
+	bsr		play_music
+	move.l	(a7)+,d0
+.no_start_music
+	cmp.w	#START_ROUND_NB_TICKS,d0
+	bne.b	.no_start_level	
+	move.l	d0,-(a7)
+	st.b	erase_girl_message
+	move.w	#-1,girl_frame_index
+	bsr		stop_sounds
+	move.l	(a7)+,d0
+.no_start_level
 	subq.w	#1,d0
 	move.w	d0,pause_round_timer
 	beq.b	.go_normal
-	cmp.w	#RP_START_ROUND,pause_round_type
-	bne.b	.pout
+	cmp.w	#RP_END_ROUND,pause_round_type
+	beq.b	.pout
 	; check if we must display "begin" bubble
 	cmp.w	#START_ROUND_NB_TICKS-50,d0
 	beq.b	.display_begin
@@ -3571,7 +3720,6 @@ init_bull
 	clr.w	current_frame_countdown(a2)
 	move.w	bonus_phase_index(pc),d0
 	lea		bull_table(pc),a0
-	LOGPC	100
 	move.w	(a0,d0.w),xpos(a2)
 	move.w	(2,a0,d0.w),d0
 	move.w	d0,direction(a2)
@@ -6345,7 +6493,7 @@ cheat_sequence_pointer
 cheat_keys
     dc.w    0
 
-first_fight_flag:
+players_reinit_flag:
 	dc.w	0
 	
 player_up_displayed_flag:
@@ -6355,6 +6503,8 @@ level_completed_flag:
 controls_blocked_flag:
 	dc.b	0
 time_countdown_flag:
+	dc.b	0
+erase_girl_message:
 	dc.b	0
 erase_referee_bubble_message:
     dc.b    0
@@ -6910,6 +7060,10 @@ game_palette
 level_players_y_min:
 	dc.w	0
 
+girl_frame_timer
+	dc.w	0
+girl_frame_index
+	dc.w	0
 player_configuration:
 	dc.l	0
 picked_practice_table:
@@ -6997,6 +7151,7 @@ level_params_table
 	; LevelParams
 practice_level
 	dc.l	pl3
+	dc.l	0		; no girl
 	dc.w	40
 	dc.w	152
 	dc.w	112
@@ -7011,6 +7166,7 @@ practice_level
 
 pier_level
 	dc.l	pl1
+	dc.l	girl_1_frames
 	dc.w	24
 	dc.w	176
 	dc.w	0
@@ -7025,6 +7181,7 @@ pier_level
 	
 fuji_level
 	dc.l	pl2
+	dc.l	girl_1_frames
 	dc.w	24
 	dc.w	190
 	dc.w	0
@@ -7038,6 +7195,7 @@ fuji_level
 	
 bamboo_level
 	dc.l	pl3
+	dc.l	girl_1_frames
 	dc.w	40
 	dc.w	152
 	dc.w	0
@@ -7052,6 +7210,7 @@ bamboo_level
 	
 bridge_level
 	dc.l	pl4
+	dc.l	girl_1_frames
 	dc.w	24
 	dc.w	144
 	dc.w	0
@@ -7066,6 +7225,7 @@ bridge_level
 	
 boat_level
 	dc.l	pl5
+	dc.l	girl_1_frames
 	dc.w	24
 	dc.w	176
 	dc.w	0
@@ -7082,6 +7242,7 @@ boat_level
 
 mill_level
 	dc.l	pl6
+	dc.l	girl_1_frames
 	dc.w	24
 	dc.w	176
 	dc.w	0
@@ -7096,6 +7257,7 @@ mill_level
 	   
 city_level
 	dc.l	pl7
+	dc.l	girl_1_frames
 	dc.w	40
 	dc.w	152
 	dc.w	0
@@ -7110,6 +7272,7 @@ city_level
 
 teepee_level
 	dc.l	pl9
+	dc.l	girl_1_frames
 	dc.w	26
 	dc.w	176
 	dc.w	0
@@ -7124,6 +7287,7 @@ teepee_level
 	   
 temple_level
 	dc.l	pl10
+	dc.l	girl_1_frames
 	dc.w	24
 	dc.w	176
 	dc.w	0
@@ -7138,6 +7302,7 @@ temple_level
 	
 moon_level
 	dc.l	pl12
+	dc.l	girl_1_frames
 	dc.w	40
 	dc.w	152
 	dc.w	0
@@ -7153,6 +7318,7 @@ moon_level
 
 field_level
 	dc.l	pl8
+	dc.l	girl_1_frames
 	dc.w	40
 	dc.w	152
 	dc.w	0
@@ -7167,6 +7333,7 @@ field_level
 	   
 dojo_level
 	dc.l	pl11
+	dc.l	girl_1_frames
 	dc.w	40
 	dc.w	152
 	dc.w	0

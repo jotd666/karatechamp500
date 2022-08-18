@@ -40,14 +40,14 @@ def doit():
 
     frame_name = ["top_front","top_left","top_right","top_end_win","top_end_lose","legs_front","legs_end"]
     bin_files = []
-    for stage in range(0,max_level):
+    for stage in range(1,max_level+1):
         for girl_frame,gfn in enumerate(frame_name):
-            y = stage*16
+            y = (stage-1)*16
             x = girl_frame*16
             img_frame.paste(img,(-x,-y))
             mask_frame.paste(mask,(-x,-y))
             data = bitplanelib.palette_image2raw(img_frame,None,palette,
-                    generate_mask=False,palette_precision_mask=0xF0)
+                    generate_mask=False,blit_pad=True,palette_precision_mask=0xF0)
             data += bitplanelib.palette_image2raw(mask_frame,None,((0,0,0),(255,255,255)),
                     generate_mask=False,blit_pad=True)
 
@@ -61,12 +61,20 @@ def doit():
                 mask_frame.save(os.path.join(outdir,"girl_mask_{}_{}.png".format(stage,gfn)))
 
     with open(os.path.join("../src/girl_bobs.s"),"w") as f:
-        f.write("girl_bob_table:\n")
-        for i in range(0,max_level):
-            f.write("\tdc.l\tgirl_{}_frames\n".format(i))
-        f.write("\n")
+        f.write("""\tSTRUCTURE   GirlParams,0
+\tAPTR\ttop_front_frame
+\tAPTR\ttop_left_frame
+\tAPTR\ttop_right_frame
+\tAPTR\ttop_end_win_frame
+\tAPTR\ttop_end_lose_frame
+\tAPTR\tlegs_front_frame
+\tAPTR\tlegs_end_frame
+\tLABEL\tGirlParams_SIZEOF
 
-        for i in range(0,max_level):
+
+""")
+
+        for i in range(1,max_level+1):
             f.write("girl_{}_frames:\n".format(i))
             for fn in frame_name:
                 f.write("\tdc.l\tgirl_{}_{}_frame\n".format(i,fn))
