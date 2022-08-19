@@ -781,7 +781,7 @@ bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
 
 process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
 
-#process_player_tiles()
+process_player_tiles()
 
 #process_girls()
 

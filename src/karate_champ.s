@@ -169,6 +169,10 @@ BUBBLE_BEGIN = 6<<2
 BUBBLE_BETTER_LUCK = 7<<2
 BUBBLE_MY_HERO = 8<<2
 
+START_FIGHT_MUSIC = 0
+LOSE_FIGHT_MUSIC = 1
+WIN_FIGHT_MUSIC = 2
+MAIN_THEME_MUSIC = 3
 
 ; do NOT change those enums without changing the update/draw function tables
 REFEREE_LEFT_LEG_DOWN = 0
@@ -410,7 +414,8 @@ Start:
     ;jsr	resload_Control(a2)
 
     bsr load_highscores
-    
+   
+	
     bra.b   .startup
 .standard
     ; open dos library, graphics library
@@ -545,7 +550,7 @@ intro:
     move.w  #$7FFF,(intena,a5)
     move.w  #$7FFF,(intreq,a5)
 
-    
+
     bsr hide_sprites
 
     bsr clear_screen
@@ -645,12 +650,10 @@ intro:
     ;;bsr draw_bounds
     
     bsr hide_sprites
-
 	
 	; first fight: more needs to be done
 	; reset points, reset timer
-
-    bsr init_players_and_referee 
+ 
     bsr wait_bof
 
     move.w  #STATE_PLAYING,current_state
@@ -860,6 +863,10 @@ init_new_play:
 	
 	move.w	#START_LEVEL_TYPE,level_type
     move.w  #START_LEVEL,level_number
+    cmp.w	#GM_PRACTICE,level_type
+	bne.b	.no_practice
+	clr.w	level_number	; practice => level number 
+.no_practice
 
 	
     clr.b    music_played
@@ -1365,6 +1372,7 @@ init_player_common
 
 init_referee_not_moving:
 	move.l	a4,-(a7)
+
 	bsr		init_referee
 	lea	referee(pc),a4
 	; min=max no move
@@ -1373,9 +1381,14 @@ init_referee_not_moving:
 	move.l	(a7)+,a4
 	rts
 	
-; < A1: level referee init structure
 init_referee:
-	move.l	a4,-(a7)
+	movem.l	d0/a1/a4,-(a7)
+	move.w	level_number(pc),d0
+	add.w	d0,d0
+	add.w	d0,d0
+	lea		level_params_table,a1
+	move.l		(a1,d0.w),a1
+	
 	lea	referee(pc),a4
 	; init referee
 	move.w	referee_xpos(a1),xpos(a4)
@@ -1395,12 +1408,9 @@ init_referee:
 	clr.w	bubble_timer(a4)
 	clr.w	hand_both_flags(a4)	; both hands
 	clr.l	previous_xpos(a4)	; x and y
-	move.l	(a7)+,a4
+	movem.l	(a7)+,d0/a1/a4
 	rts
 	
-; < D0: 0: reinit fight
-;       1: reinit round
-;       2: reinit level
 
 init_players_and_referee:
 	move.w	#START_ROUND_NB_TICKS,pause_round_timer
@@ -1433,7 +1443,6 @@ init_players_and_referee:
 	clr.w	girl_frame_index
 
 .reinit_fight
-
 
     lea player_1(pc),a4
 	move.l	#player_2,opponent(a4)
@@ -2031,35 +2040,84 @@ dwb:
 	
 draw_evade
 	rts
+
+DEMO_X_CONTROLS = 168
+DEMO_Y_CONTROLS = 128
 draw_break
 	tst.l	state_timer
 	beq.b	.init_draw
 	
+	
+	bsr		draw_active_player
+	
+	move.w	challenge_blink_timer(pc),d4
+	addq.w	#1,d4
+	cmp.w	#6,d4
+	bne.b	.no_toggle
+
 	move.w	#48,d0
 	move.w	#232,d1
 	lea		.challenge_stage_blank(pc),a0
 	move.w	#$ffc,d2
-	move.w	d0,d3
+	move.w	d0,d5
+	move.w	d1,d6
 	bsr		write_blanked_color_string
-	move.w	d3,d0
+
+	eor.w	#1,show_challenge_message
+	beq.b	.draw_arrows
+	lea		controls_no_arrows,a0
+	move.w	#6,d2
+	move.w	#32,d3
+	move.w	#DEMO_X_CONTROLS,d0
+	move.w	#DEMO_Y_CONTROLS,d1
+	bsr		blit_4_planes_cookie_cut
+
+	move.w	d5,d0
+	move.w	d6,d1
 	lea	.challenge_stage(pc),a0
 	; etch out characters (draw black)
 	moveq	#$0,d2
 	bsr		write_color_string
 	; OR characters of the proper color
-	move.w	d3,d0
+	move.w	d5,d0
 	move.w	#$0c0,d2
 	bsr		write_color_string
+	
+.out
+	moveq	#0,d4
+.no_toggle
+	move.w	d4,challenge_blink_timer
 
 	rts
+.draw_arrows
+	moveq.w	#4,d2
+	moveq.w	#8,d3
+	move.w	#DEMO_X_CONTROLS+12,d0
+	move.w	#DEMO_Y_CONTROLS+2,d1
+	lea	up_arrow,a0
+	bsr		blit_4_planes_cookie_cut
+	move.w	#DEMO_X_CONTROLS+12,d0
+	move.w	#DEMO_Y_CONTROLS+24,d1
+	lea	down_arrow,a0
+	bsr		blit_4_planes_cookie_cut
+	move.w	#DEMO_X_CONTROLS+24,d0
+	move.w	#DEMO_Y_CONTROLS+12,d1
+	lea	right_arrow,a0
+	bsr		blit_4_planes_cookie_cut
+	move.w	#DEMO_X_CONTROLS,d0
+	move.w	#DEMO_Y_CONTROLS+12,d1
+	lea	left_arrow,a0
+	bsr		blit_4_planes_cookie_cut
+	bra.b	.out
 	
 .challenge_stage
 	dc.b	"CHALLENGE STAGE",0
 .challenge_stage_blank
-	dc.b	"               ",0
+	dc.b	"///////////////",0
 	even
 	
 .init_draw
+	bsr		draw_referee
 	move.w	#136,D0
 	move.w	#184,D1
 	lea		table,a0
@@ -2078,12 +2136,6 @@ draw_break
 	addq.w	#4,d0
 	dbf		d4,.loop
 	
-	lea		controls,a0
-	move.w	#6,d2
-	move.w	#32,d3
-	move.w	#168,d0
-	move.w	#128,d1
-	bsr		blit_4_planes_cookie_cut
 	rts
 	
 draw_bull_stage
@@ -3081,7 +3133,12 @@ level2_interrupt:
 .no_timeout
     cmp.b   #$57,d0     ; F8
     bne.b   .no_1p_wins
-	move.w	#10,time_left
+	move.w	#5,player_1+scored_points
+	clr.w	player_2+scored_points
+	st.b	score_update_message
+	movem.l	d0-a6,-(a7)
+	bsr		draw_score
+	movem.l	(a7)+,d0-a6
     bra.b   .no_playing
 .no_1p_wins
 .no_playing
@@ -3356,7 +3413,7 @@ update_all
     cmp.l   #GAME_OVER_TIMER,state_timer
     bne.b   .no_first
     bsr stop_sounds
-    moveq.l  #10,d0
+    moveq.l  #LOSE_FIGHT_MUSIC,d0
     bsr     play_music
 .no_first
     tst.l   state_timer
@@ -3406,7 +3463,7 @@ update_normal:
 	cmp.w	#START_LEVEL_NB_TICKS,d0
 	bne.b	.no_start_music
 	move.l	d0,-(a7)
-	moveq	#0,d0
+	moveq	#START_FIGHT_MUSIC,d0
 	bsr		play_music
 	move.l	(a7)+,d0
 .no_start_music
@@ -3510,6 +3567,7 @@ update_evade
 	bsr		update_active_player
 	rts
 update_break
+	bsr		update_active_player
 	rts
 	
 update_referee:
@@ -3679,7 +3737,10 @@ judge_decision:
 	clr.w	scored_points(a2)
 	clr.w	scored_points(a3)
 	
-	; TODO play round end music
+	; play round end music
+	move.w	#MAIN_THEME_MUSIC,d0
+	bsr		play_music
+	
 	move.w	#ORIGINAL_TICKS_PER_SEC*24,time_ticks	; some time before seconds countdown
 	st.b	time_countdown_flag
 	rts	
@@ -3753,12 +3814,13 @@ init_level_type_table
 	dc.l	init_evade
 
 init_normal:
+    bsr init_players_and_referee
 	; todo reset hits, maybe call init players
-	move.w	#START_ROUND_NB_TICKS,pause_round_timer
-	move.w	#RP_START_ROUND,pause_round_type
 	rts
 	
 init_practice
+    bsr init_players_and_referee
+	bsr	init_referee_not_moving
 	rts
 
 init_bull_evade_shared
@@ -3807,10 +3869,25 @@ init_bull
 	rts
 	
 init_break
+	moveq.l	#MAIN_THEME_MUSIC,d0
+	bsr		play_music
+	
 	bsr	get_active_player
-
+	
+	; player is at the centre
+	move.w	#56,xpos(a4)
+	move.w	#152,ypos(a4)
+	
+	clr.w	after_bonus_phase_timer
+	clr.w	bonus_phase_index
+	
+	lea	do_break_planks(pc),a0
+	move.l	a0,current_move_callback(a4)
 	; init referee
 	bsr		init_referee_not_moving
+	
+	clr.w	challenge_blink_timer
+	clr.w	show_challenge_message
 	rts
 		
 init_evade	
@@ -4845,7 +4922,8 @@ blit_back_plane:
     rts
 
 ; < A4: referee structure
-draw_referee
+draw_referee:
+	LOGPC	100
 	lea	referee(pc),a4
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
@@ -6306,6 +6384,14 @@ SIMPLE_MOVE_CALLBACK:MACRO
 	SIMPLE_MOVE_CALLBACK	sommersault
 	SIMPLE_MOVE_CALLBACK	sommersault_back
 
+do_break_planks:
+	lea		break_planks_frames(pc),a0
+	clr.b	rollback(a4)
+	st.b	rollback_lock(a4)
+	
+	clr.w	current_frame_countdown(a4)
+	bra		move_player
+	
 do_reverse_punch_800
 	lea	reverse_punch_800_frames(pc),a0
 	bra.b	do_foot_sweep_common
@@ -6396,7 +6482,7 @@ do_back_round_kick_left:
 
 do_move_forward:
 	clr.w	block_lock(a4)		; no block
-	lea		walk_forward_frames(pc),a0
+	lea		walk_forward_frames,a0
 	clr.b	rollback(a4)
 	clr.b	rollback_lock(a4)
 	clr.l	current_move_callback(a4)
@@ -6506,7 +6592,11 @@ dosname
     ; variables
 gfxbase_copperlist
     dc.l    0
-    
+
+show_challenge_message
+	dc.w	0
+challenge_blink_timer
+	dc.w	0
 previous_random
     dc.l    0
 record_data_pointer
@@ -7262,14 +7352,14 @@ pier_level
 	
 fuji_level
 	dc.l	pl2
-	dc.l	girl_1_frames
+	dc.l	girl_2_frames
 	dc.w	24
 	dc.w	190
 	dc.w	0
 	dc.w	0
 	; referee
 	dc.w	104
-	dc.w	124
+	dc.w	112
 	dc.w	32
 	dc.w	-32
 	dc.l	pl2_palette_data

@@ -28,6 +28,13 @@
    "width":32,
    "height":32
  },
+{
+   "name":"controls_no_arrows",
+   "start_x":224,
+   "start_y":32,
+   "width":32,
+   "height":32
+ },
  {
    "name":"halo",
    "start_x":0,

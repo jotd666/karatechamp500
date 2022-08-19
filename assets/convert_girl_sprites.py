@@ -16,7 +16,7 @@ def generate_mask_and_image(img,rgbmask):
     return mask,img
 
 dump = True
-max_level = 1 # TEMP
+max_level = 12
 
 def doit():
     sprites_dir = "../sprites"
@@ -42,6 +42,7 @@ def doit():
     bin_files = []
     for stage in range(1,max_level+1):
         for girl_frame,gfn in enumerate(frame_name):
+            print("Processing stage {}, frame {}".format(stage,girl_frame))
             y = (stage-1)*16
             x = girl_frame*16
             img_frame.paste(img,(-x,-y))
