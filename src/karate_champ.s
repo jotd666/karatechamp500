@@ -156,7 +156,7 @@ GM_NORMAL = 0
 GM_PRACTICE = 1<<2
 GM_BULL = 2<<2
 GM_BREAK = 3<<2
-GM_EVADE = 3<<2
+GM_EVADE = 4<<2
 
 ; do NOT change those enums without changing the update/draw function tables
 BUBBLE_NONE = 0
@@ -182,8 +182,8 @@ REFEREE_LEGS_DOWN = 2<<2
 
 ; 
 ;START_SCORE = 1000/10
-;START_LEVEL = 7
-;;START_LEVEL_TYPE = GM_BULL
+START_LEVEL = 2
+START_LEVEL_TYPE = GM_BREAK
 
 ; temp if nonzero, then records game input, intro music doesn't play
 ; and when one life is lost, blitzes and a0 points to move record table
@@ -860,9 +860,7 @@ init_new_play:
 	
 	move.w	#START_LEVEL_TYPE,level_type
     move.w  #START_LEVEL,level_number
-	beq.b	.sk
-	move.w	#GM_NORMAL,level_type
-.sk
+
 	
     clr.b    music_played
  
@@ -1111,7 +1109,15 @@ draw_panel:
 	bsr		blit_4_planes_cookie_cut
 	bra.b	.hiscore
 .no_evade
-	nop
+	cmp.w	#GM_BREAK,level_type
+	bne.b	.no_break
+	lea		demo,a0
+	move.w	#64/8+2,d2
+	move.w	#24,d3
+	move.w	#32,d0
+	move.w	#38,d1
+	bsr		blit_4_planes_cookie_cut
+.no_break
 .hiscore
 	; draw "HISCORE"
 	move.w	#136,d0
@@ -2024,7 +2030,60 @@ dwb:
 	rts
 	
 draw_evade
+	rts
 draw_break
+	tst.l	state_timer
+	beq.b	.init_draw
+	
+	move.w	#48,d0
+	move.w	#232,d1
+	lea		.challenge_stage_blank(pc),a0
+	move.w	#$ffc,d2
+	move.w	d0,d3
+	bsr		write_blanked_color_string
+	move.w	d3,d0
+	lea	.challenge_stage(pc),a0
+	; etch out characters (draw black)
+	moveq	#$0,d2
+	bsr		write_color_string
+	; OR characters of the proper color
+	move.w	d3,d0
+	move.w	#$0c0,d2
+	bsr		write_color_string
+
+	rts
+	
+.challenge_stage
+	dc.b	"CHALLENGE STAGE",0
+.challenge_stage_blank
+	dc.b	"               ",0
+	even
+	
+.init_draw
+	move.w	#136,D0
+	move.w	#184,D1
+	lea		table,a0
+	move.w	#12,d2
+	move.w	#32,d3
+	bsr		blit_4_planes_cookie_cut
+	; 10 planks
+	moveq.w	#9,d4
+	move.w	#140,d0
+	move.w	#172,d1
+	move.w	#4,d2
+	move.w	#16,d3
+	lea		small_plank_0,a0
+.loop
+	bsr		blit_4_planes_cookie_cut
+	addq.w	#4,d0
+	dbf		d4,.loop
+	
+	lea		controls,a0
+	move.w	#6,d2
+	move.w	#32,d3
+	move.w	#168,d0
+	move.w	#128,d1
+	bsr		blit_4_planes_cookie_cut
 	rts
 	
 draw_bull_stage
@@ -3352,23 +3411,41 @@ update_normal:
 	move.l	(a7)+,d0
 .no_start_music
 	cmp.w	#START_ROUND_NB_TICKS,d0
-	bne.b	.no_start_level	
+	bne.b	.no_start_level
+.erase_girl
+	bsr		.do_erase_girl
+.no_start_level
+	subq.w	#1,d0
+	move.w	d0,pause_round_timer
+	beq.b	.go_normal
+	move.w	pause_round_type(pc),d1
+	cmp.w	#RP_END_ROUND,d1
+	beq.b	.pout
+	cmp.w	#START_ROUND_NB_TICKS-50,d0
+	beq.b	.display_begin
+	cmp.w	#RP_START_LEVEL,d1
+	bne.b	.pout
+	cmp.w	#START_LEVEL_NB_TICKS-NB_TICKS_PER_SEC,d0
+	bcc.b	.pout
+	; check if fire is pressed after 1 second playing music
+	; if pressed, skip sequence
+	move.l	player_1+joystick_state(pc),d2
+	btst	#JPB_BTN_RED,d2
+	beq.b	.pout
+	bsr.b	.do_erase_girl
+	move.w	#START_ROUND_NB_TICKS-50,pause_round_timer		; begin
+	; check if we must display "begin" bubble
+	bra.b	.display_begin
+.pout
+	rts
+.do_erase_girl
 	move.l	d0,-(a7)
 	st.b	erase_girl_message
 	move.w	#-1,girl_frame_index
 	bsr		stop_sounds
 	move.l	(a7)+,d0
-.no_start_level
-	subq.w	#1,d0
-	move.w	d0,pause_round_timer
-	beq.b	.go_normal
-	cmp.w	#RP_END_ROUND,pause_round_type
-	beq.b	.pout
-	; check if we must display "begin" bubble
-	cmp.w	#START_ROUND_NB_TICKS-50,d0
-	beq.b	.display_begin
-.pout
 	rts
+	
 .display_begin
 	lea	referee(pc),a4
 	move.w	#BUBBLE_BEGIN,bubble_type(a4)
@@ -3730,6 +3807,10 @@ init_bull
 	rts
 	
 init_break
+	bsr	get_active_player
+
+	; init referee
+	bsr		init_referee_not_moving
 	rts
 		
 init_evade	

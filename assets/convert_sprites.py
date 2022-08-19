@@ -155,7 +155,7 @@ def compute_palettes():
     common = set()
     specific_colors_merged = set()
     lp = len(palette)
-    for i in range(1,13):
+    for i in range(0,13):
 
         img = get_background_pic(i)
 
@@ -189,7 +189,7 @@ def extract_block(img,x=0,y=0,width=None,height=None):
 
 
 def process_backgrounds(palette):
-    for i in range(1,13):
+    for i in range(0,13):
         img = get_background_pic(i)
         outfile = "{}/back_{:02d}.bin".format(sprites_dir,i)
         specific_palette = list(specific_palettes[i])

@@ -191,6 +191,21 @@
    "frames":4
  },
 {
+   "name":"table",
+   "start_x":0,
+   "start_y":144,
+   "width":80,
+   "height":32
+ },
+{
+   "name":"small_plank",
+   "start_x":0,
+   "start_y":176,
+   "width":16,
+   "height":16,
+   "frames":2
+ },
+{
    "name":"better_luck_bubble",
    "start_x":0,
    "start_y":112,

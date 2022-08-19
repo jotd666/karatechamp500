@@ -28,7 +28,6 @@ if going right and 0<px_other-px<threshold
 (group with test against xmax/xmin or compute xmin/xmax
 at each update)
 
-girl animation (easy) interruptible with fire!
 
 - check back blow facing/not facing
 - draw priority to the player which has an active hit to deliver (if possible)
@@ -61,7 +60,7 @@ snapshot just before planks
 video planks frappe dans le vide: rip frames
 check min/max x planks pour score min/max
 easy dev:
+girl animation (easy) interruptible with fire!
 
 bull
 evade
-girls

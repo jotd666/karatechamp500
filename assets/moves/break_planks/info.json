@@ -1,0 +1,4 @@
+{"name": "break_planks", 
+"hit_mask":false,
+"rollback_frame":-1,
+"deltas": [[0, 0, 0], [1, -3, 6], [2, 3, 6], [2, 9, 6], [-1, 9, 6]]}
