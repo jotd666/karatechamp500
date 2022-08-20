@@ -2,8 +2,13 @@ import glob,os,json
 from PIL import Image
 
 
-
-
+def blank_zones(image_in,image_out,zones,bgcolor = (204,204,0)):
+    img = Image.open(image_in)
+    for x,y,w,h in zones:
+        for i in range(x,x+w):
+            for j in range(y,y+h):
+                img.putpixel((i,j),bgcolor)
+    img.save(image_out)
 
 # default parameters are configured for a real image per image capture of level 2 2 player fight
 # images must be called "moves<frome number>.png". frame number can be zero padded to 4 digits.

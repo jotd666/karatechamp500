@@ -244,11 +244,13 @@ def process_player_tiles():
         is_symmetrical = info.get("symmetrical",False)
         rollback_frame = info.get("rollback_frame",3)  # default rollback
         loops = info.get("loops",False)
+        manual = info.get("manual",False)
         # make sure the properties are in the dict
         info["symmetrical"] = is_symmetrical
         info["hit_mask"] = has_hit_mask
         info["rollback_frame"] = int(rollback_frame)
         info["loops"] = loops
+        info["manual"] = manual
         # store it for later
         info_dict[d] = info
         # process each image, without last image which is player guard
@@ -419,14 +421,14 @@ def process_player_tiles():
 
     # create mask frames in "existing" or reload them / associate them TODO
 
-    def create_frame_sequence(suffix,x_sign):
+    def create_frame_sequence(suffix,real_suffix,x_sign):
         f.write("{}{}_frames:\n".format(name,suffix))
 
         prev_dx = 0
         prev_dy = 0
 
         for i,(frame,width,height,df,dx,dy) in enumerate(frame_list):
-            f.write("\tdc.l\t{}{}\n".format(frame,suffix))  # bob_data
+            f.write("\tdc.l\t{}{}\n".format(frame,real_suffix))  # bob_data
             if info_dict[name].get("hit_mask"):
                 f.write("\tdc.l\t{}_mask\n".format(frame))  # target_data
                 f.write("\tdc.l\t{}_full_hit_list\n".format(frame))  # hit_data
@@ -466,8 +468,13 @@ def process_player_tiles():
     UWORD   hit_left_shift
     UWORD   blow_type
     UWORD   back_blow_type
-    UWORD   fs_animation_loops
+    UWORD   animation_flags
     LABEL   PlayerFrameSet_SIZEOF
+
+ANIM_LOOP_BIT = 0
+ANIM_MANUAL_BIT = 1
+ANIM_LOOP_FLAG = 1<<ANIM_LOOP_BIT
+ANIM_MANUAL_FLAG = 1<<ANIM_MANUAL_BIT
 
 {blows}
 
@@ -491,32 +498,42 @@ def process_player_tiles():
 
 """.format(blows=blows,heights=heights))
         for name,frame_list in sorted(rval.items()):
+            symmetrical = info_dict[name]["symmetrical"]
             f.write("{}_frames:\n".format(name))
             infd = info_dict[name]
             create_mirror_objects = not infd["symmetrical"]
             right_left_template = "\tdc.l\t{0}_right_frames,{0}_left_frames\n"
             f.write(right_left_template.format(name))
-            iwa = infd["loops"]
+            aflags = []
+            if infd["loops"]:
+                aflags.append("ANIM_LOOP_FLAG")
+            if infd["manual"]:
+                aflags.append("ANIM_MANUAL_FLAG")
+            if not aflags:
+                aflags = ["0"]
+
             params = move_param_dict.get(name,{"score":0,"height":hn,"left_shift":0})
             params["left_shift"] = params.get("left_shift",0)
             params["blow_type"] = params.get("blow_type",bn)
             params["back_blow_type"] = params.get("back_blow_type",params["blow_type"])
             f.write(("\tdc.w\t{score}\n\tdc.w\t{height}\n\tdc.w\t{left_shift}\n"+
             "\tdc.w\t{blow_type}\n\tdc.w\t{back_blow_type}\n").format(**params))
-            f.write("\tdc.w\t{}\t; {}\n".format(int(iwa),"looping" if iwa else "runs once"))
-            create_frame_sequence("_right",1)
-            create_frame_sequence("_left",-1)
+            f.write("\tdc.w\t{}\t\n".format("|".join(aflags)))
+            create_frame_sequence("_right","_right",1)
+            create_frame_sequence("_left","_right" if symmetrical else "_left",-1)
 
     # include frames only once (may be used more than once)
     frames_to_write = dict()
     for name,frame_list in sorted(rval.items()):
-        create_mirror_objects = not info_dict[name]["symmetrical"]
-        for d in ["right","left","mask"] if info_dict[name]["hit_mask"] else ["right","left"]:
+        symmetrical = info_dict[name]["symmetrical"]
+        rl = ["right"] if symmetrical else ["right","left"]
+        for d in rl+["mask"] if info_dict[name]["hit_mask"] else rl:
             # don't generate a left frame if no mirroring is needed, just point on the same pic
-            suffix = "right" if (d != "mask" and not create_mirror_objects) else d
 
             for frame,*_ in frame_list:
-                frames_to_write["{}_{}:\n".format(frame,d)] = "\tincbin\t{}_{}.bin\n".format(frame,suffix)
+                # include only once if symmetrical
+                val = "\tincbin\t{}_{}.bin\n".format(frame,d)
+                frames_to_write["{}_{}:\n".format(frame,d)] = val
 
     # write masks in a separate file, it can be in fast memory, unlike left/right data which is blitter input
     with open("{}/{}_bobs.s".format(source_dir,radix),"w") as f,open("{}/{}_bob_masks.s".format(source_dir,radix),"w") as fm:

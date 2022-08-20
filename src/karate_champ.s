@@ -119,12 +119,14 @@ hand_both_flags = hand_red_or_japan_flag
 	UBYTE	rollback
 	UBYTE	rollback_lock
 	UBYTE	animation_loops
+	UBYTE	manual_animation
 	UBYTE	sound_playing
 	UBYTE	turn_back_flag
 	UBYTE	skip_frame_reset
 	UBYTE	half_points
 	UBYTE	is_cpu			; 1: controlled by A.I.
 	UBYTE	round_winner
+	UBYTE	_pad
     LABEL   Player_SIZEOF
     
     
@@ -1558,8 +1560,7 @@ load_walk_frame:
 	move.w	d0,previous_direction(a4)
 	move.l	a0,current_move_header(a4)
 	move.l	(a0,d0.w),frame_set(a4)	
-	move.w	(fs_animation_loops,a0),d0
-	move.b	d0,animation_loops(a4)
+	bra		load_animation_flags
 	rts
 
 	
@@ -2046,9 +2047,43 @@ DEMO_Y_CONTROLS = 128
 draw_break
 	tst.l	state_timer
 	beq.b	.init_draw
+	bsr		get_active_player
+	; compute dest address
 	
+	move.w	previous_ypos(a4),d3
+	beq.b	.no_erase		; 0: not possible: first draw
+	move.w	previous_xpos(a4),d2
 	
-	bsr		draw_active_player
+	move.l	d2,d0
+	move.l	d3,d1
+	move.w	#80,d2	; width (no shifting)
+	move.w	#60,d3	; height
+	bsr.b		restore_background
+.no_erase
+	lea		table,a0
+	move.w	#136,D0
+	move.w	#184,D1
+	move.w	#12,d2
+	move.w	#32,d3
+	bsr		blit_4_planes_cookie_cut
+	; draw planks
+	; 10 planks
+	moveq.w	#9,d4
+	move.w	#140,d0
+	move.w	#172,d1
+	move.w	#4,d2
+	move.w	#16,d3
+	lea		plank_draw_table,a1
+.loop
+	move.l	(a1)+,a0
+	bsr		blit_4_planes_cookie_cut
+	addq.w	#4,d0
+	dbf		d4,.loop	
+	
+	move.l	a4,-(a7)
+	bsr		draw_referee
+	move.l	(a7)+,a4
+	
 	
 	move.w	challenge_blink_timer(pc),d4
 	addq.w	#1,d4
@@ -2087,6 +2122,7 @@ draw_break
 	moveq	#0,d4
 .no_toggle
 	move.w	d4,challenge_blink_timer
+	bsr		draw_player
 
 	rts
 .draw_arrows
@@ -2100,7 +2136,7 @@ draw_break
 	move.w	#DEMO_Y_CONTROLS+24,d1
 	lea	down_arrow,a0
 	bsr		blit_4_planes_cookie_cut
-	move.w	#DEMO_X_CONTROLS+24,d0
+	move.w	#DEMO_X_CONTROLS+26,d0
 	move.w	#DEMO_Y_CONTROLS+12,d1
 	lea	right_arrow,a0
 	bsr		blit_4_planes_cookie_cut
@@ -2117,25 +2153,8 @@ draw_break
 	even
 	
 .init_draw
-	bsr		draw_referee
-	move.w	#136,D0
-	move.w	#184,D1
-	lea		table,a0
-	move.w	#12,d2
-	move.w	#32,d3
-	bsr		blit_4_planes_cookie_cut
-	; 10 planks
-	moveq.w	#9,d4
-	move.w	#140,d0
-	move.w	#172,d1
-	move.w	#4,d2
-	move.w	#16,d3
-	lea		small_plank_0,a0
-.loop
-	bsr		blit_4_planes_cookie_cut
-	addq.w	#4,d0
-	dbf		d4,.loop
 	
+
 	rts
 	
 draw_bull_stage
@@ -3567,7 +3586,54 @@ update_evade
 	bsr		update_active_player
 	rts
 update_break
+	cmp.l	#NB_TICKS_PER_SEC*10,state_timer
+	beq.b	.timeout
 	bsr		update_active_player
+	; animation is manual
+	move.w	direction(a4),d2
+	move.l	break_table_pointer(pc),a0
+	move.l	(a0),d0
+	bne.b	.no_rev
+	; toggle direction
+	cmp.w	#RIGHT,d2
+	beq.b	.was_right
+	move.w	#RIGHT,d2
+	clr.w	frame(a4)
+	bra.b	.dirchange
+.was_right
+	move.w	#PlayerFrame_SIZEOF,frame(a4)
+	move.w	#LEFT,d2
+.dirchange
+	move.w	d2,direction(a4)
+	bsr.b	.next
+	move.l	(a0),d0
+.no_rev
+	move.w	d0,d1	; D1.W: y
+	swap	d0		; D0.W: x
+	bsr.b	.next
+	cmp.w	#RIGHT,d2
+	beq.b	.no_opp
+	neg.w	d0
+	neg.w	d1		; reverse
+.no_opp
+	add.w	d0,d0
+	add.w	d1,d1
+	add.w	d0,xpos(a4)
+	add.w	d1,ypos(a4)
+	move.l	a0,break_table_pointer
+	rts
+.next
+	cmp.w	#RIGHT,d2
+	beq.b	.fwd
+	lea	(-4,a0),a0
+	rts
+.fwd
+	lea	(4,a0),a0
+	rts
+	
+.timeout
+	move.w	#STATE_NEXT_LEVEL,current_state
+	clr.l	state_timer
 	rts
 	
 update_referee:
@@ -3875,19 +3941,29 @@ init_break
 	bsr	get_active_player
 	
 	; player is at the centre
-	move.w	#56,xpos(a4)
-	move.w	#152,ypos(a4)
+	move.w	#32,xpos(a4)
+	move.w	#158,ypos(a4)
 	
 	clr.w	after_bonus_phase_timer
 	clr.w	bonus_phase_index
 	
-	lea	do_break_planks(pc),a0
+	lea	do_about_to_break(pc),a0
 	move.l	a0,current_move_callback(a4)
 	; init referee
 	bsr		init_referee_not_moving
 	
 	clr.w	challenge_blink_timer
 	clr.w	show_challenge_message
+	
+	move.l	#break_table,break_table_pointer
+	move.w	#RIGHT,direction(a4)
+	
+	move.w	#9,d0
+	lea		plank_draw_table,a1
+	lea		small_plank_0,a0
+.fill
+	move.l	a0,(a1)+
+	dbf		d0,.fill
 	rts
 		
 init_evade	
@@ -4362,6 +4438,21 @@ score_table_red
 	dc.l	score_800_red
 	dc.l	score_900_red
 	dc.l	score_1000_red
+
+; < A0: animation header structure
+load_animation_flags
+	move.w	(animation_flags,a0),d0
+	btst	#ANIM_LOOP_BIT,d0
+	sne		animation_loops(a4)
+	btst	#ANIM_MANUAL_BIT,d0
+	beq.b	.no_manual
+	st		manual_animation(a4)
+	; no countdown (manual). Set to 0 to animate
+	move.w	#-1,current_frame_countdown(a4)
+	; no frame reset
+	st.b	skip_frame_reset(a4)
+.no_manual
+	rts
 	
 ; what: animate & move player according to animation table & player direction
 ; < a0: current frame set (right/left)
@@ -4370,8 +4461,8 @@ score_table_red
 move_player:
 	move.l	a0,current_move_header(a4)
 	; update animation loop flag if required
-	move.w	(fs_animation_loops,a0),d0
-	move.b	d0,animation_loops(a4)
+	
+	bsr.b	load_animation_flags
 
 	move.w	direction(a4),d0
 	move.l	(a0,d0.w),a0	; proper frame list according to direction
@@ -4397,6 +4488,8 @@ move_player:
 	clr.w	frame(a4)
 .no_frame_set_change
 	clr.b	skip_frame_reset(a4)
+	tst.b	manual_animation(a4)
+	bne.b	.no_change
 	move.w	current_frame_countdown(a4),d3
 	bmi.b	.no_change		; negative: wait for player move change
 	beq.b	.change
@@ -4923,7 +5016,6 @@ blit_back_plane:
 
 ; < A4: referee structure
 draw_referee:
-	LOGPC	100
 	lea	referee(pc),a4
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
@@ -6371,6 +6463,8 @@ SIMPLE_MOVE_CALLBACK:MACRO
 	
 	OTHER_CALLBACK	win
 	OTHER_CALLBACK	lose
+	OTHER_CALLBACK	break_planks
+	OTHER_CALLBACK	about_to_break
 	
 	SIMPLE_MOVE_CALLBACK	low_kick
 	SIMPLE_MOVE_CALLBACK	crouch
@@ -6384,13 +6478,6 @@ SIMPLE_MOVE_CALLBACK:MACRO
 	SIMPLE_MOVE_CALLBACK	sommersault
 	SIMPLE_MOVE_CALLBACK	sommersault_back
 
-do_break_planks:
-	lea		break_planks_frames(pc),a0
-	clr.b	rollback(a4)
-	st.b	rollback_lock(a4)
-	
-	clr.w	current_frame_countdown(a4)
-	bra		move_player
 	
 do_reverse_punch_800
 	lea	reverse_punch_800_frames(pc),a0
@@ -6513,7 +6600,7 @@ do_move_back:
 	
 
 normal_backing_away
-	lea		walk_backwards_frames(pc),a0
+	lea		walk_backwards_frames,a0
 	clr.b	rollback(a4)
 	clr.b	rollback_lock(a4)
 	clr.l	current_move_callback(a4)
@@ -6589,9 +6676,12 @@ dosname
     include ReadJoyPad.s
     include	RNC_1C.s
 	
-    ; variables
+    ; main variables
 gfxbase_copperlist
     dc.l    0
+
+break_table_pointer
+	dc.l	0
 
 show_challenge_message
 	dc.w	0
@@ -6787,6 +6877,47 @@ player_one_string_clear
     even
 ; game main tables
 
+
+; zero before break table
+	dc.l	0
+break_table
+	dc.w	1,-1
+	dc.w	1,-1
+	dc.w	1,-1
+	dc.w	1,0
+	dc.w	1,-1
+	dc.w	1,-1
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,-1
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,0
+	dc.w	1,1
+	dc.w	1,0
+	dc.w	1,1
+	dc.w	1,0
+	dc.w	1,1
+	dc.w	1,0
+	dc.w	1,1
+	dc.w	1,1
+	dc.w	1,1
+	dc.w	1,1
+	dc.l	0
+	
 bull_table
 	dc.w	SCREEN_WIDTH-24,LEFT,-16,RIGHT,SCREEN_WIDTH-24,LEFT
 
@@ -6800,6 +6931,7 @@ bull_frame_table
 
 evade_tables:
 	dc.l	evade_sequence_0
+
 	
 evade_sequence_0:
 	dc.w	HEIGHT_HIGH,LEFT
@@ -7554,7 +7686,9 @@ record_input_table:
     ds.b    RECORD_INPUT_TABLE_SIZE
     ENDC
     
-
+plank_draw_table
+	ds.l	10
+	
 player_move_buffer
     ds.l    NB_RECORDED_MOVES
     even

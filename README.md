@@ -56,11 +56,10 @@ break planks:
 
 all planks = 2000 + very good
 
-snapshot just before planks
 video planks frappe dans le vide: rip frames
 check min/max x planks pour score min/max
-easy dev:
-girl animation (easy) interruptible with fire!
+planks player anim manual unable to change frames:
+  watch memory because frame seems to be reset to 0
 
 bull
 evade
