@@ -181,6 +181,9 @@ REFEREE_LEFT_LEG_DOWN = 0
 REFEREE_RIGHT_LEG_DOWN = 1<<2
 REFEREE_LEGS_DOWN = 2<<2
 
+DEMO_X_CONTROLS = 168
+DEMO_Y_CONTROLS = 128
+
 ; test bonus screen 
 ;BONUS_SCREEN_TEST
 
@@ -921,6 +924,9 @@ new_player
 	
 init_level:
 	clr.l	state_timer
+	; for all level types
+    bsr init_players_and_referee
+	; specific init according to level type
 	lea		init_level_type_table(pc),a0
 	move.w	level_type(pc),d0
 	move.l	(a0,d0.w),a0
@@ -1561,7 +1567,6 @@ load_walk_frame:
 	move.l	a0,current_move_header(a4)
 	move.l	(a0,d0.w),frame_set(a4)	
 	bra		load_animation_flags
-	rts
 
 	
     
@@ -2042,8 +2047,6 @@ dwb:
 draw_evade
 	rts
 
-DEMO_X_CONTROLS = 168
-DEMO_Y_CONTROLS = 128
 draw_break
 	tst.l	state_timer
 	beq.b	.init_draw
@@ -2060,6 +2063,8 @@ draw_break
 	move.w	#60,d3	; height
 	bsr.b		restore_background
 .no_erase
+	bsr		draw_player
+
 	lea		table,a0
 	move.w	#136,D0
 	move.w	#184,D1
@@ -2122,10 +2127,11 @@ draw_break
 	moveq	#0,d4
 .no_toggle
 	move.w	d4,challenge_blink_timer
-	bsr		draw_player
 
 	rts
 .draw_arrows
+	tst.b	controls_blocked_flag
+	bne.b	.out
 	moveq.w	#4,d2
 	moveq.w	#8,d3
 	move.w	#DEMO_X_CONTROLS+12,d0
@@ -2339,11 +2345,10 @@ decode_technique_name:
 	rts
 	
 ; < A4: player structure
-; < D0: score (/10)
-; trashes: D0,D1
+; < D0: score
+; nothing
 add_to_score:
 	tst.b	demo_mode
-    
 	st.b	score_update_message
     add.l   d0,score(a4)
     rts
@@ -3585,16 +3590,108 @@ update_bull_phase
 update_evade
 	bsr		update_active_player
 	rts
+	
+; player x = max: maximum 2000 points score
+MAX_X_BREAK = $66
+
 update_break
+	move.w	after_bonus_phase_timer(pc),d0
+	beq.b	.still_running
+	subq.w	#1,d0
+	beq.b	.timeout
+	move.w	d0,after_bonus_phase_timer
+.still_running
+	bsr		update_active_player
+	tst.b	controls_blocked_flag
+	beq.b	.keep_checking_input
+	move.w	planks_that_will_break(pc),d0
+	cmp.w	planks_broken(pc),d0
+	beq.b	.award_bonus
+	move.w	planks_broken(pc),d1
+	bmi.b	.out		; already awarded
+	move.w	bonus_phase_index(pc),d0
+	subq.w	#1,d0
+	bne.b	.no_update_planks
+	add.w	d1,d1
+	add.w	d1,d1
+	lea		plank_draw_table,a0
+	move.l	#small_plank_1,(a0,d1.w)
+	lea		bull_sound,a0
+	bsr		play_fx
+	addq.w	#1,planks_broken
+	moveq.w	#4,d0		; break each 4/60th seconds
+.no_update_planks
+	move.w	d0,bonus_phase_index
+.out
+	rts
+.award_bonus
+	move.w	planks_that_will_break(pc),d1
+	beq.b	.no_award
+	add.w	d1,d1
+	add.w	d1,d1
+	cmp.w	#40,d1
+	bne.b	.not_max
+	add.w	d1,d1	; 2000 points
+	; referee: very good
+	bsr		referee_says_very_good
+.not_max
+	lea		hundreds_score_table(pc),a0
+	move.l	(a0,d1.w),d0
+	bsr		add_to_score
+
+	move.l	score_table(a4),a0
+	move.l	(a0,d1.w),a0
+	; show sprite
+	move.w	#DEMO_X_CONTROLS+40,d0
+	move.w	#DEMO_Y_CONTROLS-1,d1
+	bsr	show_score_sprite
+	; show until end of stage
+	move.w	#-1,awarded_score_display_timer(a4)
+	
+.no_award
+	; set delay timer
+	move.w	#3*NB_TICKS_PER_SEC,after_bonus_phase_timer
+	; lock planks broken
+	move.w	#-1,planks_broken
+	
+	rts
+	
+.keep_checking_input:
+	; stop after 10 seconds
 	cmp.l	#NB_TICKS_PER_SEC*10,state_timer
 	beq.b	.timeout
-	bsr		update_active_player
+
+	move.l	joystick_state(a4),d0
+	beq.b	.keep_going
+	bsr		stop_sounds
+	lea		kiai_2_sound,a0
+	bsr		play_fx
+	; blocks controls, tells that player has kicked
+	st.b	controls_blocked_flag
+	sub.w	#8,ypos(a4)		; slightly higher
+	lea		do_break_planks(pc),a0
+	move.l	a0,current_move_callback(a4)
+	clr.b	manual_animation(a4)
+	
+	; compute how many planks are going to be
+	; broken according to x position
+	; TODO find proper table with videos
+	move.w	xpos(a4),d0
+	sub.w	#MAX_X_BREAK-10,d0	; 10 -> 1
+	bpl.b	.pos
+	clr.w	d0	; 0: nothing broken
+.pos
+	move.w	d0,planks_that_will_break
+	clr.w	planks_broken
+	move.w	#1,bonus_phase_index
+.keep_going
 	; animation is manual
 	move.w	direction(a4),d2
 	move.l	break_table_pointer(pc),a0
 	move.l	(a0),d0
 	bne.b	.no_rev
 	; toggle direction
+	
 	cmp.w	#RIGHT,d2
 	beq.b	.was_right
 	move.w	#RIGHT,d2
@@ -3602,7 +3699,7 @@ update_break
 	bra.b	.dirchange
 .was_right
 	move.w	#PlayerFrame_SIZEOF,frame(a4)
-	move.w	#LEFT,d2
+	move.w	#LEFT,d2	
 .dirchange
 	move.w	d2,direction(a4)
 	bsr.b	.next
@@ -3632,6 +3729,8 @@ update_break
 	rts
 	
 .timeout
+	bsr		stop_sounds
+	move.w	#GM_NORMAL,level_type
 	move.w	#STATE_NEXT_LEVEL,current_state
 	clr.l	state_timer
 	rts
@@ -3880,12 +3979,10 @@ init_level_type_table
 	dc.l	init_evade
 
 init_normal:
-    bsr init_players_and_referee
 	; todo reset hits, maybe call init players
 	rts
 	
 init_practice
-    bsr init_players_and_referee
 	bsr	init_referee_not_moving
 	rts
 
@@ -3954,6 +4051,7 @@ init_break
 	
 	clr.w	challenge_blink_timer
 	clr.w	show_challenge_message
+	clr.b	controls_blocked_flag
 	
 	move.l	#break_table,break_table_pointer
 	move.w	#RIGHT,direction(a4)
@@ -4400,44 +4498,26 @@ show_awarded_score:
 	
 	move.w	ypos(a4),d1
 	sub.w	#20,d1
-
-	bsr		store_sprite_pos
-	move.l	a0,awarded_score_sprite(a4)
-	move.l	d0,(a0)
-	move.l	a0,d0
-	move.l	score_sprite(a4),a0
-	bsr		store_sprite_copperlist
+	bsr		show_score_sprite
 	; show score during 2 seconds
 	move.w	#NB_TICKS_PER_SEC*2,awarded_score_display_timer(a4)
 	movem.l	(a7)+,a0/d1-d3
 .out
 	rts
 	
-score_table_white
-	dc.l	0
-	dc.l	score_100_white
-	dc.l	score_200_white
-	dc.l	score_300_white
-	dc.l	score_400_white
-	dc.l	score_500_white
-	dc.l	score_600_white
-	dc.l	score_700_white
-	dc.l	score_800_white
-	dc.l	score_900_white
-	dc.l	score_1000_white
-	
-score_table_red
-	dc.l	0
-	dc.l	score_100_red
-	dc.l	score_200_red
-	dc.l	score_300_red
-	dc.l	score_400_red
-	dc.l	score_500_red
-	dc.l	score_600_red
-	dc.l	score_700_red
-	dc.l	score_800_red
-	dc.l	score_900_red
-	dc.l	score_1000_red
+; < D0: x
+; < D1: y
+; < A0: sprite data
+; < A4: player structure
+
+show_score_sprite
+	bsr		store_sprite_pos
+	move.l	a0,awarded_score_sprite(a4)
+	move.l	d0,(a0)
+	move.l	a0,d0
+	move.l	score_sprite(a4),a0
+	bra		store_sprite_copperlist
+
 
 ; < A0: animation header structure
 load_animation_flags
@@ -4559,11 +4639,17 @@ move_player:
 	bra.b	.noy
 	
 ; animation complete, back to walk/default, unless hit
+; (karate break wood animation also falls into the "hit"
+; category because it freezes in the end)
+
 .animation_ended
+	cmp.w	#GM_BREAK,level_type
+	beq.b	.out
 	move.w	hit_by_blow(a4),d0
 	cmp.w	#BLOW_NONE,d0
 	beq.b	.alive
 	; dead, stay dead
+.out
 	rts
 .alive
 	tst.b	turn_back_flag(a4)
@@ -6437,7 +6523,7 @@ OTHER_CALLBACK:MACRO
 	MOVE_CALLBACK	\1
 	; no rollback
 	clr.b	rollback(a4)
-	st.b	rollback_lock(a4)	
+	st.b	rollback_lock(a4)
 	bra.b		move_player
 	ENDM
 	
@@ -6465,7 +6551,8 @@ SIMPLE_MOVE_CALLBACK:MACRO
 	OTHER_CALLBACK	lose
 	OTHER_CALLBACK	break_planks
 	OTHER_CALLBACK	about_to_break
-	
+
+
 	SIMPLE_MOVE_CALLBACK	low_kick
 	SIMPLE_MOVE_CALLBACK	crouch
 		
@@ -6695,6 +6782,10 @@ record_data_end
 	dc.l	0
 record_input_clock
     dc.w    0
+planks_that_will_break
+	dc.w	0
+planks_broken
+	dc.w	0
 previous_move
 	dc.b	0
 	even
@@ -6877,6 +6968,37 @@ player_one_string_clear
     even
 ; game main tables
 
+hundreds_score_table:
+	REPT	31	; up to 3000
+	dc.l	100*REPTN
+	ENDR
+	
+score_table_white
+	dc.l	0
+	dc.l	score_100_white
+	dc.l	score_200_white
+	dc.l	score_300_white
+	dc.l	score_400_white
+	dc.l	score_500_white
+	dc.l	score_600_white
+	dc.l	score_700_white
+	dc.l	score_800_white
+	dc.l	score_900_white
+	dc.l	score_1000_white
+	
+score_table_red
+	dc.l	0
+	dc.l	score_100_red
+	dc.l	score_200_red
+	dc.l	score_300_red
+	dc.l	score_400_red
+	dc.l	score_500_red
+	dc.l	score_600_red
+	dc.l	score_700_red
+	dc.l	score_800_red
+	dc.l	score_900_red
+	dc.l	score_1000_red
+	
 
 ; zero before break table
 	dc.l	0
@@ -6959,11 +7081,6 @@ rock_frames:
 plank_frames:
 ; TODO bitmap width height
 
-	
-hundreds_score_table
-	REPT	11
-	dc.l	REPTN*100
-	ENDR
 	
 ; generated with python
 ;for i in range(0,256):
