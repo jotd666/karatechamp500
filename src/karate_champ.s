@@ -2089,11 +2089,21 @@ draw_break
 	bsr		draw_referee
 	move.l	(a7)+,a4
 	
-	
+	lea		controls_no_arrows,a0
+	move.w	#6,d2
+	move.w	#32,d3
+	move.w	#DEMO_X_CONTROLS,d0
+	move.w	#DEMO_Y_CONTROLS,d1
+	bsr		blit_4_planes_cookie_cut
+	tst.w	show_challenge_message
+	beq.b	.sd
+	bsr.b	.draw_arrows
+.sd
 	move.w	challenge_blink_timer(pc),d4
 	addq.w	#1,d4
 	cmp.w	#6,d4
 	bne.b	.no_toggle
+	eor.w	#1,show_challenge_message
 
 	move.w	#48,d0
 	move.w	#232,d1
@@ -2103,14 +2113,7 @@ draw_break
 	move.w	d1,d6
 	bsr		write_blanked_color_string
 
-	eor.w	#1,show_challenge_message
-	beq.b	.draw_arrows
-	lea		controls_no_arrows,a0
-	move.w	#6,d2
-	move.w	#32,d3
-	move.w	#DEMO_X_CONTROLS,d0
-	move.w	#DEMO_Y_CONTROLS,d1
-	bsr		blit_4_planes_cookie_cut
+
 
 	move.w	d5,d0
 	move.w	d6,d1
@@ -2131,7 +2134,7 @@ draw_break
 	rts
 .draw_arrows
 	tst.b	controls_blocked_flag
-	bne.b	.out
+	bne.b	.dout
 	moveq.w	#4,d2
 	moveq.w	#8,d3
 	move.w	#DEMO_X_CONTROLS+12,d0
@@ -2150,7 +2153,9 @@ draw_break
 	move.w	#DEMO_Y_CONTROLS+12,d1
 	lea	left_arrow,a0
 	bsr		blit_4_planes_cookie_cut
-	bra.b	.out
+.dout
+	rts
+	
 	
 .challenge_stage
 	dc.b	"CHALLENGE STAGE",0
@@ -3649,8 +3654,14 @@ update_break
 	move.w	#-1,awarded_score_display_timer(a4)
 	
 .no_award
-	; set delay timer
-	move.w	#3*NB_TICKS_PER_SEC,after_bonus_phase_timer
+	; set delay timer, depending on how many
+	; planks will break too
+	move.w	planks_that_will_break(pc),d0
+	add.w	d0,d0
+	add.w	d0,d0
+	add.w	#2*NB_TICKS_PER_SEC,d0
+	move.w	d0,after_bonus_phase_timer
+
 	; lock planks broken
 	move.w	#-1,planks_broken
 	
