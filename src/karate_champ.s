@@ -102,6 +102,7 @@ hand_both_flags = hand_red_or_japan_flag
 	ULONG	frozen_joystick_state
 	ULONG	score
 	APTR	awarded_score_sprite
+	APTR	awarded_score_sprite_2
 	UWORD	awarded_score_display_timer	
 	UWORD	block_lock
 	UWORD	nb_rounds_won
@@ -1270,13 +1271,20 @@ hide_awarded_score:
 	move.w	awarded_score_display_timer(a4),d0
 	beq.b	.out
 	subq.w	#1,d0
-	bne.b	.no_hide
+	movem.l	d0,-(a7)
+	bne.b	.no_hide2
 	; hide
 	move.l	awarded_score_sprite(a4),d0
 	beq.b	.no_hide	; safety
 	move.l	d0,a0
 	clr.l	(a0)		; hide
 .no_hide
+	move.l	awarded_score_sprite_2(a4),d0
+	beq.b	.no_hide2	; safety
+	move.l	d0,a0
+	clr.l	(a0)		; hide
+.no_hide2
+	move.l	(a7)+,d0
 	move.w	d0,awarded_score_display_timer(a4)
 .out
 	rts
@@ -2103,7 +2111,6 @@ draw_break
 	addq.w	#1,d4
 	cmp.w	#6,d4
 	bne.b	.no_toggle
-	eor.w	#1,show_challenge_message
 
 	move.w	#48,d0
 	move.w	#232,d1
@@ -2113,8 +2120,9 @@ draw_break
 	move.w	d1,d6
 	bsr		write_blanked_color_string
 
-
-
+	eor.w	#1,show_challenge_message
+	beq.b	.out
+	
 	move.w	d5,d0
 	move.w	d6,d1
 	lea	.challenge_stage(pc),a0
@@ -3630,27 +3638,51 @@ update_break
 .out
 	rts
 .award_bonus
-	move.w	planks_that_will_break(pc),d1
+	move.w	planks_that_will_break(pc),d2
 	beq.b	.no_award
-	add.w	d1,d1
-	add.w	d1,d1
-	cmp.w	#40,d1
+	
+	add.w	d2,d2
+	add.w	d2,d2
+	cmp.w	#40,d2
 	bne.b	.not_max
-	add.w	d1,d1	; 2000 points
 	; referee: very good
+	add.w	d2,d2
 	bsr		referee_says_very_good
 .not_max
 	lea		hundreds_score_table(pc),a0
-	move.l	(a0,d1.w),d0
+	move.l	(a0,d2.w),d0
 	bsr		add_to_score
 
-	move.l	score_table(a4),a0
-	move.l	(a0,d1.w),a0
-	; show sprite
 	move.w	#DEMO_X_CONTROLS+40,d0
 	move.w	#DEMO_Y_CONTROLS-1,d1
+
+	; show sprite
+	cmp.w	#80,d2
+	bne.b	.no_2000
+	; 2 or 3 thousand. 2000 or 3000 is too wide for 16 bits
+	; we're using 2 sprites of the same palette 0 and 1
+	lea		score_2_white,a0
+	cmp.l	#player_1,a4
+	beq.b	.ok_white
+	lea		score_2_red,a0
+.ok_white
+	move.l	d0,-(a7)
+	bsr		store_sprite_pos
+	move.l	a0,awarded_score_sprite_2(a4)
+	move.l	d0,(a0)
+	move.l	a0,d0
+	move.l	score_sprite(a4),a0
+	lea		8(a0),a0		; odd sprite
+	bsr		store_sprite_copperlist
+	move.l	(a7)+,d0
+	; 2000 or 3000: suffix by "000", X-shifted
+	add.w	#4,d0
+.no_2000
+	move.l	score_table(a4),a0
+	move.l	(a0,d2.w),a0
 	bsr	show_score_sprite
 	; show until end of stage
+
 	move.w	#-1,awarded_score_display_timer(a4)
 	
 .no_award
@@ -3672,8 +3704,15 @@ update_break
 	cmp.l	#NB_TICKS_PER_SEC*10,state_timer
 	beq.b	.timeout
 
+	; debug: uncomment those 3 lines to
+	; test max points (-2: 900, -4: 800...)
+;;	move.w	xpos(a4),d0
+;;	cmp.w	#MAX_X_BREAK,d0
+;;	beq.b	.max_points
+	
 	move.l	joystick_state(a4),d0
 	beq.b	.keep_going
+.max_points
 	bsr		stop_sounds
 	lea		kiai_2_sound,a0
 	bsr		play_fx
@@ -3688,13 +3727,17 @@ update_break
 	; broken according to x position
 	; TODO find proper table with videos
 	move.w	xpos(a4),d0
-	sub.w	#MAX_X_BREAK-10,d0	; 10 -> 1
+	sub.w	#MAX_X_BREAK-20,d0	; 10 -> 1 step 2
 	bpl.b	.pos
 	clr.w	d0	; 0: nothing broken
 .pos
+	lsr.w	#1,d0
 	move.w	d0,planks_that_will_break
 	clr.w	planks_broken
-	move.w	#1,bonus_phase_index
+	; delay first plank break so the animation
+	; of the kick can catch up
+	move.w	#8,bonus_phase_index
+	rts
 .keep_going
 	; animation is manual
 	move.w	direction(a4),d2
@@ -6996,6 +7039,9 @@ score_table_white
 	dc.l	score_800_white
 	dc.l	score_900_white
 	dc.l	score_1000_white
+	REPT	20
+	dc.l	score_thousand_white
+	ENDR
 	
 score_table_red
 	dc.l	0
@@ -7009,6 +7055,9 @@ score_table_red
 	dc.l	score_800_red
 	dc.l	score_900_red
 	dc.l	score_1000_red
+	REPT	20
+	dc.l	score_thousand_red
+	ENDR
 	
 
 ; zero before break table
@@ -7922,6 +7971,19 @@ score_1000_\1
 	dc.l	0
 	incbin	score_1000.bin
 	dc.l	0
+score_2_\1
+	dc.l	0
+	incbin	two.bin
+	dc.l	0
+score_3_\1
+	dc.l	0
+	incbin	three.bin
+	dc.l	0
+score_thousand_\1
+	dc.l	0
+	incbin	thousand.bin
+	dc.l	0
+	
 	ENDM
 	
 	SCORE_SPRITES	white

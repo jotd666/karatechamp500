@@ -22,6 +22,36 @@
    "frames":10
  },
  {
+   "name":"thousand",
+   "sprite_number":2,
+   "sprite_palette":[[0, 0, 0],
+ [240, 240, 240],
+ [0, 0, 0],
+ [0, 0, 0]],
+   "start_x":64,
+   "start_y":48
+ },
+{
+   "name":"two",
+   "sprite_number":2,
+   "sprite_palette":[[0, 0, 0],
+ [240, 240, 240],
+ [0, 0, 0],
+ [0, 0, 0]],
+   "start_x":80,
+   "start_y":48
+ },
+{
+   "name":"three",
+   "sprite_number":2,
+   "sprite_palette":[[0, 0, 0],
+ [240, 240, 240],
+ [0, 0, 0],
+ [0, 0, 0]],
+   "start_x":96,
+   "start_y":48
+ },
+ {
    "name":"controls",
    "start_x":224,
    "start_y":0,
