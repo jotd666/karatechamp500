@@ -404,6 +404,23 @@
    "height":40,
    "frames":3
  },
+{
+   "name":"bull_red_horn",
+   "start_x":192,
+   "start_y":216,
+   "frames":2
+ },
+{
+   "name":"bull_breath",
+   "start_x":0,
+   "start_y":200
+ },
+{
+   "name":"score_box",
+   "start_x":16,
+   "start_y":200,
+   "width":48
+ },
   {"ignore":true}
  ]
 }

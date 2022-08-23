@@ -80,6 +80,12 @@
    "start_y":8
  },
 {
+   "name":"colon",
+   "frames":1,
+   "start_x":64,
+   "start_y":8
+ },
+{
    "name":"heart",
    "frames":1,
    "start_x":120,
@@ -89,6 +95,12 @@
    "name":"copyright",
    "frames":1,
    "start_x":128,
+   "start_y":8
+ },
+{
+   "name":"comma",
+   "frames":1,
+   "start_x":136,
    "start_y":8
  },
 {

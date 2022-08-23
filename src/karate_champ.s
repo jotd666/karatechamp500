@@ -71,6 +71,8 @@ INTERRUPTS_ON_MASK = $E038
 	STRUCTURE Bull,0
 	STRUCT	_bull_base,Character_SIZEOF
 	UWORD	bull_bubble_counter
+	UWORD	bull_red_horn_counter
+	UWORD	bull_breath_flag
 	LABEL	Bull_SIZEOF
 	
 	; do not change field order, there are some optimizations
@@ -185,6 +187,7 @@ REFEREE_LEGS_DOWN = 2<<2
 DEMO_X_CONTROLS = 168
 DEMO_Y_CONTROLS = 128
 
+HISCORE_FILE_SIZE = 6*8
 ; test bonus screen 
 ;BONUS_SCREEN_TEST
 
@@ -216,7 +219,6 @@ DEFAULT_HIGH_SCORE = 2000/10
 	ELSE
 DEFAULT_HIGH_SCORE = 20000/10
 	ENDC
-NB_HIGH_SCORES = 10
 
 	
 	IFND	START_SCORE
@@ -485,9 +487,11 @@ Start:
 ;    jsr (_LVOWaitTOF,a6)
 ;    jsr (_LVOWaitTOF,a6)
 
-	; should be STATE_INTRO_SCREEN
+	IFD		DIRECT_GAME_START
     move.w  #STATE_GAME_START_SCREEN,current_state
-    
+	ELSE
+    move.w  #STATE_INTRO_SCREEN,current_state
+    ENDC
     
     IFND    RECORD_INPUT_TABLE_SIZE
     ; uncomment to test demo mode right now
@@ -569,6 +573,8 @@ intro:
 
 	lea		bull(pc),a0
 	clr.w	bull_bubble_counter(a0)
+	clr.w	bull_breath_flag(a0)
+	clr.w	bull_red_horn_counter(a0)
 	
     bsr wait_bof
     ; init sprite, bitplane, whatever dma
@@ -593,7 +599,7 @@ intro:
 .out_intro    
 
 
-    move.w  #STATE_GAME_START_SCREEN,current_state
+    ;;move.w  #STATE_GAME_START_SCREEN,current_state
     
 .release
     move.l  joystick_state(a4),d0
@@ -703,36 +709,42 @@ intro:
 	lea	player_1,a4		; which player???
     move.l  score(a4),d0
     lea     hiscore_table(pc),a0
-    moveq.w  #NB_HIGH_SCORES-1,d1
+    moveq.w  #6-1,d1
     move.w   #-1,high_score_position
 .hiloop
-    cmp.l  (a0)+,d0
+    cmp.l  (a0),d0
+	addq.l	#8,(a0)
     bcs.b   .lower
     ; higher or equal to a score
     ; shift all scores below to insert ours
     st.b    highscore_needs_saving
     move.l  a0,a1
-    subq.w  #4,a0
+    subq.w  #8,a0
     move.l  a0,a2   ; store for later
     tst.w   d1
     beq.b   .storesc    ; no lower scores: exit (else crash memory!)
 	move.w	d1,d2
 	; set a0 and a1 at the end of the score memory
 	subq.w	#1,d2
-	lsl.w	#2,d2
+	lsl.w	#3,d2
 	add.w	d2,a1
 	add.w	d2,a0	
     move.w  d1,d2       ; store insertion position
-	addq.w	#4,a0
-	addq.w	#4,a1
+	addq.w	#8,a0
+	addq.w	#8,a1
 .hishift_loop
     move.l  -(a0),-(a1)
     dbf d2,.hishift_loop
 .storesc
     move.l  d0,(a2)
+	; add name (TODO: input) and rank
+	move.l	#"JFF ",(4,a2)
+    move.w  level_number(pc),d4
+	add.b	#'0',d4
+	move.b	d0,(7,a2)
     ; store the position of the highscore just obtained
     neg.w   d1
-    add.w   #NB_HIGH_SCORES-1,d1
+    add.w   #6-1,d1
     move.w  d1,high_score_position
     bra.b   .hiout
 .lower
@@ -936,16 +948,24 @@ init_level:
 	
 
 draw_background_pic
+	bsr		load_default_palette
+
 	move.w	level_number(pc),d0
 	cmp.w	loaded_level(pc),d0
 	beq.b	.unpacked
 	move.w	d0,loaded_level
-	add.w	d0,d0
-	add.w	d0,d0
-	
-	bsr		load_default_palette
-	
 	lea	level_params_table,a0
+	btst	#7,d0
+	beq.b	.normal
+	; intro screens
+	bclr	#7,d0
+	lea	intro_screen_params_table,a0
+	
+.normal
+	add.w	d0,d0
+	add.w	d0,d0
+	
+	
 	move.l	(a0,d0.w),a0
 
 	move.l	(background_palette_data,a0),a2
@@ -966,6 +986,9 @@ draw_background_pic
 	lea	backbuffer,a1
 	bsr	Unpack
 	; blit the panel
+	move.w	level_number(pc),d0
+	btst	#7,d0
+	bne.b	.unpacked
 	bsr		draw_panel_bitmap
 .unpacked
 	lea	backbuffer,a0
@@ -2172,7 +2195,6 @@ draw_break
 	even
 	
 .init_draw
-	
 
 	rts
 	
@@ -2190,6 +2212,8 @@ draw_bull_stage
 	move.w	xpos(a2),d0
 	move.w	ypos(a2),d1
 	move.w	direction(a2),d2
+	tst.w	frame(a2)
+	sne		bull_breath_flag(a2)
 	bsr		draw_bull
 .no_update
 	rts
@@ -2585,6 +2609,11 @@ INTRO_Y_SHIFT=68
 ENEMY_Y_SPACING = 24
 
 draw_intro_screen
+	tst.l	state_timer
+	beq.b	.draw_scores
+
+	rts
+	
     tst.b   intro_state_change
     beq.b   .no_change
     clr.b   intro_state_change
@@ -2644,83 +2673,117 @@ draw_intro_screen
 .no_change
     rts
 
-
-pos_table  
-    dc.l    pos1		; practice
-    dc.l    pos1
-    dc.l    pos2
-    dc.l    pos3
-    dc.l    pos4
-    dc.l    pos5
-    dc.l    pos6
-    dc.l    pos7
-    dc.l    pos8
-    dc.l    pos9
-    dc.l    pos10
-
-pos1
-   dc.b    "1ST",0
-pos2
-   dc.b    "2ND",0
-pos3
-   dc.b    "3RD",0
-pos4
-   dc.b    "4TH",0
-pos5
-   dc.b    "5TH",0
-pos6
-   dc.b    "6TH",0
-pos7
-   dc.b    "7TH",0
-pos8
-   dc.b    "8TH",0
-pos9
-   dc.b    "9TH",0
-pos10
-    dc.b    "10G",0
-pos10plus
-	dc.b	"CMP",0
-    even
-
-time_left
-	dc.w	0
-time_ticks
-	dc.w	0
+.draw_scores
+	move.w	#$80,level_number	; bicolor simple screen
+	bsr	draw_background_pic
+	lea	.point(pc),a0
+	move.w	#48,d0
+	move.w	#104,d1
+	move.w	#$FFF,d2
+	bsr		write_color_string
 	
-high_score_position
-    dc.w    0
-high_score_highlight_y
-    dc.w    0
-high_score_highlight_timer
-    dc.w    0
-high_score_highlight_color_index
-    dc.w    0
-high_score_highlight_color_table
-    dc.w    $0FF
-    dc.w    $0F0
-    dc.w    $FF0
-    dc.w    $FFF
-high_score
-    dc.l    DEFAULT_HIGH_SCORE
-	dc.l	$DEADBEEF
-hiscore_table:
-    REPT    NB_HIGH_SCORES
-	IFD		HIGHSCORES_TEST
-    dc.l    (DEFAULT_HIGH_SCORE/10)*(10-REPTN)   ; decreasing score for testing	
-	ELSE
-    dc.l    DEFAULT_HIGH_SCORE
-	ENDC
-    ENDR
-	dc.l	$DEADBEEF
+	move.w	#112,d1
+	move.b	#'1',d6
+	lea		hiscore_table(pc),a1
+	moveq.w	#5,d5
+.loop	
+	move.w	#8,d2
+	move.w	#16,d3
+	lea		score_box,a0
+
+	move.w	#104,d0
+	bsr		blit_4_planes_cookie_cut
+	move.w	#160,d0
+	bsr		blit_4_planes_cookie_cut
+	add.w	#8,d1
+	move.w	#16,d0
+	; position
+	lea		.pos(pc),a0
+	move.b	d6,.pos
+	addq.b	#1,d6
+	move.w	#$FFF,d2
+	bsr		write_color_string
+	; score
+	move.w	#32,d0
+	move.l	(a1)+,d2
+	move.w	#7,d3
+	move.w	#$FFF,d4
+	bsr		write_color_decimal_number
 	
-intro_frame_index
-    dc.w    0
-intro_step
-    dc.b    0
-intro_state_change
-    dc.b    0
-    even
-    
+	move.l	(a1)+,.name
+	
+	move.w	#104,d0
+	lea		.dan(pc),a0
+	move.b	(-1,a1),d4		; level/dan
+	cmp.b	#11+'0',d4
+	bcc.b	.champ
+	cmp.b	#10+'0',d4
+	bcs.b	.below
+	move.b	#'1',(a0)+
+	move.b	#'0',(a0)+
+	bra.b	.wdan
+.below
+	move.b	#' ',(a0)+
+	move.b	d4,(a0)+
+.wdan
+	move.b	#'D',(a0)+
+	move.b	#'A',(a0)+
+	move.b	#'N',(a0)
+	bra.b	.cw
+.champ
+	move.b	#'C',(a0)+
+	move.b	#'H',(a0)+
+	move.b	#'A',(a0)+
+	move.b	#'M',(a0)+
+	move.b	#'P',(a0)
+.cw
+	lea		.dan(pc),a0
+	moveq	#0,d2
+	bsr		write_color_string
+	lea		.name(pc),a0
+	clr.b	(3,a0)
+	move.w	#168,d0
+	moveq	#0,d2
+	bsr		write_color_string
+	
+	add.w	#8,d1
+	dbf		d5,.loop
+	
+	
+	
+	move.w	#16,d0
+	move.w	#216,d1
+	move.w	#$800,d2
+	lea		.copy3(pc),a0
+	bsr		write_color_string
+	; original copyright
+	move.w	#40,d0
+	add.w	#16,d1
+	move.w	#$F00,d2
+	lea		.copy1(pc),a0
+	bsr		write_color_string
+	move.w	#40,d0
+	add.w	#16,d1
+	lea		.copy2(pc),a0
+	bsr		write_color_string
+	
+	rts
+.name
+	dc.b	"xxx",0
+.pos
+	dc.b	"x.",0
+.dan
+	dc.b	"12345",0
+.point
+	dc.b	"POINT   RANK   NAME",0
+.copy1
+	dc.b	"c COPYRIGHT 1984",0
+.copy2
+	dc.b	"DATA EAST USA,INC.",0
+.copy3
+	dc.b	"AMIGA VERSION: JOTD,NO9",0
+	even
+	
 draw_title
 	rts
 
@@ -3957,7 +4020,7 @@ judge_decision:
 	clr.w	scored_points(a3)
 	
 	; play round end music
-	move.w	#MAIN_THEME_MUSIC,d0
+	moveq.l	#MAIN_THEME_MUSIC,d0
 	bsr		play_music
 	
 	move.w	#ORIGINAL_TICKS_PER_SEC*24,time_ticks	; some time before seconds countdown
@@ -4128,13 +4191,13 @@ CHARACTER_X_START = 88
 update_intro_screen
     move.l   state_timer(pc),d0
     bne.b   .no_first
-    
+	
 .first
-
+	moveq.l	#MAIN_THEME_MUSIC,d0
+	bsr		play_music
 .no_first 
-
-  
-    rts
+    addq.l	#1,state_timer
+	rts
 
     
 play_loop_fx
@@ -6319,6 +6382,18 @@ write_string_internal:
     moveq.l #0,d2
     bra.b   .wl
 .nodot
+    cmp.b   #',',d2
+    bne.b   .nocomma
+    lea comma(pc),a2
+    moveq.l #0,d2
+    bra.b   .wl
+.nocomma
+    cmp.b   #':',d2
+    bne.b   .nocolon
+    lea colon(pc),a2
+    moveq.l #0,d2
+    bra.b   .wl
+.nocolon
     cmp.b   #'/',d2
     bne.b   .nosq
     lea square(pc),a2
@@ -6364,7 +6439,7 @@ load_highscores
     ; file is present, read it
     lea scores_name(pc),a0    
     lea hiscore_table(pc),a1
-    move.l #40,d0   ; size
+    move.l #HISCORE_FILE_SIZE,d0   ; size
     moveq.l #0,d1   ; offset
     jsr  (resload_LoadFileOffset,a2)
     bra.b	.update_highest
@@ -6376,7 +6451,7 @@ load_highscores
     move.l  d0,d1
     beq.b   .no_file
     move.l  d1,d4
-    move.l  #4,d3
+    move.l  #HISCORE_FILE_SIZE,d3
     move.l  #hiscore_table,d2
     jsr (_LVORead,a6)
     move.l  d4,d1
@@ -6475,7 +6550,7 @@ save_highscores
     move.l  d0,a2
     lea scores_name(pc),a0    
     lea hiscore_table(pc),a1
-    move.l #4*NB_HIGH_SCORES,d0   ; size
+    move.l #HISCORE_FILE_SIZE,d0   ; size
     jmp  (resload_SaveFile,a2)
 .standard
     move.l  _dosbase(pc),a6
@@ -6485,7 +6560,7 @@ save_highscores
     move.l  d0,d1
     beq.b   .out
     move.l  d1,d4
-    move.l  #40,d3
+    move.l  #HISCORE_FILE_SIZE,d3
     move.l  #hiscore_table,d2
     jsr (_LVOWrite,a6)
     move.l  d4,d1
@@ -6848,7 +6923,54 @@ prev_record_joystick_state
     dc.l    0
 
     ENDC
+	
 
+
+time_left
+	dc.w	0
+time_ticks
+	dc.w	0
+	
+high_score_position
+    dc.w    0
+high_score_highlight_y
+    dc.w    0
+high_score_highlight_timer
+    dc.w    0
+high_score_highlight_color_index
+    dc.w    0
+high_score_highlight_color_table
+    dc.w    $0FF
+    dc.w    $0F0
+    dc.w    $FF0
+    dc.w    $FFF
+high_score
+    dc.l    DEFAULT_HIGH_SCORE
+	dc.l	$DEADBEEF
+hiscore_table:
+	IFD		HIGHSCORES_TEST
+	dc.l	2000,"AAA4"
+	dc.l	1500,"BBB3"
+	dc.l	1400,"CCC3"
+	dc.l	1300,"DDD2"
+	dc.l	1200,"EEE2"
+	dc.l	1000,"FFF2"
+	ELSE
+	dc.l	20000,"JFF4"
+	dc.l	18000,"NO93"
+	dc.l	16000,"WHD3"
+	dc.l	14000,"TWI2"
+	dc.l	12000,"EAB2"
+	dc.l	10000,"hhh2"
+	ENDC
+
+intro_frame_index
+    dc.w    0
+intro_step
+    dc.b    0
+intro_state_change
+    dc.b    0
+    even
   
 current_state:
     dc.w    0
@@ -6982,7 +7104,10 @@ letters
     incbin	"letters_2_2.bin"
     incbin	"letters_2_3.bin"
     
-
+colon:
+	incbin	"colon.bin"
+comma:
+	incbin	"comma.bin"
 dash:
     incbin  "dash.bin"
 dot:
@@ -7141,7 +7266,42 @@ rock_frames:
 plank_frames:
 ; TODO bitmap width height
 
-	
+pos_table  
+    dc.l    pos1		; practice
+    dc.l    pos1
+    dc.l    pos2
+    dc.l    pos3
+    dc.l    pos4
+    dc.l    pos5
+    dc.l    pos6
+    dc.l    pos7
+    dc.l    pos8
+    dc.l    pos9
+    dc.l    pos10
+
+pos1
+   dc.b    "1ST",0
+pos2
+   dc.b    "2ND",0
+pos3
+   dc.b    "3RD",0
+pos4
+   dc.b    "4TH",0
+pos5
+   dc.b    "5TH",0
+pos6
+   dc.b    "6TH",0
+pos7
+   dc.b    "7TH",0
+pos8
+   dc.b    "8TH",0
+pos9
+   dc.b    "9TH",0
+pos10
+    dc.b    "10G",0
+pos10plus
+	dc.b	"CMP",0
+    even	
 ; generated with python
 ;for i in range(0,256):
 ;    b = bin(i)[2:].zfill(8)[::-1]
@@ -7609,7 +7769,11 @@ blank_19_message
 	include	hit_lists.s
 	include	player_bob_masks.s
 
-level_params_table
+intro_screen_params_table:
+	dc.l	hiscore_screen
+	dc.l	title_screen
+	
+level_params_table:
 	dc.l	practice_level
 	REPT	2
 	dc.l	pier_level	; 1
@@ -7627,6 +7791,36 @@ level_params_table
 	ENDR
 	
 	include	background_palette.s
+	
+	; LevelParams
+hiscore_screen
+	dc.l	pl_hi
+	dc.l	0		; no girl
+	dc.w	0
+	dc.w	0
+	dc.w	0
+	dc.w	0
+	; referee
+	dc.w	0
+	dc.w	0
+	dc.w	0
+	dc.w	0
+	; color change
+	dc.l	0
+title_screen
+	dc.l	pl_title
+	dc.l	0		; no girl
+	dc.w	0
+	dc.w	0
+	dc.w	0
+	dc.w	0
+	; referee
+	dc.w	0
+	dc.w	0
+	dc.w	0
+	dc.w	0
+	; color change
+	dc.l	0
 	
 	; LevelParams
 practice_level
@@ -7825,7 +8019,12 @@ dojo_level
 	dc.w	-32
 	; color change
 	dc.l	pl11_palette_data
-	   
+
+pl_hi
+	incbin	"back_13.bin.RNC"
+pl_title
+	incbin	"back_00.bin.RNC"
+	
 pl1:
 	incbin	"back_01.bin.RNC"
 pl2:

@@ -7,6 +7,8 @@ tile_height = 8
 sprites_dir = "../sprites"
 source_dir = "../src"
 
+NB_BACKGROUND_PICS = 14
+
 # debug options to get output as "modern" format (png/txt)
 # to see what's being done
 dump_tiles = True
@@ -100,10 +102,14 @@ def mirror(img):
 def get_background_pic(i):
     imgname = "backgrounds/{:04d}.png".format(i)
     img = Image.open(imgname)
-    # remove status panel before extracting the palette
-    for x in range(24,176+24):
-        for y in range(64):
-            img.putpixel((x,y),(0,0,0))
+    if i == 0  or i > 12:
+        # intro screens
+        pass
+    else:
+        # remove status panel before extracting the palette
+        for x in range(24,176+24):
+            for y in range(64):
+                img.putpixel((x,y),(0,0,0))
 
     replacement_colors = color_replacement_dict.get(i)
     if replacement_colors:
@@ -155,7 +161,7 @@ def compute_palettes():
     common = set()
     specific_colors_merged = set()
     lp = len(palette)
-    for i in range(0,13):
+    for i in range(NB_BACKGROUND_PICS):
 
         img = get_background_pic(i)
 
@@ -189,7 +195,7 @@ def extract_block(img,x=0,y=0,width=None,height=None):
 
 
 def process_backgrounds(palette):
-    for i in range(0,13):
+    for i in range(NB_BACKGROUND_PICS):
         img = get_background_pic(i)
         outfile = "{}/back_{:02d}.bin".format(sprites_dir,i)
         specific_palette = list(specific_palettes[i])
@@ -798,9 +804,9 @@ bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
 
 process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
 
-process_player_tiles()
+#process_player_tiles()
 
-#process_girls()
+#####process_girls()
 
 process_fonts(dump_fonts)
 
