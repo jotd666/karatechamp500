@@ -1,5 +1,4 @@
 {"name": "boo", 
-"loops":true,
 "rollback_frame":-1,
 "hit_mask":false, "symmetrical":true,
 "deltas": [[0, 0, 0],[0, 0, 0] ]}

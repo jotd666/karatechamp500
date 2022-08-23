@@ -65,6 +65,7 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	previous_bubble_ypos
 	UWORD	previous_bubble_width
 	UWORD	previous_bubble_height
+	UWORD	y_speed			; for intro
 	UWORD	hit_by_blow		; can be used for bull or objects too
 	LABEL	Character_SIZEOF
 
@@ -491,6 +492,7 @@ Start:
     move.w  #STATE_GAME_START_SCREEN,current_state
 	ELSE
     move.w  #STATE_INTRO_SCREEN,current_state
+	move.b	#1,intro_step
     ENDC
     
     IFND    RECORD_INPUT_TABLE_SIZE
@@ -571,7 +573,7 @@ intro:
     clr.w  vbl_counter
 
 
-	lea		bull(pc),a0
+	lea		bull,a0
 	clr.w	bull_bubble_counter(a0)
 	clr.w	bull_breath_flag(a0)
 	clr.w	bull_red_horn_counter(a0)
@@ -585,7 +587,7 @@ intro:
 	move.w	#1,cheat_keys	; enable cheat in that mode, we need to test the game
     bra.b   .restart
     ENDC
- 	lea		player_1(pc),a4
+ 	lea		player_1,a4
    
 .intro_loop    
     cmp.w   #STATE_INTRO_SCREEN,current_state
@@ -954,22 +956,13 @@ draw_background_pic
 	cmp.w	loaded_level(pc),d0
 	beq.b	.unpacked
 	move.w	d0,loaded_level
-	lea	level_params_table,a0
-	btst	#7,d0
-	beq.b	.normal
-	; intro screens
-	bclr	#7,d0
-	lea	intro_screen_params_table,a0
+	bsr		get_level_params
 	
-.normal
-	add.w	d0,d0
-	add.w	d0,d0
+	move.l	a1,a0
+	move.l	(background_palette_data,a0),d0
+	beq.b	.no_colors
+	move.l	d0,a2
 	
-	
-	move.l	(a0,d0.w),a0
-
-	move.l	(background_palette_data,a0),a2
-
 	lea	(color_change_1,a2),a1
 	bsr	change_color
 	lea	(color_change_2,a2),a1
@@ -981,7 +974,7 @@ draw_background_pic
 	move.w	#15,d0
 	move.w	(bg_color_15,a2),d1
 	bsr		set_color
-	
+.no_colors	
 	move.l	background_picture(a0),a0
 	lea	backbuffer,a1
 	bsr	Unpack
@@ -1420,13 +1413,23 @@ init_referee_not_moving:
 	move.l	(a7)+,a4
 	rts
 	
+; > A1 level params
+get_level_params
+	move.w	level_number(pc),d0
+	lea		level_params_table,a1
+	btst	#7,d0
+	beq.b	.normal
+	bclr	#7,d0
+	lea		intro_screen_params_table,a1
+.normal
+	add.w	d0,d0
+	add.w	d0,d0
+	move.l		(a1,d0.w),a1
+	rts
+	
 init_referee:
 	movem.l	d0/a1/a4,-(a7)
-	move.w	level_number(pc),d0
-	add.w	d0,d0
-	add.w	d0,d0
-	lea		level_params_table,a1
-	move.l		(a1,d0.w),a1
+	bsr		get_level_params
 	
 	lea	referee(pc),a4
 	; init referee
@@ -1502,11 +1505,8 @@ init_players_and_referee:
 	move.w	level_number(pc),d0
 	beq.b	.pract
 	move.w 	#LEFT,direction(a4)
-.pract	
-	add.w	d0,d0
-	add.w	d0,d0
-	lea		level_params_table,a1
-	move.l		(a1,d0.w),a1
+.pract
+	bsr	get_level_params
 	
 	lea		walk_forward_frames,a0
 	bsr		load_walk_frame
@@ -2280,11 +2280,7 @@ draw_normal:
 	
 erase_girl
 	; erase girl
-	move.w	level_number(pc),d0
-	add.w	d0,d0
-	add.w	d0,d0
-	lea		level_params_table,a1
-	move.l	(a1,d0.w),a1
+	bsr		get_level_params
 	move.w	p1_init_ypos(a1),d1
 
 	; erase girl/halo
@@ -2299,11 +2295,7 @@ draw_girl
 	bmi.b	.no_draw
 	
 	; draw girl
-	move.w	level_number(pc),d0
-	add.w	d0,d0
-	add.w	d0,d0
-	lea		level_params_table,a1
-	move.l	(a1,d0.w),a1
+	bsr		get_level_params
 	move.w	p1_init_ypos(a1),d1
 
 	add.w	#16,d1
@@ -2440,8 +2432,9 @@ erase_bull
 	bsr		erase_bubble
 	move.w	previous_xpos(a4),d0
 	move.w	previous_ypos(a4),d1
+	subq.w	#8,d1
 	move.w	#80,d2
-	move.w	#40,d3	; height
+	move.w	#56,d3	; height
 	bsr		restore_background
 	
 	movem.l	(a7)+,a0-a1/d0-d3
@@ -2520,16 +2513,17 @@ set_bull_direction:
 	
 
 draw_bull:
-	movem.l	a0/a4/d0-d3,-(a7)
+	movem.l	a0-a1/a4/d0-d4,-(a7)
 	lea	bull(pc),a4
 	lea	bull_0,a0
-	move.w	#10,d2	; 64+16
+	move.w	#10,d2	; 32+16
 	move.w	#40,d3
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
-	lea		bull_frame_table(pc),a0
-	add.w	frame(a4),a0
-	move.l	(a0),a0
+	lea		bull_frame_table(pc),a1
+	move.w	frame(a4),d4
+	add.w	d4,a1
+	move.l	(a1),a0
 	bsr		blit_4_planes_cookie_cut
 	; draw "moo" bubble if enabled (1/4 of the time)
 	move.w	#8,D0
@@ -2543,13 +2537,14 @@ draw_bull:
 .draw
 	bsr		draw_moo_bubble_right
 .no_bubble
-	movem.l	(a7)+,a0/a1/d0-d3
+	movem.l	(a7)+,a0-a1/a4/d0-d4
 	rts
 	
 ; < A0: bitmap (works in place) with 2 bytes shifting
 ; < d0: width (bytes) counting 2 last bytes shifting
 ; < d1: height
 mirror:
+	rts
 	movem.l	d0-d7/a0-a1,-(a7)
 	lea	byte_mirror_table(pc),a1
 	subq.l	#1,d1
@@ -2609,25 +2604,62 @@ INTRO_Y_SHIFT=68
 ENEMY_Y_SPACING = 24
 
 draw_intro_screen
-	tst.l	state_timer
-	beq.b	.draw_scores
+	move.l	state_timer(pc),d0
+	beq.b	.out
+	
+	cmp.l	#1,d0
+	beq.b	.first_intro_draw
 
+	cmp.b	#1,intro_step
+	beq.b	.draw_step_1
+	; draw step 2
+	lea		player_1(pc),a4
+	bsr		erase_player
+	lea		player_2(pc),a4
+	bsr		erase_player
+	
+	lea		player_1(pc),a4
+	bsr		draw_player
+	lea		player_2(pc),a4
+	bsr		draw_player
 	rts
 	
-    tst.b   intro_state_change
-    beq.b   .no_change
-    clr.b   intro_state_change
-    move.b  intro_step(pc),d0
-    cmp.b   #1,d0
-    beq.b   .init1
-    cmp.b   #2,d0
-    beq.b   .init2
-    cmp.b   #3,d0
-    beq.b   .init3
-    bra.b   .no_change  ; should not be reached
-.init1    
-    bsr clear_screen
-    bsr hide_sprites
+.draw_step_1
+	; too annoying to handle clipping/wrapping on
+	; restore background, just restore background
+	; on hard right
+	move.w	#SCREEN_WIDTH-64,d0
+	move.w	#BOUNCE_Y_MAX-32,d1
+	move.w	#64,d2
+	move.w	#80,d3	; height
+	bsr		restore_background
+	
+	bsr		erase_bull
+	lea		player_1(pc),a4
+	bsr		erase_player
+	lea		player_2(pc),a4
+	bsr		erase_player
+	
+	; draw 1 bull and 2 jumping karatekas
+	bsr		draw_bull
+	lea		bull(pc),a4
+	tst.w	frame(a4)
+	bne.b	.no_red_horn
+	move.w	xpos(a4),d0
+	move.w	ypos(a4),d1
+	move.w	#4,d2
+	move.w	#16,d3
+	lea		bull_red_horn,a0
+	bsr		blit_4_planes_cookie_cut
+.no_red_horn	
+	lea		player_1(pc),a4
+	bsr		draw_player
+	lea		player_2(pc),a4
+	bsr		draw_player
+.out
+	rts
+	
+
     
     rts
 .init2
@@ -2664,16 +2696,24 @@ draw_intro_screen
     
     rts
     
-.init3
-    bsr clear_screen
-    ; characters
-	rts
-    
 
 .no_change
     rts
 
-.draw_scores
+.first_intro_draw
+    move.b  intro_step(pc),d0
+    cmp.b   #1,d0
+    beq.b   .init1
+    ; second part: cpu vs cpu fake fight
+    bsr hide_sprites
+	move.w	#$81,level_number	; bicolor simple screen
+	bsr	draw_background_pic
+	
+	
+	rts
+	
+.init1	
+    bsr hide_sprites
 	move.w	#$80,level_number	; bicolor simple screen
 	bsr	draw_background_pic
 	lea	.point(pc),a0
@@ -4193,13 +4233,117 @@ update_intro_screen
     bne.b   .no_first
 	
 .first
+	cmp.b	#1,intro_step
+	beq.b	.intro_step_1
+	; init both AI players fighting
+	move.l	state_timer(pc),d0
+    addq.l	#1,d0
+	cmp.l	#NB_TICKS_PER_SEC*6,d0
+	beq.b	.intro_step_1
+	move.l	d0,state_timer
+	
+	rts
+	
+.intro_step_1
 	moveq.l	#MAIN_THEME_MUSIC,d0
 	bsr		play_music
-.no_first 
-    addq.l	#1,state_timer
+	; init bulls and players
+	bsr		init_players_and_referee
+	lea		boo_right_frames,a0
+	lea		player_1(pc),a4
+	move.l	a0,frame_set(a4)
+	move.w	#32,xpos(a4)
+	move.w	#48,ypos(a4)
+	move.w	#6,y_speed(a4)
+	; player 2
+	lea		player_2(pc),a4
+	clr.b	character_id(a4)	; also white
+
+	move.l	a0,frame_set(a4)
+	move.w	#80,xpos(a4)
+	move.w	#32,ypos(a4)
+	move.w	#4,y_speed(a4)
+	;bsr		update_player
+	lea		bull(pc),a4
+	move.w	#128,xpos(a4)
+	move.w	#12,ypos(a4)
+	clr.w	y_speed(a4)
+	; set direction to left
+	move.w	#LEFT,d0
+	move.w	d0,direction(a4)
+	bsr		set_bull_direction
+	
+.no_first
+	move.l	state_timer(pc),d0
+    addq.l	#1,d0
+	cmp.b	#1,intro_step
+	beq.b	.update_step_1
+	; step 2
+	move.l	d0,state_timer
+	
+
+	rts
+	
+.update_step_1
+	cmp.l	#NB_TICKS_PER_SEC*6,d0
+	beq.b	.intro_step_2
+	move.l	d0,state_timer
+	
+	; all characters bounce
+	lea		bull(pc),a4
+	move.w	current_frame_countdown(a4),d0
+	addq.w	#1,d0
+	cmp.w	#5,d0
+	bne.b	.no_move
+	eor.w	#4,frame(a4)
+	moveq	#0,d0
+.no_move
+	move.w	d0,current_frame_countdown(a4)
+	bsr		.update_bounce
+	
+	lea		player_1(pc),a4
+	bsr		.update_bounce
+
+	lea		player_2(pc),a4
+	bsr		.update_bounce
+	
+	rts
+.intro_step_2
+	clr.l	state_timer
+	move.b	#2,intro_step
+	bsr		init_players_and_referee
+	
 	rts
 
-    
+	
+BOUNCE_Y_MAX = 48
+
+.update_bounce:
+	move.l	xpos(a4),previous_xpos(a4)
+
+	move.w	y_speed(a4),d0
+	add.w	#1,d0
+	move.w	d0,y_speed(a4)
+	move.w	ypos(a4),d1
+	add.w	d0,d1
+	cmp.w	#BOUNCE_Y_MAX,d1	; wrong
+	bcc.b	.bounce_up
+.out
+	move.w	d0,y_speed(a4)
+	move.w	d1,ypos(a4)
+	move.w	xpos(a4),d0
+	subq.w	#4,d0
+	cmp.w	#-32,d0
+	bgt.b	.ok
+	move.w	#SCREEN_WIDTH-16,d0
+.ok
+	move.w	d0,xpos(a4)
+	rts
+.bounce_up
+	neg.w	d0
+	move.w	#BOUNCE_Y_MAX-1,d1
+	bra.b	.out
+	
 play_loop_fx
     tst.b   demo_mode
     bne.b   .nosfx
@@ -4317,7 +4461,6 @@ update_player
 	tst.b	controls_blocked_flag
 	beq.b	.no_blocked
 .blocked
-
 	moveq.l	#0,d0
 	move.w	frozen_controls_timer(a4),d0
 	beq.b	.no_demo
@@ -4758,8 +4901,10 @@ move_player:
 ; animation complete, back to walk/default, unless hit
 ; (karate break wood animation also falls into the "hit"
 ; category because it freezes in the end)
-
+; same goes for intro with the characters bouncing
 .animation_ended
+	cmp.w	#STATE_INTRO_SCREEN,current_state
+	beq.b	.out
 	cmp.w	#GM_BREAK,level_type
 	beq.b	.out
 	move.w	hit_by_blow(a4),d0
@@ -5809,6 +5954,13 @@ blit_4_planes:
 
 blit_4_planes_cookie_cut:
     movem.l d0-d6/a0-a3/a5,-(a7)
+	tst.w	d0
+	bpl.b	.pos
+	tst.w	d1
+	beq.b	.clip
+	add.w	#SCREEN_WIDTH,d0
+	subq.w	#1,d1
+.pos
     lea $DFF000,A5
     lea     screen_data,a1
     moveq.l #3,d7
@@ -5829,6 +5981,7 @@ blit_4_planes_cookie_cut:
     add.w   #SCREEN_PLANE_SIZE,a1
     add.w   D5,a0
     dbf d7,.loop
+.clip
     movem.l (a7)+,d0-d6/a0-a3/a5
     rts
 
@@ -6676,6 +6829,7 @@ SIMPLE_MOVE_CALLBACK:MACRO
 	BLOW_CALLBACK	low			; player hit by low kick/sweep or back round kick (same animation)
 	BLOW_CALLBACK	round		; player hit by round kick (falling away from playfield)
 	
+	OTHER_CALLBACK	boo
 	OTHER_CALLBACK	win
 	OTHER_CALLBACK	lose
 	OTHER_CALLBACK	break_planks
@@ -7147,6 +7301,9 @@ player_one_string_clear
     even
 ; game main tables
 
+	; for the intro
+	include	parabol.s
+	
 hundreds_score_table:
 	REPT	31	; up to 3000
 	dc.l	100*REPTN
@@ -7810,8 +7967,8 @@ hiscore_screen
 title_screen
 	dc.l	pl_title
 	dc.l	0		; no girl
-	dc.w	0
-	dc.w	0
+	dc.w	32
+	dc.w	160
 	dc.w	0
 	dc.w	0
 	; referee

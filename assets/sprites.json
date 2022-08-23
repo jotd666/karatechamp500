@@ -407,8 +407,7 @@
 {
    "name":"bull_red_horn",
    "start_x":192,
-   "start_y":216,
-   "frames":2
+   "start_y":216
  },
 {
    "name":"bull_breath",
