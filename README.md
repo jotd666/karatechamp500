@@ -11,10 +11,6 @@ rip evade sound
 
 
 
-player 2 joypad controls
-
-
-
 if py<(py_start-32) (not jumping)
 if going left and 0<px-px_other<threshold, don't move left
 if going right and 0<px_other-px<threshold
@@ -25,6 +21,9 @@ at each update)
 - jump special case just for jumping side kick (connect from jump)
 - check back blow facing/not facing (check_if_facing_each_other not working)
 - draw priority to the player which has an active hit to deliver (if possible)
+- demo add "player vs player"
+- add double joy for p1/p2
+- check/fix consistency in options
 
 bull
 evade
@@ -32,27 +31,28 @@ cheatkey to allow being hit without falling, keep fighting
 
 bugs
 
-- win fight: dyn colors get zeroed
+- game start: doesn't see previous joy button, then check - player2 start not working
+- win a fight: referee disappears
+- as soon as opponent moves, hits don't register!
 - break planks sometimes breaks planks while away
 - jumping side kick y looks wrong: fix later (from video)
 - jump not correct
 - bull add restore bg on right
-- foot sweep on left displays on the right too  
-- forward close walk animation is broken
+- foot sweep on left displays on the right too: maybe restore bg right too  
 - optimization: do not check hits if player distance is too high
-- against CPU player performs blocks without reason
+- player performs blocks without reason when going back
 - some blows don't connect (both players same direction): check debug pic
 - when hit, player falls too fast
 - weak reverse when distance is small: not working
 - final timer countdown: should wait a bit after countdown
-- animation for win sequence to fix
+- animation for win sequence to fix: manual anim +16/-16 with erase
 - 2 player mode - 1ST - => 1ST   1ST non-cpu player with
   number of rounds won+1
 - win a round: timer not reset
 - count how many rounds have been won... next level...
-- 2p mode: missing score 1 - 0 ... etc.
+- 2p mode: missing score 1 - 0 ... etc: @28,42
 - win a round by KO: countdown doesn't work, points not reset
 - clarify what to set to 0: start of round, start of fight, start of level
-- player2 start not working
+
 
 

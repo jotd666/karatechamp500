@@ -100,9 +100,10 @@ hand_both_flags = hand_red_or_japan_flag
 	ULONG	frame_set
 	ULONG	current_move_callback
 	ULONG	current_move_header
+	ULONG	previous_joystick_state
+	ULONG	frozen_joystick_state
 	ULONG	joystick_state
 	ULONG	connecting_move_bits
-	ULONG	frozen_joystick_state
 	ULONG	score
 	APTR	awarded_score_sprite
 	APTR	awarded_score_sprite_2
@@ -150,6 +151,10 @@ Execbase  = 4
 
 ; if set skips intro, game starts immediately
 ;DIRECT_GAME_START
+;DIRECT_GAME_START_1P_IS_CPU = 1
+DIRECT_GAME_START_2P_IS_CPU = 1
+; if set, players are very close at start (test mode)
+PLAYERS_START_CLOSE
 ; practice has only 1 move
 ;SHORT_PRACTICE
 ; repeat a long time just to test moves
@@ -215,12 +220,12 @@ HISCORE_FILE_SIZE = 6*8
 
 ; don't change the values below, change them above to test!!
 
-	IFD	HIGHSCORES_TEST
-DEFAULT_HIGH_SCORE = 2000/10
-	ELSE
-DEFAULT_HIGH_SCORE = 20000/10
+	IFND	DIRECT_GAME_START_1P_IS_CPU
+DIRECT_GAME_START_1P_IS_CPU = 0
 	ENDC
-
+	IFND	DIRECT_GAME_START_2P_IS_CPU
+DIRECT_GAME_START_2P_IS_CPU = 0
+	ENDC
 	
 	IFND	START_SCORE
 START_SCORE = 0
@@ -263,18 +268,7 @@ COLLISION_NB_ROWS = 110/2
 
 SCORE_X_POS = 144
 	
-WINUAE_PAD_CONTROLS
 
-	IFD	WINUAE_PAD_CONTROLS
-JPB_BTN_ADOWN = JPB_BTN_GRN
-JPB_BTN_AUP = JPB_BTN_BLU
-JPB_BTN_ARIGHT = JPB_BTN_YEL
-JPB_BTN_ALEFT = JPB_BTN_RED
-JPF_BTN_ADOWN = JPF_BTN_GRN
-JPF_BTN_AUP = JPF_BTN_BLU
-JPF_BTN_ARIGHT = JPF_BTN_YEL
-JPF_BTN_ALEFT = JPF_BTN_RED
-	ELSE
 ; CD32 button position that match original arcade controls best
 JPB_BTN_ADOWN = JPB_BTN_RED
 JPB_BTN_AUP = JPB_BTN_YEL
@@ -284,7 +278,8 @@ JPF_BTN_ADOWN = JPF_BTN_RED
 JPF_BTN_AUP = JPF_BTN_YEL
 JPF_BTN_ARIGHT = JPF_BTN_BLU
 JPF_BTN_ALEFT = JPF_BTN_GRN
-	ENDC
+
+JPF_BTN_ALL = JPF_BTN_RED|JPF_BTN_YEL|JPF_BTN_BLU|JPF_BTN_GRN
 	
 ; 8 bits for directions+buttons
 ; do NOT change order of bits, move_table has been
@@ -341,6 +336,11 @@ DIRF_DOWN = 1<<DIRB_DOWN
 DIRF_LEFT = 1<<DIRB_LEFT
 DIRF_UP = 1<<DIRB_UP
 
+OPTION_WINUAE_JOYPAD = 0
+OPTION_CD32_JOYPAD = 1<<2
+OPTION_TWO_JOYSTICKS = 2<<2
+OPTION_KEYBOARD = 3<<2
+OPTION_CONTROLS_LAST = OPTION_KEYBOARD
 
 ; states, 4 by 4, starting by 0
 
@@ -534,6 +534,7 @@ Start:
     
 	bsr		load_default_palette
 	
+	
 ;COPPER init
 		
     move.l	#coplist,cop1lc(a5)
@@ -556,6 +557,19 @@ Start:
     move.w #10,d0
 	move.w	d0,bpl1mod(a5)
     move.w	d0,bpl2mod(a5)
+
+	; set default options, according to connected joypads
+	move.w	#OPTION_TWO_JOYSTICKS,player_2_controls_option
+	tst.b	controller_joypad_1
+	beq.b	.joystick_1
+	move.w	#OPTION_WINUAE_JOYPAD,player_1_controls_option
+.joystick_1
+	move.w	#OPTION_KEYBOARD,player_2_controls_option
+	tst.b	controller_joypad_0
+	beq.b	.joystick_2
+	move.w	#OPTION_WINUAE_JOYPAD,player_2_controls_option
+.joystick_2
+	bsr		update_options_string
 
 intro:
     lea _custom,a5
@@ -595,42 +609,43 @@ intro:
     tst.b   quit_flag
     bne.b   .out
     move.l  joystick_state(a4),d0
-    btst    #JPB_BTN_RED,d0
+	and.l	#JPF_BTN_ALL,d0
     beq.b   .intro_loop
     clr.b   demo_mode
-.out_intro    
+.out_intro  
+
+	; 2 frames to make sure that joystick is read again
+    bsr wait_bof
+    bsr wait_bof
 
 	bsr		stop_sounds
-    move.w  #STATE_GAME_START_SCREEN,current_state
+	clr.w	options_select
     clr.l	state_timer
-.release
-    move.l  joystick_state(a4),d0
-    btst    #JPB_BTN_RED,d0
-    bne.b   .release
-
+	
+    move.w  #STATE_GAME_START_SCREEN,current_state
     clr.l   state_timer
     tst.b   demo_mode
     bne.b   .no_credit
-    lea credit_sound(pc),a0
+    lea credit_sound,a0
     bsr play_fx
 	
 	; TEMP
 	move.w	#1,cheat_keys	; enable cheat in that mode, we need to test the game
 
+
 .game_start_loop
     bsr random      ; so the enemies aren't going to do the same things at first game
-    move.l  joystick_state(a4),d0
     tst.b   quit_flag
     bne.b   .out
-    btst    #JPB_BTN_RED,d0
+    cmp.w  #STATE_GAME_START_SCREEN,current_state
     beq.b   .game_start_loop
 
 .no_credit
+	; 2 frames to make sure that joystick is read again
+    bsr wait_bof
+    bsr wait_bof
+	
 
-.wait_fire_release
-    move.l  joystick_state(a4),d0
-    btst    #JPB_BTN_RED,d0
-    bne.b   .wait_fire_release    
 .restart    
     lea _custom,a5
     move.w  #$7FFF,(intena,a5)
@@ -805,6 +820,7 @@ intro:
     moveq.l #0,d0
     rts
 
+	
 wait_bof
 	move.l	d0,-(a7)
 .wait	move.l	$dff004,d0
@@ -846,33 +862,6 @@ clear_screen
     rts
     
 
-
-    
-clear_playfield_planes
-    lea screen_data,a1
-    bsr clear_playfield_plane
-    add.w   #SCREEN_PLANE_SIZE,a1
-    bsr clear_playfield_plane
-    add.w   #SCREEN_PLANE_SIZE,a1
-    bsr clear_playfield_plane
-    add.w   #SCREEN_PLANE_SIZE,a1
-    bra clear_playfield_plane
-    
-; < A1: plane start
-clear_playfield_plane
-    movem.l d0-d1/a0-a1,-(a7)
-    move.w #NB_LINES-1,d0
-.cp
-    move.w  #NB_BYTES_PER_LINE/4-1,d1
-    move.l  a1,a0
-.cl
-    clr.l   (a0)+
-    dbf d1,.cl
-    clr.w   (a0)
-    add.l   #NB_BYTES_PER_LINE,a1
-    dbf d0,.cp
-    movem.l (a7)+,d0-d1/a0-a1
-    rts
 
     
 init_new_play:
@@ -950,12 +939,12 @@ init_level:
 	
 
 draw_background_pic
-	bsr		load_default_palette
 
 	move.w	level_number(pc),d0
 	cmp.w	loaded_level(pc),d0
 	beq.b	.unpacked
 	move.w	d0,loaded_level
+	bsr		load_default_palette
 	bsr		get_level_params
 	
 	move.l	a1,a0
@@ -1158,12 +1147,15 @@ draw_panel:
     lea hiscore_string(pc),a0
     bsr write_blanked_color_string
 
-	; draw trailing "0"
-	move.w	#136+6*8,d0
+	; draw trailing "0"s
 	move.w	#16,d1
     move.w  #$0fff,d2
-    lea zero_string(pc),a0
+	move.w	#136+5*8,d0
+    lea double_zero_string(pc),a0
     bsr write_color_string
+
+
+	
 	rts
 		
 ; draw score with titles and extra 0
@@ -1223,6 +1215,7 @@ draw_score:
 	tst.b	score_update_message
 	beq.b	.no_update
 	clr.b	score_update_message
+	; time
 	move.w	#104,d0
 	move.w	#40,d1
 	clr.l	d2
@@ -1233,7 +1226,7 @@ draw_score:
 	bsr write_blanked_color_decimal_number
 	cmp.w	#10,d2
 	bcc.b	.more
-	lea		.zero(pc),a0
+	lea		double_zero_string+1(pc),a0	; single zero
     move.w  d4,d2
 	bsr write_blanked_color_string
 	
@@ -1242,15 +1235,9 @@ draw_score:
 	bsr		draw_high_score
 
 	lea		player_1,a4
-	tst.b	is_cpu(a4)
-	bne.b	.p1_cpu
-    move.w  #SCORE_X_POS,d0
     move.w  #32,d1
-	move.l	score(a4),d2
-    move.w  #6,d3
-    move.w  #$FFF,d4    
-    bsr write_blanked_color_decimal_number
-.p1_cpu
+	bsr		draw_player_score
+
 	; draw points
 	move.w	scored_points(a4),d1
 	moveq	#0,d0
@@ -1260,16 +1247,9 @@ draw_score:
 	bsr		draw_lower_point
 	
 	lea		player_2,a4
-	tst.b	is_cpu(a4)
-	bne.b	.p2_cpu
-    move.w  #SCORE_X_POS,d0
     move.w  #32+16,d1
-	move.l	score(a4),d2
-    move.w  #6,d3
-    move.w  #$FFF,d4    
-    bsr write_color_decimal_number
+	bsr		draw_player_score
 
-.p2_cpu
 	move.w	scored_points(a4),d1
 	move.w	#40,d0
 	bsr		draw_2_upper_points
@@ -1278,9 +1258,34 @@ draw_score:
 	bsr		draw_lower_point
 .no_update	
 	rts
-.zero
-		dc.b	"0",0
-		even
+
+; what: draw player score if human
+; special case 0, else adds trailing "00"s
+; < D1: score y
+; < A4: player structure
+
+draw_player_score
+	tst.b	is_cpu(a4)
+	bne.b	.cpu
+	move.l	score(a4),d2
+	beq.b	.pz
+	; write trailing zeroes
+    move.w  #SCORE_X_POS+32,d0
+	lea		double_zero_string(pc),a0
+	move.w	#$FFF,d2
+	bsr	write_color_string
+	move.l	score(a4),d2
+	move.w	#SCORE_X_POS,d0
+    move.w  #4,d3
+    move.w  #$FFF,d4    
+    bsr write_blanked_color_decimal_number
+.cpu
+	rts
+.pz
+	move.w	#SCORE_X_POS+40,d0
+	lea		double_zero_string+1(pc),a0
+	move.w	#$FFF,d2
+	bra	write_color_string
 
 ; < A4: player structure
 hide_awarded_score:
@@ -1387,7 +1392,6 @@ init_player_common
 	clr.b	half_points(a4)
 	clr.w	point_award_countdown(a4)
 	clr.w	block_lock(a4)
-	clr.l	joystick_state(a4)
 	clr.b	turn_back_flag(a4)
 	clr.l	previous_xpos(a4)	; x and y
 	clr.l	current_move_header(a4)
@@ -1412,6 +1416,22 @@ init_referee_not_moving:
 	move.w	xpos(a4),max_xpos(a4)
 	move.l	(a7)+,a4
 	rts
+	
+update_options_string
+	lea	options_values_strings_list(pc),a0
+	lea	options_values_list(pc),a1
+.loop
+	move.w	(a0)+,d0
+	bmi.b	.out
+	addq.w	#2,a0
+	move.l	(a1)+,a2
+	move.w	(a2),d1		; option value
+	lea		option_name_table(pc),a2
+	move.l	(a2,d1.w),(a0)+
+	bra.b	.loop
+.out
+	rts
+	
 	
 ; > A1 level params
 get_level_params
@@ -1517,6 +1537,11 @@ init_players_and_referee:
 
 
     lea player_1(pc),a4
+	IFD		PLAYERS_START_CLOSE
+	; hardcode position
+	move.w	#SCREEN_WIDTH/2-48,p1_init_xpos(a1)
+	ENDC
+	
     move.w	p1_init_xpos(a1),xpos(a4)
     move.w	p1_init_ypos(a1),d6		; save for p2 y
 	
@@ -1730,6 +1755,10 @@ draw_all
 .game_start_screen
     tst.l   state_timer
     beq.b   draw_start_screen
+	tst.w	options_select
+	beq.b	.out
+	bsr		draw_options_values
+.out
     rts
     
 .next_round
@@ -1769,8 +1798,6 @@ PLAYER_ONE_Y = 102-14
     
 .after_draw
         
-
-    
     ; handle highscore in draw routine eek
     move.l  high_score(pc),d4
     cmp.l   d2,d4
@@ -2337,7 +2364,7 @@ draw_girl
 
 ; < D2: highscore
 draw_high_score
-    move.w  #136,d0
+    move.w  #128,d0
     move.w  #16,d1
 	move.l	hiscore_table(pc),d2
     move.w  #6,d3
@@ -2414,22 +2441,69 @@ random:
 draw_start_screen
     bsr hide_sprites
     bsr clear_screen
-	; draw message. This is suboptimal but works
-	; first we write just background recangle
+
+	tst.w	options_select
+	bne.b	.options_select
+	
 	lea		start_message_list(pc),a1
+	move.w	#$fff,d0
+	bsr		write_string_list
+	rts
+
+.options_select
+	lea		options_credit_message_list(pc),a1
+	move.w	#$0c80,d0
+	bsr		write_string_list
+	rts
+	
+draw_options_values
+	moveq.l	#0,d0
+	move.w	#80,d1
+	move.w	#40,d2
+	move.w	#24,d3
+	bsr		erase_4_planes
+	bsr		wait_blit
+	
+	lea		options_message_list(pc),a1
+	move.w	#$f00,d0
+	bsr		write_string_list
+	
+	lea		options_values_strings_list(pc),a1
+	move.w	#$fff,d0
+	bsr		write_string_list
+	
+	lea		options_message_list(pc),a1
+	move.w	option_index(pc),d2
+	lsl.w	#3,d2
+	move.w	(2,a1,d2.w),d1	; Y fron text
+	clr.w	d0
+	lea		right_arrow,a0
+	move.w	#8,d3
+	move.w	#4,d2
+	bsr		blit_4_planes_cookie_cut
+	move.w	#SCREEN_WIDTH-12,d0
+	lea		left_arrow,a0
+	bsr		blit_4_planes_cookie_cut
+	rts
+; < A1: string list (x,y,string) -1 terminated
+; < D0: color
+; trashes: A1
+write_string_list
+	movem.l	d1-d3,-(a7)
+	move.w	d0,d2
 .loop
 	move.w	(a1)+,d0
 	bmi.b	.out_msg
 	move.w	(a1)+,d1
 	move.l	(a1)+,a0
-	move.w	#$fff,d2
 	move.w	d0,d3
 	bsr		write_blanked_color_string
 	move.w	d3,d0
 	bra.b	.loop
 .out_msg
+	movem.l	(a7)+,d1-d3
 	rts
-
+	
 erase_bull
 	movem.l	a0-a1/d0-d3,-(a7)
 	lea	bull(pc),a4
@@ -2579,30 +2653,6 @@ mirror:
 	movem.l	(a7)+,d0-d7/a0-a1
 	rts
 	
-start_message_list
-	dc.w	24,80
-	dc.l	press_1p_button_for_message 
-	dc.w	24+32,80+16
-	dc.l	single_play_message 
-	dc.w	24,80+32
-	dc.l	press_2p_button_for_message 
-	dc.w	16,80+48
-	dc.l	twin_play_message 
-	dc.w	152,249
-	dc.l	credit_message 
-	dc.w	-1
-	
-practice_message_list
-	dc.w	56,112
-	dc.l	blank_13_message
-	dc.l	if_you_do_not_message 
-	dc.w	32,112+16
-	dc.l	blank_19_message
-	dc.l	want_practice_press_message 
-	dc.w	32,112+32
-	dc.l	blank_19_message
-	dc.l	player_start_button_message 
-	dc.w	-1
 	
 INTRO_Y_SHIFT=68
 ENEMY_Y_SPACING = 24
@@ -2708,11 +2758,15 @@ draw_intro_screen
 	move.w	#$FFF,d2
 	bsr		write_color_string
 	; score
-	move.w	#32,d0
+	move.w	#16,d0
 	move.l	(a1)+,d2
 	move.w	#7,d3
 	move.w	#$FFF,d4
 	bsr		write_color_decimal_number
+	move.w	#72,d0
+	move.w	d4,d2
+	lea		double_zero_string(pc),a0
+	bsr		write_color_string
 	
 	move.l	(a1)+,.name
 	
@@ -3127,7 +3181,6 @@ saved_intena
 ; F6: draw hit zones
 ; F7: set out of time
 ; F8: player 1 wins
-; left-ctrl: fast-forward (no player controls during that)
 ; when going away:
 ; * reverse: medium block (shuto-uke)
 ; * forward: high block (utchi-uke)
@@ -3343,10 +3396,17 @@ level3_interrupt:
 	
     moveq.l #1,d0
     bsr _read_joystick
-    
+	cmp.w	#OPTION_WINUAE_JOYPAD,player_1_controls_option
+	bne.b	.sk1
+	bsr	correct_joystick_buttons
+.sk1 
+	lea		player_1(pc),a4
+	move.l	joystick_state(a4),previous_joystick_state(a4)
+    move.l  d0,joystick_state(a4)
+ 
     btst    #JPB_BTN_PLAY,d0
     beq.b   .no_second
-    move.l  player_1+joystick_state(pc),d2
+    move.l  previous_joystick_state(a4),d2
     btst    #JPB_BTN_PLAY,d2
     bne.b   .no_second
 
@@ -3358,18 +3418,22 @@ level3_interrupt:
     
     bsr		toggle_pause
 .no_second
-
-    move.l  d0,player_1+joystick_state
 	; player 2
 	lea		player_2(pc),a4
 	tst.b	is_cpu(a4)
 	bne.b	.cpu
     moveq.l #0,d0
 	
+	cmp.w	#OPTION_KEYBOARD,player_2_controls_option
+	beq.b	.no_joy2
 	tst.b	controller_joypad_0
 	beq.b	.no_joy2
 	
     bsr _read_joystick
+	cmp.w	#OPTION_WINUAE_JOYPAD,player_2_controls_option
+	bne.b	.sk2
+	bsr	correct_joystick_buttons
+.sk2	
     btst    #JPB_BTN_PLAY,d0
     beq.b   .store_p2_controls
     move.l  joystick_state(a4),d2
@@ -3385,7 +3449,22 @@ level3_interrupt:
     bsr		toggle_pause
 	bra.b	.store_p2_controls
 .no_joy2
+	bsr		read_keyboard
 
+.store_p2_controls
+    move.l	joystick_state(a4),previous_joystick_state(a4)
+    move.l  d0,joystick_state(a4)
+	
+.cpu
+    move.w  #$0020,(intreq,a5)
+    movem.l (a7)+,d0-a6
+    rte
+.blitter
+    move.w  #$0040,(intreq,a5) 
+    movem.l (a7)+,d0-a6
+    rte
+
+read_keyboard
 	; keyboard for player 2
     lea keyboard_table(pc),a0
     tst.b   ($40,a0)    ; up key
@@ -3434,20 +3513,7 @@ level3_interrupt:
 	; set RIGHT
     bset    #JPB_BTN_RIGHT,d0
 .no_right_2   
-.store_p2_controls
-    move.l  d0,joystick_state(a4)
-	
-.cpu
-    move.w  #$0020,(intreq,a5)
-    movem.l (a7)+,d0-a6
-    rte
-.blitter
-    move.w  #$0040,(intreq,a5) 
-    movem.l (a7)+,d0-a6
-    rte
 
-vbl_counter:
-    dc.w    0
 
 
 ; what: updates game state
@@ -3468,30 +3534,93 @@ update_all
     
     
 .game_start_screen
-    tst.l   state_timer
-    bne.b   .out
     addq.l   #1,state_timer
-.out
+
 	; check buttons
 	lea	player_1(pc),a4
+	move.l	#JPF_BTN_ALL,d2
 	move.l	joystick_state(a4),d0
-	btst	#JPB_BTN_RED,d0
+	move.l	previous_joystick_state(a4),d1
+	and.l	d2,d0
+	and.l	d2,d1
+	cmp.l	d0,d1
 	beq.b	.no_1p
 	; start game, 1 player only
 	move.w	#$0001,player_configuration
 	bra.b	.play
 .no_1p
+	tst.w	options_select
+	bne.b	.game_options
+	btst	#JPB_BTN_DOWN,d0
+	beq.b	.no_options
+	move.w	#1,options_select
+	clr.w	option_index
+	clr.l	state_timer
+.no_options
 	lea	player_2(pc),a4
 	move.l	joystick_state(a4),d0
-	btst	#JPB_BTN_RED,d0
+	move.l	previous_joystick_state(a4),d1
+	and.l	d2,d0
+	and.l	d2,d1
+	cmp.l	d0,d1
 	beq.b	.no_2p
-	
 	; start game, 2 players
 	move.w	#$0000,player_configuration
 .no_2p
     rts
 .play
 	move.w	#STATE_NEXT_LEVEL,current_state
+	rts
+	
+.game_options
+	move.l	state_timer(pc),d0
+	cmp.l	#2,d0
+	; wait a few frames to be able to
+	; get a reliable previous joystick state	
+	bcs.b	.out
+	lea		player_1(pc),a4
+	move.l	joystick_state(a4),d0
+	cmp.l	previous_joystick_state(a4),d0
+	beq.b	.out		; same inputs: skip
+	btst	#JPB_BTN_UP,d0
+	beq.b	.no_up
+	subq.w	#1,option_index
+	bpl.b	.okup
+	move.w	#1,option_index
+.okup
+.no_up
+	btst	#JPB_BTN_DOWN,d0
+	beq.b	.no_down
+	addq.w	#1,option_index
+	cmp.w	#2,option_index
+	bne.b	.okdown
+	move.w	#0,option_index
+.no_down
+.okdown
+	lea		options_values_list(pc),a1
+	move.w	option_index(pc),d2
+	add.w	d2,d2
+	add.w	d2,d2
+	move.l	(a1,d2.w),a0
+	move.w	(a0),d2
+	btst	#JPB_BTN_LEFT,d0
+	beq.b	.no_left
+	subq.w	#4,d2
+	bpl.b	.okstore
+	move.w	#OPTION_CONTROLS_LAST,d2
+	bra.b	.okstore
+.no_left
+	btst	#JPB_BTN_RIGHT,d0
+	beq.b	.no_right
+	addq.w	#4,d2
+	cmp.w	#OPTION_CONTROLS_LAST+1,d2
+	bcs.b	.okstore
+	moveq	#0,d2
+.okstore
+	move.w	d2,(a0)
+	bsr		update_options_string
+.no_right
+.out
 	rts
 	
 .next_round
@@ -3591,7 +3720,7 @@ update_normal:
 	; check if fire is pressed after 1 second playing music
 	; if pressed, skip sequence
 	move.l	player_1+joystick_state(pc),d2
-	btst	#JPB_BTN_RED,d2
+	and.l	#JPF_BTN_ALL,d2
 	beq.b	.pout
 	bsr.b	.do_erase_girl
 	move.w	#START_ROUND_NB_TICKS-50,pause_round_timer		; begin
@@ -3708,23 +3837,21 @@ update_break
 	move.w	planks_that_will_break(pc),d2
 	beq.b	.no_award
 	
-	add.w	d2,d2
-	add.w	d2,d2
-	cmp.w	#40,d2
+	cmp.w	#10,d2
 	bne.b	.not_max
-	; referee: very good
+	; referee: very good: double score
 	add.w	d2,d2
 	bsr		referee_says_very_good
 .not_max
-	lea		hundreds_score_table(pc),a0
-	move.l	(a0,d2.w),d0
+	clr.l	d0
+	move.l	d2,d0
 	bsr		add_to_score
 
 	move.w	#DEMO_X_CONTROLS+40,d0
 	move.w	#DEMO_Y_CONTROLS-1,d1
 
 	; show sprite
-	cmp.w	#80,d2
+	cmp.w	#20,d2
 	bne.b	.no_2000
 	; 2 or 3 thousand. 2000 or 3000 is too wide for 16 bits
 	; we're using 2 sprites of the same palette 0 and 1
@@ -3989,6 +4116,7 @@ judge_decision:
 	tst.w	time_left
 	bne.b	.round_ended
 	lea		do_lose(pc),a0
+	st.b	manual_animation(a2)
 	move.l	a0,current_move_callback(a2)
 	bra.b	.round_ended
 .p1_wins
@@ -4048,8 +4176,11 @@ update_practice
     lea     player_1(pc),a4
 	move.l	joystick_state(a4),d0
 	; check if FIRE is pressed
-	btst	#JPB_BTN_RED,D0
+	and.l	#JPF_BTN_ALL,d0
 	beq.b	.no_skip
+	move.l	previous_joystick_state(a4),d0
+	and.l	#JPF_BTN_ALL,d0
+	bne.b	.no_skip
 	move.w	#GM_NORMAL,level_type
 	move.w	#STATE_NEXT_LEVEL,current_state
 .no_skip
@@ -4298,7 +4429,7 @@ BOUNCE_Y_MAX = 48
 	move.w	d0,y_speed(a4)
 	move.w	d1,ypos(a4)
 	move.w	xpos(a4),d0
-	subq.w	#4,d0
+	subq.w	#3,d0
 	cmp.w	#-32,d0
 	bgt.b	.ok
 	move.w	#SCREEN_WIDTH-16,d0
@@ -4453,7 +4584,7 @@ update_player
     tst.b   demo_mode
     beq.b   .no_demo
     ; if fire is pressed, end demo, goto start screen
-    btst    #JPB_BTN_RED,d0
+	and.l	#JPF_BTN_ALL,d0
     beq.b   .no_demo_end
     clr.b   demo_mode
     move.w  #STATE_GAME_START_SCREEN,current_state
@@ -5002,7 +5133,7 @@ fill_opponent_practice
 	cmp.l	d0,d1
 	bne.b	.not_same
 	; same move: award points
-	move.l	#200,d0
+	move.l	#2,d0
 	bsr		add_to_score
 	moveq.l	#2,d0
 	bsr		show_awarded_score
@@ -5093,10 +5224,8 @@ check_collisions:
 	move.w	d0,d1		; save score in d1
 	
 	bsr		show_awarded_score
-	lea		hundreds_score_table(pc),a1
-	add.w	d1,d1
-	add.w	d1,d1
-	move.l	(a1,d1.w),d0
+	moveq.l	#0,d0
+	move.w	d1,d0
 	bsr		add_to_score	
 .no_scoring
 
@@ -6735,7 +6864,29 @@ play_fx
 .no_sound
     rts
    
-
+; what: switch bits if WinUAE
+; < D0: joystick bits just read
+; trashes: D1
+correct_joystick_buttons
+	moveq	#0,d1
+	bclr	#JPB_BTN_GRN,d0
+	beq.b	.no_down
+	bset	#JPB_BTN_ADOWN,d1
+.no_down
+	bclr	#JPB_BTN_RED,d0
+	beq.b	.no_left
+	bset	#JPB_BTN_ALEFT,d1
+.no_left
+	bclr	#JPB_BTN_YEL,d0
+	beq.b	.no_right
+	bset	#JPB_BTN_ARIGHT,d1
+.no_right
+	bclr	#JPB_BTN_BLU,d0
+	beq.b	.no_up
+	bset	#JPB_BTN_AUP,d1
+.no_up
+	or.l	d1,d0
+	rts
 
 get_player_distance
 	cmp.w	#GM_NORMAL,level_type
@@ -7018,7 +7169,17 @@ gfxbase_copperlist
 
 break_table_pointer
 	dc.l	0
+options_select
+	dc.w	0
+option_index
+	dc.w	0
 
+vbl_counter:
+    dc.w    0	
+player_1_controls_option:
+	dc.w	0
+player_2_controls_option:
+	dc.w	0
 show_challenge_message
 	dc.w	0
 challenge_blink_timer
@@ -7064,24 +7225,30 @@ high_score_highlight_color_table
     dc.w    $0F0
     dc.w    $FF0
     dc.w    $FFF
+	; scores are always a multiple of 100
+	; so let's avoid the multiplication
 high_score
-    dc.l    DEFAULT_HIGH_SCORE
+	IFD		HIGHSCORES_TEST
+    dc.l    20
+	ELSE
+	dc.l	200
+	ENDC
 	dc.l	$DEADBEEF
 hiscore_table:
 	IFD		HIGHSCORES_TEST
-	dc.l	2000,"AAA4"
-	dc.l	1500,"BBB3"
-	dc.l	1400,"CCC3"
-	dc.l	1300,"DDD2"
-	dc.l	1200,"EEE2"
-	dc.l	1000,"FFF2"
+	dc.l	20,"AAA4"
+	dc.l	15,"BBB3"
+	dc.l	14,"CCC3"
+	dc.l	13,"DDD2"
+	dc.l	12,"EEE2"
+	dc.l	10,"FFF2"
 	ELSE
-	dc.l	20000,"JFF4"
-	dc.l	18000,"NO93"
-	dc.l	16000,"WHD3"
-	dc.l	14000,"TWI2"
-	dc.l	12000,"EAB2"
-	dc.l	10000,"hhh2"
+	dc.l	200,"JFF4"
+	dc.l	180,"NO93"
+	dc.l	160,"WHD3"
+	dc.l	140,"TWI2"
+	dc.l	120,"EAB2"
+	dc.l	100,"hhh2"
 	ENDC
 
 intro_frame_index
@@ -7248,16 +7415,14 @@ space:
     
 hiscore_string
 	dc.b	"HISCORE",0
-zero_string
-	dc.b	"0",0
+double_zero_string
+	dc.b	"00",0
 p1_string
     dc.b    "1UP",0
 p2_string
     dc.b    "2UP",0
 up_clear
 	dc.b	"   ",0
-score_string
-    dc.b    "       00",0
 game_over_string
     dc.b    "GAME##OVER",0
 player_one_string
@@ -7267,13 +7432,64 @@ player_one_string_clear
     even
 ; game main tables
 
-	; for the intro
-	include	parabol.s
+start_message_list
+	dc.w	24,80
+	dc.l	press_1p_button_for_message 
+	dc.w	24+32,80+16
+	dc.l	single_play_message 
+	dc.w	24,80+32
+	dc.l	press_2p_button_for_message 
+	dc.w	16,80+48
+	dc.l	twin_play_message 
+	dc.w	0,80+72
+	dc.l	options_message 
+	dc.w	152,249
+	dc.l	credit_message 
+	dc.w	-1
 	
-hundreds_score_table:
-	REPT	31	; up to 3000
-	dc.l	100*REPTN
-	ENDR
+options_message_list
+	dc.w	8,80
+	dc.l	controls_1p_message
+	dc.w	8,80+16
+	dc.l	controls_2p_message
+	dc.w	-1
+options_credit_message_list
+	dc.w	8,200
+	dc.l	credits_1_message
+	dc.w	8,200+16
+	dc.l	credits_2_message
+	dc.w	8,200+32
+	dc.l	credits_3_message
+	dc.w	-1
+	
+options_values_strings_list
+	dc.w	24+80,80
+	dc.l	0
+	dc.w	24+80,80+16
+	dc.l	0
+	dc.w	-1
+	
+option_name_table
+	dc.l	option_winuae_joypad
+	dc.l	option_cd32_joypad
+	dc.l	option_two_joysticks
+	dc.l	option_keyboard
+	
+options_values_list
+	dc.l	player_1_controls_option
+	dc.l	player_2_controls_option
+	
+practice_message_list
+	dc.w	56,112
+	dc.l	blank_13_message
+	dc.l	if_you_do_not_message 
+	dc.w	32,112+16
+	dc.l	blank_19_message
+	dc.l	want_practice_press_message 
+	dc.w	32,112+32
+	dc.l	blank_19_message
+	dc.l	player_start_button_message 
+	dc.w	-1
 	
 score_table_white
 	dc.l	0
@@ -7424,6 +7640,15 @@ pos10
     dc.b    "10G",0
 pos10plus
 	dc.b	"CMP",0
+	
+option_winuae_joypad
+	dc.b	"WINUAE JOYPAD",0
+option_two_joysticks
+	dc.b	"2 JOYSTICKS",0
+option_cd32_joypad
+	dc.b	"CD32 JOYPAD",0
+option_keyboard
+	dc.b	"KEYBOARD",0
     even	
 ; generated with python
 ;for i in range(0,256):
@@ -7828,7 +8053,8 @@ girl_frame_timer
 girl_frame_index
 	dc.w	0
 player_configuration:
-	dc.l	0
+	dc.b	DIRECT_GAME_START_1P_IS_CPU
+	dc.b	DIRECT_GAME_START_2P_IS_CPU
 picked_practice_table:
 	dc.l	0
 current_practice_move_timer:
@@ -7859,6 +8085,16 @@ keyboard_table:
 floppy_file
     dc.b    "floppy",0
 
+controls_1p_message
+	dc.b	"P1 CONTROLS",0
+controls_2p_message
+	dc.b	"P2 CONTROLS",0
+credits_1_message
+	dc.b	"AMIGA VERSION 2022",0
+credits_2_message
+	dc.b	"CODE AND GFX: JOTD",0
+credits_3_message
+	dc.b	"MUSIC: NO9",0
 press_1p_button_for_message
 	dc.b	"PRESS 1P BUTTON FOR",0
 single_play_message
@@ -7867,6 +8103,8 @@ press_2p_button_for_message
 	dc.b	"PRESS 2P BUTTON FOR",0
 twin_play_message
 	dc.b	"FIGHT BETWEEN PLAYERS",0
+options_message
+	dc.b	"PRESS 1P DOWN FOR OPTIONS",0
 credit_message
 	dc.b	"CREDIT 99",0
 if_you_do_not_message
