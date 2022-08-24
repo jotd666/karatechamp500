@@ -86,6 +86,10 @@
 ; 0x17: front sommersault
 ; 0x18: foot sweep (front)
 
+; difficulty level only has an effect before "CMP" levels
+; in CMP (champ) level, difficulty dip switches are ignored,
+; game is just super fast and super hard
+
 ; TODO:
 
 ; * record all moves to .avi and extract all pics from level 2 C02D = F: done
@@ -7678,14 +7682,15 @@ player_management_routine_46FD:
 4743: 3A 10 63    ld   a,(computer_skill_C910)
 4746: FE 10       cp   $10
 4748: 3E FE       ld   a,$FE
-474A: D2 D6 4D    jp   nc,$477C	; if > $10 skip
-
+474A: D2 D6 4D    jp   nc,$477C	; if > $10 skip (CMP)
+; if not CMP, check difficulty level
 474D: 21 CD A7    ld   hl,$AD67
-4750: 3A 90 60    ld   a,($C030)
+4750: 3A 90 60    ld   a,(dip_switches_copy_C030)
 4753: CB 3F       srl  a
 4755: CB 3F       srl  a
 4757: CB 3F       srl  a
 4759: E6 0C       and  $06
+; difficulty level 00 easy ... 06 hardest
 475B: 5F          ld   e,a
 475C: 16 00       ld   d,$00
 475E: 19          add  hl,de
@@ -9046,8 +9051,8 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 5272: C4 D5 B0    call nz,display_error_text_B075
 5275: 3E 20       ld   a,$80
 5277: CD AE B0    call $B0AE
-527A: 3A 90 60    ld   a,($C030)
-527D: CB 7F       bit  7,a
+527A: 3A 90 60    ld   a,(dip_switches_copy_C030)
+527D: CB 7F       bit  7,a		; free play bit
 527F: CA 2D 58    jp   z,$5287
 5282: 3E 09       ld   a,$03
 5284: 32 84 60    ld   (nb_credits_minus_one_C024),a
@@ -9825,8 +9830,8 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 5839: E6 09       and  $03
 583B: FE 09       cp   $03
 583D: C2 B3 52    jp   nz,$58B9
-5840: 3A 90 60    ld   a,($C030)
-5843: CB 7F       bit  7,a
+5840: 3A 90 60    ld   a,(dip_switches_copy_C030)
+5843: CB 7F       bit  7,a	; free play
 5845: CA 47 52    jp   z,$584D
 5848: 3E 09       ld   a,$03
 584A: 32 84 60    ld   (nb_credits_minus_one_C024),a
@@ -23362,11 +23367,17 @@ ACD3: 3E 00       ld   a,$00
 ACD5: D2 1C A7    jp   nc,$AD16		; if level >= $10, skip the routine altogether
 
 ; this is called when skill level is < CMP ($10 = 10 in bcd ??)
-ACD8: 3A 90 60    ld   a,($C030)
+; game checks difficulty level at that point
+; (in CMP mode it doesn't matter)
+ACD8: 3A 90 60    ld   a,(dip_switches_copy_C030)
 ACDB: CB 3F       srl  a
 ACDD: CB 3F       srl  a
 ACDF: CB 3F       srl  a
 ACE1: E6 0C       and  $06
+; a = 0: difficulty: easy
+; a = 2: difficulty: medium
+; a = 4: difficulty: hard
+; a = 6: difficulty: hardest
 ACE3: 06 00       ld   b,$00
 ACE5: 4F          ld   c,a
 ACE6: 09          add  hl,bc
@@ -24097,7 +24108,7 @@ B060: C3 D8 BB    jp   $BB72
 B063: C3 DA BB    jp   $BB7A
 B066: C3 28 BB    jp   check_coin_ports_BB82
 B069: C3 28 BB    jp   check_coin_ports_BB82
-B06C: C3 38 BB    jp   $BB92
+B06C: C3 38 BB    jp   get_dip_switches_BB92
 B06F: C3 3C BB    jp   $BB96
 B072: C3 B5 BB    jp   $BBB5
 B075: C3 2C B1    jp   display_error_text_B186
@@ -25557,7 +25568,7 @@ BA93: C2 A3 BA    jp   nz,$BAA9
 BA96: DD 34 01    inc  (ix+$01)
 BA99: 3E 80       ld   a,$20
 BA9B: CD 7F BB    call $BBDF
-BA9E: 3A 90 60    ld   a,($C030)
+BA9E: 3A 90 60    ld   a,(dip_switches_copy_C030)
 BAA1: E6 09       and  $03
 BAA3: 21 85 60    ld   hl,$C025
 BAA6: CD EC BA    call $BAE6
@@ -25569,7 +25580,7 @@ BAB3: C2 67 BA    jp   nz,$BACD
 BAB6: DD 34 08    inc  (ix+$02)
 BAB9: 3E 80       ld   a,$20
 BABB: CD 7F BB    call $BBDF
-BABE: 3A 90 60    ld   a,($C030)
+BABE: 3A 90 60    ld   a,(dip_switches_copy_C030)
 BAC1: CB 3F       srl  a
 BAC3: CB 3F       srl  a
 BAC5: E6 09       and  $03
@@ -25642,8 +25653,8 @@ BB56: D5          push de
 BB57: CD E5 FC    call $F6E5
 BB5A: 3E 08       ld   a,$02
 BB5C: 32 60 60    ld   ($C0C0),a
-BB5F: CD 38 BB    call $BB92
-BB62: 32 90 60    ld   ($C030),a
+BB5F: CD 38 BB    call get_dip_switches_BB92
+BB62: 32 90 60    ld   (dip_switches_copy_C030),a
 BB65: AF          xor  a
 BB66: CD 80 BC    call $B620
 BB69: 3E 20       ld   a,$80
@@ -25653,6 +25664,7 @@ BB6E: C9          ret
 write_a_in_port_0_BB6F:
 BB6F: D3 00       out  ($00),a
 BB71: C9          ret
+
 BB72: 3E 00       ld   a,$00
 BB74: D3 00       out  ($00),a
 BB76: 32 91 60    ld   ($C031),a
@@ -25662,21 +25674,50 @@ BB7C: D3 00       out  ($00),a
 BB7E: 32 91 60    ld   ($C031),a
 BB81: C9          ret
 
+; read system port
 BB82: C5          push bc
 BB83: DB 20       in   a,($80)
 BB85: 2F          cpl
+; only 4 first bits are used
+;	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
+;	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
+;	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_START1 )
+;	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START2 )
 BB86: E6 0F       and  $0F
 BB88: 47          ld   b,a
 BB89: 0F          rrca
 BB8A: 0F          rrca
-BB8B: E6 60       and  $C0
+BB8B: E6 60       and  $C0	; coin inserted bits
 BB8D: B0          or   b
 BB8E: E6 66       and  $CC
 BB90: C1          pop  bc
 BB91: C9          ret
 
-BB92: DB 60       in   a,($C0)
-BB94: 2F          cpl
+; get dip switches
+	;PORT_START("DSW")
+	;PORT_DIPNAME( 0x03, 0x03, DEF_STR( Coin_B ) )
+	;PORT_DIPSETTING(    0x00, DEF_STR( 3C_1C ) )
+	;PORT_DIPSETTING(    0x01, DEF_STR( 2C_1C ) )
+	;PORT_DIPSETTING(    0x03, DEF_STR( 1C_1C ) )
+	;PORT_DIPSETTING(    0x02, DEF_STR( 1C_2C ) )
+	;PORT_DIPNAME( 0x0c, 0x0c, DEF_STR( Coin_A ) )
+	;PORT_DIPSETTING(    0x00, DEF_STR( 3C_1C ) )
+	;PORT_DIPSETTING(    0x04, DEF_STR( 2C_1C ) )
+	;PORT_DIPSETTING(    0x0c, DEF_STR( 1C_1C ) )
+	;PORT_DIPSETTING(    0x08, DEF_STR( 1C_2C ) )
+	;PORT_DIPNAME( 0x30, 0x10, DEF_STR( Difficulty ) )
+	;PORT_DIPSETTING(    0x30, DEF_STR( Easy ) )
+	;PORT_DIPSETTING(    0x20, DEF_STR( Medium ) )
+	;PORT_DIPSETTING(    0x10, DEF_STR( Hard ) )
+	;PORT_DIPSETTING(    0x00, DEF_STR( Hardest ) )
+	;PORT_DIPNAME( 0x40, 0x00, DEF_STR( Demo_Sounds ) )
+	;PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
+	;PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	;PORT_DIPNAME( 0x80, 0x80, DEF_STR( Free_Play ) )
+	;PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
+	;PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+get_dip_switches_BB92: DB 60       in   a,($C0)
+BB94: 2F          cpl	; invert bits (active low logic)
 BB95: C9          ret
 
 BB96: 3A 87 60    ld   a,(player_2_is_cpu_flags_C02D)
@@ -25696,8 +25737,8 @@ BBB2: 07          rlca
 BBB3: 07          rlca
 BBB4: C9          ret
 BBB5: F5          push af
-BBB6: 3A 90 60    ld   a,($C030)
-BBB9: CB 77       bit  6,a
+BBB6: 3A 90 60    ld   a,(dip_switches_copy_C030)
+BBB9: CB 77       bit  6,a		; demo sounds enabled
 BBBB: C2 6C BB    jp   nz,$BBC6
 BBBE: 3A 87 60    ld   a,(player_2_is_cpu_flags_C02D)
 BBC1: E6 09       and  $03

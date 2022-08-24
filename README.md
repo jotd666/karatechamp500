@@ -4,23 +4,16 @@ if crouch when end of foot sweep (back or front)
 then connect to crouch
 crouch connects to reverse punch: implemented? check
 
-jump special case just for jumping side kick (connect from jump)
-jumping side kick y looks wrong: fix later (from video)
-jump not correct
-foot sweep on left displays on the right too  
 				
 rip girls side/end
 rip evade obstacles (stone, breaking it, breaking plank)
 rip evade sound
 
-forward close walk animation is broken
-optimization: do not check hits if player distance is too high
 
 
 player 2 joypad controls
 
 
-check_if_facing_each_other not working
 
 if py<(py_start-32) (not jumping)
 if going left and 0<px-px_other<threshold, don't move left
@@ -29,13 +22,24 @@ if going right and 0<px_other-px<threshold
 at each update)
 
 
-- check back blow facing/not facing
+- jump special case just for jumping side kick (connect from jump)
+- check back blow facing/not facing (check_if_facing_each_other not working)
 - draw priority to the player which has an active hit to deliver (if possible)
 
+bull
+evade
 cheatkey to allow being hit without falling, keep fighting
 
 bugs
 
+- win fight: dyn colors get zeroed
+- break planks sometimes breaks planks while away
+- jumping side kick y looks wrong: fix later (from video)
+- jump not correct
+- bull add restore bg on right
+- foot sweep on left displays on the right too  
+- forward close walk animation is broken
+- optimization: do not check hits if player distance is too high
 - against CPU player performs blocks without reason
 - some blows don't connect (both players same direction): check debug pic
 - when hit, player falls too fast
@@ -52,5 +56,3 @@ bugs
 - player2 start not working
 
 
-bull
-evade

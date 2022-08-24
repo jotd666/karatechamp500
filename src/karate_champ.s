@@ -196,8 +196,8 @@ HISCORE_FILE_SIZE = 6*8
 
 ; 
 ;START_SCORE = 1000/10
-START_LEVEL = 2
-START_LEVEL_TYPE = GM_BREAK
+;START_LEVEL = 2
+;START_LEVEL_TYPE = GM_BREAK
 
 ; temp if nonzero, then records game input, intro music doesn't play
 ; and when one life is lost, blitzes and a0 points to move record table
@@ -600,9 +600,9 @@ intro:
     clr.b   demo_mode
 .out_intro    
 
-
-    ;;move.w  #STATE_GAME_START_SCREEN,current_state
-    
+	bsr		stop_sounds
+    move.w  #STATE_GAME_START_SCREEN,current_state
+    clr.l	state_timer
 .release
     move.l  joystick_state(a4),d0
     btst    #JPB_BTN_RED,d0
@@ -1482,8 +1482,6 @@ init_players_and_referee:
 	move.w	#START_LEVEL_NB_TICKS,pause_round_timer
 	move.w	#RP_START_LEVEL,pause_round_type
 	move.w	#GIRL_ANIM_NB_TICKS,girl_frame_timer
-	clr.w	girl_frame_index
-
 .reinit_fight
 
     lea player_1(pc),a4
@@ -1508,6 +1506,12 @@ init_players_and_referee:
 .pract
 	bsr	get_level_params
 	
+	move.w	#-1,girl_frame_index
+	tst.l	girl_structure(a1)
+	beq.b	.no_girl
+	clr.w	girl_frame_index
+.no_girl
+
 	lea		walk_forward_frames,a0
 	bsr		load_walk_frame
 
@@ -2660,45 +2664,7 @@ draw_intro_screen
 	rts
 	
 
-    
-    rts
-.init2
-    bsr hide_sprites
-    bsr clear_screen
-    bsr draw_score
-    ; high scores
-    
-;    move.w  #40,d0
-;    move.w  #8,d1
-;    lea .score_ranking(pc),a0
-;    move.w  #$0F0,d2
-;    bsr     write_color_string
-    
-    ; write high scores & position
-    move.w  #24,D1
-
-.ws
-    move.w  #$FFF,d2    ; color
-    move.l  (a3)+,a0
-    move.w  #32,d0
-    bsr write_color_string
-    
-    move.w  d2,d4
-    move.w  #64,d0
-    move.l  (a4)+,d2
-    move.w  #7,d3
-    bsr write_color_decimal_number
-    
-
-    
-    add.w   #16,d1
-    dbf d5,.ws
-    
-    rts
-    
-
-.no_change
-    rts
+ 
 
 .first_intro_draw
     move.b  intro_step(pc),d0
@@ -2706,7 +2672,6 @@ draw_intro_screen
     beq.b   .init1
     ; second part: cpu vs cpu fake fight
     bsr hide_sprites
-	move.w	#$81,level_number	; bicolor simple screen
 	bsr	draw_background_pic
 	
 	
@@ -2714,7 +2679,6 @@ draw_intro_screen
 	
 .init1	
     bsr hide_sprites
-	move.w	#$80,level_number	; bicolor simple screen
 	bsr	draw_background_pic
 	lea	.point(pc),a0
 	move.w	#48,d0
@@ -4245,6 +4209,7 @@ update_intro_screen
 	rts
 	
 .intro_step_1
+	move.w	#$80,level_number	; bicolor simple screen
 	moveq.l	#MAIN_THEME_MUSIC,d0
 	bsr		play_music
 	; init bulls and players
@@ -4309,6 +4274,7 @@ update_intro_screen
 	
 	rts
 .intro_step_2
+	move.w	#$81,level_number	; bicolor simple screen
 	clr.l	state_timer
 	move.b	#2,intro_step
 	bsr		init_players_and_referee
@@ -7967,7 +7933,7 @@ hiscore_screen
 title_screen
 	dc.l	pl_title
 	dc.l	0		; no girl
-	dc.w	32
+	dc.w	40
 	dc.w	160
 	dc.w	0
 	dc.w	0
