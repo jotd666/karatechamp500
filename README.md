@@ -31,20 +31,19 @@ bull
 evade
 cheatkey to allow being hit without falling, keep fighting
 
+
+block_lock(a4) cleared in move away to smth else transition
+
 bugs
 
-- hit x coord top x right: kills opponent
-- hits don't register anymore!
 - game start: doesn't see previous joy button, then check - player2 start not working
 - break planks sometimes breaks planks while away
 - jumping side kick y looks wrong: fix later (from video)
 - jump not correct
 - bull add restore bg on right
 - optimization: do not check hits if player distance is too high
-- player performs blocks without reason when going back
 - some blows don't connect (both players same direction): check debug pic
 - when hit, player falls too fast
-- weak reverse when distance is small: not working
 - final timer countdown: should wait a bit after countdown
 - animation for win sequence to fix: manual anim +16/-16 with erase
 - 2 player mode - 1ST - => 1ST   1ST non-cpu player with

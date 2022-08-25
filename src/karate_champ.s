@@ -161,7 +161,33 @@ PLAYERS_START_CLOSE
 ;SHORT_PRACTICE
 ; repeat a long time just to test moves
 ;REPEAT_PRACTICE = 10
+; change default round time
+ROUND_TIME = 99
 
+; test bonus screen 
+;BONUS_SCREEN_TEST
+
+;HIGHSCORES_TEST
+
+; 
+;START_SCORE = 1000/10
+;START_LEVEL = 2
+;START_LEVEL_TYPE = GM_BREAK
+
+; temp if nonzero, then records game input, intro music doesn't play
+; and when one life is lost, blitzes and a0 points to move record table
+; a1 points to the end of the table
+; 100 means 100 seconds of recording at least (not counting the times where
+; the player (me :)) isn't pressing any direction at all.
+;RECORD_INPUT_TABLE_SIZE = 100*ORIGINAL_TICKS_PER_SEC
+; 1 or 2, 2 is default, 1 is to record level 1 demo moves
+;INIT_DEMO_LEVEL_NUMBER = 1
+; set this to create full colision matrix & blitz with a0 loaded with
+; matrix: S matrix ra0 !160*!55
+DEBUG_COLLISIONS
+
+
+; ******************** end test defines *********************************
 
 
 ; do NOT change those enums without changing the update/draw function tables
@@ -201,32 +227,13 @@ POINTS_BOX_WIDTH_BYTES = 10
 POINTS_BOX_HEIGHT = 18
 
 HISCORE_FILE_SIZE = 6*8
-; test bonus screen 
-;BONUS_SCREEN_TEST
-
-;HIGHSCORES_TEST
-
-; 
-;START_SCORE = 1000/10
-;START_LEVEL = 2
-;START_LEVEL_TYPE = GM_BREAK
-
-; temp if nonzero, then records game input, intro music doesn't play
-; and when one life is lost, blitzes and a0 points to move record table
-; a1 points to the end of the table
-; 100 means 100 seconds of recording at least (not counting the times where
-; the player (me :)) isn't pressing any direction at all.
-;RECORD_INPUT_TABLE_SIZE = 100*ORIGINAL_TICKS_PER_SEC
-; 1 or 2, 2 is default, 1 is to record level 1 demo moves
-;INIT_DEMO_LEVEL_NUMBER = 1
-; set this to create full colision matrix & blitz with a0 loaded with
-; matrix: S matrix ra0 !160*!55
-;DEBUG_COLLISIONS
-
-; ******************** end test defines *********************************
 
 ; don't change the values below, change them above to test!!
 
+	IFND	ROUND_TIME
+ROUND_TIME = 30
+	ENDC
+	
 	IFND	DIRECT_GAME_START_1P_IS_CPU
 DIRECT_GAME_START_1P_IS_CPU = 0
 	ENDC
@@ -364,7 +371,7 @@ STATE_GAME_START_SCREEN = 7*4
 X_MIN = 0
 X_MAX = SCREEN_WIDTH-48
 GUARD_X_DISTANCE = 64		; to confirm
-MIN_FRONT_KICK_DISTANCE = 20 ; to confirm
+MIN_FRONT_KICK_DISTANCE = 40 ; to confirm
 BLOCK_X_DISTANCE = 48		; roughly
 ; jump table macro, used in draw and update
 DEF_STATE_CASE_TABLE:MACRO
@@ -1516,7 +1523,7 @@ init_players_and_referee:
 	beq.b	.reinit_fight		; reinit fight
 	; round/level
 	
-	move.w	#30,time_left
+	move.w	#ROUND_TIME,time_left
 	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
 	; new round: clear scored points
 	lea		player_1(pc),a4
@@ -4846,7 +4853,10 @@ transition_table
 
 trans_all_zero:
 	; nothing changed, everything is zero and was zero
+	; no move: no more block
+	clr.w	block_lock(a4)
 	rts
+	
 trans_new_simple_attack
 	; attack with only buttons (right joy)
 	clr.b	d6	; cancel possible rollback
@@ -4869,12 +4879,18 @@ trans_simple_attack_held
 	clr.b	d6		; cancels possible rollback
 	rts
 trans_move_held
+	; move held: no previous or current attack
+	clr.b	d6
+	rts
 trans_new_move
+	; new move: no more block
+	clr.w	block_lock(a4)
 	; new move, no previous or current attack
 	clr.b	d6
 	rts
 trans_move_dropped
 	; don't cancel possible rollback
+	clr.w	block_lock(a4)
 
 	rts
 	
@@ -5092,6 +5108,9 @@ move_player:
 	beq.b	.out
 	cmp.w	#GM_BREAK,level_type
 	beq.b	.out
+	; animation end: cancel current hit height
+	; (else opponents keeps on blocking)
+	;;clr.w	current_hit_height(a4)
 	move.w	hit_by_blow(a4),d0
 	cmp.w	#BLOW_NONE,d0
 	beq.b	.alive
@@ -5154,7 +5173,7 @@ check_hit
 	IFD	DEBUG_COLLISIONS
 	; debug it: save it here: S matrix ra0 !160*!55
 	lea		collision_matrix,a0
-	blitz	; so we can dump the matrix
+	LOGPC	110	; so we can dump the matrix
 	ENDC
 .is_hit
 .no_collision
@@ -5165,7 +5184,9 @@ check_hit
 	; recieve a blow)
 	move.w	#BLOW_NONE,current_blow_type(a4)
 	move.w	#BLOW_NONE,current_back_blow_type(a4)
-
+	; as soon as the blow has been tested & failed,
+	; cancel hit height
+	move.w	#HEIGHT_NONE,current_hit_height(a4)
 .no_hit
 	rts
 
@@ -5175,12 +5196,12 @@ clear_collision_matrix:
 	; first, clear collision matrix
 	
 	move.l	#(collision_matrix_buffer_end-collision_matrix_buffer)/8-1,d0
-	lea		collision_matrix_buffer,a1
-	move.l	a1,a0
+	lea		collision_matrix_buffer,a0
 .clr
-	clr.l	(a1)+
-	clr.l	(a1)+
+	clr.l	(a0)+
+	clr.l	(a0)+
 	dbf		d0,.clr
+	lea		collision_matrix,a0
 	rts
 	
 fill_opponent_routine_table:
@@ -5261,7 +5282,6 @@ check_collisions:
 	; which depends on the original size: manual fix
 	move.l	current_move_header(a4),a5
 	add.w	(hit_left_shift,a5),d3
-	bmi.b	.done	; too_far_left
 .do_check:
 	lea		mulCOLLISION_NB_COLS_table(pc),a5
 .do_check_loop:
@@ -5273,14 +5293,20 @@ check_collisions:
 	neg.w	d0
 .pos
 	add.w	d3,d0
+	bmi.b	.do_check_loop	; x negative: disregard
 	add.w	d4,d1
-	; divide
+	; divide X and Y by 2 now
 	lsr.w	#1,d0
-	bclr	#0,d1	; avoids to shift right then left
+	; avoids to shift right then left (d1*2 to access mul table
+	bclr	#0,d1
 	lea		collision_matrix,a0
 	add.w	(a5,d1.w),a0
 	add.w	d0,a0
 	IFD	DEBUG_COLLISIONS
+	tst.b	(a0)
+	beq.b	.no_hit
+	move.w	#$F00,$DFF180
+.no_hit
 	move.b	#2,(a0)		; debug: mark map
 	ELSE
 	tst.b	(a0)
@@ -5655,7 +5681,6 @@ draw_player:
 	
 	; plane 1: clothes data as white
 	move.w	xpos(a4),D0
-	move.w	d0,previous_xpos(a4)
 	cmp.w	#RIGHT,direction(a4)
 	beq.b	.no_offset
 	move.w	d2,d3
@@ -5666,6 +5691,7 @@ draw_player:
 	moveq.l	#0,d0
 .no_offset
 
+	move.w	d0,previous_xpos(a4)
 	move.w	ypos(a4),D1
 	move.w	d1,previous_ypos(a4)
 	moveq.l #-1,d3	;masking of first/last word    
@@ -7186,6 +7212,7 @@ do_move_forward:
 do_move_back:
 	tst.b	is_cpu(a4)
 	bne.b	normal_backing_away	; CPU chooses if must block
+
 	move.w	block_lock(a4),d1
 	bne.b	.locked
 	bsr		get_player_distance
