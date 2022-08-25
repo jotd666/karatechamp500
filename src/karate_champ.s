@@ -61,6 +61,8 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	direction   ; sprite orientation
 	UWORD	previous_xpos
 	UWORD	previous_ypos
+	UWORD	previous_nb_bytes_per_row
+	UWORD	previous_height
 	UWORD	previous_bubble_xpos
 	UWORD	previous_bubble_ypos
 	UWORD	previous_bubble_width
@@ -306,6 +308,7 @@ ORIGINAL_TICKS_PER_SEC = 60
 
 NB_BYTES_PER_LINE = 40
 NB_BYTES_PER_BACKBUFFER_LINE = 28
+NB_BYTES_BORDER = 2  ; (NB_BYTES_PER_LINE-NB_BYTES_PER_BACKBUFFER_LINE)/2
 BOB_16X16_PLANE_SIZE = (16/8+2)*16
 BOB_64X64_PLANE_SIZE = (64/8+2)*64		; 64x48 pixels
 BOB_8X8_PLANE_SIZE = 16
@@ -358,8 +361,8 @@ STATE_NEXT_ROUND = 5*4
 STATE_INTRO_SCREEN = 6*4
 STATE_GAME_START_SCREEN = 7*4
 
-X_MIN = 20
-X_MAX = 200
+X_MIN = 0
+X_MAX = SCREEN_WIDTH-48
 GUARD_X_DISTANCE = 64		; to confirm
 MIN_FRONT_KICK_DISTANCE = 20 ; to confirm
 BLOCK_X_DISTANCE = 48		; roughly
@@ -520,7 +523,7 @@ Start:
     
     moveq #NB_PLANES-1,d4
     lea	bitplanes,a0              ; adresse de la Copper-List dans a0
-    move.l #screen_data,d1
+    move.l #screen_data_real_start,d1
     move.w #bplpt,d3        ; premier registre dans d3
 
 		; 8 bytes per plane:32 + end + bplcontrol
@@ -548,8 +551,8 @@ Start:
 ;playfield init
 	
 	; one of ross' magic value so the screen is centered
-    move.w #$30a1,diwstrt(a5)
-    move.w #$3081,diwstop(a5)	; was 3091 for scramble here it's narrower
+    move.w #$3081,diwstrt(a5)
+    move.w #$3091,diwstop(a5)	; was 3091 for scramble here it's narrower
     move.w #$0048,ddfstrt(a5)
     move.w #$00B8,ddfstop(a5)
 
@@ -839,19 +842,6 @@ wait_bof
 	move.l	(a7)+,d0
 	rts    
     
-clear_debug_screen
-    movem.l d0-d1/a1,-(a7)
-    lea	screen_data+SCREEN_PLANE_SIZE*3,a1 
-    move.w  #NB_LINES-1,d1
-.c0
-    move.w  #NB_BYTES_PER_LINE/4-1,d0
-.cl
-    clr.l   (a1)+
-    dbf d0,.cl
-    
-    dbf d1,.c0
-    movem.l (a7)+,d0-d1/a1
-    rts
     
 clear_screen
     lea screen_data,a1
@@ -1214,7 +1204,7 @@ draw_score:
 	eor.b	#1,player_up_displayed_flag
 	beq.b	.clear
 	; display 1UP and/or 2UP
-	move.w	#$FFF,d2		; black
+	move.w	#$FFF,d2
 	; clear 1UP and 2UP
 	tst.b	is_cpu+player_1
 	bne.b	.nop1w
@@ -1370,7 +1360,7 @@ draw_2_upper_points
 	add.w	#40,d0
 	move.w	d0,d3
 	move.w	#16,d1
-	bsr		write_color_string
+	bsr		write_blanked_color_string
 	
 	move.w	#POINT_EMPTY_COLOR,d2	
 	cmp.w	#4,d4
@@ -1380,7 +1370,7 @@ draw_2_upper_points
 
 	sub.w	#8,d3
 	move.w	d3,d0
-	bsr		write_color_string
+	bsr		write_blanked_color_string
 	movem.l	(a7)+,d0-d4
 	rts
 	
@@ -1394,7 +1384,7 @@ draw_lower_point
 	add.w	#32,d0
 	move.w	d0,d3
 	move.w	#24,d1
-	bra		write_color_string
+	bra		write_blanked_color_string
 one_ellipse
 		dc.b	"o",0
  		even
@@ -1519,6 +1509,7 @@ init_referee:
 init_players_and_referee:
 	move.w	#START_ROUND_NB_TICKS,pause_round_timer
 	move.w	#RP_START_ROUND,pause_round_type
+	bsr	get_level_params	; level params in A1
 
 	move.w	players_reinit_flag(pc),d0
 	tst	d0
@@ -1536,6 +1527,13 @@ init_players_and_referee:
 	cmp.w	#1,d0
 	beq.b	.reinit_fight
 	; new level
+	
+	move.w	#-1,girl_frame_index
+	tst.l	girl_structure(a1)
+	beq.b	.no_girl
+	clr.w	girl_frame_index
+.no_girl
+
 	lea		player_1(pc),a4
 	clr.w	nb_rounds_won(a4)
 	lea		player_2(pc),a4
@@ -1566,17 +1564,9 @@ init_players_and_referee:
 	beq.b	.pract
 	move.w 	#LEFT,direction(a4)
 .pract
-	bsr	get_level_params
-	
-	move.w	#-1,girl_frame_index
-	tst.l	girl_structure(a1)
-	beq.b	.no_girl
-	clr.w	girl_frame_index
-.no_girl
 
 	lea		walk_forward_frames,a0
 	bsr		load_walk_frame
-
 
     lea player_1(pc),a4
 	IFD		PLAYERS_START_CLOSE
@@ -1681,26 +1671,29 @@ draw_debug
     lea player_1(pc),a2
     move.w  #DEBUG_X,d0
     move.w  #DEBUG_Y,d1
-    lea	screen_data+SCREEN_PLANE_SIZE,a1 
     lea .p1x(pc),a0
-    bsr write_string
+	move.w	#$FF0,d2
+    bsr write_blanked_color_string
     lsl.w   #3,d0
     add.w  #DEBUG_X,d0
     clr.l   d2
     move.w xpos(a2),d2
     move.w  #5,d3
-    bsr write_decimal_number
+	move.w	#$FF0,d4
+    bsr write_blanked_color_decimal_number
     move.w  #DEBUG_X,d0
     add.w  #8,d1
     move.l  d0,d4
     lea .p1y(pc),a0
-    bsr write_string
+ 	move.w	#$FF0,d4
+    bsr write_blanked_color_string
     lsl.w   #3,d0
     add.w  #DEBUG_X,d0
     clr.l   d2
     move.w ypos(a2),d2
     move.w  #3,d3
-    bsr write_decimal_number
+	move.w	#$FF0,d4
+    bsr write_blanked_color_string
     move.l  d4,d0
     ;;
     add.w  #8,d1
@@ -1711,13 +1704,15 @@ draw_debug
     clr.l   d2
     move.w current_frame_countdown(a2),d2
     move.w  #5,d3
-    bsr write_decimal_number
+	move.w	#$FF0,d4
+    bsr write_blanked_color_string
 
     move.w  #DEBUG_X,d0
     add.w  #8,d1
     move.l  d0,d4
     lea .ctrl(pc),a0
-    bsr write_string
+	move.w	#$FF0,d4
+    bsr write_blanked_color_string
     lsl.w   #3,d0
     add.w  #DEBUG_X,d0
     clr.l   d2
@@ -2322,7 +2317,6 @@ draw_normal:
 	bne.b	.no_start_level2
 	bsr	draw_girl
 .no_start_level2
-
 	tst.w	girl_frame_index
 	bpl.b	.no_referee
 	; girl showing, no referee
@@ -3311,8 +3305,6 @@ level2_interrupt:
     bne.b   .no_debug
     ; show/hide debug info
     eor.b   #1,debug_flag
-    ; clear left part of white plane screen
-    bsr     clear_debug_screen
     bra.b   .no_playing
 .no_debug
     cmp.b   #$54,d0     ; F5
@@ -3436,13 +3428,30 @@ level3_interrupt:
     movem.l (a7)+,d0-a6
     rte    
 .vblank
-	
-    moveq.l #1,d0
+	moveq.l	#0,d0
+	move.w	player_1_controls_option(pc),d2
+	cmp.w	#OPTION_KEYBOARD,d2
+	beq.b	.kb1
+	tst.b	controller_joypad_1
+	beq.b	.kb1
+	moveq.l	#1,d0
     bsr _read_joystick
-	cmp.w	#OPTION_WINUAE_JOYPAD,player_1_controls_option
+	cmp.w	#OPTION_TWO_JOYSTICKS,d2
+	bne.b	.no_2joy1
+	move.l	d0,d3		; save joy 1
+	moveq.l	#0,d0
+    bsr _read_joystick
+	bsr		convert_joystick_moves_to_buttons
+	or.l	d3,d0
+	bra.b	.sk1
+.no_2joy1
+	cmp.w	#OPTION_WINUAE_JOYPAD,d2
 	bne.b	.sk1
 	bsr	correct_joystick_buttons
-.sk1 
+	bra.b	.sk1
+.kb1
+	bsr		read_keyboard
+.sk1
 	lea		player_1(pc),a4
 	move.l	joystick_state(a4),previous_joystick_state(a4)
     move.l  d0,joystick_state(a4)
@@ -3465,17 +3474,20 @@ level3_interrupt:
 	lea		player_2(pc),a4
 	tst.b	is_cpu(a4)
 	bne.b	.cpu
-    moveq.l #0,d0
+	moveq.l	#0,d0
 	
 	cmp.w	#OPTION_KEYBOARD,player_2_controls_option
-	beq.b	.no_joy2
+	beq.b	.kb2
 	tst.b	controller_joypad_0
-	beq.b	.no_joy2
-	
+	beq.b	.kb2
+    moveq.l #0,d0
     bsr _read_joystick
 	cmp.w	#OPTION_WINUAE_JOYPAD,player_2_controls_option
 	bne.b	.sk2
 	bsr	correct_joystick_buttons
+	bra.b	.sk2
+.kb2
+	bsr		read_keyboard
 .sk2	
     btst    #JPB_BTN_PLAY,d0
     beq.b   .store_p2_controls
@@ -3490,9 +3502,7 @@ level3_interrupt:
     bne.b   .store_p2_controls
     
     bsr		toggle_pause
-	bra.b	.store_p2_controls
-.no_joy2
-	bsr		read_keyboard
+
 
 .store_p2_controls
     move.l	joystick_state(a4),previous_joystick_state(a4)
@@ -3556,7 +3566,7 @@ read_keyboard
 	; set RIGHT
     bset    #JPB_BTN_RIGHT,d0
 .no_right_2   
-
+	rts
 
 
 ; what: updates game state
@@ -4173,6 +4183,7 @@ judge_decision:
 	bne.b	.round_ended
 	; win by judge decision on timeout
 	lea		do_lose(pc),a0
+	st.b	manual_animation(a3)
 	move.l	a0,current_move_callback(a3)
 	bra.b	.round_ended
 .tie
@@ -4790,19 +4801,10 @@ update_player
 	; call move routine
 	jsr		(a0)	
 .skip
-	; correct x afterwards
-	move.w	xpos(a4),d0
-	cmp.w	#X_MAX+1,d0
-	bcs.b	.ok_max
-	move.w	#X_MAX,xpos(a4)
-	bra.b	.ok_min
-.ok_max
-	cmp.w	#X_MIN+1,d0
-	bcc.b	.ok_min
-	move.w	#X_MIN,xpos(a4)
-.ok_min
 .out
-    rts
+   rts
+
+
 
 ; < d1: current controls
 ; < d2: previous controls
@@ -4918,7 +4920,48 @@ show_score_sprite
 	move.l	score_sprite(a4),a0
 	bra		store_sprite_copperlist
 
-
+; what: moves player laterally, with x limiting
+; TODO check other player ATM only min/max scenery
+; < A4: player struct
+; < D0: delta x (negative: left, positive: right)
+add_x_player:
+	movem.l	d1-d3,-(a7)
+	move.w	#X_MIN,d2
+	move.w	#X_MAX,d3
+	move.w	direction(a4),d1
+	cmp.w	#RIGHT,d1
+	beq.b	.minmax_correct
+	; TODO optimize this by pre-calculating
+	; left_x_offset in python script
+	move.l	frame_set(a4),a0
+	add.w	frame(a4),a0
+	move.w	bob_nb_bytes_per_row(a0),d1
+	sub.w	#6,d1	; minus 48 to center character
+	lsl.w	#3,d1	; times 8
+	sub.w	#8,d1	; add more leeway
+	add.w	d1,d2
+	add.w	d1,d3
+.minmax_correct
+	move.w	xpos(a4),d1
+	add.w	d0,d1
+	tst		d0
+	; correct x afterwards
+	bmi.b	.to_left
+	; to right: check max only
+	cmp.w	d1,d3
+	bcc.b	.store
+	move.w	d3,d1
+	bra.b	.store
+	; to left: check min only
+.to_left
+	cmp.w	d2,d1
+	bgt.b	.store
+	move.w	d2,d1
+.store
+	move.w	d1,xpos(a4)
+	movem.l	(a7)+,d1-d3
+	rts
+	
 ; < A0: animation header structure
 load_animation_flags
 	move.w	(animation_flags,a0),d0
@@ -5006,7 +5049,8 @@ move_player:
 	
 	move.w	(delta_x,a1),d2	
 	beq.b	.nox
-	add.w	d2,xpos(a4)
+	move.w	d2,d0
+	bsr		add_x_player
 .nox
 	move.w	(delta_y,a1),d2
 	beq.b	.noy
@@ -5031,7 +5075,8 @@ move_player:
 .revert_deltas
 	move.w	(delta_x,a1),d2	
 	beq.b	.nox2
-	add.w	d2,xpos(a4)
+	move.w	d2,d0
+	bsr		add_x_player
 .nox2
 	move.w	(delta_y,a1),d2
 	beq.b	.noy
@@ -5129,8 +5174,8 @@ check_hit
 clear_collision_matrix:
 	; first, clear collision matrix
 	
-	move.l	#(COLLISION_NB_COLS*COLLISION_NB_ROWS)/8-1,d0
-	lea		collision_matrix,a1
+	move.l	#(collision_matrix_buffer_end-collision_matrix_buffer)/8-1,d0
+	lea		collision_matrix_buffer,a1
 	move.l	a1,a0
 .clr
 	clr.l	(a1)+
@@ -5216,6 +5261,7 @@ check_collisions:
 	; which depends on the original size: manual fix
 	move.l	current_move_header(a4),a5
 	add.w	(hit_left_shift,a5),d3
+	bmi.b	.done	; too_far_left
 .do_check:
 	lea		mulCOLLISION_NB_COLS_table(pc),a5
 .do_check_loop:
@@ -5356,6 +5402,8 @@ fill_opponent_normal
 	beq.b	.zap	; optim
 	lsl.w	#2,d3	; times 4 (not 8)
 	sub.w	d3,d0	; subtract if facing left
+	bpl.b	.zap
+	moveq	#0,d0	; negative: clip to 0
 .zap
 	; the symmetry is easier to perform with a matrix
 	; of dots instead of an offset list like the hit
@@ -5385,14 +5433,13 @@ erase_player:
 	
 	; compute dest address
 	
-	move.w	previous_ypos(a4),d3
+	move.w	previous_ypos(a4),d1
 	beq.b	.out		; 0: not possible: first draw
-	move.w	previous_xpos(a4),d2
+	move.w	previous_xpos(a4),d0
 	
-	move.l	d2,d0
-	move.l	d3,d1
-	move.w	#80,d2	; width (no shifting)
-	move.w	#48,d3	; height
+	move.w	previous_nb_bytes_per_row(a4),d2	; width 
+	lsl.w	#3,d2
+	move.w	previous_height(a4),d3	; height
 	bra.b		restore_background
 .out
 	rts
@@ -5596,7 +5643,9 @@ draw_player:
 
 	move.w	bob_plane_size(a0),d5
 	move.w	bob_nb_bytes_per_row(a0),d2
-    move.w  bob_height(a0),d4  ; generally 48 pixels height  
+    move.w  bob_height(a0),d4  ; generally 48 pixels height 
+	move.w	d4,previous_height(a4)
+	move.w	d2,previous_nb_bytes_per_row(a4)
 	move.l	bob_data(a0),a0
 	lea		screen_data,a1
 	move.l	a1,a2
@@ -5606,16 +5655,18 @@ draw_player:
 	
 	; plane 1: clothes data as white
 	move.w	xpos(a4),D0
+	move.w	d0,previous_xpos(a4)
 	cmp.w	#RIGHT,direction(a4)
 	beq.b	.no_offset
 	move.w	d2,d3
 	sub.w	#6,d3	; minus 48 to center character
 	lsl.w	#3,d3	; times 8
 	sub.w	d3,d0	; subtract if facing left
+	bpl.b	.no_offset
+	moveq.l	#0,d0
 .no_offset
 
 	move.w	ypos(a4),D1
-	move.w	d0,previous_xpos(a4)
 	move.w	d1,previous_ypos(a4)
 	moveq.l #-1,d3	;masking of first/last word    
 
@@ -6907,6 +6958,29 @@ play_fx
 .no_sound
     rts
    
+; < D0: joystick bits just read
+; trashes: D1
+convert_joystick_moves_to_buttons
+	moveq	#0,d1
+	bclr	#JPB_BTN_DOWN,d0
+	beq.b	.no_down
+	bset	#JPB_BTN_ADOWN,d1
+.no_down
+	bclr	#JPB_BTN_LEFT,d0
+	beq.b	.no_left
+	bset	#JPB_BTN_ALEFT,d1
+.no_left
+	bclr	#JPB_BTN_RIGHT,d0
+	beq.b	.no_right
+	bset	#JPB_BTN_ARIGHT,d1
+.no_right
+	bclr	#JPB_BTN_UP,d0
+	beq.b	.no_up
+	bset	#JPB_BTN_AUP,d1
+.no_up
+	or.l	d1,d0
+	rts
+	
 ; what: switch bits if WinUAE
 ; < D0: joystick bits just read
 ; trashes: D1
@@ -8478,8 +8552,14 @@ player_move_buffer
     even
     
 ; resolution 1/2 compared to the original resolution
+; some margin in case moves go below 0 / above max
+collision_matrix_buffer:
+	ds.b	COLLISION_NB_ROWS*8
 collision_matrix:
 	ds.b	COLLISION_NB_COLS*COLLISION_NB_ROWS
+	ds.b	COLLISION_NB_ROWS*8
+collision_matrix_buffer_end
+
     SECTION  S4,CODE
     include ptplayer.s
 
@@ -8637,6 +8717,8 @@ empty_sprite
     
     SECTION S_4,BSS,CHIP
 
+screen_data_real_start
+	ds.b	NB_BYTES_BORDER
 screen_data:
     ds.b    SCREEN_PLANE_SIZE*NB_PLANES,0
 	
