@@ -24,6 +24,7 @@ at each update)
 - demo add "player vs player"
 - add double joy for p1/p2
 - check/fix consistency in options
+- 2p make rounds won flash (draw_score_box/erase_score_box) at start
 
 bull
 evade
@@ -31,6 +32,7 @@ cheatkey to allow being hit without falling, keep fighting
 
 bugs
 
+- 2P controls broken in direct game start
 - game start: doesn't see previous joy button, then check - player2 start not working
 - win a fight: referee disappears
 - as soon as opponent moves, hits don't register!
@@ -50,7 +52,6 @@ bugs
   number of rounds won+1
 - win a round: timer not reset
 - count how many rounds have been won... next level...
-- 2p mode: missing score 1 - 0 ... etc: @28,42
 - win a round by KO: countdown doesn't work, points not reset
 - clarify what to set to 0: start of round, start of fight, start of level
 

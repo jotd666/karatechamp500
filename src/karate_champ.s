@@ -150,9 +150,9 @@ Execbase  = 4
 ; ---------------debug/adjustable variables
 
 ; if set skips intro, game starts immediately
-;DIRECT_GAME_START
+DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
-DIRECT_GAME_START_2P_IS_CPU = 1
+;DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
 PLAYERS_START_CLOSE
 ; practice has only 1 move
@@ -192,6 +192,11 @@ REFEREE_LEGS_DOWN = 2<<2
 
 DEMO_X_CONTROLS = 168
 DEMO_Y_CONTROLS = 128
+
+POINTS_BOX_X = 28
+POINTS_BOX_Y = 42
+POINTS_BOX_WIDTH_BYTES = 10
+POINTS_BOX_HEIGHT = 18
 
 HISCORE_FILE_SIZE = 6*8
 ; test bonus screen 
@@ -1074,6 +1079,45 @@ erase_4_planes:
 	add.w	#20,a7
 	movem.l	(a7)+,a2-a3/d3-d4/d7
 	rts
+
+
+erase_points_box:
+	move.w	#POINTS_BOX_X,d0
+	move.w	#POINTS_BOX_Y,d1
+	move.w	#POINTS_BOX_WIDTH_BYTES,d2
+	move.w	#POINTS_BOX_HEIGHT,d3
+	bra		erase_4_planes
+	
+draw_points_box:
+	lea		player_1(pc),a1
+	lea		player_2(pc),a2
+	tst.b	is_cpu(a1)
+	bne.b	.cpu
+	tst.b	is_cpu(a2)
+	bne.b	.cpu
+
+	lea		points_box,a0
+	move.w	#POINTS_BOX_X,d0
+	move.w	#POINTS_BOX_Y,d1
+	move.w	#POINTS_BOX_WIDTH_BYTES,d2
+	move.w	#POINTS_BOX_HEIGHT,d3
+	bsr		blit_4_planes_cookie_cut
+	
+	move.w	#48,d0
+	move.w	#48,d1
+	moveq.l	#0,d2
+	move.w	nb_rounds_won(a1),d2
+	moveq	#1,d3
+	move.w	#$FFF,d4
+	bsr		write_color_decimal_number
+	move.w	#64,d0
+	move.w	#48,d1
+	move.w	nb_rounds_won(a2),d2
+	moveq	#1,d3
+	move.w	#$F00,d4
+	bsr		write_color_decimal_number
+.cpu
+	rts
 	
 draw_panel_bitmap:
 	lea	panel,a0
@@ -1153,15 +1197,13 @@ draw_panel:
 	move.w	#136+5*8,d0
     lea double_zero_string(pc),a0
     bsr write_color_string
-
-
 	
 	rts
 		
 ; draw score with titles and extra 0
 draw_score:
 	; 1UP/2UP flashing text
-	move.w	player_flashing_timer(pc),d0
+	move.w	active_players_flashing_timer(pc),d0
 	addq.w	#1,d0
 	cmp.w	#NB_TICKS_PER_SEC,d0	; 1 second
 	bne.b	.no_timeout
@@ -1202,7 +1244,7 @@ draw_score:
 .flashout
 	moveq	#0,d0
 .no_timeout
-	move.w	d0,player_flashing_timer
+	move.w	d0,active_players_flashing_timer
 	
 	; check if sprite must be hidden
 	lea		player_1(pc),a4
@@ -1574,7 +1616,8 @@ init_players_and_referee:
 	; level is not over
 	clr.b	level_completed_flag
 	
-	clr.w	player_flashing_timer 
+	clr.w	active_players_flashing_timer 
+	clr.w	other_flashing_timer 
 	clr.b	player_up_displayed_flag
 	clr.w	time_countdown_flag
 	
@@ -7270,7 +7313,11 @@ after_bonus_phase_timer:
 ; general purpose timer for non-game states (intro, game over...)
 state_timer:
     dc.l    0
-player_flashing_timer:
+; general purpose flashing timer
+other_flashing_timer:
+	dc.w	0
+; special flashing timer for 1UP/2UP
+active_players_flashing_timer:
 	dc.w	0
 intro_text_message:
     dc.w    0

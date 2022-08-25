@@ -421,6 +421,13 @@
    "width":48
  },
 {
+   "name":"points_box",
+   "start_x":72,
+   "start_y":256,
+   "width":64,
+   "height":18
+ },
+{
    "name":"big_head_1",
    "start_x":0,
    "start_y":256,
