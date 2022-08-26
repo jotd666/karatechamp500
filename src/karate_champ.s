@@ -184,7 +184,7 @@ ROUND_TIME = 99
 ;INIT_DEMO_LEVEL_NUMBER = 1
 ; set this to create full colision matrix & blitz with a0 loaded with
 ; matrix: S matrix ra0 !160*!55
-DEBUG_COLLISIONS
+;DEBUG_COLLISIONS
 
 
 ; ******************** end test defines *********************************
@@ -3224,7 +3224,7 @@ saved_intena
 ; F5: re-draw background pic
 ; F6: draw hit zones
 ; F7: set out of time
-; F8: player 1 wins
+; F8: player 1 wins round NOW
 ; when going away:
 ; * reverse: medium block (shuto-uke)
 ; * forward: high block (utchi-uke)
@@ -3332,8 +3332,9 @@ level2_interrupt:
 .no_timeout
     cmp.b   #$57,d0     ; F8
     bne.b   .no_1p_wins
-	move.w	#5,player_1+scored_points
+	move.w	#3,player_1+scored_points
 	clr.w	player_2+scored_points
+	move.w	#BLOW_STOMACH,player_2+hit_by_blow
 	st.b	score_update_message
 	movem.l	d0-a6,-(a7)
 	bsr		draw_score

@@ -22,17 +22,13 @@ at each update)
 - check back blow facing/not facing (check_if_facing_each_other not working)
 - draw priority to the player which has an active hit to deliver (if possible)
 - demo add "player vs player"
-- add double joy for p1/p2
-- check/fix consistency in options
 - 2p make rounds won flash (draw_score_box/erase_score_box) at start
 
 optimize "minus 48 to center character" 3 times!!!
 bull
 evade
-cheatkey to allow being hit without falling, keep fighting
 
-
-block_lock(a4) cleared in move away to smth else transition
+rip evade level 4 rock
 
 bugs
 
@@ -45,7 +41,6 @@ bugs
 - some blows don't connect (both players same direction): check debug pic
 - when hit, player falls too fast
 - final timer countdown: should wait a bit after countdown
-- animation for win sequence to fix: manual anim +16/-16 with erase
 - 2 player mode - 1ST - => 1ST   1ST non-cpu player with
   number of rounds won+1
 - win a round: timer not reset
@@ -53,6 +48,7 @@ bugs
 - win a round by KO: countdown doesn't work, points not reset
 - clarify what to set to 0: start of round, start of fight, start of level
 - center display -16 left ddf if clipping is satisfactory
+- check/fix consistency in options
 
 
 
