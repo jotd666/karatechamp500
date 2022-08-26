@@ -71,6 +71,12 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	hit_by_blow		; can be used for bull or objects too
 	LABEL	Character_SIZEOF
 
+	STRUCTURE Girl,0
+	STRUCT	_girl_base,Character_SIZEOF
+	APTR	top_frame
+	APTR	bottom_frame
+	LABEL	Girl_SIZEOF
+	
 	STRUCTURE Bull,0
 	STRUCT	_bull_base,Character_SIZEOF
 	UWORD	bull_bubble_counter
@@ -133,7 +139,7 @@ hand_both_flags = hand_red_or_japan_flag
 	UBYTE	half_points
 	UBYTE	is_cpu			; 1: controlled by A.I.
 	UBYTE	round_winner
-	UBYTE	_pad
+	UBYTE	game_over_flag
     LABEL   Player_SIZEOF
     
     
@@ -156,13 +162,13 @@ DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
 ;DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
-PLAYERS_START_CLOSE
+;PLAYERS_START_CLOSE
 ; practice has only 1 move
 ;SHORT_PRACTICE
 ; repeat a long time just to test moves
 ;REPEAT_PRACTICE = 10
 ; change default round time
-ROUND_TIME = 99
+ROUND_TIME = 30
 
 ; test bonus screen 
 ;BONUS_SCREEN_TEST
@@ -171,15 +177,15 @@ ROUND_TIME = 99
 
 ; 
 ;START_SCORE = 1000/10
-;START_LEVEL = 2
-;START_LEVEL_TYPE = GM_BREAK
+START_LEVEL = 2
+START_LEVEL_TYPE = GM_LOSER
 
 ; temp if nonzero, then records game input, intro music doesn't play
 ; and when one life is lost, blitzes and a0 points to move record table
 ; a1 points to the end of the table
 ; 100 means 100 seconds of recording at least (not counting the times where
 ; the player (me :)) isn't pressing any direction at all.
-;RECORD_INPUT_TABLE_SIZE = 100*ORIGINAL_TICKS_PER_SEC
+;RECORD_INPUT_TABLE_SIZE = 100*TICKS_PER_SEC_UPDATE
 ; 1 or 2, 2 is default, 1 is to record level 1 demo moves
 ;INIT_DEMO_LEVEL_NUMBER = 1
 ; set this to create full colision matrix & blitz with a0 loaded with
@@ -189,13 +195,25 @@ ROUND_TIME = 99
 
 ; ******************** end test defines *********************************
 
+; states, 4 by 4, starting by 0
 
+STATE_PLAYING = 0
+STATE_NEXT_LEVEL = 1<<2
+STATE_NEXT_FIGHT = 1<<3
+STATE_NEXT_ROUND = 1<<4
+STATE_INTRO_SCREEN = 1<<5
+STATE_GAME_START_SCREEN = 1<<6
+STATE_GAME_OVER = 1<<7
+
+; sub-states for STATE_PLAYING state
 ; do NOT change those enums without changing the update/draw function tables
 GM_NORMAL = 0
 GM_PRACTICE = 1<<2
 GM_BULL = 2<<2
 GM_BREAK = 3<<2
 GM_EVADE = 4<<2
+GM_LOSER = 5<<2
+GM_WINNER = 6<<2
 
 ; do NOT change those enums without changing the update/draw function tables
 BUBBLE_NONE = 0
@@ -264,9 +282,9 @@ PRACTICE_SKIP_MESSAGE_LEN = 210
 PRACTICE_WAIT_BEFORE_NEXT_MOVE = 45
 PRACTICE_MOVE_DURATION = PRACTICE_WAIT_BEFORE_NEXT_MOVE*2
 
-GIRL_ANIM_NB_TICKS = NB_TICKS_PER_SEC/3
+GIRL_ANIM_NB_TICKS = TICKS_PER_SEC_DRAW/3
 START_ROUND_NB_TICKS = 110
-START_LEVEL_NB_TICKS = NB_TICKS_PER_SEC*12
+START_LEVEL_NB_TICKS = TICKS_PER_SEC_DRAW*12
 END_ROUND_NB_TICKS = 110
 
 RP_START_ROUND = 0
@@ -308,9 +326,9 @@ CTB_DOWN = 3
 ; --------------- end debug/adjustable variables
 
 ; actual nb ticks (PAL)
-NB_TICKS_PER_SEC = 50
+TICKS_PER_SEC_DRAW = 50
 ; game logic ticks
-ORIGINAL_TICKS_PER_SEC = 60
+TICKS_PER_SEC_UPDATE = 60
 
 
 NB_BYTES_PER_LINE = 40
@@ -330,10 +348,10 @@ MSG_NONE = 0
 MSG_SHOW = 1
 MSG_HIDE = 2
 
-BONUS_TEXT_TIMER = ORIGINAL_TICKS_PER_SEC*4
-PLAYER_KILL_TIMER = ORIGINAL_TICKS_PER_SEC*2
-ENEMY_KILL_TIMER = ORIGINAL_TICKS_PER_SEC*2
-GAME_OVER_TIMER = ORIGINAL_TICKS_PER_SEC*3
+BONUS_TEXT_TIMER = TICKS_PER_SEC_UPDATE*4
+PLAYER_KILL_TIMER = TICKS_PER_SEC_UPDATE*2
+ENEMY_KILL_TIMER = TICKS_PER_SEC_UPDATE*2
+GAME_OVER_TIMER = TICKS_PER_SEC_UPDATE*3
 
 ; direction enumerates, 0:right, 4:left to directly load properly oriented sprites
 RIGHT = 0
@@ -357,16 +375,6 @@ OPTION_TWO_JOYSTICKS = 2<<2
 OPTION_KEYBOARD = 3<<2
 OPTION_CONTROLS_LAST = OPTION_KEYBOARD
 
-; states, 4 by 4, starting by 0
-
-STATE_PLAYING = 0
-STATE_GAME_OVER = 1*4
-STATE_BONUS_SCREEN = 2*4
-STATE_NEXT_LEVEL = 3*4
-STATE_NEXT_FIGHT = 4*4
-STATE_NEXT_ROUND = 5*4
-STATE_INTRO_SCREEN = 6*4
-STATE_GAME_START_SCREEN = 7*4
 
 X_MIN = 0
 X_MAX = SCREEN_WIDTH-48
@@ -382,13 +390,12 @@ DEF_STATE_CASE_TABLE:MACRO
     
 .case_table
     dc.l    .playing
-    dc.l    .game_over
-    dc.l    .bonus_screen
     dc.l    .next_level
     dc.l    .next_fight
     dc.l    .next_round
     dc.l    .intro_screen
     dc.l    .game_start_screen
+    dc.l    .game_over
 
     ENDM
     
@@ -711,7 +718,7 @@ intro:
 .game_start_screen
 .intro_screen       ; not reachable from mainloop
     bra.b   intro
-.bonus_screen
+
 .playing
     bra.b   .mainloop
 
@@ -722,6 +729,7 @@ intro:
     bra.b   .new_level
 .next_level
     add.w   #1,level_number
+    add.w   #1,background_number
 	move.w	#2,players_reinit_flag
     bra.b   .new_level
 .next_round
@@ -874,6 +882,7 @@ init_new_play:
 	
 	move.w	#START_LEVEL_TYPE,level_type
     move.w  #START_LEVEL,level_number
+    move.w  #START_LEVEL,background_number
     cmp.w	#GM_PRACTICE,level_type
 	bne.b	.no_practice
 	clr.w	level_number	; practice => level number 
@@ -889,6 +898,7 @@ init_new_play:
 	; toggle demo
 	move.w	demo_level_number(pc),d0
 	move.w	d0,level_number
+	move.w	d0,background_number
 	btst	#0,d0
 	beq.b	.demo_level_1
 	;lea		demo_moves_2,a0
@@ -902,11 +912,11 @@ init_new_play:
 	move.l	a1,record_data_end
 	
 .no_demo
-	move.b	player_configuration(pc),d0
-	lea	player_1(pc),a4
+	move.b	player_configuration,d0
+	lea	player_1,a4
 	bsr		new_player
-	move.b	player_configuration+1(pc),d0
-	lea	player_2(pc),a4
+	move.b	player_configuration+1,d0
+	lea	player_2,a4
 	bsr		new_player
 	; random practice sequence
 	bsr		random
@@ -926,6 +936,8 @@ init_new_play:
 new_player
 	move.b	d0,is_cpu(a4)
     move.l  #0,score(a4)
+	clr.b	game_over_flag(a4)
+
 	rts
 	
 init_level:
@@ -942,7 +954,7 @@ init_level:
 
 draw_background_pic
 
-	move.w	level_number(pc),d0
+	move.w	background_number(pc),d0
 	cmp.w	loaded_level(pc),d0
 	beq.b	.unpacked
 	move.w	d0,loaded_level
@@ -1086,8 +1098,8 @@ erase_points_box:
 	bra		erase_4_planes
 	
 draw_points_box:
-	lea		player_1(pc),a1
-	lea		player_2(pc),a2
+	lea		player_1,a1
+	lea		player_2,a2
 	tst.b	is_cpu(a1)
 	bne.b	.cpu
 	tst.b	is_cpu(a2)
@@ -1202,7 +1214,7 @@ draw_score:
 	; 1UP/2UP flashing text
 	move.w	active_players_flashing_timer(pc),d0
 	addq.w	#1,d0
-	cmp.w	#NB_TICKS_PER_SEC,d0	; 1 second
+	cmp.w	#TICKS_PER_SEC_DRAW,d0	; 1 second
 	bne.b	.no_timeout
 	; timeout
 	move.w	#144,d0
@@ -1474,7 +1486,7 @@ update_options_string
 	
 ; > A1 level params
 get_level_params
-	move.w	level_number(pc),d0
+	move.w	background_number(pc),d0
 	lea		level_params_table,a1
 	btst	#7,d0
 	beq.b	.normal
@@ -1524,7 +1536,7 @@ init_players_and_referee:
 	; round/level
 	
 	move.w	#ROUND_TIME,time_left
-	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
+	move.w	#TICKS_PER_SEC_UPDATE,time_ticks
 	; new round: clear scored points
 	lea		player_1(pc),a4
 	clr.w	scored_points(a4)
@@ -1616,11 +1628,11 @@ init_players_and_referee:
 	clr.w	active_players_flashing_timer 
 	clr.w	other_flashing_timer 
 	clr.b	player_up_displayed_flag
-	clr.w	time_countdown_flag
+	clr.b	time_countdown_flag
 	
 	st.b	score_update_message
     
-    move.w  #ORIGINAL_TICKS_PER_SEC,D0   
+    move.w  #TICKS_PER_SEC_UPDATE,D0   
     tst.b   music_played
     bne.b   .played
     st.b    music_played
@@ -1792,9 +1804,6 @@ draw_all
 ; draw intro screen
 .intro_screen
     bra.b   draw_intro_screen
-; draw bonus screen
-.bonus_screen
-	rts
 
 	
 .game_start_screen
@@ -1865,7 +1874,129 @@ draw_level_type_table
 	dc.l	draw_bull_stage
 	dc.l	draw_break
 	dc.l	draw_evade
+	dc.l	draw_loser
+	dc.l	draw_winner
+	
+GAME_OVER_X = 64
+GAME_OVER_Y = 96
 
+draw_winner:
+	tst.l	state_timer
+	beq.b	.first_draw
+
+	; erase previous girl
+	; (sloppy but works)
+	lea		girl(pc),a4
+	move.w	ypos(a4),d1
+	move.w	xpos(a4),D0
+	move.w	#16,d3
+	move.w	#4,d2
+	bsr		restore_background
+
+	; draw player & girl
+	bsr		get_winner
+	move.l	a0,a4
+	bsr		draw_player
+		
+	lea		girl(pc),a4
+	move.w	ypos(a4),d1
+	move.w	xpos(a4),D0
+	move.w	#16,d3
+	move.w	#4,d2
+	move.l	(top_frame,a4),a0
+	bsr		blit_4_planes_cookie_cut
+	add.w	#16,d1
+	move.l	(bottom_frame,a4),a0
+	bsr		blit_4_planes_cookie_cut
+	bra		draw_my_hero_bubble
+	
+.first_draw
+
+	rts
+	
+draw_loser:
+	tst.l	state_timer
+	beq.b	.first_draw
+	cmp.l	#$80,state_timer
+	bcs.b	.no_god
+	bsr.b	.draw_loser_game_over
+.no_god
+	; draw player & girl
+	bsr		get_loser
+	move.l	a0,a4
+	bsr		draw_player
+		
+	lea		girl(pc),a4
+	bra		draw_better_luck_bubble
+	
+.first_draw
+	lea		girl(pc),a4
+	move.w	ypos(a4),d1
+	move.w	xpos(a4),D0
+	move.w	#16,d3
+	move.w	#4,d2
+	move.l	(top_frame,a4),a0
+	bsr		blit_4_planes_cookie_cut
+	add.w	#16,d1
+	move.l	(bottom_frame,a4),a0
+	bsr		blit_4_planes_cookie_cut
+	rts
+.draw_loser_game_over
+	bsr		get_winner
+	tst.b	is_cpu(a0)
+	bne.b	.full_game_over
+	move.w	#14,d2
+	move.w	#GAME_OVER_X-16,d0
+	bsr		.draw_game_over_rect
+	; who has lost?
+	move.l	opponent(a0),a0
+	move.b	character_id(a0),d3
+	add.b	#'1',d3
+	lea		.xp_game_over_message(pc),a0
+	move.b	d3,(a0)
+	bra.b	.game_over
+.full_game_over
+	move.w	#11,d2
+	move.w	#GAME_OVER_X,d0
+	bsr		.draw_game_over_rect
+	lea		.game_over_message(pc),a0
+.game_over
+	addq.w	#8,d0
+	addq.w	#8,d1
+	move.w	#$FFF,d2
+	bra		write_color_string
+	
+.xp_game_over_message:
+	dc.b	"0P "
+.game_over_message:
+	dc.b	"GAME OVER",0
+	even
+.draw_game_over_rect
+	move.w	#GAME_OVER_Y,d1
+	move.w	#24,d3
+	lea		screen_data,a1
+	moveq	#3,d4
+.loop
+	bsr		clear_plane_any_cpu_any_height
+	lea		(SCREEN_PLANE_SIZE,a1),a1
+	dbf	d4,.loop
+	rts
+	
+get_winner:
+	lea		player_1(pc),a0
+	tst.b	round_winner(a0)
+	bne.b	.p1
+	lea		player_2(pc),a0
+.p1
+	rts
+get_loser:
+	lea		player_1(pc),a0
+	tst.b	round_winner(a0)
+	beq.b	.p1
+	lea		player_2(pc),a0
+.p1
+	rts
+	
 draw_practice:
 	; draw moves names & controls
 	tst.b	current_move_key_message
@@ -2062,16 +2193,25 @@ draw_very_good_bubble
 draw_better_luck_bubble
 	lea	better_luck_bubble,a0
 	lea	white_right_bubble_leg,a1
-	move.w	#12,d2
-	clr.w	d4
-	bra		draw_bubble
+	bra.b	draw_girl_bubble
 	
 draw_my_hero_bubble
 	lea	my_hero_bubble,a0
 	lea	yellow_right_bubble_leg,a1
+draw_girl_bubble
 	move.w	#12,d2
-	clr.w	d4
-	bra		draw_bubble
+	move.w	xpos(a4),d0
+	move.w	ypos(a4),d1
+	move.w	#16,d3		; height is always 16
+	sub.w	#40,d1
+	sub.w	#48,d0
+	bsr		blit_4_planes_cookie_cut
+	move.l	a1,a0
+	add.w	#16,d1
+	add.w	#56,d0
+	move.w	#4,d2
+	move.w	#8,d3
+	bra		blit_4_planes_cookie_cut
 	
 draw_moo_bubble_right
 	lea	moo_bubble,a0
@@ -2125,7 +2265,7 @@ draw_bubble
 draw_moo_bubble_left
 	lea	moo_bubble,a0
 	bra.b	dwb
-; what: draw "white" bubble (the only one to the left)
+; what: draw "white" bubble (to the left)
 draw_white_bubble
 	lea	white_bubble,a0
 dwb:
@@ -2293,12 +2433,7 @@ draw_bull_stage
 	bsr		draw_bull
 .no_update
 	rts
-	
-demo_message
-	dc.b	"END OF KARATE CHAMP DEMO",0
-demo_message_2
-	dc.b	" STAY TUNED FOR UPDATES",0
-	even
+
 	
 draw_normal:
 	tst.b	erase_girl_message
@@ -3588,10 +3723,6 @@ update_all
 .intro_screen
     bra update_intro_screen
     
-    ; update_bonus_screen
-.bonus_screen
-	rts
-   
     
     
 .game_start_screen
@@ -3687,9 +3818,6 @@ update_all
 .next_round
     rts
 
-.bonus_level_completed
-    bsr hide_sprites
-    bsr     stop_sounds
 .next_level
      ;;move.w  #STATE_NEXT_LEVEL,current_state
      rts
@@ -3733,7 +3861,43 @@ update_all
 	move.l	(a0,d0.w),a0
 	jmp		(a0)
 	
-update_normal:	
+update_normal:
+	move.b	time_countdown_flag,d0
+	beq.b	.no_countdown
+	tst.w	time_left
+	beq.b	.no_countdown
+	cmp.b	#1,d0
+	beq.b	.countdown_phase_one
+	;cmp.b	#2,d0	; phase 2
+	sub.w	#TICKS_PER_SEC_UPDATE/6,time_ticks
+	bpl.b	.no_timer_dec
+	move.w	#TICKS_PER_SEC_UPDATE,time_ticks
+	subq.w	#1,time_left
+	beq.b	.countdown_over
+	st.b	score_update_message
+	lea		second_sound,a0
+	bsr		play_fx
+.no_timer_dec
+	bra.b	.no_sec2
+.countdown_phase_one	; playing music during x seconds
+	sub.w	#1,time_ticks
+	bne.b	.no_sec2
+	bsr		stop_sounds
+	; phase two: count seconds as bonus if human player won the game
+	move.b	#2,time_countdown_flag
+	bra.b	.no_sec2
+	
+.countdown_over
+	move.w	time_left,d0
+	blitz
+	clr.l	state_timer
+	; TODO if CPU has won the game, then game over
+	; if round won but already 1 round won, then
+	; level won
+	move.w	#STATE_NEXT_ROUND,current_state
+	rts
+
+.no_countdown
 	move.w	pause_round_timer(pc),d0
 	beq.b	.normal
 	cmp.w	#RP_START_LEVEL,pause_round_type
@@ -3776,7 +3940,7 @@ update_normal:
 	beq.b	.display_begin
 	cmp.w	#RP_START_LEVEL,d1
 	bne.b	.pout
-	cmp.w	#START_LEVEL_NB_TICKS-NB_TICKS_PER_SEC,d0
+	cmp.w	#START_LEVEL_NB_TICKS-TICKS_PER_SEC_DRAW,d0
 	bcc.b	.pout
 	; check if fire is pressed after 1 second playing music
 	; if pressed, skip sequence
@@ -3800,7 +3964,7 @@ update_normal:
 .display_begin
 	lea	referee(pc),a4
 	move.w	#BUBBLE_BEGIN,bubble_type(a4)
-	move.w	#NB_TICKS_PER_SEC,bubble_timer(a4)
+	move.w	#TICKS_PER_SEC_DRAW,bubble_timer(a4)
 	lea		begin_sound,a0
 	bsr		play_fx
 	rts
@@ -3815,7 +3979,7 @@ update_normal:
 	beq.b	.no_sec		; zero: no more timer update
 	subq.w	#1,time_ticks
 	bne.b	.no_sec
-	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
+	move.w	#TICKS_PER_SEC_UPDATE,time_ticks
 	st.b	score_update_message
 	subq.w	#1,time_left
 	bne.b	.no_sec
@@ -3825,13 +3989,14 @@ update_normal:
 	move.w	#BUBBLE_STOP,bubble_type(a4)
 	; both arms & flags
 	move.w	#$0101,hand_both_flags(a4)	; 0, 1 (red) or 3 (japan)
-	move.w	#NB_TICKS_PER_SEC*2,bubble_timer(a4)
+	move.w	#TICKS_PER_SEC_DRAW*2,bubble_timer(a4)
 	lea		stop_sound,a0
 	bsr		play_fx
 	; block the controls (jump moves can finish or that would be silly)
 	st.b	controls_blocked_flag
 .no_sec
 	bsr	update_referee
+.no_sec2
     lea     player_1(pc),a4
     bsr update_player
     lea     player_2(pc),a4
@@ -3855,6 +4020,43 @@ update_bull_phase
 .done
 	move.w	#GM_NORMAL,level_type
 	move.w	#STATE_NEXT_LEVEL,current_state
+	rts
+
+update_loser
+	cmp.l	#$E0,state_timer	; length of lose music
+	beq.b	.end
+	bsr		get_loser
+	move.l	a0,a4
+	bsr		update_player
+	rts
+.end
+	bsr	stop_sounds
+	bsr	get_winner
+	tst.b	is_cpu(a0)
+	bne.b	.really_game_over
+	; now show winner sequence
+	; show level number but previous background/girl
+	subq.w	#1,background_number
+	move.w	#GM_WINNER,level_type
+	move.w	#STATE_NEXT_LEVEL,current_state
+	clr.l	state_timer
+	rts
+.really_game_over
+	move.w	#STATE_INTRO_SCREEN,current_state
+	clr.l	state_timer
+	rts
+	
+update_winner
+	cmp.l	#$154,state_timer
+	beq.b	.end
+	bsr		update_active_player
+	rts
+.end
+	bsr	stop_sounds
+	move.w	#GM_NORMAL,level_type
+	subq.w	#1,level_number	; already incremented
+	move.w	#STATE_NEXT_LEVEL,current_state
+	clr.l	state_timer
 	rts
 	
 update_evade
@@ -3946,7 +4148,7 @@ update_break
 	move.w	planks_that_will_break(pc),d0
 	add.w	d0,d0
 	add.w	d0,d0
-	add.w	#2*NB_TICKS_PER_SEC,d0
+	add.w	#2*TICKS_PER_SEC_DRAW,d0
 	move.w	d0,after_bonus_phase_timer
 
 	; lock planks broken
@@ -3956,7 +4158,7 @@ update_break
 	
 .keep_checking_input:
 	; stop after 10 seconds
-	cmp.l	#NB_TICKS_PER_SEC*10,state_timer
+	cmp.l	#TICKS_PER_SEC_DRAW*10,state_timer
 	beq.b	.timeout
 
 	; debug: uncomment those 3 lines to
@@ -4063,7 +4265,7 @@ update_referee:
 	beq.b	.out		; min=max: no move
 	move.w	walk_timer(a4),d0
 	addq.w	#1,d0
-	cmp.w	#NB_TICKS_PER_SEC/3,d0
+	cmp.w	#TICKS_PER_SEC_DRAW/3,d0
 	bne.b	.no_wto
 	move.w	xpos(a4),d1
 	; toggle legs
@@ -4141,13 +4343,13 @@ bubble_timeout_table
 .bubble_stop
 	move.w	#BUBBLE_JUDGE,bubble_type(a4)
 	clr.w	hand_both_flags(a4)	; no flags
-	move.w	#NB_TICKS_PER_SEC,bubble_timer(a4)
+	move.w	#TICKS_PER_SEC_DRAW,bubble_timer(a4)
 	lea		judge_sound,a0
 	bsr		play_fx
 	rts
 .bubble_judge
 	; judge bubble display ended: now erase it using no bubble
-	move.w	#NB_TICKS_PER_SEC,bubble_timer(a4)
+	move.w	#TICKS_PER_SEC_DRAW,bubble_timer(a4)
 	move.w	#BUBBLE_NONE,bubble_type(a4)
 	bra.b	.erase
 
@@ -4217,8 +4419,32 @@ judge_decision:
 	moveq.l	#MAIN_THEME_MUSIC,d0
 	bsr		play_music
 	
-	move.w	#ORIGINAL_TICKS_PER_SEC*24,time_ticks	; some time before seconds countdown
-	st.b	time_countdown_flag
+	; did a human win?
+	move.b	round_winner(a2),d0
+	and.b	is_cpu(a2),d0
+	beq.b	.cpu_won
+	move.b	round_winner(a3),d0
+	and.b	is_cpu(a3),d0
+	beq.b	.cpu_won
+	
+	; human player won: some time before seconds countdown
+	; count how many rounds were won, game over for other
+	; player/next level TODO
+	
+	move.w	#TICKS_PER_SEC_UPDATE*2,d1
+	move.b	#1,time_countdown_flag
+	bra.b	.out
+.cpu_won
+	; game over for the human player
+	tst.b	is_cpu(a2)
+	seq		game_over_flag(a2)
+	tst.b	is_cpu(a3)
+	seq		game_over_flag(a3)
+	
+	move.w	#TICKS_PER_SEC_UPDATE*6,d1
+	move.b	#2,time_countdown_flag
+.out	
+	move.w	d0,time_ticks
 	rts	
 
 	
@@ -4283,6 +4509,8 @@ update_level_type_table
 	dc.l	update_bull_phase
 	dc.l	update_break
 	dc.l	update_evade
+	dc.l	update_loser
+	dc.l	update_winner
 
 
 init_level_type_table
@@ -4291,7 +4519,58 @@ init_level_type_table
 	dc.l	init_bull_phase
 	dc.l	init_break
 	dc.l	init_evade
+	dc.l	init_loser
+	dc.l	init_winner
 
+init_loser:
+	bsr		get_loser
+	; if player 2, we have to shift it to the left slightly
+	tst.b	character_id(a0)
+	beq.b	.posok
+	sub.w	#32,xpos(a0)
+.posok
+	st.b	controls_blocked_flag
+	lea		do_cry(pc),a1
+	move.l	a1,current_move_callback(a0)
+	
+	lea		girl(pc),a4
+	move.l	xpos(a0),xpos(a4)
+	add.w	#16,ypos(a4)
+	add.w	#40,xpos(a4)
+	
+	bsr		get_level_params
+	move.l	girl_structure(a1),a2
+	move.l	(top_end_lose_frame,a2),top_frame(a4)
+	move.l	(legs_end_frame,a2),bottom_frame(a4)
+
+	move.l	#LOSE_FIGHT_MUSIC,d0
+	bsr		play_music
+	rts
+
+	
+init_winner:
+	bsr		get_winner
+	; if player 2, we have to shift it to the left slightly
+	tst.b	character_id(a0)
+	beq.b	.posok
+	sub.w	#32,xpos(a0)
+.posok
+	st.b	controls_blocked_flag
+	lea		do_sweat(pc),a1
+	move.l	a1,current_move_callback(a0)
+	
+	lea		girl(pc),a4
+	move.l	xpos(a0),xpos(a4)
+	add.w	#16,ypos(a4)
+	add.w	#48,xpos(a4)
+	
+	bsr		get_level_params
+	move.l	girl_structure(a1),a2
+	move.l	(top_end_lose_frame,a2),top_frame(a4)
+	move.l	(legs_end_frame,a2),bottom_frame(a4)
+	move.l	#WIN_FIGHT_MUSIC,d0
+	bsr		play_music
+	rts
 init_normal:
 	; todo reset hits, maybe call init players
 	rts
@@ -4326,7 +4605,7 @@ init_bull
 	bne.b	.ok
 	; end, enable countdown for next level, display "very good"
 	bsr		referee_says_very_good
-	move.w	#NB_TICKS_PER_SEC*3,after_bonus_phase_timer
+	move.w	#TICKS_PER_SEC_DRAW*3,after_bonus_phase_timer
 	rts
 .ok
 	bsr	get_active_player
@@ -4395,14 +4674,14 @@ update_intro_screen
 	; init both AI players fighting
 	move.l	state_timer(pc),d0
     addq.l	#1,d0
-	cmp.l	#NB_TICKS_PER_SEC*6,d0
+	cmp.l	#TICKS_PER_SEC_DRAW*6,d0
 	beq.b	.intro_step_1
 	move.l	d0,state_timer
 	
 	rts
 	
 .intro_step_1
-	move.w	#$80,level_number	; bicolor simple screen
+	move.w	#$80,background_number	; bicolor simple screen
 	moveq.l	#MAIN_THEME_MUSIC,d0
 	bsr		play_music
 	; init bulls and players
@@ -4443,7 +4722,7 @@ update_intro_screen
 	rts
 	
 .update_step_1
-	cmp.l	#NB_TICKS_PER_SEC*6,d0
+	cmp.l	#TICKS_PER_SEC_DRAW*6,d0
 	beq.b	.intro_step_2
 	move.l	d0,state_timer
 	
@@ -4467,7 +4746,7 @@ update_intro_screen
 	
 	rts
 .intro_step_2
-	move.w	#$81,level_number	; bicolor simple screen
+	move.w	#$81,background_number	; bicolor simple screen
 	clr.l	state_timer
 	move.b	#2,intro_step
 	bsr		init_players_and_referee
@@ -4514,27 +4793,6 @@ play_loop_fx
 ; < A4 player structure
 
 update_player
-	tst.b	time_countdown_flag
-	beq.b	.no_countdown
-	tst.w	time_left
-	beq.b	.blocked
-	; round pause timeout: do something
-	sub.w	#ORIGINAL_TICKS_PER_SEC/10,time_ticks
-	bpl.b	.no_timer_dec
-	move.w	#ORIGINAL_TICKS_PER_SEC,time_ticks
-	subq.w	#1,time_left
-	beq.b	.countdown_over
-	st.b	score_update_message
-	lea		second_sound,a0
-	bsr		play_fx
-.no_timer_dec
-	bra.b	.blocked
-.countdown_over
-	move.w	#STATE_NEXT_ROUND,current_state
-	rts
-	
-.no_countdown
-
 	move.w	hit_by_blow(a4),d0
 	cmp.w	#BLOW_NONE,d0
 	beq.b	.alive
@@ -4550,7 +4808,7 @@ update_player
 	move.w	point_award_countdown(a4),d0
 	bne.b	.running
 	; initiate countdown
-	move.w	#NB_TICKS_PER_SEC,point_award_countdown(a4)
+	move.w	#TICKS_PER_SEC_DRAW,point_award_countdown(a4)
 	; last frame: play fall sound
 	lea	fall_sound,a0
 	bsr	play_fx
@@ -4574,7 +4832,7 @@ update_player
 	tst.b	character_id(a4)
 	beq.b	.white_lost
 	; red lost
-	move.w	#NB_TICKS_PER_SEC*2,bubble_timer(a2)
+	move.w	#TICKS_PER_SEC_DRAW*2,bubble_timer(a2)
 	move.w	#BUBBLE_WHITE,bubble_type(a2)
 	move.b	#1,hand_white_flag(a2)
 	bra.b	.cont2
@@ -4582,7 +4840,7 @@ update_player
 	move.w	#BUBBLE_RED,bubble_type(a2)
 	move.b	#1,hand_red_or_japan_flag(a2)
 .cont2
-	move.w	#60*NB_TICKS_PER_SEC,point_award_countdown(a4)	
+	move.w	#60*TICKS_PER_SEC_DRAW,point_award_countdown(a4)	
 	lea	full_point_sound,a0
 	move.l	opponent(a4),a1
 	moveq	#2,d0	; default: 2 points
@@ -4919,7 +5177,7 @@ show_awarded_score:
 	sub.w	#20,d1
 	bsr		show_score_sprite
 	; show score during 2 seconds
-	move.w	#NB_TICKS_PER_SEC*2,awarded_score_display_timer(a4)
+	move.w	#TICKS_PER_SEC_DRAW*2,awarded_score_display_timer(a4)
 	movem.l	(a7)+,a0/d1-d3
 .out
 	rts
@@ -5360,7 +5618,7 @@ check_collisions:
 	st.b	controls_blocked_flag
 	; but maintain last technique a few frames
 	move.l	joystick_state(a4),frozen_joystick_state(a4)
-	move.w	#NB_TICKS_PER_SEC/2,frozen_controls_timer(a4)
+	move.w	#TICKS_PER_SEC_DRAW/2,frozen_controls_timer(a4)
 	
 	; opponent is hit: play the sound
 	lea		blow_sound,a0
@@ -5832,7 +6090,7 @@ referee_says_very_good:
 	lea	referee(pc),a1
 	move.b	#3,hand_red_or_japan_flag(a1)	; 0, 1 (red) or 3 (japan)
 	move.w	#BUBBLE_VERY_GOOD,bubble_type(a1)
-	move.w	#3*NB_TICKS_PER_SEC,bubble_timer(a1)
+	move.w	#3*TICKS_PER_SEC_DRAW,bubble_timer(a1)
 	move.l	(a7)+,a1
 	rts
 	
@@ -7090,6 +7348,8 @@ SIMPLE_MOVE_CALLBACK:MACRO
 	BLOW_CALLBACK	low			; player hit by low kick/sweep or back round kick (same animation)
 	BLOW_CALLBACK	round		; player hit by round kick (falling away from playfield)
 	
+	OTHER_CALLBACK	sweat
+	OTHER_CALLBACK	cry
 	OTHER_CALLBACK	boo
 	OTHER_CALLBACK	win
 	OTHER_CALLBACK	lose
@@ -7439,6 +7699,8 @@ pause_round_type
 ; 0: practice
 level_number:
     dc.w    0
+background_number:
+	dc.w	0
 level_type:
 	dc.w	0
 loaded_level:
@@ -8225,6 +8487,8 @@ referee:
 	ds.b	Referee_SIZEOF
 bull:
 	ds.b	Bull_SIZEOF
+girl:
+	ds.b	Girl_SIZEOF
     even
 
     

@@ -5,7 +5,6 @@ then connect to crouch
 crouch connects to reverse punch: implemented? check
 
 				
-rip girls side/end
 rip evade obstacles (stone, breaking it, breaking plank)
 rip evade sound
 
@@ -32,6 +31,10 @@ rip evade level 4 rock
 
 bugs
 
+- win/lose player animation not working properly
+- todo: win: girl gets closer to player
+- todo: win: big head animation when girl is close...
+- full point/end of round should wait or music mutes it
 - game start: doesn't see previous joy button, then check - player2 start not working
 - break planks sometimes breaks planks while away
 - jumping side kick y looks wrong: fix later (from video)
@@ -47,8 +50,11 @@ bugs
 - count how many rounds have been won... next level...
 - win a round by KO: countdown doesn't work, points not reset
 - clarify what to set to 0: start of round, start of fight, start of level
-- center display -16 left ddf if clipping is satisfactory
 - check/fix consistency in options
-
+- scored point colors vary from white to yellow...
+- refactoring: add init for states instead of
+  testing in update functions...
+  create first_draw functions too
+- center display -16 left ddf if clipping is satisfactory
 
 
