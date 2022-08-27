@@ -178,7 +178,7 @@ ROUND_TIME = 30
 ; 
 ;START_SCORE = 1000/10
 START_LEVEL = 2
-START_LEVEL_TYPE = GM_LOSER
+START_LEVEL_TYPE = GM_WINNER
 
 ; temp if nonzero, then records game input, intro music doesn't play
 ; and when one life is lost, blitzes and a0 points to move record table
@@ -243,6 +243,8 @@ POINTS_BOX_X = 28
 POINTS_BOX_Y = 42
 POINTS_BOX_WIDTH_BYTES = 10
 POINTS_BOX_HEIGHT = 18
+
+MIN_GIRL_PLAYER_DISTANCE = 32
 
 HISCORE_FILE_SIZE = 6*8
 
@@ -1256,9 +1258,9 @@ draw_score:
 	move.w	d0,active_players_flashing_timer
 	
 	; check if sprite must be hidden
-	lea		player_1(pc),a4
+	lea		player_1,a4
 	bsr		hide_awarded_score
-	lea		player_2(pc),a4
+	lea		player_2,a4
 	bsr		hide_awarded_score
 	
 	
@@ -1881,38 +1883,57 @@ GAME_OVER_X = 64
 GAME_OVER_Y = 96
 
 draw_winner:
-	tst.l	state_timer
-	beq.b	.first_draw
-
-	; erase previous girl
+	bsr		get_winner
+	move.l	a0,a3
+	; erase previous girl & player
 	; (sloppy but works)
-	lea		girl(pc),a4
-	move.w	ypos(a4),d1
-	move.w	xpos(a4),D0
-	move.w	#16,d3
-	move.w	#4,d2
+	move.w	ypos(a3),d1
+	move.w	xpos(a3),D0
+	sub.w	#12,d1
+	move.w	#68,d3
+	move.w	#64,d2
 	bsr		restore_background
 
 	; draw player & girl
-	bsr		get_winner
-	move.l	a0,a4
+	
+	lea		girl_copy(pc),a4
+	bsr		draw_my_hero_bubble
+	
+	move.l	a3,a4
 	bsr		draw_player
 		
-	lea		girl(pc),a4
-	move.w	ypos(a4),d1
-	move.w	xpos(a4),D0
+	lea		girl(pc),a3
+	move.w	ypos(a3),d1
+	move.w	xpos(a3),D0
 	move.w	#16,d3
 	move.w	#4,d2
-	move.l	(top_frame,a4),a0
+	move.l	(top_frame,a3),a0
 	bsr		blit_4_planes_cookie_cut
 	add.w	#16,d1
-	move.l	(bottom_frame,a4),a0
+	move.l	(bottom_frame,a3),a0
 	bsr		blit_4_planes_cookie_cut
-	bra		draw_my_hero_bubble
 	
-.first_draw
-
+	tst.b	manual_animation(a4)
+	beq.b	.no_closest
+	; draw big head
+	lea	big_head_1,a0
+	tst.w	bonus_phase_index
+	beq.b	.1
+	lea	big_head_2,a0
+.1
+	move.w	xpos(a4),d0
+	move.w	ypos(a4),d1
+	;sub.w	#8,d0
+	sub.w	#12,d1
+	move.w	#6,d2
+	move.w	#32,d3
+	bsr		blit_4_planes_cookie_cut
+.no_closest
 	rts
+	
+	
+
+
 	
 draw_loser:
 	tst.l	state_timer
@@ -1924,6 +1945,7 @@ draw_loser:
 	; draw player & girl
 	bsr		get_loser
 	move.l	a0,a4
+	bsr		erase_player
 	bsr		draw_player
 		
 	lea		girl(pc),a4
@@ -4034,6 +4056,8 @@ update_loser
 	bsr	get_winner
 	tst.b	is_cpu(a0)
 	bne.b	.really_game_over
+	bsr	get_loser
+	st.b	is_cpu(a0)		; cpu is now the opponent
 	; now show winner sequence
 	; show level number but previous background/girl
 	subq.w	#1,background_number
@@ -4049,8 +4073,38 @@ update_loser
 update_winner
 	cmp.l	#$154,state_timer
 	beq.b	.end
-	bsr		update_active_player
+	bsr		get_winner
+	move.l	a0,a4
+	bsr		update_player
+	
+	; move girl closer to winner
+	subq.w	#1,misc_timer
+	bne.b	.no_tr
+	lea		girl(pc),a0
+
+	eor.w	#1,bonus_phase_index
+	
+	move.w	xpos(a0),d0
+	sub.w	xpos(a4),d0
+	cmp.w	#MIN_GIRL_PLAYER_DISTANCE,d0
+	beq.b	.big_head
+
+	; from second moving frame girl eyes are in looooove
+	bsr		get_level_params
+	move.l	girl_structure(a1),a1
+	; change girl top
+	move.l	(top_end_win_frame,a1),top_frame(a0)
+	
+	subq.w	#1,xpos(a0)
+.no_move
+	move.w	#GIRL_ADVANCE_NB_FRAMES,misc_timer
+.no_tr	
 	rts
+.big_head
+	; player stops wiping his head, now big head
+	st.b	manual_animation(a4)
+	bra.b	.no_move
+
 .end
 	bsr	stop_sounds
 	move.w	#GM_NORMAL,level_type
@@ -4547,9 +4601,12 @@ init_loser:
 	bsr		play_music
 	rts
 
+GIRL_ADVANCE_NB_FRAMES = 28
 	
 init_winner:
+	clr.w	bonus_phase_index
 	bsr		get_winner
+	sub.w	#8,ypos(a0)		; correct y pos
 	; if player 2, we have to shift it to the left slightly
 	tst.b	character_id(a0)
 	beq.b	.posok
@@ -4561,13 +4618,20 @@ init_winner:
 	
 	lea		girl(pc),a4
 	move.l	xpos(a0),xpos(a4)
-	add.w	#16,ypos(a4)
-	add.w	#48,xpos(a4)
+	add.w	#24,ypos(a4)
+	add.w	#40,xpos(a4)
+	
+	move.w	#GIRL_ADVANCE_NB_FRAMES,misc_timer
 	
 	bsr		get_level_params
 	move.l	girl_structure(a1),a2
 	move.l	(top_end_lose_frame,a2),top_frame(a4)
 	move.l	(legs_end_frame,a2),bottom_frame(a4)
+	
+	; copy X/Y
+	lea		girl_copy(pc),a3
+	move.l	xpos(a4),xpos(a3)
+
 	move.l	#WIN_FIGHT_MUSIC,d0
 	bsr		play_music
 	rts
@@ -4792,7 +4856,7 @@ play_loop_fx
  
 ; < A4 player structure
 
-update_player
+update_player:
 	move.w	hit_by_blow(a4),d0
 	cmp.w	#BLOW_NONE,d0
 	beq.b	.alive
@@ -4955,8 +5019,8 @@ update_player
 ;.no_auto_fire
     
     ; read live or recorded controls
-.no_demo
-	
+.no_demo:
+
 	move.b	move_controls(a4),d2		; previous value
 	clr.w	d1
 
@@ -5922,7 +5986,6 @@ draw_referee:
 ; < A4: player structure
 draw_player:
     lea _custom,A5
-
 	move.l	frame_set(a4),a0
 	add.w	frame(a4),a0
 
@@ -7678,6 +7741,9 @@ state_timer:
 ; general purpose flashing timer
 other_flashing_timer:
 	dc.w	0
+; general purpose timer
+misc_timer:
+	dc.w	0
 ; special flashing timer for 1UP/2UP
 active_players_flashing_timer:
 	dc.w	0
@@ -8488,6 +8554,8 @@ referee:
 bull:
 	ds.b	Bull_SIZEOF
 girl:
+	ds.b	Girl_SIZEOF
+girl_copy:
 	ds.b	Girl_SIZEOF
     even
 
