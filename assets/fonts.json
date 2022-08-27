@@ -108,6 +108,13 @@
    "frames":1,
    "start_x":152,
    "start_y":8
+ },
+{
+   "name":"rect",
+   "frames":2,
+   "start_x":160,
+   "start_y":8
  }
+ 
  ]
 }

@@ -118,7 +118,7 @@ hand_both_flags = hand_red_or_japan_flag
 	UWORD	awarded_score_display_timer	
 	UWORD	block_lock
 	UWORD	nb_rounds_won
-	UWORD	nb_levels_won
+	UWORD	rank
 	UWORD	point_award_countdown
 	UWORD	frozen_controls_timer
 	UWORD	previous_direction   ; previous sprite orientation
@@ -160,7 +160,7 @@ Execbase  = 4
 ; if set skips intro, game starts immediately
 DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
-;DIRECT_GAME_START_2P_IS_CPU = 1
+DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
 ;PLAYERS_START_CLOSE
 ; practice has only 1 move
@@ -177,8 +177,8 @@ ROUND_TIME = 30
 
 ; 
 ;START_SCORE = 1000/10
-START_LEVEL = 2
-START_LEVEL_TYPE = GM_WINNER
+;START_LEVEL = 2
+;START_LEVEL_TYPE = GM_WINNER
 
 ; temp if nonzero, then records game input, intro music doesn't play
 ; and when one life is lost, blitzes and a0 points to move record table
@@ -290,8 +290,10 @@ START_LEVEL_NB_TICKS = TICKS_PER_SEC_DRAW*12
 END_ROUND_NB_TICKS = 110
 
 RP_START_ROUND = 0
-RP_END_ROUND = 1
-RP_START_LEVEL = 2
+RP_START_LEVEL = 1
+RP_END_FIGHT = 2
+RP_LAST_BLOW_SPEECH = 3
+RP_END_ROUND = 4
 
 SCREEN_WIDTH = NB_BYTES_PER_BACKBUFFER_LINE*8		; 224
 
@@ -730,7 +732,6 @@ intro:
 	clr.w	players_reinit_flag
     bra.b   .new_level
 .next_level
-    add.w   #1,level_number
     add.w   #1,background_number
 	move.w	#2,players_reinit_flag
     bra.b   .new_level
@@ -781,7 +782,7 @@ intro:
     move.l  d0,(a2)
 	; add name (TODO: input) and rank
 	move.l	#"JFF ",(4,a2)
-    move.w  level_number(pc),d4
+    move.w  rank(a4),d4
 	add.b	#'0',d4
 	move.b	d0,(7,a2)
     ; store the position of the highscore just obtained
@@ -880,14 +881,13 @@ init_new_play:
 	clr.b	previous_move
 	clr.l	current_move_key_last_jump
 	clr.l	current_move_key
-	move.w	#2,players_reinit_flag
+	move.w	#3,players_reinit_flag
 	
 	move.w	#START_LEVEL_TYPE,level_type
-    move.w  #START_LEVEL,level_number
     move.w  #START_LEVEL,background_number
     cmp.w	#GM_PRACTICE,level_type
 	bne.b	.no_practice
-	clr.w	level_number	; practice => level number 
+	clr.w	background_number	; practice => level number
 .no_practice
 
 	
@@ -899,7 +899,6 @@ init_new_play:
 	beq.b	.no_demo
 	; toggle demo
 	move.w	demo_level_number(pc),d0
-	move.w	d0,level_number
 	move.w	d0,background_number
 	btst	#0,d0
 	beq.b	.demo_level_1
@@ -938,6 +937,7 @@ init_new_play:
 new_player
 	move.b	d0,is_cpu(a4)
     move.l  #0,score(a4)
+	clr.w	rank(a4)
 	clr.b	game_over_flag(a4)
 
 	rts
@@ -984,7 +984,7 @@ draw_background_pic
 	lea	backbuffer,a1
 	bsr	Unpack
 	; blit the panel
-	move.w	level_number(pc),d0
+	move.w	background_number(pc),d0
 	btst	#7,d0
 	bne.b	.unpacked
 	bsr		draw_panel_bitmap
@@ -1153,18 +1153,60 @@ draw_panel_bitmap:
 	dbf		d7,.loop
 	rts
 	
+; < D0 nonzero if one player
+is_one_player_mode
+	moveq	#0,d0
+	move.b	player_1+is_cpu,d0
+	or.b	player_2+is_cpu,d0
+	rts
+	
 draw_panel:
+	lea		pos_table(pc),a1
+	bsr		is_one_player_mode
+	tst	d0
+	beq.b	.2p
+	bsr		get_active_player
 	; current level
-	move.w	level_number(pc),d0
-	add.w	d0,d0
-	add.w	d0,d0
-	lea		pos_table(pc),a0
-	move.l	(a0,d0.w),a0
-	move.w	#PANEL_X+24,d0
+	lea		rects_string(pc),a0
+	move.w	#32,d0
 	move.w	#8,d1
+	move.w	#$FFF,d2
+	bsr		write_color_string
+	move.w	#72,d0
 	move.w	#$F00,d2
 	bsr		write_color_string
 	
+	; rank for active player
+	move.w	rank(a4),d0
+	addq.w	#1,d0
+	add.w	d0,d0
+	add.w	d0,d0
+	move.l	(a1,d0.w),a0
+	
+	move.w	#48,d0
+	bsr		write_color_string
+	bra.b	.cont
+.2p
+	lea		player_1,a4
+	move.w	rank(a4),d0
+	addq.w	#1,d0
+	add.w	d0,d0
+	add.w	d0,d0
+	move.l	(a1,d0.w),a0
+	move.w	#32,d0
+	move.w	#8,d1
+	move.w	#$FFF,d2
+	bsr		write_color_string
+	lea		player_2,a4
+	move.w	rank(a4),d0
+	addq.w	#1,d0
+	add.w	d0,d0
+	add.w	d0,d0
+	move.l	(a1,d0.w),a0
+	move.w	#64,d0
+	move.w	#$F00,d2
+	bsr		write_color_string
+.cont
 	cmp.w	#GM_PRACTICE,level_type
 	bne.b	.no_practice
 	lea		practice,a0
@@ -1534,8 +1576,8 @@ init_players_and_referee:
 
 	move.w	players_reinit_flag(pc),d0
 	tst	d0
-	beq.b	.reinit_fight		; reinit fight
-	; round/level
+	beq.b	.reinit_fight		; just reinit fight
+	; round/level: reset timer
 	
 	move.w	#ROUND_TIME,time_left
 	move.w	#TICKS_PER_SEC_UPDATE,time_ticks
@@ -1563,6 +1605,17 @@ init_players_and_referee:
 	move.w	#START_LEVEL_NB_TICKS,pause_round_timer
 	move.w	#RP_START_LEVEL,pause_round_type
 	move.w	#GIRL_ANIM_NB_TICKS,girl_frame_timer
+	
+	cmp.w	#2,d0
+	beq.b	.reinit_fight
+	; reinit players completely
+	lea		player_1(pc),a4
+	clr.w	rank(a4)
+	clr.l	score(a4)
+    
+	lea		player_2(pc),a4
+	clr.w	rank(a4)
+	clr.l	score(a4)
 .reinit_fight
 
     lea player_1(pc),a4
@@ -1581,7 +1634,7 @@ init_players_and_referee:
 	bsr		init_player_common
 	move.b	#1,character_id(a4)
 	move.w 	#RIGHT,direction(a4)
-	move.w	level_number(pc),d0
+	move.w	background_number(pc),d0
 	beq.b	.pract
 	move.w 	#LEFT,direction(a4)
 .pract
@@ -1630,7 +1683,6 @@ init_players_and_referee:
 	clr.w	active_players_flashing_timer 
 	clr.w	other_flashing_timer 
 	clr.b	player_up_displayed_flag
-	clr.b	time_countdown_flag
 	
 	st.b	score_update_message
     
@@ -3884,46 +3936,54 @@ update_all
 	jmp		(a0)
 	
 update_normal:
-	move.b	time_countdown_flag,d0
+	; first check if we're in "countdown" mode
+	; this isn't a pause, because winner is jumping
+	; with joy, so some things are moving
+	
+	move.b	time_countdown_flag(pc),d0
 	beq.b	.no_countdown
 	tst.w	time_left
 	beq.b	.no_countdown
 	cmp.b	#1,d0
 	beq.b	.countdown_phase_one
-	;cmp.b	#2,d0	; phase 2
-	sub.w	#TICKS_PER_SEC_UPDATE/6,time_ticks
+	;cmp.b	#2,d0	; phase 2: seconds
+	sub.w	#TICKS_PER_SEC_UPDATE/5,time_ticks
 	bpl.b	.no_timer_dec
 	move.w	#TICKS_PER_SEC_UPDATE,time_ticks
-	subq.w	#1,time_left
-	beq.b	.countdown_over
-	st.b	score_update_message
+	moveq.l	#1,d0
+	bsr		get_winner
+	move.l	a0,a4
+	bsr		add_to_score
 	lea		second_sound,a0
 	bsr		play_fx
+	subq.w	#1,time_left
+	beq.b	.countdown_over
 .no_timer_dec
 	bra.b	.no_sec2
 .countdown_phase_one	; playing music during x seconds
-	sub.w	#1,time_ticks
+	subq.w	#1,time_ticks
 	bne.b	.no_sec2
 	bsr		stop_sounds
+	bsr		get_winner
+	tst.b	is_cpu(a0)
+	bne.b	.countdown_over	; no countdown when cpu wins
 	; phase two: count seconds as bonus if human player won the game
 	move.b	#2,time_countdown_flag
 	bra.b	.no_sec2
 	
 .countdown_over
-	move.w	time_left,d0
-	blitz
-	clr.l	state_timer
-	; TODO if CPU has won the game, then game over
-	; if round won but already 1 round won, then
-	; level won
-	move.w	#STATE_NEXT_ROUND,current_state
+	move.w	#TICKS_PER_SEC_UPDATE*2,pause_round_timer
+	move.w	#RP_END_ROUND,pause_round_type
 	rts
 
 .no_countdown
+	; check if pause timer is running
 	move.w	pause_round_timer(pc),d0
 	beq.b	.normal
+	; pause running, which type of pause?
 	cmp.w	#RP_START_LEVEL,pause_round_type
-	bne.b	.no_start_level
+	bne.b	.no_start_level_pause
+	; level start
 	tst.w	girl_frame_index
 	bmi.b	.no_girl_change	; negative: don't draw
 	; start level
@@ -3948,24 +4008,33 @@ update_normal:
 	move.l	(a7)+,d0
 .no_start_music
 	cmp.w	#START_ROUND_NB_TICKS,d0
-	bne.b	.no_start_level
+	bne.b	.no_start_level_pause
 .erase_girl
 	bsr		.do_erase_girl
-.no_start_level
+.no_start_level_pause
+	; pause countdown
 	subq.w	#1,d0
 	move.w	d0,pause_round_timer
-	beq.b	.go_normal
+	beq.b	.pause_round_timeout
+	; timer running, but sometimes we do stuff
+	; depending on the pause type at some given times
+	; this is becoming fairly complex I hope I don't have
+	; to add more logic or this is going to be (more) horrible
 	move.w	pause_round_type(pc),d1
-	cmp.w	#RP_END_ROUND,d1
+	cmp.w	#RP_END_FIGHT,d1
+	beq.b	.pout
+	cmp.w	#RP_LAST_BLOW_SPEECH,d1
 	beq.b	.pout
 	cmp.w	#START_ROUND_NB_TICKS-50,d0
 	beq.b	.display_begin
 	cmp.w	#RP_START_LEVEL,d1
 	bne.b	.pout
-	cmp.w	#START_LEVEL_NB_TICKS-TICKS_PER_SEC_DRAW,d0
+	cmp.w	#START_LEVEL_NB_TICKS-TICKS_PER_SEC_UPDATE,d0
 	bcc.b	.pout
 	; check if fire is pressed after 1 second playing music
 	; if pressed, skip sequence
+	tst.w	girl_frame_index
+	bmi.b	.pout		; already erased
 	move.l	player_1+joystick_state(pc),d2
 	and.l	#JPF_BTN_ALL,d2
 	beq.b	.pout
@@ -3990,7 +4059,14 @@ update_normal:
 	lea		begin_sound,a0
 	bsr		play_fx
 	rts
-.go_normal
+	
+.pause_round_timeout
+	move.w	pause_round_type(pc),d1
+	cmp.w	#RP_END_ROUND,d1
+	beq.b	.round_ended
+	cmp.w	#RP_LAST_BLOW_SPEECH,d1
+	beq		judge_decision
+
 	; start round
 	lea	referee(pc),a4
 	move.w	#REFEREE_LEFT_LEG_DOWN,frame(a4)
@@ -4026,6 +4102,17 @@ update_normal:
 .wait
     rts
 	
+.round_ended
+	blitz
+	clr.l	state_timer
+	; TODO if CPU has won the game, then game over
+	; if round won but already 1 round won, then
+	; level won
+	; if human wins, counts number of rounds won
+	; if 2 rounds won then GM_LOSER / GM_WINNER
+	move.w	#STATE_NEXT_ROUND,current_state
+	rts	
+
 
 update_bull_phase
 	move.w	after_bonus_phase_timer(pc),d0
@@ -4108,7 +4195,6 @@ update_winner
 .end
 	bsr	stop_sounds
 	move.w	#GM_NORMAL,level_type
-	subq.w	#1,level_number	; already incremented
 	move.w	#STATE_NEXT_LEVEL,current_state
 	clr.l	state_timer
 	rts
@@ -4476,15 +4562,16 @@ judge_decision:
 	; did a human win?
 	move.b	round_winner(a2),d0
 	and.b	is_cpu(a2),d0
-	beq.b	.cpu_won
+	bne.b	.cpu_won
 	move.b	round_winner(a3),d0
 	and.b	is_cpu(a3),d0
-	beq.b	.cpu_won
+	bne.b	.cpu_won
 	
 	; human player won: some time before seconds countdown
 	; count how many rounds were won, game over for other
 	; player/next level TODO
 	
+	; 2 seconds with music playing before starting countdown
 	move.w	#TICKS_PER_SEC_UPDATE*2,d1
 	move.b	#1,time_countdown_flag
 	bra.b	.out
@@ -4498,7 +4585,7 @@ judge_decision:
 	move.w	#TICKS_PER_SEC_UPDATE*6,d1
 	move.b	#2,time_countdown_flag
 .out	
-	move.w	d0,time_ticks
+	move.w	d1,time_ticks
 	rts	
 
 	
@@ -4577,7 +4664,12 @@ init_level_type_table
 	dc.l	init_winner
 
 init_loser:
+	
 	bsr		get_loser
+	; show a screen with all the "collected" girls (sorry!)
+	; if level is > 1
+	tst.w	rank(a0)
+
 	; if player 2, we have to shift it to the left slightly
 	tst.b	character_id(a0)
 	beq.b	.posok
@@ -4606,6 +4698,7 @@ GIRL_ADVANCE_NB_FRAMES = 28
 init_winner:
 	clr.w	bonus_phase_index
 	bsr		get_winner
+	addq.w	#1,rank(a0)		; one more dan
 	sub.w	#8,ypos(a0)		; correct y pos
 	; if player 2, we have to shift it to the left slightly
 	tst.b	character_id(a0)
@@ -4931,12 +5024,15 @@ update_player:
 
 	move.w	scored_points(a4),d0
 	cmp.w	#4,d0
-	bcc.b	judge_decision
+	bcc.b	.fight_over
 
 .no_timeout
 	rts
 	
-	
+.fight_over
+	move.w	#RP_LAST_BLOW_SPEECH,pause_round_type
+	move.w	#(TICKS_PER_SEC_UPDATE*3)/2,pause_round_timer
+	rts
 	
 .alive
 	tst.b	controls_blocked_flag
@@ -7060,6 +7156,18 @@ write_string_internal:
     moveq.l #0,d2
     bra.b   .wl
 .noellipse
+    cmp.b   #'[',d2
+    bne.b   .nosq1
+    lea rect1(pc),a2
+    moveq.l #0,d2
+    bra.b   .wl
+.nosq1
+    cmp.b   #']',d2
+    bne.b   .nosq2
+    lea rect2(pc),a2
+    moveq.l #0,d2
+    bra.b   .wl
+.nosq2
     cmp.b   #'-',d2
     bne.b   .nodash
     lea dash(pc),a2
@@ -7762,9 +7870,7 @@ pause_round_timer
 pause_round_type
 	dc.w	0
 	
-; 0: practice
-level_number:
-    dc.w    0
+; 0 practice
 background_number:
 	dc.w	0
 level_type:
@@ -7787,14 +7893,13 @@ cheat_keys
 
 players_reinit_flag:
 	dc.w	0
-	
+time_countdown_flag
+	dc.b	0
 player_up_displayed_flag:
 	dc.b	0
 level_completed_flag:
 	dc.b	0
 controls_blocked_flag:
-	dc.b	0
-time_countdown_flag:
 	dc.b	0
 erase_girl_message:
 	dc.b	0
@@ -7878,6 +7983,10 @@ dot:
     incbin  "dot.bin"
 ellipse:
 	incbin	"ellipse.bin"
+rect1:
+	incbin	"rect_0.bin"
+rect2:
+	incbin	"rect_1.bin"
 square:
     REPT	8
 	dc.b	$FF
@@ -7892,6 +8001,8 @@ space:
     
 hiscore_string
 	dc.b	"HISCORE",0
+rects_string
+	dc.b	"[]",0
 double_zero_string
 	dc.b	"00",0
 p1_string

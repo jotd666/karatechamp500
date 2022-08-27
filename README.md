@@ -31,9 +31,8 @@ rip evade level 4 rock
 
 bugs
 
-- win/lose player animation not working properly
-- todo: win: girl gets closer to player
-- todo: win: big head animation when girl is close...
+- scored point colors vary from white to yellow... probably
+  some erase girl/referee/player that fails...
 - full point/end of round should wait or music mutes it
 - game start: doesn't see previous joy button, then check - player2 start not working
 - break planks sometimes breaks planks while away
@@ -44,14 +43,11 @@ bugs
 - some blows don't connect (both players same direction): check debug pic
 - when hit, player falls too fast
 - final timer countdown: should wait a bit after countdown
-- 2 player mode - 1ST - => 1ST   1ST non-cpu player with
-  number of rounds won+1
 - win a round: timer not reset
 - count how many rounds have been won... next level...
 - win a round by KO: countdown doesn't work, points not reset
 - clarify what to set to 0: start of round, start of fight, start of level
 - check/fix consistency in options
-- scored point colors vary from white to yellow...
 - refactoring: add init for states instead of
   testing in update functions...
   create first_draw functions too
