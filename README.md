@@ -33,24 +33,21 @@ bugs
 
 - scored point colors vary from white to yellow... probably
   some erase girl/referee/player that fails...
-- full point/end of round should wait or music mutes it
 - game start: doesn't see previous joy button, then check - player2 start not working
 - break planks sometimes breaks planks while away
 - jumping side kick y looks wrong: fix later (from video)
 - jump not correct
+- copper: detect state change and reset state_timer
 - bull add restore bg on right
 - optimization: do not check hits if player distance is too high
 - some blows don't connect (both players same direction): check debug pic
 - when hit, player falls too fast
-- final timer countdown: should wait a bit after countdown
 - win a round: timer not reset
 - count how many rounds have been won... next level...
 - win a round by KO: countdown doesn't work, points not reset
 - clarify what to set to 0: start of round, start of fight, start of level
 - check/fix consistency in options
-- refactoring: add init for states instead of
-  testing in update functions...
-  create first_draw functions too
+- refactoring: create first_draw functions too
 - center display -16 left ddf if clipping is satisfactory
 
 

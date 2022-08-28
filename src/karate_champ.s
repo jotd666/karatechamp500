@@ -158,7 +158,7 @@ Execbase  = 4
 ; ---------------debug/adjustable variables
 
 ; if set skips intro, game starts immediately
-DIRECT_GAME_START
+;DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
 DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
@@ -199,11 +199,11 @@ ROUND_TIME = 30
 
 STATE_PLAYING = 0
 STATE_NEXT_LEVEL = 1<<2
-STATE_NEXT_FIGHT = 1<<3
-STATE_NEXT_ROUND = 1<<4
-STATE_INTRO_SCREEN = 1<<5
-STATE_GAME_START_SCREEN = 1<<6
-STATE_GAME_OVER = 1<<7
+STATE_NEXT_FIGHT = 2<<2
+STATE_NEXT_ROUND = 3<<2
+STATE_INTRO_SCREEN = 4<<2
+STATE_GAME_START_SCREEN = 5<<2
+STATE_GAME_OVER = 6<<2
 
 ; sub-states for STATE_PLAYING state
 ; do NOT change those enums without changing the update/draw function tables
@@ -650,10 +650,6 @@ intro:
 	
     move.w  #STATE_GAME_START_SCREEN,current_state
     clr.l   state_timer
-    tst.b   demo_mode
-    bne.b   .no_credit
-    lea credit_sound,a0
-    bsr play_fx
 	
 	; TEMP
 	move.w	#1,cheat_keys	; enable cheat in that mode, we need to test the game
@@ -1852,17 +1848,159 @@ draw_enemies:
     rts
 
  
+draw_first_all
+    DEF_STATE_CASE_TABLE
+	
+	
+	
+.playing		; !draw_first
+	rts
+.next_level		; !draw_first
+	rts
+.next_fight		; !draw_first
+	rts
+.next_round		; !draw_first
+	rts
+.game_start_screen		; !draw_first
+	bra		    draw_start_screen
+	
+.game_over		; !draw_first
+	rts
+	
+.intro_screen		; !draw_first
+    move.b  intro_step(pc),d0
+    cmp.b   #1,d0
+    beq.b   .init1
+    ; second part: cpu vs cpu fake fight
+    bsr hide_sprites
+	bsr	draw_background_pic
+	
+	rts
+	
+.init1	
+    bsr hide_sprites
+	bsr	draw_background_pic
+	lea	.point(pc),a0
+	move.w	#48,d0
+	move.w	#104,d1
+	move.w	#$FFF,d2
+	bsr		write_color_string
+	
+	move.w	#112,d1
+	move.b	#'1',d6
+	lea		hiscore_table(pc),a1
+	moveq.w	#5,d5
+.loop	
+	move.w	#8,d2
+	move.w	#16,d3
+	lea		score_box,a0
+
+	move.w	#104,d0
+	bsr		blit_4_planes_cookie_cut
+	move.w	#160,d0
+	bsr		blit_4_planes_cookie_cut
+	add.w	#8,d1
+	move.w	#16,d0
+	; position
+	lea		.pos(pc),a0
+	move.b	d6,.pos
+	addq.b	#1,d6
+	move.w	#$FFF,d2
+	bsr		write_color_string
+	; score
+	move.w	#16,d0
+	move.l	(a1)+,d2
+	move.w	#7,d3
+	move.w	#$FFF,d4
+	bsr		write_color_decimal_number
+	move.w	#72,d0
+	move.w	d4,d2
+	lea		double_zero_string(pc),a0
+	bsr		write_color_string
+	
+	move.l	(a1)+,.name
+	
+	move.w	#104,d0
+	lea		.dan(pc),a0
+	move.b	(-1,a1),d4		; level/dan
+	cmp.b	#11+'0',d4
+	bcc.b	.champ
+	cmp.b	#10+'0',d4
+	bcs.b	.below
+	move.b	#'1',(a0)+
+	move.b	#'0',(a0)+
+	bra.b	.wdan
+.below
+	move.b	#' ',(a0)+
+	move.b	d4,(a0)+
+.wdan
+	move.b	#'D',(a0)+
+	move.b	#'A',(a0)+
+	move.b	#'N',(a0)
+	bra.b	.cw
+.champ
+	move.b	#'C',(a0)+
+	move.b	#'H',(a0)+
+	move.b	#'A',(a0)+
+	move.b	#'M',(a0)+
+	move.b	#'P',(a0)
+.cw
+	lea		.dan(pc),a0
+	moveq	#0,d2
+	bsr		write_color_string
+	lea		.name(pc),a0
+	clr.b	(3,a0)
+	move.w	#168,d0
+	moveq	#0,d2
+	bsr		write_color_string
+	
+	add.w	#8,d1
+	dbf		d5,.loop
+	
+	move.w	#16,d0
+	move.w	#216,d1
+	move.w	#$800,d2
+	lea		.copy3(pc),a0
+	bsr		write_color_string
+	; original copyright
+	move.w	#40,d0
+	add.w	#16,d1
+	move.w	#$F00,d2
+	lea		.copy1(pc),a0
+	bsr		write_color_string
+	move.w	#40,d0
+	add.w	#16,d1
+	lea		.copy2(pc),a0
+	bsr		write_color_string
+	
+	rts
+.name
+	dc.b	"xxx",0
+.pos
+	dc.b	"x.",0
+.dan
+	dc.b	"12345",0
+.point
+	dc.b	"POINT   RANK   NAME",0
+.copy1
+	dc.b	"c COPYRIGHT 1984",0
+.copy2
+	dc.b	"DATA EAST USA,INC.",0
+.copy3
+	dc.b	"AMIGA VERSION: JOTD,NO9",0
+	even
+
+	
 draw_all
     DEF_STATE_CASE_TABLE
 
 ; draw intro screen
-.intro_screen
+.intro_screen	; draw
     bra.b   draw_intro_screen
 
 	
-.game_start_screen
-    tst.l   state_timer
-    beq.b   draw_start_screen
+.game_start_screen	; draw
+
 	tst.w	options_select
 	beq.b	.out
 	bsr		draw_options_values
@@ -2911,11 +3049,6 @@ INTRO_Y_SHIFT=68
 ENEMY_Y_SPACING = 24
 
 draw_intro_screen
-	move.l	state_timer(pc),d0
-	beq.b	.out
-	
-	cmp.l	#1,d0
-	beq.b	.first_intro_draw
 
 	cmp.b	#1,intro_step
 	beq.b	.draw_step_1
@@ -2963,137 +3096,10 @@ draw_intro_screen
 	bsr		draw_player
 	lea		player_2(pc),a4
 	bsr		draw_player
-.out
 	rts
 	
 
  
-
-.first_intro_draw
-    move.b  intro_step(pc),d0
-    cmp.b   #1,d0
-    beq.b   .init1
-    ; second part: cpu vs cpu fake fight
-    bsr hide_sprites
-	bsr	draw_background_pic
-	
-	
-	rts
-	
-.init1	
-    bsr hide_sprites
-	bsr	draw_background_pic
-	lea	.point(pc),a0
-	move.w	#48,d0
-	move.w	#104,d1
-	move.w	#$FFF,d2
-	bsr		write_color_string
-	
-	move.w	#112,d1
-	move.b	#'1',d6
-	lea		hiscore_table(pc),a1
-	moveq.w	#5,d5
-.loop	
-	move.w	#8,d2
-	move.w	#16,d3
-	lea		score_box,a0
-
-	move.w	#104,d0
-	bsr		blit_4_planes_cookie_cut
-	move.w	#160,d0
-	bsr		blit_4_planes_cookie_cut
-	add.w	#8,d1
-	move.w	#16,d0
-	; position
-	lea		.pos(pc),a0
-	move.b	d6,.pos
-	addq.b	#1,d6
-	move.w	#$FFF,d2
-	bsr		write_color_string
-	; score
-	move.w	#16,d0
-	move.l	(a1)+,d2
-	move.w	#7,d3
-	move.w	#$FFF,d4
-	bsr		write_color_decimal_number
-	move.w	#72,d0
-	move.w	d4,d2
-	lea		double_zero_string(pc),a0
-	bsr		write_color_string
-	
-	move.l	(a1)+,.name
-	
-	move.w	#104,d0
-	lea		.dan(pc),a0
-	move.b	(-1,a1),d4		; level/dan
-	cmp.b	#11+'0',d4
-	bcc.b	.champ
-	cmp.b	#10+'0',d4
-	bcs.b	.below
-	move.b	#'1',(a0)+
-	move.b	#'0',(a0)+
-	bra.b	.wdan
-.below
-	move.b	#' ',(a0)+
-	move.b	d4,(a0)+
-.wdan
-	move.b	#'D',(a0)+
-	move.b	#'A',(a0)+
-	move.b	#'N',(a0)
-	bra.b	.cw
-.champ
-	move.b	#'C',(a0)+
-	move.b	#'H',(a0)+
-	move.b	#'A',(a0)+
-	move.b	#'M',(a0)+
-	move.b	#'P',(a0)
-.cw
-	lea		.dan(pc),a0
-	moveq	#0,d2
-	bsr		write_color_string
-	lea		.name(pc),a0
-	clr.b	(3,a0)
-	move.w	#168,d0
-	moveq	#0,d2
-	bsr		write_color_string
-	
-	add.w	#8,d1
-	dbf		d5,.loop
-	
-	
-	
-	move.w	#16,d0
-	move.w	#216,d1
-	move.w	#$800,d2
-	lea		.copy3(pc),a0
-	bsr		write_color_string
-	; original copyright
-	move.w	#40,d0
-	add.w	#16,d1
-	move.w	#$F00,d2
-	lea		.copy1(pc),a0
-	bsr		write_color_string
-	move.w	#40,d0
-	add.w	#16,d1
-	lea		.copy2(pc),a0
-	bsr		write_color_string
-	
-	rts
-.name
-	dc.b	"xxx",0
-.pos
-	dc.b	"x.",0
-.dan
-	dc.b	"12345",0
-.point
-	dc.b	"POINT   RANK   NAME",0
-.copy1
-	dc.b	"c COPYRIGHT 1984",0
-.copy2
-	dc.b	"DATA EAST USA,INC.",0
-.copy3
-	dc.b	"AMIGA VERSION: JOTD,NO9",0
-	even
 	
 draw_title
 	rts
@@ -3616,7 +3622,13 @@ level3_interrupt:
     tst.b   pause_flag
     bne.b   .outcop
 .no_pause
-    ; copper
+    ; copper interrupt: start drawing
+	; but if state timer is zero, initialize first
+	tst.l	state_timer
+	bne.b	.not_first
+	bsr init_all
+	bsr	draw_first_all
+.not_first
     bsr draw_all
     tst.b   debug_flag
     beq.b   .no_debug
@@ -3785,13 +3797,73 @@ read_keyboard
 .no_right_2   
 	rts
 
+init_all
+    DEF_STATE_CASE_TABLE
 
+.playing		; !init
+	rts
+.next_level		; !init
+	rts
+.next_fight		; !init
+	rts
+.next_round		; !init
+	rts
+.game_start_screen		; !init
+    lea credit_sound,a0
+    bsr play_fx
+	rts
+	
+.game_over		; !init
+	rts
+	
+.intro_screen		; !init
+	cmp.b	#1,intro_step
+	beq.b	.intro_step_1
+	; init both AI players fighting
+	move.l	state_timer(pc),d0
+    addq.l	#1,d0
+	cmp.l	#TICKS_PER_SEC_DRAW*6,d0
+	beq.b	.intro_step_1
+	move.l	d0,state_timer
+	
+	rts
+	
+.intro_step_1
+	move.w	#$80,background_number	; bicolor simple screen
+	moveq.l	#MAIN_THEME_MUSIC,d0
+	bsr		play_music
+	; init bulls and players
+	bsr		init_players_and_referee
+	lea		boo_right_frames,a0
+	lea		player_1(pc),a4
+	move.l	a0,frame_set(a4)
+	move.w	#32,xpos(a4)
+	move.w	#48,ypos(a4)
+	move.w	#6,y_speed(a4)
+	; player 2
+	lea		player_2(pc),a4
+	clr.b	character_id(a4)	; also white
+
+	move.l	a0,frame_set(a4)
+	move.w	#80,xpos(a4)
+	move.w	#32,ypos(a4)
+	move.w	#4,y_speed(a4)
+	;bsr		update_player
+	lea		bull(pc),a4
+	move.w	#128,xpos(a4)
+	move.w	#12,ypos(a4)
+	clr.w	y_speed(a4)
+	; set direction to left
+	move.w	#LEFT,d0
+	move.w	d0,direction(a4)
+	bsr		set_bull_direction
+	rts
+	
 ; what: updates game state
 ; args: none
 ; trashes: potentially all registers
 
 update_all
-
     DEF_STATE_CASE_TABLE
 
 .intro_screen
@@ -3921,11 +3993,6 @@ update_all
     rts
     ; update
 .playing
-	tst.l	state_timer
-	bne.b	.no_first_tick
-	; initialize some variables
-	
-.no_first_tick
 	addq.l	#1,state_timer
     ; for demo mode
     addq.w  #1,record_input_clock
@@ -4822,52 +4889,6 @@ init_evade
 CHARACTER_X_START = 88
 
 update_intro_screen
-    move.l   state_timer(pc),d0
-    bne.b   .no_first
-	
-.first
-	cmp.b	#1,intro_step
-	beq.b	.intro_step_1
-	; init both AI players fighting
-	move.l	state_timer(pc),d0
-    addq.l	#1,d0
-	cmp.l	#TICKS_PER_SEC_DRAW*6,d0
-	beq.b	.intro_step_1
-	move.l	d0,state_timer
-	
-	rts
-	
-.intro_step_1
-	move.w	#$80,background_number	; bicolor simple screen
-	moveq.l	#MAIN_THEME_MUSIC,d0
-	bsr		play_music
-	; init bulls and players
-	bsr		init_players_and_referee
-	lea		boo_right_frames,a0
-	lea		player_1(pc),a4
-	move.l	a0,frame_set(a4)
-	move.w	#32,xpos(a4)
-	move.w	#48,ypos(a4)
-	move.w	#6,y_speed(a4)
-	; player 2
-	lea		player_2(pc),a4
-	clr.b	character_id(a4)	; also white
-
-	move.l	a0,frame_set(a4)
-	move.w	#80,xpos(a4)
-	move.w	#32,ypos(a4)
-	move.w	#4,y_speed(a4)
-	;bsr		update_player
-	lea		bull(pc),a4
-	move.w	#128,xpos(a4)
-	move.w	#12,ypos(a4)
-	clr.w	y_speed(a4)
-	; set direction to left
-	move.w	#LEFT,d0
-	move.w	d0,direction(a4)
-	bsr		set_bull_direction
-	
-.no_first
 	move.l	state_timer(pc),d0
     addq.l	#1,d0
 	cmp.b	#1,intro_step
@@ -4875,7 +4896,6 @@ update_intro_screen
 	; step 2
 	move.l	d0,state_timer
 	
-
 	rts
 	
 .update_step_1
