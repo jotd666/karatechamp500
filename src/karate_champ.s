@@ -160,7 +160,7 @@ Execbase  = 4
 ; if set skips intro, game starts immediately
 ;DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
-DIRECT_GAME_START_2P_IS_CPU = 1
+;DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
 ;PLAYERS_START_CLOSE
 ; practice has only 1 move
@@ -951,7 +951,6 @@ init_level:
 	
 
 draw_background_pic
-
 	move.w	background_number(pc),d0
 	cmp.w	loaded_level(pc),d0
 	beq.b	.unpacked
@@ -1002,7 +1001,6 @@ draw_background_pic
 	add.w	#BACKBUFFER_PLANE_SIZE,a0
 	dbf		d7,.loop
 	
-	
 	cmp.w	#GM_PRACTICE,level_type	
 	bne.b	.no_practice
 	; trash the bottom of the level
@@ -1019,7 +1017,7 @@ draw_background_pic
 	bsr		erase_4_planes
 	
 .no_practice
-	rts
+	bra		wait_blit
     
 ; < A1 points to start/end color
 change_color:
@@ -1109,18 +1107,17 @@ draw_points_box:
 	move.w	#POINTS_BOX_WIDTH_BYTES,d2
 	move.w	#POINTS_BOX_HEIGHT,d3
 	bsr		blit_4_planes_cookie_cut
+	bsr		wait_blit
 	
-	move.w	#48,d0
-	move.w	#48,d1
+	move.w	#POINTS_BOX_X+16,d0
+	move.w	#POINTS_BOX_Y+6,d1
 	moveq.l	#0,d2
 	move.w	nb_rounds_won(a1),d2
 	moveq	#1,d3
 	move.w	#$FFF,d4
 	bsr		write_color_decimal_number
-	move.w	#64,d0
-	move.w	#48,d1
+	move.w	#POINTS_BOX_X+48,d0
 	move.w	nb_rounds_won(a2),d2
-	moveq	#1,d3
 	move.w	#$F00,d4
 	bsr		write_color_decimal_number
 .cpu
@@ -1202,6 +1199,11 @@ draw_panel:
 	move.w	#64,d0
 	move.w	#$F00,d2
 	bsr		write_color_string
+	
+	; TEMP
+	cmp.w	#GM_NORMAL,level_type
+	bne.b	.cont
+	bsr		draw_points_box
 .cont
 	cmp.w	#GM_PRACTICE,level_type
 	bne.b	.no_practice
@@ -1501,7 +1503,7 @@ init_referee_not_moving:
 	move.l	a4,-(a7)
 
 	bsr		init_referee
-	lea	referee(pc),a4
+	lea	referee,a4
 	; min=max no move
 	move.w	xpos(a4),min_xpos(a4)
 	move.w	xpos(a4),max_xpos(a4)
@@ -1874,9 +1876,32 @@ draw_first_all
     ; second part: cpu vs cpu fake fight
     bsr hide_sprites
 	bsr	draw_background_pic
-	
 	rts
 	
+.draw_player_vs_player:
+	move.w	#32,D0
+	move.w	#224,d1
+	move.w	#$000,D2
+	lea		.player_vs_blank_string(pc),a0
+	bsr		write_blanked_color_string
+	move.w	#40,D0
+	move.w	#$FFF,d2
+	lea		.player_vs_string(pc),a0
+	bsr		write_color_string
+	move.w	#120,d0
+	move.w	#$F00,d2
+	lea		.player_string(pc),a0
+	bsr		write_color_string
+	
+	rts
+
+.player_vs_string
+	dc.b	"PLAYER VS ",0
+.player_string
+	dc.b	"PLAYER ",0
+.player_vs_blank_string
+	dc.b	"//////////////////",0
+	even
 .init1	
     bsr hide_sprites
 	bsr	draw_background_pic
@@ -2033,7 +2058,7 @@ PLAYER_ONE_Y = 102-14
     bsr write_color_string
     
     bra.b   .draw_complete
-.playing
+.playing	; !draw
 	bsr	draw_score
 
 	move.w	level_type(pc),d0
@@ -2901,11 +2926,12 @@ erase_bull
 	bsr		erase_bubble
 	move.w	previous_xpos(a4),d0
 	move.w	previous_ypos(a4),d1
+	beq.b	.no_erase
 	subq.w	#8,d1
 	move.w	#80,d2
 	move.w	#56,d3	; height
 	bsr		restore_background
-	
+.no_erase
 	movem.l	(a7)+,a0-a1/d0-d3
 	rts
 	
@@ -3440,6 +3466,7 @@ saved_intena
 ; F6: draw hit zones
 ; F7: set out of time
 ; F8: player 1 wins round NOW
+; F9: player 2 wins round NOW
 ; when going away:
 ; * reverse: medium block (shuto-uke)
 ; * forward: high block (utchi-uke)
@@ -3556,6 +3583,17 @@ level2_interrupt:
 	movem.l	(a7)+,d0-a6
     bra.b   .no_playing
 .no_1p_wins
+    cmp.b   #$58,d0     ; F9
+    bne.b   .no_2p_wins
+	move.w	#3,player_2+scored_points
+	clr.w	player_1+scored_points
+	move.w	#BLOW_STOMACH,player_1+hit_by_blow
+	st.b	score_update_message
+	movem.l	d0-a6,-(a7)
+	bsr		draw_score
+	movem.l	(a7)+,d0-a6
+    bra.b   .no_playing
+.no_2p_wins
 .no_playing
 
     cmp.b   _keyexit(pc),d0
@@ -4688,6 +4726,7 @@ update_practice
 start_music_countdown
     dc.w    0
 
+	
 get_active_player
 	lea	player_1(pc),a4
 	tst.b	is_cpu(a4)
@@ -5380,6 +5419,8 @@ show_score_sprite
 ; < A4: player struct
 ; < D0: delta x (negative: left, positive: right)
 add_x_player:
+	cmp.w	#STATE_INTRO_SCREEN,current_state
+	beq.b	.simple
 	movem.l	d1-d3,-(a7)
 	move.w	#X_MIN,d2
 	move.w	#X_MAX,d3
@@ -5415,6 +5456,10 @@ add_x_player:
 .store
 	move.w	d1,xpos(a4)
 	movem.l	(a7)+,d1-d3
+	rts
+.simple
+	; no check, no boundary checking
+	add.w	d0,xpos(a4)
 	rts
 	
 ; < A0: animation header structure

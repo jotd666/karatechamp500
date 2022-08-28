@@ -20,7 +20,7 @@ at each update)
 - jump special case just for jumping side kick (connect from jump)
 - check back blow facing/not facing (check_if_facing_each_other not working)
 - draw priority to the player which has an active hit to deliver (if possible)
-- demo add "player vs player"
+- demo add "player vs player" flashing
 - 2p make rounds won flash (draw_score_box/erase_score_box) at start
 
 optimize "minus 48 to center character" 3 times!!!
@@ -28,11 +28,10 @@ bull
 evade
 
 rip evade level 4 rock
+sequence: low rear mid front high rear mid front high rear
 
 bugs
 
-- scored point colors vary from white to yellow... probably
-  some erase girl/referee/player that fails...
 - game start: doesn't see previous joy button, then check - player2 start not working
 - break planks sometimes breaks planks while away
 - jumping side kick y looks wrong: fix later (from video)
@@ -47,7 +46,7 @@ bugs
 - win a round by KO: countdown doesn't work, points not reset
 - clarify what to set to 0: start of round, start of fight, start of level
 - check/fix consistency in options
-- refactoring: create first_draw functions too
+- refactoring: create first_draw functions too/move first draws inside
 - center display -16 left ddf if clipping is satisfactory
 
 
