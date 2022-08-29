@@ -205,6 +205,7 @@ STATE_INTRO_SCREEN = 4<<2
 STATE_GAME_START_SCREEN = 5<<2
 STATE_GAME_OVER = 6<<2
 
+
 ; sub-states for STATE_PLAYING state
 ; do NOT change those enums without changing the update/draw function tables
 GM_NORMAL = 0
@@ -289,11 +290,12 @@ START_ROUND_NB_TICKS = 110
 START_LEVEL_NB_TICKS = TICKS_PER_SEC_DRAW*12
 END_ROUND_NB_TICKS = 110
 
-RP_START_ROUND = 0
+RP_START_FIGHT_OR_ROUND = 0
 RP_START_LEVEL = 1
 RP_END_FIGHT = 2
 RP_LAST_BLOW_SPEECH = 3
 RP_END_ROUND = 4
+RP_2P_SHOW_SCORE = 5
 
 SCREEN_WIDTH = NB_BYTES_PER_BACKBUFFER_LINE*8		; 224
 
@@ -713,6 +715,7 @@ intro:
 .mainloop
     tst.b   quit_flag
     bne.b   .out
+	; jumps according to state
     DEF_STATE_CASE_TABLE
     
 .game_start_screen
@@ -741,8 +744,10 @@ intro:
     move.l  #1,state_timer
     bra.b   .game_over
 .no_demo
-   
-
+    bra.b   .new_level
+	
+	
+	; not reachable, score insertion after game over
     ; game over: check if score is high enough 
     ; to be inserted in high score table
 	lea	player_1,a4		; which player???
@@ -1089,9 +1094,9 @@ erase_4_planes:
 erase_points_box:
 	move.w	#POINTS_BOX_X,d0
 	move.w	#POINTS_BOX_Y,d1
-	move.w	#POINTS_BOX_WIDTH_BYTES,d2
+	move.w	#POINTS_BOX_WIDTH_BYTES*8,d2
 	move.w	#POINTS_BOX_HEIGHT,d3
-	bra		erase_4_planes
+	bra		restore_background
 	
 draw_points_box:
 	lea		player_1,a1
@@ -1200,10 +1205,6 @@ draw_panel:
 	move.w	#$F00,d2
 	bsr		write_color_string
 	
-	; TEMP
-	cmp.w	#GM_NORMAL,level_type
-	bne.b	.cont
-	bsr		draw_points_box
 .cont
 	cmp.w	#GM_PRACTICE,level_type
 	bne.b	.no_practice
@@ -1544,7 +1545,7 @@ init_referee:
 	movem.l	d0/a1/a4,-(a7)
 	bsr		get_level_params
 	
-	lea	referee(pc),a4
+	lea	referee,a4
 	; init referee
 	move.w	referee_xpos(a1),xpos(a4)
 	move.w	referee_ypos(a1),ypos(a4)
@@ -1568,26 +1569,29 @@ init_referee:
 	
 
 init_players_and_referee:
+	; default pause: second/third round pause
 	move.w	#START_ROUND_NB_TICKS,pause_round_timer
-	move.w	#RP_START_ROUND,pause_round_type
+	move.w	#RP_START_FIGHT_OR_ROUND,pause_round_type
+	
 	bsr	get_level_params	; level params in A1
-
+	
 	move.w	players_reinit_flag(pc),d0
 	tst	d0
 	beq.b	.reinit_fight		; just reinit fight
 	; round/level: reset timer
 	
+
 	move.w	#ROUND_TIME,time_left
 	move.w	#TICKS_PER_SEC_UPDATE,time_ticks
 	; new round: clear scored points
-	lea		player_1(pc),a4
+	lea		player_1,a4
 	clr.w	scored_points(a4)
-	lea		player_2(pc),a4
+	lea		player_2,a4
 	clr.w	scored_points(a4)
 
 	cmp.w	#1,d0
 	beq.b	.reinit_fight
-	; new level
+	; > 1: new level
 	
 	move.w	#-1,girl_frame_index
 	tst.l	girl_structure(a1)
@@ -1595,11 +1599,12 @@ init_players_and_referee:
 	clr.w	girl_frame_index
 .no_girl
 
-	lea		player_1(pc),a4
+	lea		player_1,a4
 	clr.w	nb_rounds_won(a4)
-	lea		player_2(pc),a4
+	lea		player_2,a4
 	clr.w	nb_rounds_won(a4)
 	
+	; pause type & girl for start of new level
 	move.w	#START_LEVEL_NB_TICKS,pause_round_timer
 	move.w	#RP_START_LEVEL,pause_round_type
 	move.w	#GIRL_ANIM_NB_TICKS,girl_frame_timer
@@ -1607,16 +1612,16 @@ init_players_and_referee:
 	cmp.w	#2,d0
 	beq.b	.reinit_fight
 	; reinit players completely
-	lea		player_1(pc),a4
+	lea		player_1,a4
 	clr.w	rank(a4)
 	clr.l	score(a4)
     
-	lea		player_2(pc),a4
+	lea		player_2,a4
 	clr.w	rank(a4)
 	clr.l	score(a4)
 .reinit_fight
 
-    lea player_1(pc),a4
+    lea player_1,a4
 	move.l	#player_2,opponent(a4)
 	move.l	#score_table_white,score_table(a4)
 	move.l	#score_sprite_white,score_sprite(a4)
@@ -1625,7 +1630,7 @@ init_players_and_referee:
 	move.w 	#RIGHT,direction(a4)
 	move.l	a4,d0
 	
-    lea player_2(pc),a4
+    lea player_2,a4
 	move.l	#score_table_red,score_table(a4)
 	move.l	#score_sprite_red,score_sprite(a4)
 	move.l	d0,opponent(a4)
@@ -1679,9 +1684,20 @@ init_players_and_referee:
 	clr.b	level_completed_flag
 	
 	clr.w	active_players_flashing_timer 
-	clr.w	other_flashing_timer 
+	clr.w	other_flashing_timer
 	clr.b	player_up_displayed_flag
+	clr.w	misc_timer
+	clr.w	other_flashing_toggle
+	clr.b	time_countdown_flag
 	
+	bsr		is_one_player_mode
+	tst		d0
+	bne.b	.1p
+	; other_flashing_timer is going to be used to make round
+	; score flash
+	move.w	#1,other_flashing_timer
+	move.w	#9,other_flashing_toggle	; flash 4 times
+.1p
 	st.b	score_update_message
     
     move.w  #TICKS_PER_SEC_UPDATE,D0   
@@ -2673,6 +2689,33 @@ draw_bull_stage
 
 	
 draw_normal:
+	; if round pause type is RP_START_FIGHT_OR_ROUND and 2 player mode
+	; we have to display round score first
+	cmp.w	#RP_2P_SHOW_SCORE,pause_round_type
+	bne.b	.no_start_round
+	tst.w	other_flashing_toggle
+	beq.b	.no_start_round
+	move.w	other_flashing_timer(pc),d0
+	subq.w	#1,d0
+	beq.b	.flash_timeout
+	move.w	d0,other_flashing_timer
+	bra.b	.no_start_round
+.flash_timeout
+	move.w	#TICKS_PER_SEC_DRAW/3,other_flashing_timer
+	move.w	other_flashing_toggle(pc),d6
+	btst	#0,d6
+	beq.b	.points_draw
+	; erase points
+	bsr		erase_points_box
+	bra.b	.dec
+.points_draw
+	; draw points
+	bsr		draw_points_box
+.dec
+	subq.w	#1,d6
+	move.w	d6,other_flashing_toggle
+.no_start_round
+
 	tst.b	erase_girl_message
 	bne.b	.force_erase
 	tst.w	pause_round_timer
@@ -2706,17 +2749,19 @@ draw_normal:
 	lea	player_2(pc),a4
     bsr draw_player
 	
-	move.l	technique_to_display(pc),d0
+	move.l	technique_to_display(pc),d6
 	beq.b	.no_tech
+	bsr		erase_points_box
 	clr.l	technique_to_display
-	move.l	d0,a1
-	move.w	#38,d1
+	move.l	d6,a1
+	move.w	#40,d1
+	bsr		wait_blit
 .wl
 	move.l	(a1)+,d3
 	beq.b	.no_tech
 	; display word
 	move.l	d3,a0
-	move.w	#32,d0
+	move.w	#40,d0
 	move.w	#$FFF,d2
 	bsr		write_color_string
 	add.w	#8,d1
@@ -3577,6 +3622,7 @@ level2_interrupt:
 	move.w	#3,player_1+scored_points
 	clr.w	player_2+scored_points
 	move.w	#BLOW_STOMACH,player_2+hit_by_blow
+	move.w	#10,time_left	; shorter to test end of round/level
 	st.b	score_update_message
 	movem.l	d0-a6,-(a7)
 	bsr		draw_score
@@ -3588,6 +3634,7 @@ level2_interrupt:
 	move.w	#3,player_2+scored_points
 	clr.w	player_1+scored_points
 	move.w	#BLOW_STOMACH,player_1+hit_by_blow
+	move.w	#10,time_left	; shorter to test end of round/level
 	st.b	score_update_message
 	movem.l	d0-a6,-(a7)
 	bsr		draw_score
@@ -3661,9 +3708,18 @@ level3_interrupt:
     bne.b   .outcop
 .no_pause
     ; copper interrupt: start drawing
-	; but if state timer is zero, initialize first
+	; see if state has changed
+	move.w	current_state(pc),d0
+	cmp.w	previous_state(pc),d0
+	beq.b	.no_state_change
+	clr.l	state_timer
+	move.w	d0,previous_state
+	bra.b	.init
+	; but if state timer is zero (set manually), initialize first
+.no_state_change
 	tst.l	state_timer
 	bne.b	.not_first
+.init
 	bsr init_all
 	bsr	draw_first_all
 .not_first
@@ -3845,6 +3901,8 @@ init_all
 .next_fight		; !init
 	rts
 .next_round		; !init
+	bsr		init_level
+	move.w	#STATE_PLAYING,current_state
 	rts
 .game_start_screen		; !init
     lea credit_sound,a0
@@ -4016,6 +4074,9 @@ update_all
 	rts
 	
 .game_over
+	blitz
+	nop
+	
     cmp.l   #GAME_OVER_TIMER,state_timer
     bne.b   .no_first
     bsr stop_sounds
@@ -4041,7 +4102,8 @@ update_all
 	jmp		(a0)
 	
 update_normal:
-	; first check if we're in "countdown" mode
+
+	; check if we're in "countdown" mode
 	; this isn't a pause, because winner is jumping
 	; with joy, so some things are moving
 	
@@ -4085,6 +4147,7 @@ update_normal:
 	; check if pause timer is running
 	move.w	pause_round_timer(pc),d0
 	beq.b	.normal
+
 	; pause running, which type of pause?
 	cmp.w	#RP_START_LEVEL,pause_round_type
 	bne.b	.no_start_level_pause
@@ -4130,10 +4193,13 @@ update_normal:
 	beq.b	.pout
 	cmp.w	#RP_LAST_BLOW_SPEECH,d1
 	beq.b	.pout
-	cmp.w	#START_ROUND_NB_TICKS-50,d0
-	beq.b	.display_begin
+	cmp.w	#RP_START_FIGHT_OR_ROUND,d1
+	beq.b	.srto
 	cmp.w	#RP_START_LEVEL,d1
 	bne.b	.pout
+.srto
+	cmp.w	#START_ROUND_NB_TICKS-50,d0
+	beq.b	.send_display_begin_message
 	cmp.w	#START_LEVEL_NB_TICKS-TICKS_PER_SEC_UPDATE,d0
 	bcc.b	.pout
 	; check if fire is pressed after 1 second playing music
@@ -4143,10 +4209,10 @@ update_normal:
 	move.l	player_1+joystick_state(pc),d2
 	and.l	#JPF_BTN_ALL,d2
 	beq.b	.pout
+	; fire pressed: erase girl, start fight
 	bsr.b	.do_erase_girl
-	move.w	#START_ROUND_NB_TICKS-50,pause_round_timer		; begin
-	; check if we must display "begin" bubble
-	bra.b	.display_begin
+	bsr		.start_round_start_sequence
+	rts
 .pout
 	rts
 .do_erase_girl
@@ -4155,23 +4221,39 @@ update_normal:
 	move.w	#-1,girl_frame_index
 	bsr		stop_sounds
 	move.l	(a7)+,d0
-	rts
+	rts	
 	
-.display_begin
-	lea	referee(pc),a4
-	move.w	#BUBBLE_BEGIN,bubble_type(a4)
-	move.w	#TICKS_PER_SEC_DRAW,bubble_timer(a4)
-	lea		begin_sound,a0
-	bsr		play_fx
-	rts
+;;	bsr		is_one_player_mode
+;;	tst		d0
+;;	bne.b	.1p
+;;	; flashing score pause
+;;	move.w	#RP_2P_SHOW_SCORE,pause_round_type
+;;	move.w	#(TICKS_PER_SEC_UPDATE*5)/2,pause_round_timer
+;;	move.w	pause_round_timer(pc),d0
+;;	addq.l	#4,a7		; change D0 value
+;;	rts
+;;	
+;;.1p
+	
 	
 .pause_round_timeout
 	move.w	pause_round_type(pc),d1
+	cmp.w	#RP_2P_SHOW_SCORE,d1
+	beq.b	.start_round_start_sequence	; change pause type
 	cmp.w	#RP_END_ROUND,d1
 	beq.b	.round_ended
 	cmp.w	#RP_LAST_BLOW_SPEECH,d1
 	beq		judge_decision
-
+	
+	cmp.w	#RP_START_FIGHT_OR_ROUND,d1
+	beq.b	.start_round
+	cmp.w	#RP_START_LEVEL,d1
+	beq.b	.start_round
+	; timeout but which one???
+	nop
+	blitz
+	nop
+.start_round
 	; start round
 	lea	referee(pc),a4
 	move.w	#REFEREE_LEFT_LEG_DOWN,frame(a4)
@@ -4208,15 +4290,50 @@ update_normal:
     rts
 	
 .round_ended
-	blitz
-	clr.l	state_timer
-	; TODO if CPU has won the game, then game over
+	; if CPU has won the game, then game over
+	bsr		get_winner
+	tst.b	is_cpu(a0)
+	bne.b	.game_over
+	; a human won the game, check rounds
+	move.l	opponent(a0),a1
+	move.w	nb_rounds_won(a0),d0
+	addq.w	#1,d0
+	cmp.w	#2,d0
+	bcc.b	.level_won
+	move.w	d0,nb_rounds_won(a0)
 	; if round won but already 1 round won, then
 	; level won
 	; if human wins, counts number of rounds won
 	; if 2 rounds won then GM_LOSER / GM_WINNER
 	move.w	#STATE_NEXT_ROUND,current_state
-	rts	
+	rts
+.level_won
+	move.w	#GM_WINNER,level_type
+	tst.b	is_cpu(a1)
+	beq.b	.next
+	; if opponent is human, show "lose" screen
+	move.w	#GM_LOSER,level_type
+.next
+	move.w	#STATE_NEXT_LEVEL,current_state
+	rts
+	
+.game_over
+	bsr		get_active_player
+	st.b	game_over_flag(a4)
+	move.w	#GM_LOSER,level_type
+	move.w	#STATE_NEXT_LEVEL,current_state
+	rts
+	
+.start_round_start_sequence
+	move.w	#RP_START_FIGHT_OR_ROUND,pause_round_type
+	move.w	#START_ROUND_NB_TICKS-50,pause_round_timer		; begin
+.send_display_begin_message
+	lea	referee(pc),a4
+	move.w	#BUBBLE_BEGIN,bubble_type(a4)
+	move.w	#TICKS_PER_SEC_DRAW,bubble_timer(a4)
+	lea		begin_sound,a0
+	bsr		play_fx
+	rts
 
 
 update_bull_phase
@@ -4258,6 +4375,11 @@ update_loser
 	clr.l	state_timer
 	rts
 .really_game_over
+	blitz
+	nop
+	nop
+	nop
+
 	move.w	#STATE_INTRO_SCREEN,current_state
 	clr.l	state_timer
 	rts
@@ -4583,7 +4705,6 @@ bubble_timeout_table
 .bubble_white
 .bubble_red
 	move.w	#STATE_NEXT_FIGHT,current_state
-	clr.l	state_timer
 	rts
 .bubble_stop
 	move.w	#BUBBLE_JUDGE,bubble_type(a4)
@@ -4726,7 +4847,12 @@ update_practice
 start_music_countdown
     dc.w    0
 
-	
+
+; what: returns player 1 or player 2 if not cpu
+; if called when both players are fighting, it doesn't
+; work properly as it returns player 1
+; > A4 human player structure
+
 get_active_player
 	lea	player_1(pc),a4
 	tst.b	is_cpu(a4)
@@ -7896,11 +8022,13 @@ intro_frame_index
     dc.w    0
 intro_step
     dc.b    0
-intro_state_change
-    dc.b    0
+
     even
   
 current_state:
+    dc.w    0
+
+previous_state:
     dc.w    0
 
 bonus_phase_index:
@@ -7913,6 +8041,9 @@ state_timer:
     dc.l    0
 ; general purpose flashing timer
 other_flashing_timer:
+	dc.w	0
+; general purpose toggle
+other_flashing_toggle
 	dc.w	0
 ; general purpose timer
 misc_timer:
