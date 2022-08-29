@@ -48,6 +48,7 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	referee_ypos
 	UWORD	referee_max_xdelta
 	UWORD	referee_min_xdelta
+	UWORD	bonus_level_type
 	ULONG	background_palette_data
     LABEL   LevelParams_SIZEOF
    
@@ -158,7 +159,7 @@ Execbase  = 4
 ; ---------------debug/adjustable variables
 
 ; if set skips intro, game starts immediately
-;DIRECT_GAME_START
+DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
 ;DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
@@ -215,6 +216,13 @@ GM_BREAK = 3<<2
 GM_EVADE = 4<<2
 GM_LOSER = 5<<2
 GM_WINNER = 6<<2
+
+; bonus level types
+
+BLT_NONE = GM_NORMAL
+BLT_EVADE = GM_EVADE
+BLT_DEMO = GM_BREAK
+BLT_BULL = GM_BULL
 
 ; do NOT change those enums without changing the update/draw function tables
 BUBBLE_NONE = 0
@@ -731,7 +739,6 @@ intro:
 	clr.w	players_reinit_flag
     bra.b   .new_level
 .next_level
-    add.w   #1,background_number
 	move.w	#2,players_reinit_flag
     bra.b   .new_level
 .next_round
@@ -945,8 +952,6 @@ new_player
 	
 init_level:
 	clr.l	state_timer
-	; for all level types
-    bsr init_players_and_referee
 	; specific init according to level type
 	lea		init_level_type_table(pc),a0
 	move.w	level_type(pc),d0
@@ -1185,6 +1190,7 @@ draw_panel:
 	bsr		write_color_string
 	bra.b	.cont
 .2p
+
 	lea		player_1,a4
 	move.w	rank(a4),d0
 	addq.w	#1,d0
@@ -1205,6 +1211,9 @@ draw_panel:
 	move.w	#$F00,d2
 	bsr		write_color_string
 	
+	cmp.w	#GM_NORMAL,level_type
+	bne.b	.cont
+	bsr		draw_points_box
 .cont
 	cmp.w	#GM_PRACTICE,level_type
 	bne.b	.no_practice
@@ -1494,7 +1503,6 @@ init_player_common
 	move.w	#BLOW_NONE,hit_by_blow(a4)
     ; no moves (zeroes direction flags)
     clr.w  move_controls(a4)  	; and attack controls
-	clr.w	nb_rounds_won(a4)
 	; no score to hide
 	clr.w	awarded_score_display_timer(a4)
 
@@ -1658,7 +1666,7 @@ init_players_and_referee:
  	lea		walk_forward_frames,a0
 	bsr		load_walk_frame 
 
-	lea player_2(pc),a4
+	lea player_2,a4
     move.w	p2_init_xpos(a1),xpos(a4)
 	bne.b	.no_zero_x
 	; symmetrical
@@ -2701,7 +2709,7 @@ draw_normal:
 	move.w	d0,other_flashing_timer
 	bra.b	.no_start_round
 .flash_timeout
-	move.w	#TICKS_PER_SEC_DRAW/3,other_flashing_timer
+	move.w	#TICKS_PER_SEC_DRAW/4,other_flashing_timer
 	move.w	other_flashing_toggle(pc),d6
 	btst	#0,d6
 	beq.b	.points_draw
@@ -4223,17 +4231,6 @@ update_normal:
 	move.l	(a7)+,d0
 	rts	
 	
-;;	bsr		is_one_player_mode
-;;	tst		d0
-;;	bne.b	.1p
-;;	; flashing score pause
-;;	move.w	#RP_2P_SHOW_SCORE,pause_round_type
-;;	move.w	#(TICKS_PER_SEC_UPDATE*5)/2,pause_round_timer
-;;	move.w	pause_round_timer(pc),d0
-;;	addq.l	#4,a7		; change D0 value
-;;	rts
-;;	
-;;.1p
 	
 	
 .pause_round_timeout
@@ -4310,7 +4307,7 @@ update_normal:
 .level_won
 	move.w	#GM_WINNER,level_type
 	tst.b	is_cpu(a1)
-	beq.b	.next
+	bne.b	.next
 	; if opponent is human, show "lose" screen
 	move.w	#GM_LOSER,level_type
 .next
@@ -4325,9 +4322,23 @@ update_normal:
 	rts
 	
 .start_round_start_sequence
+.send_display_begin_message
+	bsr		is_one_player_mode
+	tst		d0
+	bne.b	.1p
+	; flashing score pause
+	cmp.w	#RP_2P_SHOW_SCORE,pause_round_type
+	beq.b	.1p		; already_shown
+	move.w	scored_points+player_1,d0
+	or.w	scored_points+player_2,d0
+	bne.b	.1p		; not the start of the round, don't flash
+	move.w	#RP_2P_SHOW_SCORE,pause_round_type
+	move.w	#(TICKS_PER_SEC_UPDATE*5)/2,pause_round_timer
+	rts
+.1p
+	
 	move.w	#RP_START_FIGHT_OR_ROUND,pause_round_type
 	move.w	#START_ROUND_NB_TICKS-50,pause_round_timer		; begin
-.send_display_begin_message
 	lea	referee(pc),a4
 	move.w	#BUBBLE_BEGIN,bubble_type(a4)
 	move.w	#TICKS_PER_SEC_DRAW,bubble_timer(a4)
@@ -4350,6 +4361,7 @@ update_bull_phase
 	rts
 .done
 	move.w	#GM_NORMAL,level_type
+    addq.w   #1,background_number	
 	move.w	#STATE_NEXT_LEVEL,current_state
 	rts
 
@@ -4369,7 +4381,6 @@ update_loser
 	st.b	is_cpu(a0)		; cpu is now the opponent
 	; now show winner sequence
 	; show level number but previous background/girl
-	subq.w	#1,background_number
 	move.w	#GM_WINNER,level_type
 	move.w	#STATE_NEXT_LEVEL,current_state
 	clr.l	state_timer
@@ -4385,7 +4396,7 @@ update_loser
 	rts
 	
 update_winner
-	cmp.l	#$154,state_timer
+	cmp.l	#$154,state_timer		; length of music
 	beq.b	.end
 	bsr		get_winner
 	move.l	a0,a4
@@ -4421,9 +4432,11 @@ update_winner
 
 .end
 	bsr	stop_sounds
-	move.w	#GM_NORMAL,level_type
+	bsr	get_level_params
+	move.w	bonus_level_type(a1),d0
+	
+	move.w	d0,level_type
 	move.w	#STATE_NEXT_LEVEL,current_state
-	clr.l	state_timer
 	rts
 	
 update_evade
@@ -4609,6 +4622,7 @@ update_break
 .timeout
 	bsr		stop_sounds
 	move.w	#GM_NORMAL,level_type
+	addq.w	#1,background_number
 	move.w	#STATE_NEXT_LEVEL,current_state
 	clr.l	state_timer
 	rts
@@ -4737,6 +4751,7 @@ judge_decision:
 	; p2 wins
 .p2_wins
 	st.b	round_winner(a3)
+	; referee red flag
 	move.b	#1,hand_red_or_japan_flag(a4)
 	move.w	#BUBBLE_RED,bubble_type(a4)
 	sub.w	#16,ypos(a3)
@@ -4744,12 +4759,14 @@ judge_decision:
 	move.l	a0,current_move_callback(a3)
 	tst.w	time_left
 	bne.b	.round_ended
+	; no time: opponent is sad
 	lea		do_lose(pc),a0
 	st.b	manual_animation(a2)
 	move.l	a0,current_move_callback(a2)
 	bra.b	.round_ended
 .p1_wins
 	st.b	round_winner(a2)
+	; referee white flag
 	move.b	#1,hand_white_flag(a4)
 	move.w	#BUBBLE_WHITE,bubble_type(a4)
 	sub.w	#16,ypos(a2)
@@ -4836,6 +4853,7 @@ update_practice
 	move.l	previous_joystick_state(a4),d0
 	and.l	#JPF_BTN_ALL,d0
 	bne.b	.no_skip
+	addq.w	#1,background_number
 	move.w	#GM_NORMAL,level_type
 	move.w	#STATE_NEXT_LEVEL,current_state
 .no_skip
@@ -4896,7 +4914,13 @@ init_level_type_table
 	dc.l	init_winner
 
 init_loser:
-	
+	bsr		get_winner
+	move.l	a0,-(a7)		; save winner, reset by init_players_and_referee
+    bsr init_players_and_referee
+	move.l	(a7)+,a0
+	; re-set round winner flag (for update phase)
+	st.b	round_winner(a0)
+
 	bsr		get_loser
 	; show a screen with all the "collected" girls (sorry!)
 	; if level is > 1
@@ -4928,8 +4952,14 @@ init_loser:
 GIRL_ADVANCE_NB_FRAMES = 28
 	
 init_winner:
-	clr.w	bonus_phase_index
 	bsr		get_winner
+	move.l	a0,-(a7)		; save winner, reset by init_players_and_referee
+    bsr init_players_and_referee
+	move.l	(a7)+,a0
+	; re-set round winner flag (for update phase)
+	st.b	round_winner(a0)
+	
+	clr.w	bonus_phase_index
 	addq.w	#1,rank(a0)		; one more dan
 	sub.w	#8,ypos(a0)		; correct y pos
 	; if player 2, we have to shift it to the left slightly
@@ -4961,14 +4991,16 @@ init_winner:
 	bsr		play_music
 	rts
 init_normal:
-	; todo reset hits, maybe call init players
+    bsr init_players_and_referee
 	rts
 	
 init_practice
+    bsr init_players_and_referee
 	bsr	init_referee_not_moving
 	rts
 
 init_bull_evade_shared
+    bsr init_players_and_referee
 	clr.b	controls_blocked_flag
 	bsr	get_active_player
 
@@ -5014,6 +5046,7 @@ init_bull
 	rts
 	
 init_break
+    bsr init_players_and_referee
 	moveq.l	#MAIN_THEME_MUSIC,d0
 	bsr		play_music
 	
@@ -6459,9 +6492,9 @@ update_practice_moves
 	beq.b	.out
 	;move.w	#GM_BULL,level_type	; ends at demo
 	
+	addq.w	#1,background_number
 	move.w	#GM_NORMAL,level_type
 	move.w	#STATE_NEXT_LEVEL,current_state
-	clr.l	state_timer
 	bra.b	.out
 .not_performing_move
 	subq.l	#1,next_practice_move_timer
@@ -8954,6 +8987,7 @@ hiscore_screen
 	dc.w	0
 	dc.w	0
 	dc.w	0
+	dc.w	BLT_NONE
 	; color change
 	dc.l	0
 title_screen
@@ -8968,6 +9002,7 @@ title_screen
 	dc.w	0
 	dc.w	0
 	dc.w	0
+	dc.w	BLT_NONE
 	; color change
 	dc.l	0
 	
@@ -8984,6 +9019,7 @@ practice_level
 	dc.w	72
 	dc.w	0
 	dc.w	0
+	dc.w	BLT_NONE
 	; color change
 	dc.l	pl3_palette_data
 
@@ -8999,6 +9035,7 @@ pier_level
 	dc.w	112
 	dc.w	24
 	dc.w	-16
+	dc.w	BLT_EVADE
 	; palette adjustments
 	dc.l	pl1_palette_data
 	
@@ -9014,6 +9051,8 @@ fuji_level
 	dc.w	112
 	dc.w	32
 	dc.w	-32
+	dc.w	BLT_DEMO
+	; color change
 	dc.l	pl2_palette_data
 	
 bamboo_level
@@ -9028,6 +9067,7 @@ bamboo_level
 	dc.w	72
 	dc.w	32
 	dc.w	-32
+	dc.w	BLT_BULL
 	; color change
 	dc.l	pl3_palette_data
 	
@@ -9043,6 +9083,7 @@ bridge_level
 	dc.w	72
 	dc.w	32
 	dc.w	-16
+	dc.w	BLT_EVADE
 	; color change
 	dc.l	pl4_palette_data
 	
@@ -9060,10 +9101,11 @@ boat_level
 	dc.w	-32
 	dc.w	-1,-1
 	dc.w	-1,-1
+	dc.w	BLT_DEMO
 	; color change
 	dc.l	pl5_palette_data
 
-mill_level
+field_level
 	dc.l	pl6
 	dc.l	girl_1_frames
 	dc.w	24
@@ -9075,10 +9117,11 @@ mill_level
 	dc.w	112
 	dc.w	32
 	dc.w	-32
+	dc.w	BLT_BULL
 	; color change
 	dc.l	pl6_palette_data
 	   
-city_level
+mill_level
 	dc.l	pl7
 	dc.l	girl_1_frames
 	dc.w	40
@@ -9090,8 +9133,26 @@ city_level
 	dc.w	72
 	dc.w	32
 	dc.w	-32
+	dc.w	BLT_EVADE
 	; color change
 	dc.l	pl7_palette_data
+
+
+city_level
+	dc.l	pl8
+	dc.l	girl_1_frames
+	dc.w	40
+	dc.w	152
+	dc.w	0
+	dc.w	0
+	; referee
+	dc.w	104		; wrongo
+	dc.w	72
+	dc.w	32
+	dc.w	-32
+	dc.w	BLT_DEMO
+	; color change
+	dc.l	pl8_palette_data
 
 teepee_level
 	dc.l	pl9
@@ -9105,9 +9166,10 @@ teepee_level
 	dc.w	72
 	dc.w	32
 	dc.w	-32
+	dc.w	BLT_BULL
 	; color change
 	dc.l	pl8_palette_data
-	   
+
 temple_level
 	dc.l	pl10
 	dc.l	girl_1_frames
@@ -9120,40 +9182,11 @@ temple_level
 	dc.w	72
 	dc.w	32
 	dc.w	-32
+	dc.w	BLT_EVADE
 	; color change
 	dc.l	pl10_palette_data
-	
-moon_level
-	dc.l	pl12
-	dc.l	girl_1_frames
-	dc.w	40
-	dc.w	152
-	dc.w	0
-	dc.w	0
-	; referee
-	dc.w	104		; wrongo
-	dc.w	72
-	dc.w	32
-	dc.w	-32
-	; color change
-	dc.l	pl12_palette_data
 
-
-field_level
-	dc.l	pl8
-	dc.l	girl_1_frames
-	dc.w	40
-	dc.w	152
-	dc.w	0
-	dc.w	0
-	; referee
-	dc.w	104		; wrongo
-	dc.w	72
-	dc.w	32
-	dc.w	-32
-	; color change
-	dc.l	pl8_palette_data
-	   
+   
 dojo_level
 	dc.l	pl11
 	dc.l	girl_1_frames
@@ -9166,8 +9199,25 @@ dojo_level
 	dc.w	72
 	dc.w	32
 	dc.w	-32
+	dc.w	BLT_DEMO
 	; color change
 	dc.l	pl11_palette_data
+
+moon_level
+	dc.l	pl12
+	dc.l	girl_1_frames
+	dc.w	40
+	dc.w	152
+	dc.w	0
+	dc.w	0
+	; referee
+	dc.w	104		; wrongo
+	dc.w	72
+	dc.w	32
+	dc.w	-32
+	dc.w	BLT_BULL
+	; color change
+	dc.l	pl12_palette_data
 
 pl_hi
 	incbin	"back_13.bin.RNC"
