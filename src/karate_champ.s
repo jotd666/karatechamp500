@@ -72,6 +72,19 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	hit_by_blow		; can be used for bull or objects too
 	LABEL	Character_SIZEOF
 
+	STRUCTURE ObjectFrame,0
+	APTR	bitmap
+	UWORD	width
+	UWORD	height
+	UWORD	xshift
+	UWORD	yshift
+	LABEL 	ObjectFrame_SIZEOF
+	
+	STRUCTURE EvadeObject,0
+	STRUCT	_object_base,Character_SIZEOF
+	APTR	object_frame
+	LABEL	EvadeObject_SIZEOF
+	
 	STRUCTURE Girl,0
 	STRUCT	_girl_base,Character_SIZEOF
 	APTR	top_frame
@@ -926,11 +939,11 @@ init_new_play:
 	lea	player_2,a4
 	bsr		new_player
 	; random practice sequence
-	bsr		random
-	and.w	#7,d0
-	add.w	d0,d0
-	add.w	d0,d0
+	moveq.l	#3,d0
+	bsr		randrange
 	lea		practice_tables(pc),a0
+	add.w	d0,d0
+	add.w	d0,d0
 	move.l	(a0,d0.w),picked_practice_table
 	clr.l	current_practice_move_timer
 	move.l	#PRACTICE_WAIT_BEFORE_NEXT_MOVE,next_practice_move_timer
@@ -1535,6 +1548,7 @@ update_options_string
 	
 ; > A1 level params
 get_level_params
+	move.w	d0,-(a7)
 	move.w	background_number(pc),d0
 	lea		level_params_table,a1
 	btst	#7,d0
@@ -1545,6 +1559,7 @@ get_level_params
 	add.w	d0,d0
 	add.w	d0,d0
 	move.l		(a1,d0.w),a1
+	move.w	(a7)+,d0
 	rts
 	
 init_referee:
@@ -1651,7 +1666,7 @@ init_players_and_referee:
 	lea		walk_forward_frames,a0
 	bsr		load_walk_frame
 
-    lea player_1(pc),a4
+    lea player_1,a4
 	IFD		PLAYERS_START_CLOSE
 	; hardcode position
 	move.w	#SCREEN_WIDTH/2-48,p1_init_xpos(a1)
@@ -1761,7 +1776,7 @@ DEBUG_Y = 24
 
         
 draw_debug
-    lea player_1(pc),a2
+    lea player_1,a2
     move.w  #DEBUG_X,d0
     move.w  #DEBUG_Y,d1
     lea .p1x(pc),a0
@@ -1809,7 +1824,7 @@ draw_debug
     lsl.w   #3,d0
     add.w  #DEBUG_X,d0
     clr.l   d2
-    move.w player+move_controls(pc),d2
+    move.w player+move_controls,d2
     move.w  #4,d3
     bsr write_hexadecimal_number
 	
@@ -1821,7 +1836,7 @@ draw_debug
     lsl.w   #3,d0
     add.w  #DEBUG_X,d0
     clr.l   d2
-    move.w player+frame(pc),d2
+    move.w player+frame,d2
 	divu	#PlayerFrame_SIZEOF,d2
 	and.l	#$FFFF,d2
     move.w  #3,d3
@@ -2552,7 +2567,37 @@ dwb:
 	
 draw_evade
 	bsr	erase_active_player
+	
+	; erase object
+	lea	evade_object,a4
+	move.w	ypos(a4),d1
+	beq.b	.no_erase
+	sub.w	#8,d1
+	move.w	xpos(a4),d0
+	sub.w	#8,d0
+	move.w	#40,d2
+	move.w	d2,d3
+	bsr		restore_background
+.no_erase	
 	bsr	draw_active_player
+	
+	tst.w	misc_timer
+	bne.b	.no_object_move
+
+	lea		evade_object,a4
+	move.w	xpos(a4),d0
+	move.w	ypos(a4),d1
+	move.l	object_frame(a4),a1
+	move.l	(a1)+,a0	; bitmap
+	move.w	(a1)+,d2	; width
+	lsr.w	#3,d2
+	add.w	#2,d2		; width in bytes + 2 bytes
+	move.w	(a1)+,d3	; height
+	add.w	(a1)+,d0	; xoffset
+	add.w	(a1)+,d1	; yoffset
+	bsr		blit_4_planes_cookie_cut
+	
+.no_object_move	
 	rts
 
 draw_break
@@ -2907,15 +2952,20 @@ random:
     rts
 
 ; returns a value between 0 and n [0,n[
-; < D0: max n value (not reached)
+; < D0: max n value (not reached) up to 255
+; (we could go full 32 bits but it's wasteful and useless)
+; how it works: it masks the 32 bit random with the closest
+; power of 2, then draws again until the result is within range
+
 randrange:
 	; compute mask, check higher bit of max value
-	move.w	#31,d2
+	moveq.w	#8,d2
 .count
 	btst	d2,d0
-	dbeq	d2,.count
+	dbne	d2,.count
 	tst.w	d2
 	bmi.b	.err
+	addq.l	#1,d2
 	move.l	d0,d1
 	moveq.l	#0,d3
 	bset	d2,d3
@@ -4463,7 +4513,81 @@ update_winner
 	
 update_evade
 	bsr		update_active_player
+	
+	tst.w	misc_timer
+	beq.b	.move_object	
+	subq.w	#1,misc_timer
+	bne.b	.no_new_object
+	lea		evade_sound,a0
+	bsr		play_fx
+	
+	move.w	generic_element_index,d0
+	cmp.w	#5*4,d0
+	beq.b	.done
+	; current object
+	lea		evade_objects(pc),a1
+	lea		evade_object(pc),a4
+	move.l	(a1,d0.w),object_frame(a4)
+	move.l	generic_table_pointer(pc),a0	; table
+	move.l	(a0,d0.w),a0
+	move.w	(a0)+,d1	; height
+	move.w	(a0)+,d2
+	move.w	d2,direction(a4)
+	; compute xpos/ypos
+	cmp.w	#RIGHT,d2
+	beq.b	.from_left
+	; from right
+	move.w	#SCREEN_WIDTH,xpos(a4)
+	bra.b	.cont
+.from_left
+	move.w	#-16,xpos(a4)
+.cont
+	bsr		get_level_params
+	move.w	p1_init_ypos(a1),d2
+	cmp.w	#HEIGHT_MEDIUM,d1
+	beq.b	.med
+	cmp.w	#HEIGHT_LOW,d1
+	bne.b	.cont2
+	add.w	#32,d2
+	bra.b	.cont2
+.med
+	add.w	#16,d2
+.cont2
+	move.w	d2,ypos(a4)
+	
+	addq.w	#4,d0
+	move.w	d0,generic_element_index
+	
+.no_new_object
 	rts
+	
+.move_object
+	lea		evade_object,a4
+
+	move.w	direction(a4),d0
+	move.w	xpos(a4),d1
+	cmp.w	#RIGHT,d0
+	beq.b	.right
+	subq.w	#2,d1
+	cmp.w	#-8,d1
+	beq.b	.out_of_screen
+	bra.b	.storex
+.right
+	addq.w	#2,d1
+	cmp.w	#SCREEN_WIDTH+8,d1
+	beq.b	.out_of_screen
+.storex
+	move.w	d1,xpos(a4)
+	rts
+.out_of_screen
+	move.w	#TICKS_PER_SEC_UPDATE,misc_timer
+	rts
+		
+.done
+	blitz
+	rts
+
+
 	
 ; player x = max: maximum 2000 points score
 MAX_X_BREAK = $66
@@ -4600,7 +4724,7 @@ update_break
 .keep_going
 	; animation is manual
 	move.w	direction(a4),d2
-	move.l	break_table_pointer(pc),a0
+	move.l	generic_table_pointer(pc),a0
 	move.l	(a0),d0
 	bne.b	.no_rev
 	; toggle direction
@@ -4630,7 +4754,7 @@ update_break
 	add.w	d1,d1
 	add.w	d0,xpos(a4)
 	add.w	d1,ypos(a4)
-	move.l	a0,break_table_pointer
+	move.l	a0,generic_table_pointer
 	rts
 .next
 	cmp.w	#RIGHT,d2
@@ -5090,7 +5214,7 @@ init_break
 	clr.w	show_challenge_message
 	clr.b	controls_blocked_flag
 	
-	move.l	#break_table,break_table_pointer
+	move.l	#break_table,generic_table_pointer
 	move.w	#RIGHT,direction(a4)
 	
 	move.w	#9,d0
@@ -5103,8 +5227,18 @@ init_break
 		
 init_evade	
 	bsr		init_bull_evade_shared
+	; center player in x
+	bsr		get_active_player
+	move.w	#SCREEN_WIDTH/2-24,xpos(a4)
 	; pick a table
-	; evade_tables
+	lea	evade_tables,a0
+	moveq.l	#3,d0
+	bsr		randrange
+	add.w	d0,d0
+	add.w	d0,d0
+	move.l	(a0,d0.w),generic_table_pointer	; table
+	clr.w	generic_element_index
+	move.w	#TICKS_PER_SEC_UPDATE*3,misc_timer
 	rts
 	
 CHARACTER_X_START = 88
@@ -7990,8 +8124,10 @@ dosname
 gfxbase_copperlist
     dc.l    0
 
-break_table_pointer
+generic_table_pointer
 	dc.l	0
+generic_element_index
+	dc.w	0
 options_select
 	dc.w	0
 option_index
@@ -8420,7 +8556,6 @@ evade_tables:
 	dc.l	evade_sequence_0
 	dc.l	evade_sequence_0
 
-	
 evade_sequence_0:
 	dc.w	HEIGHT_HIGH,LEFT
 	dc.w	HEIGHT_HIGH,LEFT
@@ -8440,18 +8575,52 @@ evade_sequence_2:
 	dc.w	HEIGHT_HIGH,RIGHT
 	dc.w	HEIGHT_HIGH,RIGHT
 evade_objects:
-	dc.l	plant_frames
-	dc.l	bottle_frames
-	dc.l	apple_frames
-	dc.l	rock_frames
-	dc.l	plank_frames
+	dc.l	plant_object
+	dc.l	bottle_object
+	dc.l	apple_object
+	dc.l	rock_object
+	dc.l	plank_object
 	
-plant_frames:
-bottle_frames:
-apple_frames:
-rock_frames:
-plank_frames:
-; TODO bitmap width height
+	
+plant_object:
+	dc.l	plant_0
+	dc.w	16,16,0,0
+	dc.l	plant_1
+	dc.w	16,16,0,0
+	dc.l	plant_2
+	dc.w	16,16,0,0
+bottle_object:
+	dc.l	bottle_0
+	dc.w	16,16,0,0
+	dc.l	bottle_1
+	dc.w	16,16,0,0
+	dc.l	bottle_2
+	dc.w	16,16,0,0
+apple_object:
+	dc.l	apple_0
+	dc.w	16,16,0,0
+	dc.l	apple_1
+	dc.w	16,16,0,0
+	dc.l	apple_2
+	dc.w	16,16,0,0
+
+rock_object:
+	dc.l	rock_0
+	dc.w	16,16,0,0
+	dc.l	rock_1
+	dc.w	32,20,-4,-2
+	dc.l	rock_2
+	dc.w	32,28,-8,-8
+	
+plank_object:
+	dc.l	plank
+	dc.w	16,20,0,0
+	REPT	2
+	dc.l	plank_exploding
+	dc.w	32,18,-12,-8
+	ENDR
+	
+; TODO bitmap width height xshift yshift
 
 pos_table  
     dc.l    pos1		; practice
@@ -8765,11 +8934,7 @@ practice_tables:
 	dc.l	practice_table_1
 	dc.l	practice_table_2
 	dc.l	practice_table_3
-	dc.l	practice_table_2
-	dc.l	practice_table_1
-	dc.l	practice_table_2
-	dc.l	practice_table_3
-	dc.l	practice_table_1
+
 	
 	IFND	REPEAT_PRACTICE
 REPEAT_PRACTICE = 1
@@ -8928,6 +9093,10 @@ girl:
 	ds.b	Girl_SIZEOF
 girl_copy:
 	ds.b	Girl_SIZEOF
+evade_object
+	ds.l	EvadeObject_SIZEOF
+
+
     even
 
     

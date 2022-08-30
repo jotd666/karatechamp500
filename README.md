@@ -26,15 +26,16 @@ at each update)
 
 optimize "minus 48 to center character" 3 times!!!
 bull
-evade <-----
+
 - add '1p red player" in options
 
-level 4 rock special sprite sheet!!!
 sequence: low rear mid front high rear mid front high rear
 sequence: 3x mid front, 2x high rear!!!
 
 bugs
 
+- evade direction/heights complete bogus
+- evade collisions
 - win a round: timer not reset: check again
 - try timeout win
 - test fight against cpu: win & lose
