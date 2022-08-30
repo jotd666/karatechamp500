@@ -225,8 +225,85 @@
    "start_y":0,
    "width":16,
    "height":16,
-   "frames":4
+   "frames":3
  },
+{
+   "name":"rock_0",
+   "start_x":144,
+   "start_y":256,
+   "width":16,
+   "height":16,
+    "generate_mask":false
+},
+{
+   "name":"rock_0_mask",
+   "start_x":144,
+   "start_y":288,
+   "width":16,
+   "height":16,
+    "generate_mask":false
+},
+{
+   "name":"rock_1",
+   "start_x":160,
+   "start_y":256,
+   "width":32,
+   "height":20,
+    "generate_mask":false
+},
+{
+   "name":"rock_1_mask",
+   "start_x":160,
+   "start_y":288,
+   "width":32,
+   "height":20,
+   "generate_mask":false
+ },
+{
+   "name":"rock_2",
+   "start_x":192,
+   "start_y":256,
+   "width":32,
+   "height":28,
+   "generate_mask":false
+ },
+{
+   "name":"rock_2_mask",
+   "start_x":192,
+   "start_y":288,
+   "width":32,
+   "height":28,
+    "generate_mask":false
+},
+{
+   "name":"the",
+   "start_x":128,
+   "start_y":176,
+   "height":8,
+   "generate_mask":false
+ },
+{
+   "name":"the_mask",
+   "start_x":128,
+   "start_y":192,
+   "height":8,
+   "generate_mask":false
+ },
+{
+   "name":"end",
+   "start_x":144,
+   "start_y":168,
+   "width":48,
+   "generate_mask":false
+ },
+{
+   "name":"end_mask",
+   "start_x":144,
+   "start_y":184,
+   "width":48,
+   "generate_mask":false
+ },
+
 {
    "name":"table",
    "start_x":0,

@@ -1,3 +1,25 @@
+# conversion script for sprites and backgrounds
+# since we have to stick to 16 colors and the union of all background colors + sprites
+# is slightly above 16 (18 I think), some tweaks had to be applied in-game with dynamic
+# color change (in the end, the original system can only display 16 colors too so it must
+# do the same thing)
+#
+# colors replacement are applied to the palette with unused colors
+#
+# note that bonus stages use colors that conflict (burgundy=bull, light gray=rock)
+# so bonus stages cannot be played on any background
+#
+# also note: bitplanelib has been designed with more simple games in mind, with sprite sheets
+# having black color as background (games like Pac-man, Pengo, Amidar, Scramble use black
+# in the background. In that game, there's a lot of black which is used for
+# real color, and my lib shown its limits when it comes to automatic mask computation which
+# is not the first color of the palette. So some images containing black are generated with
+# auto mask generation off, and are followed by the manually generated mask in the sprite sheet
+# (rock => rock_mask). A special feature allows to generate 1 bitplane if the image only has 2
+# colors, like the ones used for masks. And it works with minimal Gimp legwork (fortunately,
+# it's a minority of sprites, the main characters also have black but a special processing has
+# been applied to them, which I was too lazy to apply to the general sprites)
+
 import os,bitplanelib,json,subprocess
 from PIL import Image
 
@@ -72,9 +94,10 @@ move_param_dict = {
 for d in move_param_dict.values():
     d["score"] //= 100
 
+# rgb colors replacement we can apply
 base_rep = {(0, 192, 0):(128, 0, 192)}
 color_replacement_dict = {3:base_rep,
-4:base_rep,
+4:base_rep | {(128,0,0):(0x80,0xF0,0x00)},  # for the rock light gray (evade)
 6:base_rep,
 7:base_rep | {(192, 160, 48):(192, 128, 0)},
 10:base_rep,
@@ -155,6 +178,14 @@ def compute_palettes():
     red_index = palette.index((240,0,0))
     # swap with position 9 (imposed)
     palette[red_index],palette[9] = palette[9],palette[red_index]
+
+    # special case for light gray: is in sprites (rocks) but should be last
+    # and not active in all pics (else we go over 16 colors), so we're removing it
+    # from the sprites palette for now
+    light_gray = (0XC0,0xC0,0xC0)
+    black = (0,0,0)
+    palette.remove(light_gray)
+
     # palette should have 14 colors total
 
     # now find the specific palette (2 slots remaining)
@@ -177,12 +208,20 @@ def compute_palettes():
             # or "bull" stage because it's used there. In that case, we could choose a green instead (if not in the stage)
 
             specific_rgb = [("{:02x}"*3).format(*p) for p in unused_shared_colors]
-            raise Exception("{}: should less than 16 colors {}+{}: try to replace {} of {} color(s) by one of {}".format(
-        imgname,lp,ls,lp+ls-16,specific_colors,unused_shared_colors))
+            raise Exception("background #{}: should use less than 16 colors {}+{}: try to replace {} of {} color(s) by one of {}".format(
+        i,lp,ls,lp+ls-16,specific_colors,unused_shared_colors))
 
-        specific_palette[i] = specific_colors
+        specific_palette[i] = list(specific_colors)
 
+        # add light gray again, last position, if possible
+        spal = specific_palette[i]
+        if not spal:
+            spal.append(black)      # pre-pad
+        if len(spal)<2:
+            spal.append(light_gray)
 
+    # add light gray again, last position
+    palette += [black,light_gray]
     return palette,specific_palette
 
 def extract_block(img,x=0,y=0,width=None,height=None):
@@ -777,7 +816,13 @@ with open(os.path.join(source_dir,"background_palette.s"),"w") as f:
 
     # create a specific palette table for backgrounds
     for i,colors in sorted(specific_palettes.items()):
-        cl = list(colors) + [(0,0,0)]*(2-len(colors))    # padding
+        cl = colors + [(0,0,0)]*(2-len(colors))    # padding
+        # kludge to artificially make 0xccc color appear last, like other background pics
+        # so light gray color is available in that position (overwriting 0x8F0,
+        # but burgundy is manually replaced by 0x8F0)
+        # all other background pics which can run "evade" have 0xccc as extra last color
+        if i==4:
+            cl[-1] = (0xC0,)*3
         f.write("pl{}_palette_data:\n".format(i))
         rd = color_replacement_dict.get(i) or {}
         items = [["${:x}".format(bitplanelib.to_rgb4_color(z)) for z in x] for x in rd.items()]
@@ -802,7 +847,7 @@ bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
 
 #process_backgrounds(palette)
 
-#process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
+process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
 
 #process_player_tiles()
 

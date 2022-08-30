@@ -159,7 +159,7 @@ Execbase  = 4
 ; ---------------debug/adjustable variables
 
 ; if set skips intro, game starts immediately
-DIRECT_GAME_START
+;DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
 ;DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
@@ -171,15 +171,13 @@ DIRECT_GAME_START
 ; change default round time
 ROUND_TIME = 30
 
-; test bonus screen 
-;BONUS_SCREEN_TEST
 
 ;HIGHSCORES_TEST
 
 ; 
 ;START_SCORE = 1000/10
-;START_LEVEL = 2
-;START_LEVEL_TYPE = GM_WINNER
+START_LEVEL = 1
+START_LEVEL_TYPE = GM_EVADE
 
 ; temp if nonzero, then records game input, intro music doesn't play
 ; and when one life is lost, blitzes and a0 points to move record table
@@ -2553,6 +2551,8 @@ dwb:
 	rts
 	
 draw_evade
+	bsr	erase_active_player
+	bsr	draw_active_player
 	rts
 
 draw_break
@@ -2906,7 +2906,29 @@ random:
     move.l  d0,previous_random
     rts
 
-    
+; returns a value between 0 and n [0,n[
+; < D0: max n value (not reached)
+randrange:
+	; compute mask, check higher bit of max value
+	move.w	#31,d2
+.count
+	btst	d2,d0
+	dbeq	d2,.count
+	tst.w	d2
+	bmi.b	.err
+	move.l	d0,d1
+	moveq.l	#0,d3
+	bset	d2,d3
+	subq.l	#1,d3
+.loop
+	bsr		random
+	and.l	d3,d0
+	cmp.l	d1,d0
+	bcc.b	.loop
+    rts
+.err
+	illegal
+	
 draw_start_screen
     bsr hide_sprites
     bsr clear_screen
@@ -5081,7 +5103,8 @@ init_break
 		
 init_evade	
 	bsr		init_bull_evade_shared
-
+	; pick a table
+	; evade_tables
 	rts
 	
 CHARACTER_X_START = 88
@@ -8394,6 +8417,8 @@ bull_frame_table
 
 evade_tables:
 	dc.l	evade_sequence_0
+	dc.l	evade_sequence_0
+	dc.l	evade_sequence_0
 
 	
 evade_sequence_0:
@@ -8408,6 +8433,12 @@ evade_sequence_1:
 	dc.w	HEIGHT_HIGH,RIGHT
 	dc.w	HEIGHT_HIGH,RIGHT
 	dc.w	HEIGHT_LOW,RIGHT
+evade_sequence_2:
+	dc.w	HEIGHT_MEDIUM,LEFT
+	dc.w	HEIGHT_MEDIUM,LEFT
+	dc.w	HEIGHT_MEDIUM,LEFT
+	dc.w	HEIGHT_HIGH,RIGHT
+	dc.w	HEIGHT_HIGH,RIGHT
 evade_objects:
 	dc.l	plant_frames
 	dc.l	bottle_frames

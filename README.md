@@ -37,6 +37,7 @@ bugs
 
 - win a round: timer not reset: check again
 - try timeout win
+- test fight against cpu: win & lose
 - game start: doesn't see previous joy button, then check - player2 start not working
 - when hit, player falls too fast
 - demo/plank level scoring is complete bogus
