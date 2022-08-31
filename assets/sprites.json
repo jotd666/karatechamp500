@@ -236,7 +236,7 @@
     "generate_mask":false
 },
 {
-   "name":"rock_0_mask",
+   "name":"rock_0_bp_mask",
    "start_x":144,
    "start_y":288,
    "width":16,
@@ -252,7 +252,7 @@
     "generate_mask":false
 },
 {
-   "name":"rock_1_mask",
+   "name":"rock_1_bp_mask",
    "start_x":160,
    "start_y":288,
    "width":32,
@@ -268,7 +268,7 @@
    "generate_mask":false
  },
 {
-   "name":"rock_2_mask",
+   "name":"rock_2_bp_mask",
    "start_x":192,
    "start_y":288,
    "width":32,
@@ -283,7 +283,7 @@
    "generate_mask":false
  },
 {
-   "name":"the_mask",
+   "name":"the_bp_mask",
    "start_x":128,
    "start_y":192,
    "height":8,
@@ -297,7 +297,7 @@
    "generate_mask":false
  },
 {
-   "name":"end_mask",
+   "name":"end_bp_mask",
    "start_x":144,
    "start_y":184,
    "width":48,
@@ -333,14 +333,14 @@
  },
 {
    "name":"plank",
-   "start_x":96,
+   "start_x":80,
    "start_y":168,
    "width":16,
    "height":20
  },
 {
    "name":"plank_exploding",
-   "start_x":80,
+   "start_x":96,
    "start_y":168,
    "width":32,
    "height":18
@@ -354,7 +354,7 @@
    "generate_mask":false
  },
 {
-   "name":"better_luck_bubble_mask",
+   "name":"better_luck_bubble_bp_mask",
    "start_x":0,
    "start_y":128,
    "width":80,
@@ -371,7 +371,7 @@
    "force_all_bitplanes":true
  },
 {
-   "name":"judge_bubble_mask",
+   "name":"judge_bubble_bp_mask",
    "start_x":80,
    "start_y":128,
    "width":32,
@@ -387,7 +387,7 @@
    "generate_mask":false
  },
 {
-   "name":"very_good_bubble_mask",
+   "name":"very_good_bubble_bp_mask",
    "start_x":112,
    "start_y":128,
    "width":48,
@@ -412,7 +412,7 @@
    "generate_mask":false
  },
 {
-   "name":"referee_head_mask",
+   "name":"referee_head_bp_mask",
    "start_x":160,
    "start_y":128,
    "width":16,
@@ -428,7 +428,7 @@
    "generate_mask":false
  },
 {
-   "name":"referee_left_leg_down_mask",
+   "name":"referee_left_leg_down_bp_mask",
    "start_x":176,
    "start_y":128,
    "width":16,
@@ -444,7 +444,7 @@
    "generate_mask":false
  },
 {
-   "name":"referee_right_leg_down_mask",
+   "name":"referee_right_leg_down_bp_mask",
    "start_x":192,
    "start_y":128,
    "width":16,
@@ -460,7 +460,7 @@
    "generate_mask":false
  },
 {
-   "name":"referee_legs_down_mask",
+   "name":"referee_legs_down_bp_mask",
    "start_x":208,
    "start_y":128,
    "width":16,
@@ -476,7 +476,7 @@
    "generate_mask":false
  },
 {
-   "name":"referee_left_arm_down_mask",
+   "name":"referee_left_arm_down_bp_mask",
    "start_x":224,
    "start_y":128,
    "width":16,
@@ -492,7 +492,7 @@
    "generate_mask":false
  },
 {
-   "name":"referee_right_arm_down_mask",
+   "name":"referee_right_arm_down_bp_mask",
    "start_x":240,
    "start_y":128,
    "width":16,
@@ -539,7 +539,7 @@
    "generate_mask":false
  },
 {
-   "name":"big_head_1_mask",
+   "name":"big_head_1_bp_mask",
    "start_x":0,
    "start_y":288,
    "width":32,
@@ -555,7 +555,7 @@
    "generate_mask":false
  },
 {
-   "name":"big_head_2_mask",
+   "name":"big_head_2_bp_mask",
    "start_x":32,
    "start_y":288,
    "width":32,

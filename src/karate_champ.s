@@ -202,7 +202,7 @@ START_LEVEL_TYPE = GM_EVADE
 ;INIT_DEMO_LEVEL_NUMBER = 1
 ; set this to create full colision matrix & blitz with a0 loaded with
 ; matrix: S matrix ra0 !160*!55
-;DEBUG_COLLISIONS
+DEBUG_COLLISIONS
 
 
 ; ******************** end test defines *********************************
@@ -1547,7 +1547,7 @@ update_options_string
 	
 	
 ; > A1 level params
-get_level_params
+get_level_params:
 	move.w	d0,-(a7)
 	move.w	background_number(pc),d0
 	lea		level_params_table,a1
@@ -2588,17 +2588,19 @@ draw_evade
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
 	move.l	object_frame(a4),a1
-	move.l	(a1)+,a0	; bitmap
-	move.w	(a1)+,d2	; width
+	move.l	bitmap(a1),a0	; bitmap
+	move.w	width(a1),d2	; width
 	lsr.w	#3,d2
 	add.w	#2,d2		; width in bytes + 2 bytes
-	move.w	(a1)+,d3	; height
-	add.w	(a1)+,d0	; xoffset
-	add.w	(a1)+,d1	; yoffset
+	move.w	height(a1),d3	; height
+	add.w	xshift(a1),d0	; xoffset
+	add.w	yshift(a1),d1	; yoffset
 	bsr		blit_4_planes_cookie_cut
 	
 .no_object_move	
 	rts
+
+
 
 draw_break
 	tst.l	state_timer
@@ -4529,14 +4531,21 @@ update_evade
 	lea		evade_object(pc),a4
 	move.l	(a1,d0.w),object_frame(a4)
 	move.l	generic_table_pointer(pc),a0	; table
-	move.l	(a0,d0.w),a0
+
+	lea		(a0,d0.w),a0
 	move.w	(a0)+,d1	; height
 	move.w	(a0)+,d2
 	move.w	d2,direction(a4)
 	; compute xpos/ypos
-	cmp.w	#RIGHT,d2
+	move.w	#RIGHT,d3
+	tst.b	evade_mirror
+	beq.b	.no_mirror
+	move.w	#LEFT,d3
+.no_mirror
+	cmp.w	d3,d2
 	beq.b	.from_left
 	; from right
+.from_right
 	move.w	#SCREEN_WIDTH,xpos(a4)
 	bra.b	.cont
 .from_left
@@ -4548,7 +4557,7 @@ update_evade
 	beq.b	.med
 	cmp.w	#HEIGHT_LOW,d1
 	bne.b	.cont2
-	add.w	#32,d2
+	add.w	#36,d2
 	bra.b	.cont2
 .med
 	add.w	#16,d2
@@ -5149,13 +5158,13 @@ init_bull_evade_shared
     bsr init_players_and_referee
 	clr.b	controls_blocked_flag
 	bsr	get_active_player
+	; player is at the centre
+	move.w	#SCREEN_WIDTH/2-24,xpos(a4)
 
 	; init referee
 	bsr		init_referee_not_moving
 	
-	; player is at the centre
-	move.w	#40,xpos(a4)
-	move.w	#152,ypos(a4)
+
 	
 	clr.w	after_bonus_phase_timer
 	clr.w	bonus_phase_index
@@ -5228,12 +5237,12 @@ init_break
 init_evade	
 	bsr		init_bull_evade_shared
 	; center player in x
-	bsr		get_active_player
-	move.w	#SCREEN_WIDTH/2-24,xpos(a4)
 	; pick a table
 	lea	evade_tables,a0
-	moveq.l	#3,d0
+	moveq.l	#6,d0
 	bsr		randrange
+	lsr.w	#1,d0
+	scc.b	evade_mirror
 	add.w	d0,d0
 	add.w	d0,d0
 	move.l	(a0,d0.w),generic_table_pointer	; table
@@ -5973,7 +5982,7 @@ check_hit
 	IFD	DEBUG_COLLISIONS
 	; debug it: save it here: S matrix ra0 !160*!55
 	lea		collision_matrix,a0
-	LOGPC	110	; so we can dump the matrix
+	blitz	; so we can dump the matrix
 	ENDC
 .is_hit
 .no_collision
@@ -6006,18 +6015,146 @@ clear_collision_matrix:
 	
 fill_opponent_routine_table:
 	dc.l	fill_opponent_normal
-	dc.l	fill_opponent_practice
+	dc.l	fill_opponent_practice	; deviated from its purpose
 	dc.l	fill_opponent_bull
-	dc.l	fill_opponent_break
-	dc.l	fill_opponent_evade
+	dc.l	fill_opponent_break	; nothing to do
+	dc.l	fill_opponent_object
 
-fill_opponent_evade
-fill_opponent_break
-fill_opponent_bull
+fill_opponent_object
 	bsr	clear_collision_matrix
-
+	tst.w	misc_timer
+	beq.b	.object_on_screen
+	; object not on screen: no collision
+	rts
+	
+.object_on_screen
+	; opponent is the current object
+	lea		evade_object(pc),a5
+	
+; the opponent here is a much simpler shape: rectangular
+fill_opponent_evade_bull_shared
+	move.w	ypos(a5),d1
+	sub.w	level_players_y_min(pc),d1	; can't be negative	
+	move.w	xpos(a5),d0
+	move.l	object_frame(a5),a1
+	move.w	width(a1),d2	; width
+	move.w	height(a1),d6	; height
+	add.w	xshift(a1),d0	; xoffset
+	add.w	yshift(a1),d1	; yoffset
+	lsr.w	#1,d1
+	lsr.w	#1,d0
+	; divided coordinates of opponent
+	; now plot the opponent in the matrix
+	
+	lsr.w	#1,d6
+	subq.w	#1,d6
+	; compute start of source
+	lea		mulCOLLISION_NB_COLS_table(pc),a3
+	move.w	d1,d4
+	add.w	d4,d4
+	add.w	(a3,d4.w),a0	; add y*COLLISION_NB_COLS
+	move.l	a0,a3		; save a0 in a3: start of row
+.yloop
+	move.w	width(a1),d7	; width
+	lsr.w	#1,d7
+	move.w	d7,d5		; store half bob width
+	subq.w	#1,d7
+	add.w	d0,a0	; add X
+.xloop
+	move.b	#1,(a0)+
+	dbf		d7,.xloop
+.xloop_end
+	lea     (COLLISION_NB_COLS,a3),a3
+	move.l	a3,a0	; next target row
+	dbf		d6,.yloop
+.out
 	rts
 
+	
+fill_opponent_break
+	rts
+	
+fill_opponent_bull
+	bsr	clear_collision_matrix
+	; convert bull to evade object (rectangle) TODO
+	illegal
+	nop
+	bra	fill_opponent_evade_bull_shared
+
+; < A4: player structure
+
+fill_opponent_normal
+	bsr		clear_collision_matrix
+	; > A0: collision matrix
+	move.l	opponent(a4),a5
+	
+	move.w	ypos(a5),d1
+	sub.w	level_players_y_min(pc),d1	; can't be negative
+	; sanity check
+	bpl.b	.ok
+	illegal
+.ok
+	cmp.w	#(COLLISION_NB_ROWS*2)-48,d1
+	bcs.b	.ok2
+	illegal
+.ok2
+	lsr.w	#1,d1
+	move.w	xpos(a5),d0
+	lsr.w	#1,d0
+	; divided coordinates of opponent
+	; now plot the opponent in the matrix
+	
+	move.l	frame_set(a5),a1
+	add.w	frame(a5),a1
+	; draw mask if defence in mask
+	move.l	(target_data,a1),d6
+	beq.b	.out		; no target data (blow frame), discard
+	move.l	d6,a2
+	move.w	bob_height(a1),d6
+	lsr.w	#1,d6
+	subq.w	#1,d6
+	; compute start of source
+	lea		mulCOLLISION_NB_COLS_table(pc),a3
+	move.w	d1,d4
+	add.w	d4,d4
+	add.w	(a3,d4.w),a0	; add y*COLLISION_NB_COLS
+	move.l	a0,a3		; save a0 in a3: start of row
+.yloop
+	move.w	bob_width(a1),d7
+	lsr.w	#1,d7
+	move.w	d7,d5		; store half bob width
+	subq.w	#1,d7
+	cmp.w	#RIGHT,direction(a5)
+	bne.b	.case_left
+	add.w	d0,a0	; add X
+.xloop
+	move.b	(a2)+,(a0)+
+	dbf		d7,.xloop
+.xloop_end
+	lea     (COLLISION_NB_COLS,a3),a3
+	move.l	a3,a0	; next target row
+	dbf		d6,.yloop
+.out
+	rts
+.case_left
+	move.w	bob_nb_bytes_per_row(a1),d3
+	sub.w	#6,d3	; minus 48 to center character
+	beq.b	.zap	; optim
+	lsl.w	#2,d3	; times 4 (not 8)
+	sub.w	d3,d0	; subtract if facing left
+	bpl.b	.zap
+	moveq	#0,d0	; negative: clip to 0
+.zap
+	; the symmetry is easier to perform with a matrix
+	; of dots instead of an offset list like the hit
+	; xy list above
+	add.w	d0,a0		; add X
+.xloop_left
+	move.b	(a2,d7.w),(a0)+
+	dbf		d7,.xloop_left
+	add.w	d5,a2			; next source row
+	bra.b	.xloop_end
+	
 ; there aren't any opponent, just take advantage of that
 ; specific call just when the blow lands so we can compare
 ; the technique with the shown technique
@@ -6167,79 +6304,7 @@ check_collisions:
 	moveq.l	#1,d0
 	rts
 	
-; < A4: player structure
 
-fill_opponent_normal
-	bsr		clear_collision_matrix
-	; > A0: collision matrix
-	move.l	opponent(a4),a5
-	
-	move.w	ypos(a5),d1
-	sub.w	level_players_y_min(pc),d1	; can't be negative
-	; sanity check
-	bpl.b	.ok
-	illegal
-.ok
-	cmp.w	#(COLLISION_NB_ROWS*2)-48,d1
-	bcs.b	.ok2
-	illegal
-.ok2
-	lsr.w	#1,d1
-	move.w	xpos(a5),d0
-	lsr.w	#1,d0
-	; divided coordinates of opponent
-	; now plot the opponent in the matrix
-	
-	move.l	frame_set(a5),a1
-	add.w	frame(a5),a1
-	; draw mask if defence in mask
-	move.l	(target_data,a1),d6
-	beq.b	.out		; no target data (blow frame), discard
-	move.l	d6,a2
-	move.w	bob_height(a1),d6
-	lsr.w	#1,d6
-	subq.w	#1,d6
-	; compute start of source
-	lea		mulCOLLISION_NB_COLS_table(pc),a3
-	move.w	d1,d4
-	add.w	d4,d4
-	add.w	(a3,d4.w),a0	; add y*COLLISION_NB_COLS
-	move.l	a0,a3		; save a0 in a3: start of row
-.yloop
-	move.w	bob_width(a1),d7
-	lsr.w	#1,d7
-	move.w	d7,d5		; store half bob width
-	subq.w	#1,d7
-	cmp.w	#RIGHT,direction(a5)
-	bne.b	.case_left
-	add.w	d0,a0	; add X
-.xloop
-	move.b	(a2)+,(a0)+
-	dbf		d7,.xloop
-.xloop_end
-	lea     (COLLISION_NB_COLS,a3),a3
-	move.l	a3,a0	; next target row
-	dbf		d6,.yloop
-.out
-	rts
-.case_left
-	move.w	bob_nb_bytes_per_row(a1),d3
-	sub.w	#6,d3	; minus 48 to center character
-	beq.b	.zap	; optim
-	lsl.w	#2,d3	; times 4 (not 8)
-	sub.w	d3,d0	; subtract if facing left
-	bpl.b	.zap
-	moveq	#0,d0	; negative: clip to 0
-.zap
-	; the symmetry is easier to perform with a matrix
-	; of dots instead of an offset list like the hit
-	; xy list above
-	add.w	d0,a0		; add X
-.xloop_left
-	move.b	(a2,d7.w),(a0)+
-	dbf		d7,.xloop_left
-	add.w	d5,a2			; next source row
-	bra.b	.xloop_end
 	
 erase_referee:
 	lea	referee(pc),a4
@@ -6792,8 +6857,8 @@ blit_plane_any_internal:
     move    d0,d6
     beq.b   .d0_zero
     and.w   #$F,d6
-    and.w   #$1F0,d0
-    lsr.w   #3,d0
+    asr.w   #3,d0
+	bclr	#0,d0
     add.w   d0,d1
 
     swap    d6
@@ -6869,8 +6934,8 @@ blit_plane_any_internal_cookie_cut:
 
     move    d0,d6
     beq.b   .d0_zero
-    and.w   #$1F0,d0
-    lsr.w   #3,d0
+    asr.w   #3,d0
+	bclr	#0,d0
     and.w   #$F,d6
 	beq.b	.no_shifting
 
@@ -8157,6 +8222,8 @@ planks_broken
 	dc.w	0
 previous_move
 	dc.b	0
+evade_mirror
+	dc.b	0
 	even
     IFD    RECORD_INPUT_TABLE_SIZE
 prev_record_joystick_state
@@ -8553,8 +8620,8 @@ bull_frame_table
 
 evade_tables:
 	dc.l	evade_sequence_0
-	dc.l	evade_sequence_0
-	dc.l	evade_sequence_0
+	dc.l	evade_sequence_1
+	dc.l	evade_sequence_2
 
 evade_sequence_0:
 	dc.w	HEIGHT_HIGH,LEFT
@@ -9471,12 +9538,11 @@ player_move_buffer
 ; resolution 1/2 compared to the original resolution
 ; some margin in case moves go below 0 / above max
 collision_matrix_buffer:
-	ds.b	COLLISION_NB_ROWS*8
+; no margin
 collision_matrix:
 	ds.b	COLLISION_NB_COLS*COLLISION_NB_ROWS
-	ds.b	COLLISION_NB_ROWS*8
 collision_matrix_buffer_end
-
+	ds.b	COLLISION_NB_COLS*16	; for rock/plank in evade mode
     SECTION  S4,CODE
     include ptplayer.s
 
@@ -9638,7 +9704,7 @@ screen_data_real_start
 	ds.b	NB_BYTES_BORDER
 screen_data:
     ds.b    SCREEN_PLANE_SIZE*NB_PLANES,0
-	
+	ds.b	NB_BYTES_PER_LINE
 backbuffer
 	ds.b	BACKBUFFER_PLANE_SIZE*NB_PLANES,0
 

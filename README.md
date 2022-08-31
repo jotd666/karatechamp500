@@ -34,7 +34,7 @@ sequence: 3x mid front, 2x high rear!!!
 
 bugs
 
-- evade direction/heights complete bogus
+- reduce memory: collision maps as bits
 - evade collisions
 - win a round: timer not reset: check again
 - try timeout win

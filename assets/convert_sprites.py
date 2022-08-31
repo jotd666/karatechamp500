@@ -146,6 +146,10 @@ def get_background_pic(i):
                     img.putpixel((x,y),pix_rep)
     return img
 
+def process_girls():
+    import convert_girl_sprites
+    convert_girl_sprites.doit()
+
 def compute_palettes():
     main_sprites = Image.open("sprites.png")
     common_palette = bitplanelib.palette_extract(main_sprites,0xf0)
@@ -845,13 +849,13 @@ with open(os.path.join(source_dir,"background_palette.s"),"w") as f:
 bitplanelib.palette_image2raw("panel.png","{}/panel.bin".format(sprites_dir),
         palette,palette_precision_mask=0xF0,blit_pad=True)
 
-#process_backgrounds(palette)
+process_backgrounds(palette)
 
 process_tiles("sprites.json",os.path.join(source_dir,"other_bobs.s"))
 
-#process_player_tiles()
+process_player_tiles()
 
-#####process_girls()
+process_girls()
 
 process_fonts(dump_fonts)
 

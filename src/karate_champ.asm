@@ -7863,7 +7863,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 48BC: D4 D5 B0    call nc,display_error_text_B075
 48BF: FE 09       cp   $03
 48C1: DA 6C 42    jp   c,$48C6
-; > 3, just make it symmetrical
+; > 3, just make it symmetrical?
 48C4: D6 09       sub  $03
 48C6: FD 77 0B    ld   (iy+$0b),a
 48C9: 3A 12 63    ld   a,($C918)
