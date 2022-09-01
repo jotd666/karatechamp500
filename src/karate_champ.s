@@ -172,7 +172,7 @@ Execbase  = 4
 ; ---------------debug/adjustable variables
 
 ; if set skips intro, game starts immediately
-;DIRECT_GAME_START
+DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
 ;DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
@@ -189,8 +189,10 @@ ROUND_TIME = 30
 
 ; 
 ;START_SCORE = 1000/10
-START_LEVEL = 1
-START_LEVEL_TYPE = GM_EVADE
+START_LEVEL = 2
+;START_LEVEL_TYPE = GM_EVADE
+
+EVADE_SPEED = 1
 
 ; temp if nonzero, then records game input, intro music doesn't play
 ; and when one life is lost, blitzes and a0 points to move record table
@@ -202,7 +204,7 @@ START_LEVEL_TYPE = GM_EVADE
 ;INIT_DEMO_LEVEL_NUMBER = 1
 ; set this to create full colision matrix & blitz with a0 loaded with
 ; matrix: S matrix ra0 !160*!55
-DEBUG_COLLISIONS
+;;DEBUG_COLLISIONS
 
 
 ; ******************** end test defines *********************************
@@ -270,6 +272,10 @@ HISCORE_FILE_SIZE = 6*8
 
 ; don't change the values below, change them above to test!!
 
+	IFND	EVADE_SPEED
+EVADE_SPEED = 2
+	ENDC
+	
 	IFND	ROUND_TIME
 ROUND_TIME = 30
 	ENDC
@@ -358,7 +364,6 @@ TICKS_PER_SEC_UPDATE = 60
 
 NB_BYTES_PER_LINE = 40
 NB_BYTES_PER_BACKBUFFER_LINE = 28
-NB_BYTES_BORDER = 2  ; (NB_BYTES_PER_LINE-NB_BYTES_PER_BACKBUFFER_LINE)/2
 BOB_16X16_PLANE_SIZE = (16/8+2)*16
 BOB_64X64_PLANE_SIZE = (64/8+2)*64		; 64x48 pixels
 BOB_8X8_PLANE_SIZE = 16
@@ -561,9 +566,9 @@ Start:
     
     
     moveq #NB_PLANES-1,d4
-    lea	bitplanes,a0              ; adresse de la Copper-List dans a0
-    move.l #screen_data_real_start,d1
-    move.w #bplpt,d3        ; premier registre dans d3
+    lea	bitplanes,a0
+    move.l #screen_data,d1
+    move.w #bplpt,d3        ; first register in d3
 
 		; 8 bytes per plane:32 + end + bplcontrol
 .mkcl:
@@ -591,7 +596,7 @@ Start:
 	
 	; one of ross' magic value so the screen is centered
     move.w #$3081,diwstrt(a5)
-    move.w #$3091,diwstop(a5)	; was 3091 for scramble here it's narrower
+    move.w #$3081,diwstop(a5)	; was 3091 for scramble here it's narrower
     move.w #$0048,ddfstrt(a5)
     move.w #$00B8,ddfstop(a5)
 
@@ -2567,6 +2572,7 @@ dwb:
 	
 draw_evade
 	bsr	erase_active_player
+	bsr		draw_referee
 	
 	; erase object
 	lea	evade_object,a4
@@ -2578,16 +2584,19 @@ draw_evade
 	move.w	#40,d2
 	move.w	d2,d3
 	bsr		restore_background
-.no_erase	
+.no_erase
 	bsr	draw_active_player
 	
 	tst.w	misc_timer
 	bne.b	.no_object_move
 
 	lea		evade_object,a4
+	move.w	frame(a4),d2
+	bmi.b	.no_object_move
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
 	move.l	object_frame(a4),a1
+	add.w	d2,a1
 	move.l	bitmap(a1),a0	; bitmap
 	move.w	width(a1),d2	; width
 	lsr.w	#3,d2
@@ -2596,8 +2605,9 @@ draw_evade
 	add.w	xshift(a1),d0	; xoffset
 	add.w	yshift(a1),d1	; yoffset
 	bsr		blit_4_planes_cookie_cut
-	
+
 .no_object_move	
+
 	rts
 
 
@@ -2954,12 +2964,13 @@ random:
     rts
 
 ; returns a value between 0 and n [0,n[
-; < D0: max n value (not reached) up to 255
+; < D0: max n value (not reached) up to 255. Can't be 0
 ; (we could go full 32 bits but it's wasteful and useless)
 ; how it works: it masks the 32 bit random with the closest
 ; power of 2, then draws again until the result is within range
 
 randrange:
+	movem.l	d1-d3,-(a7)
 	; compute mask, check higher bit of max value
 	moveq.w	#8,d2
 .count
@@ -2977,6 +2988,7 @@ randrange:
 	and.l	d3,d0
 	cmp.l	d1,d0
 	bcc.b	.loop
+	movem.l	(a7)+,d1-d3
     rts
 .err
 	illegal
@@ -4513,20 +4525,38 @@ update_winner
 	move.w	#STATE_NEXT_LEVEL,current_state
 	rts
 	
+NB_EVADE_OBJECTS = 5  ; can't be higher than that (evade tables contain 5 parameters)
+
 update_evade
-	bsr		update_active_player
+	move.w	pause_round_timer(pc),d0
+	beq.b	.update
+	subq.w	#1,d0
+	move.w	d0,pause_round_timer
+	beq.b	.timeout
+	rts
+.timeout
+	; win or lose, same behaviour: go to next level
+	move.w	#GM_NORMAL,level_type
+	move.w	#STATE_NEXT_LEVEL,current_state
+	addq.w	#1,background_number
+	rts
 	
+.update
+	bsr		update_active_player
 	tst.w	misc_timer
-	beq.b	.move_object	
+	beq.b	.move_object
 	subq.w	#1,misc_timer
 	bne.b	.no_new_object
+	
+	move.w	generic_element_index,d0
+	cmp.w	#NB_EVADE_OBJECTS*4,d0
+	beq.b	.done
+	
 	lea		evade_sound,a0
 	bsr		play_fx
 	
-	move.w	generic_element_index,d0
-	cmp.w	#5*4,d0
-	beq.b	.done
 	; current object
+	move.w	generic_element_index,d0
 	lea		evade_objects(pc),a1
 	lea		evade_object(pc),a4
 	move.l	(a1,d0.w),object_frame(a4)
@@ -4549,6 +4579,7 @@ update_evade
 	move.w	#SCREEN_WIDTH,xpos(a4)
 	bra.b	.cont
 .from_left
+	move.w	#RIGHT,direction(a4)
 	move.w	#-16,xpos(a4)
 .cont
 	bsr		get_level_params
@@ -4564,6 +4595,10 @@ update_evade
 .cont2
 	move.w	d2,ypos(a4)
 	
+	clr.w	frame(a4)
+	clr.w	current_frame_countdown(a4)
+	move.w	#BLOW_NONE,hit_by_blow(a4)
+	
 	addq.w	#4,d0
 	move.w	d0,generic_element_index
 	
@@ -4572,19 +4607,46 @@ update_evade
 	
 .move_object
 	lea		evade_object,a4
+	; is object hit?
+	cmp.w	#BLOW_NONE,hit_by_blow(a4)
+	beq.b	.alive
+	; animate object explosion
+	move.w	frame(a4),d0
+	bmi.b	.alive		; invisible
 
+	move.w	current_frame_countdown(a4),d1
+	add.w	#1,d1
+	cmp.w	#8,d1
+	bne.b	.no_change
+	; change frame
+	add.w	#ObjectFrame_SIZEOF,d0
+	cmp.w	#3*ObjectFrame_SIZEOF,d0
+	bne.b	.not_over
+	bsr		award_200_points
+	; catch up move, object keeps moving even if not visible
+	move.w	#EVADE_SPEED*2*8,d2
+	move.w	#-1,frame(a4)
+	bra.b	.do_move
+.not_over
+	move.w	d0,frame(a4)
+	moveq	#0,d1
+.no_change
+	move.w	d1,current_frame_countdown(a4)
+.alive
+	moveq.w	#EVADE_SPEED,d2
+.do_move
 	move.w	direction(a4),d0
 	move.w	xpos(a4),d1
 	cmp.w	#RIGHT,d0
 	beq.b	.right
-	subq.w	#2,d1
+	sub.w	d2,d1
 	cmp.w	#-8,d1
-	beq.b	.out_of_screen
+	ble.b	.out_of_screen
 	bra.b	.storex
 .right
-	addq.w	#2,d1
+	add.w	d2,d1
 	cmp.w	#SCREEN_WIDTH+8,d1
-	beq.b	.out_of_screen
+	bcc.b	.out_of_screen
 .storex
 	move.w	d1,xpos(a4)
 	rts
@@ -4593,7 +4655,9 @@ update_evade
 	rts
 		
 .done
-	blitz
+	; survived 5 objects
+	bsr		referee_says_very_good
+	move.w	#TICKS_PER_SEC_UPDATE*2,pause_round_timer
 	rts
 
 
@@ -4779,7 +4843,6 @@ update_break
 	move.w	#GM_NORMAL,level_type
 	addq.w	#1,background_number
 	move.w	#STATE_NEXT_LEVEL,current_state
-	clr.l	state_timer
 	rts
 	
 update_referee:
@@ -5156,6 +5219,9 @@ init_practice
 
 init_bull_evade_shared
     bsr init_players_and_referee
+	
+	clr.w	pause_round_timer
+	
 	clr.b	controls_blocked_flag
 	bsr	get_active_player
 	; player is at the centre
@@ -5944,7 +6010,13 @@ check_hit
 	move.w	current_blow_type(a4),d0
 	cmp.w	#BLOW_NONE,d0
 	beq.b	.no_hit
-
+	cmp.w	#GM_EVADE,level_type
+	bne.b	.collision
+	lea		evade_object,a1
+	cmp.w	#BLOW_NONE,hit_by_blow(a1)
+	; if object is already broken, don't check
+	bne.b	.no_hit
+.collision
 	move.l	frame_set(a4),a1
 	add.w	frame(a4),a1	
 	move.l	(full_hit_data,a1),a0		; hit list
@@ -5969,6 +6041,8 @@ check_hit
 
 	cmp.w	#GM_PRACTICE,level_type
 	beq.b	.no_collision
+	
+
 	; now check this zone with hit points
 	moveq.l	#1,d0		; full list
 	bsr		check_collisions
@@ -6179,13 +6253,16 @@ fill_opponent_practice
 	cmp.l	d0,d1
 	bne.b	.not_same
 	; same move: award points
-	move.l	#2,d0
-	bsr		add_to_score
-	moveq.l	#2,d0
-	bsr		show_awarded_score
+	bsr		award_200_points
 .not_same
 	rts
 
+award_200_points
+	move.l	#2,d0
+	bsr		add_to_score
+	moveq.l	#2,d0
+	bra		show_awarded_score
+	
 ; < A4: attacking player structure
 ; < D0: 1 if full point hit list, 0 half
 ; > D0: 1 if hit, 0 otherwise
@@ -6254,6 +6331,15 @@ check_collisions:
 	moveq.l	#0,d0
 	rts	
 .blow_landed
+	cmp.w	#GM_NORMAL,level_type
+	beq.b	.normal
+	cmp.w	#GM_EVADE,level_type
+	bne.b	.out
+	; break current object
+	lea		evade_object(pc),a4
+	move.w	#BLOW_STOMACH,hit_by_blow(a4)	; anything != BLOW_NONE will do
+	bra.b	.out
+.normal
 	; note down the move
 	move.l	joystick_state(a4),connecting_move_bits(a4)
 	
@@ -6262,6 +6348,7 @@ check_collisions:
 	; suspense when computer scored because we
 	; don't see technique points so we have to
 	; wait until referee/points show
+	
 	move.l	current_move_header(a4),a0
 	tst.b	is_cpu(a4)
 	bne.b	.no_scoring		; cpu doesn't score points 	
@@ -6297,7 +6384,7 @@ check_collisions:
 	; but maintain last technique a few frames
 	move.l	joystick_state(a4),frozen_joystick_state(a4)
 	move.w	#TICKS_PER_SEC_DRAW/2,frozen_controls_timer(a4)
-	
+.out
 	; opponent is hit: play the sound
 	lea		blow_sound,a0
 	bsr		play_fx
@@ -7033,13 +7120,7 @@ blit_4_planes:
 
 blit_4_planes_cookie_cut:
     movem.l d0-d6/a0-a3/a5,-(a7)
-	tst.w	d0
-	bpl.b	.pos
-	tst.w	d1
-	beq.b	.clip
-	add.w	#SCREEN_WIDTH,d0
-	subq.w	#1,d1
-.pos
+
     lea $DFF000,A5
     lea     screen_data,a1
     moveq.l #3,d7
@@ -9700,8 +9781,6 @@ empty_sprite
     
     SECTION S_4,BSS,CHIP
 
-screen_data_real_start
-	ds.b	NB_BYTES_BORDER
 screen_data:
     ds.b    SCREEN_PLANE_SIZE*NB_PLANES,0
 	ds.b	NB_BYTES_PER_LINE

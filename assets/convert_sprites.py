@@ -244,7 +244,7 @@ def process_backgrounds(palette):
         specific_palette = list(specific_palettes[i])
 
         bitplanelib.palette_image2raw(img,outfile,
-                palette+specific_palette,palette_precision_mask=0xF0)
+                palette[0:14]+specific_palette,palette_precision_mask=0xF0)
         # compress the bitmaps
         subprocess.check_call(["propack","p",outfile,outfile+".rnc"])
         os.remove(outfile)

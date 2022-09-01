@@ -29,13 +29,16 @@ bull
 
 - add '1p red player" in options
 
+evade sequences:
 sequence: low rear mid front high rear mid front high rear
 sequence: 3x mid front, 2x high rear!!!
 
 bugs
 
-- reduce memory: collision maps as bits
-- evade collisions
+- game over player message: doesn't stay long enough
+- evade collisions: front ok, back move ko, doesn't award 200 points
+  blocks player even in next level!!!
+- cpu player wins: doesn't end, no game over... jumps and jumps
 - win a round: timer not reset: check again
 - try timeout win
 - test fight against cpu: win & lose
@@ -51,7 +54,7 @@ bugs
 - some blows don't connect (both players same direction): check debug pic
 - check/fix consistency in options
 - jump not correct
-- refactoring: create first_draw functions too/move first draws inside
-- center display -16 left ddf if clipping is satisfactory
+- reduce memory: collision maps as bits: win 50kb
+
 
 
