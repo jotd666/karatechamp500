@@ -172,7 +172,7 @@ Execbase  = 4
 ; ---------------debug/adjustable variables
 
 ; if set skips intro, game starts immediately
-DIRECT_GAME_START
+;DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
 ;DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
@@ -403,8 +403,9 @@ OPTION_WINUAE_JOYPAD = 0
 OPTION_CD32_JOYPAD = 1<<2
 OPTION_TWO_JOYSTICKS = 2<<2
 OPTION_KEYBOARD = 3<<2
-OPTION_CONTROLS_LAST = OPTION_KEYBOARD
 
+OPTIONS_1P_WHITE = 0
+OPTIONS_1P_RED = 1<<2
 
 X_MIN = 0
 X_MAX = SCREEN_WIDTH-48
@@ -610,6 +611,7 @@ Start:
 	move.w	d0,bpl1mod(a5)
     move.w	d0,bpl2mod(a5)
 
+	move.w	#OPTIONS_1P_WHITE,human_1p_player
 	; set default options, according to connected joypads
 	move.w	#OPTION_TWO_JOYSTICKS,player_2_controls_option
 	tst.b	controller_joypad_1
@@ -1544,7 +1546,7 @@ update_options_string
 	addq.w	#2,a0
 	move.l	(a1)+,a2
 	move.w	(a2),d1		; option value
-	lea		option_name_table(pc),a2
+	move.l	(a1)+,a2
 	move.l	(a2,d1.w),(a0)+
 	bra.b	.loop
 .out
@@ -2997,6 +2999,7 @@ draw_start_screen
     bsr hide_sprites
     bsr clear_screen
 
+	
 	tst.w	options_select
 	bne.b	.options_select
 	
@@ -3015,7 +3018,7 @@ draw_options_values
 	moveq.l	#0,d0
 	move.w	#80,d1
 	move.w	#40,d2
-	move.w	#24,d3
+	move.w	#40,d3
 	bsr		erase_4_planes
 	bsr		wait_blit
 	
@@ -4070,15 +4073,22 @@ update_all
 	move.l	joystick_state(a4),d0
 	move.l	previous_joystick_state(a4),d1
 	and.l	d2,d0
+	beq.b	.no_1p
 	and.l	d2,d1
 	cmp.l	d0,d1
 	beq.b	.no_1p
 	; start game, 1 player only
-	move.w	#$0001,player_configuration
+	move.w	#$0001,d0
+	cmp.w	#OPTIONS_1P_WHITE,human_1p_player
+	beq.b	.set_config
+	move.w	#$0100,d0
+.set_config
+	move.w	d0,player_configuration
 	bra.b	.play
 .no_1p
 	tst.w	options_select
 	bne.b	.game_options
+	move.l	joystick_state(a4),d0
 	btst	#JPB_BTN_DOWN,d0
 	beq.b	.no_options
 	move.w	#1,options_select
@@ -4089,6 +4099,7 @@ update_all
 	move.l	joystick_state(a4),d0
 	move.l	previous_joystick_state(a4),d1
 	and.l	d2,d0
+	beq.b	.no_2p
 	and.l	d2,d1
 	cmp.l	d0,d1
 	beq.b	.no_2p
@@ -4120,7 +4131,7 @@ update_all
 	btst	#JPB_BTN_DOWN,d0
 	beq.b	.no_down
 	addq.w	#1,option_index
-	cmp.w	#2,option_index
+	cmp.w	#3,option_index
 	bne.b	.okdown
 	move.w	#0,option_index
 .no_down
@@ -4129,20 +4140,27 @@ update_all
 	move.w	option_index(pc),d2
 	add.w	d2,d2
 	add.w	d2,d2
+	add.w	d2,d2		; times 8
 	move.l	(a1,d2.w),a0
+	move.l	(4,a1,d2.w),a2		; possible values
 	move.w	(a0),d2
 	btst	#JPB_BTN_LEFT,d0
 	beq.b	.no_left
 	subq.w	#4,d2
 	bpl.b	.okstore
-	move.w	#OPTION_CONTROLS_LAST,d2
-	bra.b	.okstore
+	; get latest valid value index
+	moveq.w	#0,d2
+.find_last_loop
+	tst		(4,a2,d2.w)
+	bmi.b	.okstore
+	addq.w	#4,d2
+	bra.b	.find_last_loop
 .no_left
 	btst	#JPB_BTN_RIGHT,d0
 	beq.b	.no_right
 	addq.w	#4,d2
-	cmp.w	#OPTION_CONTROLS_LAST+1,d2
-	bcs.b	.okstore
+	tst.l	(a2,d2.w)
+	bpl.b	.okstore
 	moveq	#0,d2
 .okstore
 	move.w	d2,(a0)
@@ -8285,6 +8303,8 @@ player_1_controls_option:
 	dc.w	0
 player_2_controls_option:
 	dc.w	0
+human_1p_player
+	dc.w	0
 show_challenge_message
 	dc.w	0
 challenge_blink_timer
@@ -8576,7 +8596,10 @@ options_message_list
 	dc.l	controls_1p_message
 	dc.w	8,80+16
 	dc.l	controls_2p_message
+	dc.w	8,80+32
+	dc.l	human_1p_player_message
 	dc.w	-1
+	
 options_credit_message_list
 	dc.w	8,200
 	dc.l	credits_1_message
@@ -8591,17 +8614,27 @@ options_values_strings_list
 	dc.l	0
 	dc.w	24+80,80+16
 	dc.l	0
+	dc.w	24+80,80+32
+	dc.l	0
 	dc.w	-1
 	
-option_name_table
+	
+options_values_list
+	dc.l	player_1_controls_option,option_name_table_controls
+	dc.l	player_2_controls_option,option_name_table_controls
+	dc.l	human_1p_player,option_name_table_human_1p
+
+option_name_table_controls
 	dc.l	option_winuae_joypad
 	dc.l	option_cd32_joypad
 	dc.l	option_two_joysticks
 	dc.l	option_keyboard
+	dc.l	-1
 	
-options_values_list
-	dc.l	player_1_controls_option
-	dc.l	player_2_controls_option
+option_name_table_human_1p
+	dc.l	option_1p_white
+	dc.l	option_1p_red
+	dc.l	-1
 	
 practice_message_list
 	dc.w	56,112
@@ -8809,11 +8842,15 @@ pos10plus
 option_winuae_joypad
 	dc.b	"WINUAE JOYPAD",0
 option_two_joysticks
-	dc.b	"2 JOYSTICKS",0
+	dc.b	" 2 JOYSTICKS",0
 option_cd32_joypad
-	dc.b	"CD32 JOYPAD",0
+	dc.b	" CD32 JOYPAD",0
 option_keyboard
-	dc.b	"KEYBOARD",0
+	dc.b	" KEYBOARD   ",0
+option_1p_white
+	dc.b	" WHITE",0
+option_1p_red
+	dc.b	" RED  ",0
     even	
 ; generated with python
 ;for i in range(0,256):
@@ -9258,6 +9295,8 @@ controls_1p_message
 	dc.b	"P1 CONTROLS",0
 controls_2p_message
 	dc.b	"P2 CONTROLS",0
+human_1p_player_message
+	dc.b	"HUMAN 1P",0
 credits_1_message
 	dc.b	"AMIGA VERSION 2022",0
 credits_2_message
