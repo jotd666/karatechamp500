@@ -54,6 +54,7 @@ INTERRUPTS_ON_MASK = $E038
    
 	
 	STRUCTURE Character,0
+	APTR	opponent
     ULONG   character_id
 	UWORD	xpos
 	UWORD	ypos
@@ -70,6 +71,9 @@ INTERRUPTS_ON_MASK = $E038
 	UWORD	previous_bubble_height
 	UWORD	y_speed			; for intro
 	UWORD	hit_by_blow		; can be used for bull or objects too
+	UWORD	current_hit_height	; copied from hit_height
+	UWORD	current_blow_type	; copied from blow_type
+	UWORD	current_back_blow_type	; copied from back_blow_type
 	LABEL	Character_SIZEOF
 
 	STRUCTURE ObjectFrame,0
@@ -116,7 +120,6 @@ hand_both_flags = hand_red_or_japan_flag
 
 	STRUCTURE	Player,0
 	STRUCT	_player_base,Character_SIZEOF
-	APTR	opponent
 	APTR	score_table
 	APTR	score_sprite
 	ULONG	frame_set
@@ -137,9 +140,6 @@ hand_both_flags = hand_red_or_japan_flag
 	UWORD	frozen_controls_timer
 	UWORD	previous_direction   ; previous sprite orientation
 	UWORD	scored_points
-	UWORD	current_hit_height	; copied from hit_height
-	UWORD	current_blow_type	; copied from blow_type
-	UWORD	current_back_blow_type	; copied from back_blow_type
     UBYTE   move_controls
 	UBYTE	attack_controls
     UBYTE   is_jumping
@@ -189,7 +189,7 @@ ROUND_TIME = 30
 
 ; 
 ;START_SCORE = 1000/10
-START_LEVEL = 2
+;START_LEVEL = 2
 ;START_LEVEL_TYPE = GM_EVADE
 
 EVADE_SPEED = 1
@@ -662,9 +662,14 @@ intro:
     bne.b   .out_intro
     tst.b   quit_flag
     bne.b   .out
-    move.l  joystick_state(a4),d0
-	and.l	#JPF_BTN_ALL,d0
+	move.l	#JPF_BTN_ALL,d2
+    move.l  joystick_port_0_value(pc),d0
+	and.l	d2,d0
+    bne.b   .out_loop
+    move.l  joystick_port_1_value(pc),d0
+	and.l	d2,d0
     beq.b   .intro_loop
+.out_loop
     clr.b   demo_mode
 .out_intro  
 
@@ -2155,13 +2160,13 @@ draw_winner:
 
 	; draw player & girl
 	
-	lea		girl_copy(pc),a4
+	lea		girl_copy,a4
 	bsr		draw_my_hero_bubble
 	
 	move.l	a3,a4
 	bsr		draw_player
 		
-	lea		girl(pc),a3
+	lea		girl,a3
 	move.w	ypos(a3),d1
 	move.w	xpos(a3),D0
 	move.w	#16,d3
@@ -2207,11 +2212,11 @@ draw_loser:
 	bsr		erase_player
 	bsr		draw_player
 		
-	lea		girl(pc),a4
+	lea		girl,a4
 	bra		draw_better_luck_bubble
 	
 .first_draw
-	lea		girl(pc),a4
+	lea		girl,a4
 	move.w	ypos(a4),d1
 	move.w	xpos(a4),D0
 	move.w	#16,d3
@@ -3848,19 +3853,27 @@ level3_interrupt:
     movem.l (a7)+,d0-a6
     rte    
 .vblank
+	; read the joysticks no matter what, store raw input
+	moveq.l	#1,d0
+	move.l	joystick_port_1_value,joystick_port_1_previous_value
+    bsr _read_joystick
+	move.l	d0,joystick_port_1_value
+	moveq.l	#0,d0
+	move.l	joystick_port_0_value,joystick_port_0_previous_value
+    bsr _read_joystick
+	move.l	d0,joystick_port_0_value
+	
 	moveq.l	#0,d0
 	move.w	player_1_controls_option(pc),d2
 	cmp.w	#OPTION_KEYBOARD,d2
 	beq.b	.kb1
 	tst.b	controller_joypad_1
 	beq.b	.kb1
-	moveq.l	#1,d0
-    bsr _read_joystick
+	move.l	joystick_port_1_value(pc),d0
 	cmp.w	#OPTION_TWO_JOYSTICKS,d2
 	bne.b	.no_2joy1
 	move.l	d0,d3		; save joy 1
-	moveq.l	#0,d0
-    bsr _read_joystick
+	move.l	joystick_port_0_value(pc),d0
 	bsr		convert_joystick_moves_to_buttons
 	or.l	d3,d0
 	bra.b	.sk1
@@ -3900,8 +3913,7 @@ level3_interrupt:
 	beq.b	.kb2
 	tst.b	controller_joypad_0
 	beq.b	.kb2
-    moveq.l #0,d0
-    bsr _read_joystick
+	move.l	joystick_port_0_value,d0
 	cmp.w	#OPTION_WINUAE_JOYPAD,player_2_controls_option
 	bne.b	.sk2
 	bsr	correct_joystick_buttons
@@ -4070,10 +4082,10 @@ update_all
 	; check buttons
 	lea	player_1(pc),a4
 	move.l	#JPF_BTN_ALL,d2
-	move.l	joystick_state(a4),d0
-	move.l	previous_joystick_state(a4),d1
+	move.l	joystick_port_1_value,d0
 	and.l	d2,d0
 	beq.b	.no_1p
+	move.l	joystick_port_1_previous_value,d1
 	and.l	d2,d1
 	cmp.l	d0,d1
 	beq.b	.no_1p
@@ -4088,23 +4100,24 @@ update_all
 .no_1p
 	tst.w	options_select
 	bne.b	.game_options
-	move.l	joystick_state(a4),d0
+	move.l	joystick_port_1_value,d0
 	btst	#JPB_BTN_DOWN,d0
 	beq.b	.no_options
 	move.w	#1,options_select
 	clr.w	option_index
 	clr.l	state_timer
 .no_options
-	lea	player_2(pc),a4
-	move.l	joystick_state(a4),d0
-	move.l	previous_joystick_state(a4),d1
+	move.l	#JPF_BTN_ALL,d2
+	move.l	joystick_port_0_value,d0
 	and.l	d2,d0
 	beq.b	.no_2p
+	move.l	joystick_port_0_previous_value,d1
 	and.l	d2,d1
 	cmp.l	d0,d1
 	beq.b	.no_2p
 	; start game, 2 players
 	move.w	#$0000,player_configuration
+	bra.b	.play
 .no_2p
     rts
 .play
@@ -4117,9 +4130,8 @@ update_all
 	; wait a few frames to be able to
 	; get a reliable previous joystick state	
 	bcs.b	.out
-	lea		player_1(pc),a4
-	move.l	joystick_state(a4),d0
-	cmp.l	previous_joystick_state(a4),d0
+	move.l	joystick_port_1_value,d0
+	cmp.l	joystick_port_1_previous_value,d0
 	beq.b	.out		; same inputs: skip
 	btst	#JPB_BTN_UP,d0
 	beq.b	.no_up
@@ -4186,21 +4198,8 @@ update_all
 	rts
 	
 .game_over
-	blitz
-	nop
-	
-    cmp.l   #GAME_OVER_TIMER,state_timer
-    bne.b   .no_first
-    bsr stop_sounds
-    moveq.l  #LOSE_FIGHT_MUSIC,d0
-    bsr     play_music
-.no_first
-    tst.l   state_timer
-    bne.b   .cont
-    bsr stop_sounds
+	; not reached
     move.w  #STATE_INTRO_SCREEN,current_state
-.cont
-    subq.l  #1,state_timer
     rts
     ; update
 .playing
@@ -4225,13 +4224,13 @@ update_normal:
 	beq.b	.no_countdown
 	cmp.b	#1,d0
 	beq.b	.countdown_phase_one
-	;cmp.b	#2,d0	; phase 2: seconds
+	;cmp.b	#2,d0	; phase 2: seconds	
+
 	sub.w	#TICKS_PER_SEC_UPDATE/5,time_ticks
 	bpl.b	.no_timer_dec
 	move.w	#TICKS_PER_SEC_UPDATE,time_ticks
 	moveq.l	#1,d0
-	bsr		get_winner
-	move.l	a0,a4
+	move.l	a0,a4	; winner
 	bsr		add_to_score
 	lea		second_sound,a0
 	bsr		play_fx
@@ -4242,15 +4241,18 @@ update_normal:
 .countdown_phase_one	; playing music during x seconds
 	subq.w	#1,time_ticks
 	bne.b	.no_sec2
+	
 	bsr		stop_sounds
 	bsr		get_winner
 	tst.b	is_cpu(a0)
 	bne.b	.countdown_over	; no countdown when cpu wins
+
 	; phase two: count seconds as bonus if human player won the game
 	move.b	#2,time_countdown_flag
 	bra.b	.no_sec2
 	
 .countdown_over
+	clr.b	time_countdown_flag
 	move.w	#TICKS_PER_SEC_UPDATE*2,pause_round_timer
 	move.w	#RP_END_ROUND,pause_round_type
 	rts
@@ -4490,13 +4492,11 @@ update_loser
 	clr.l	state_timer
 	rts
 .really_game_over
-	blitz
-	nop
-	nop
-	nop
+	; todo: set some sort of flag for highscore if needed
+	; so when game enters in intro screen state again, it starts
+	; by high score entry screen
 
 	move.w	#STATE_INTRO_SCREEN,current_state
-	clr.l	state_timer
 	rts
 	
 update_winner
@@ -4560,12 +4560,20 @@ update_evade
 	rts
 	
 .update
+	; update & check collision with object
 	bsr		update_active_player
 	tst.w	misc_timer
 	beq.b	.move_object
 	subq.w	#1,misc_timer
 	bne.b	.no_new_object
-	
+	; timeout, but maybe because player has been hit
+	cmp.l	#BLOW_NONE,hit_by_blow(a4)
+	beq.b	.next_object
+	; next level please
+	move.w	#STATE_NEXT_LEVEL,current_state
+	move.w	#GM_NORMAL,level_type
+	rts
+.next_object
 	move.w	generic_element_index,d0
 	cmp.w	#NB_EVADE_OBJECTS*4,d0
 	beq.b	.done
@@ -4602,13 +4610,20 @@ update_evade
 .cont
 	bsr		get_level_params
 	move.w	p1_init_ypos(a1),d2
+	; default hit types, changed by object height
+	move.w	#BLOW_FRONT,current_blow_type(a4)	
+	move.w	#BLOW_BACK,current_back_blow_type(a4)	
+
 	cmp.w	#HEIGHT_MEDIUM,d1
 	beq.b	.med
 	cmp.w	#HEIGHT_LOW,d1
 	bne.b	.cont2
+	move.w	#BLOW_LOW,current_blow_type(a4)	
+	move.w	#BLOW_LOW,current_back_blow_type(a4)	
 	add.w	#36,d2
 	bra.b	.cont2
 .med
+	move.w	#BLOW_STOMACH,current_blow_type(a4)
 	add.w	#16,d2
 .cont2
 	move.w	d2,ypos(a4)
@@ -4625,6 +4640,14 @@ update_evade
 	
 .move_object
 	lea		evade_object,a4
+	; has object hit the player
+	move.l	opponent(a4),a0
+	cmp.l	#BLOW_NONE,hit_by_blow(a0)
+	beq.b	.player_not_hit
+	; block during 3 seconds
+	move.w	#TICKS_PER_SEC_UPDATE*3,misc_timer
+	rts	
+.player_not_hit
 	; is object hit?
 	cmp.w	#BLOW_NONE,hit_by_blow(a4)
 	beq.b	.alive
@@ -5045,14 +5068,8 @@ judge_decision:
 	move.b	round_winner(a3),d0
 	and.b	is_cpu(a3),d0
 	bne.b	.cpu_won
-	
-	; human player won: some time before seconds countdown
-	; count how many rounds were won, game over for other
-	; player/next level TODO
-	
 	; 2 seconds with music playing before starting countdown
 	move.w	#TICKS_PER_SEC_UPDATE*2,d1
-	move.b	#1,time_countdown_flag
 	bra.b	.out
 .cpu_won
 	; game over for the human player
@@ -5060,10 +5077,10 @@ judge_decision:
 	seq		game_over_flag(a2)
 	tst.b	is_cpu(a3)
 	seq		game_over_flag(a3)
-	
-	move.w	#TICKS_PER_SEC_UPDATE*6,d1
-	move.b	#2,time_countdown_flag
+	; 4.5 seconds with music playing before announcing game over
+	move.w	#(TICKS_PER_SEC_UPDATE*9)/2,d1	
 .out	
+	move.b	#1,time_countdown_flag
 	move.w	d1,time_ticks
 	rts	
 
@@ -5257,7 +5274,16 @@ init_bull_evade_shared
 init_bull_phase
 	bsr		init_bull_evade_shared
 	bsr		init_bull
+	lea		bull,a0
+	bsr		get_active_player
+	move.l	a4,opponent(a0)		; player is the opponent of the bull
 	
+	; bull hits the same way
+	move.w	#BLOW_FRONT,current_blow_type(a0)
+	move.w	#BLOW_BACK,current_back_blow_type(a0)
+
+
+
 	rts
 	
 init_bull
@@ -5320,6 +5346,9 @@ init_break
 		
 init_evade	
 	bsr		init_bull_evade_shared
+	lea		evade_object(pc),a0
+	bsr		get_active_player
+	move.l	a4,opponent(a0)		; player is the opponent of the object
 	; center player in x
 	; pick a table
 	lea	evade_tables,a0
@@ -6120,10 +6149,18 @@ fill_opponent_object
 	rts
 	
 .object_on_screen
+	; opponent is the current "player"
+	; fill matrix with player hit points first
+	lea		evade_object(pc),a4
+	bsr		fill_opponent_normal
+
 	; opponent is the current object
 	lea		evade_object(pc),a5
-	
 ; the opponent here is a much simpler shape: rectangular
+; what we do here is that we draw a rectangle, but if we encounter
+; a 1-value (the player) when drawing it, we consider that the object/bull
+; has hit the player
+
 fill_opponent_evade_bull_shared
 	move.w	ypos(a5),d1
 	sub.w	level_players_y_min(pc),d1	; can't be negative	
@@ -6153,6 +6190,8 @@ fill_opponent_evade_bull_shared
 	subq.w	#1,d7
 	add.w	d0,a0	; add X
 .xloop
+	tst.b	(a0)
+	bne.b	.hitting_player
 	move.b	#1,(a0)+
 	dbf		d7,.xloop
 .xloop_end
@@ -6161,19 +6200,34 @@ fill_opponent_evade_bull_shared
 	dbf		d6,.yloop
 .out
 	rts
+.hitting_player
+	move.l	opponent(a5),a4
+	; type of blow
+	move.w	direction(a4),d1
+	move.w	current_blow_type(a5),d0
+	cmp.w	direction(a5),d1
+	bne.b	.opposed
+	move.w	current_back_blow_type(a5),d0
+.opposed
+	move.w	d0,hit_by_blow(a4)		; opponent (player) is hit
 
+	rts
 	
 fill_opponent_break
 	rts
 	
 fill_opponent_bull
 	bsr	clear_collision_matrix
+	; plot the opponent (player) in the collision matrix
+	lea		bull(pc),a4
+	bsr		fill_opponent_normal
 	; convert bull to evade object (rectangle) TODO
 	illegal
 	nop
+
 	bra	fill_opponent_evade_bull_shared
 
-; < A4: player structure
+; < A4: player/object/bull structure
 
 fill_opponent_normal
 	bsr		clear_collision_matrix
@@ -6281,6 +6335,9 @@ award_200_points
 	moveq.l	#2,d0
 	bra		show_awarded_score
 	
+; what: scans player attacking coords (fist, foot)
+; and checks if collides opponent (player, bull, object)
+;
 ; < A4: attacking player structure
 ; < D0: 1 if full point hit list, 0 half
 ; > D0: 1 if hit, 0 otherwise
@@ -8287,7 +8344,16 @@ dosname
     ; main variables
 gfxbase_copperlist
     dc.l    0
-
+joystick_port_1_value:
+	dc.l	0
+joystick_port_1_previous_value
+	dc.l	0
+	dc.l	0
+joystick_port_0_value:
+	dc.l	0
+joystick_port_0_previous_value
+	dc.l	0
+	
 generic_table_pointer
 	dc.l	0
 generic_element_index
@@ -8801,8 +8867,6 @@ plank_object:
 	dc.w	32,18,-12,-8
 	ENDR
 	
-; TODO bitmap width height xshift yshift
-
 pos_table  
     dc.l    pos1		; practice
     dc.l    pos1
