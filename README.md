@@ -21,7 +21,6 @@ at each update)
 - when lost, show girls + score (green background)
 - A.I.
 
-optimize "minus 48 to center character" 3 times!!!
 bull
 
 evade sequences:
@@ -30,28 +29,24 @@ sequence: 3x mid front, 2x high rear!!!
 
 bugs:
 
-- 2P red wins fight: score position wrong (x=0)
-- evade collisions: front ok, back move ko (completely broken),
-  doesn't award 200 points
-  blocks player even in next level!!!
+- jumping side kick one frame too high
+- evade collisions: front ok, back move ko
 - evade: player moves: trashes object update
-- 2 player mode controls mixup???
-- game over player message: doesn't stay long enough
-- cpu player wins: doesn't end, no game over... jumps and jumps: re-test
-- try timeout win: win infini: re-test
+- evade: sometimes random end to practice with start music... then crash...
+- 2P game over player message: doesn't stay long enough
 - test fight against cpu: win & lose
 - when hit, player falls too fast
 - demo/plank level scoring is complete bogus
-- human player red: never restarts fight/round when wins it
-
-- intro karateka wrong move (stuck x=0 on left) + pb erase
+- intro karateka wrong move (sometimes stuck x=0 on left) + pb erase
 - break planks sometimes breaks planks while away
 - bull add restore bg on right
-- optimization: do not check hits if player distance is too high
-- some blows don't connect (both players same direction): check debug pic
+- sometimes some blows don't connect: check debug pic
 - check/fix consistency in options
 - jump not correct
+- optimization: do not check hits if player distance is too high
 - reduce memory: collision maps as bits: would gain 50kb
+- timeout win: no win animation
+- practice: jumping back kick asked 2 times in the end (2 player)p
 
 
 

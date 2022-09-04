@@ -41,8 +41,9 @@ def doit():
     frame_name = ["top_front","top_left","top_right","top_end_win","top_end_lose","legs_front","legs_end"]
     bin_files = []
     for stage in range(1,max_level+1):
+        print("Processing stage {} girl".format(stage))
         for girl_frame,gfn in enumerate(frame_name):
-            print("Processing stage {}, frame {}".format(stage,girl_frame))
+            print("=> frame {}".format(girl_frame))
             y = (stage-1)*16
             x = girl_frame*16
             img_frame.paste(img,(-x,-y))

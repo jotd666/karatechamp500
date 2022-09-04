@@ -54,8 +54,8 @@ INTERRUPTS_ON_MASK = $E038
    
 	
 	STRUCTURE Character,0
-	APTR	opponent
     ULONG   character_id
+	APTR	opponent
 	UWORD	xpos
 	UWORD	ypos
     UWORD   frame
@@ -1367,6 +1367,7 @@ draw_score:
 	; draw points
 	move.w	scored_points(a4),d1
 	moveq	#0,d0
+	move.w	#LEFT,d2
 	bsr		draw_2_upper_points
 
 	moveq	#8,d0
@@ -1377,7 +1378,8 @@ draw_score:
 	bsr		draw_player_score
 
 	move.w	scored_points(a4),d1
-	move.w	#40,d0
+	move.w	#32,d0
+	move.w	#RIGHT,d2
 	bsr		draw_2_upper_points
 
 	moveq	#40,d0
@@ -1441,9 +1443,11 @@ POINT_EMPTY_COLOR = $bbb
 
 ; < D0: lower shift
 ; < D1: number of points
+; < D2: LEFT or RIGHT
 ; trashes: none
 draw_2_upper_points
-	movem.l	d0-d4,-(a7)
+	movem.l	d0-d5,-(a7)
+	move.w	d2,d5		; save direction
 	move.w	#POINT_EMPTY_COLOR,d2	
 	lea		one_ellipse(pc),a0
 	move.w	d1,d4
@@ -1461,11 +1465,16 @@ draw_2_upper_points
 	bcs.b	.h2
 	move.w	#POINT_SCORED_COLOR,d2	
 .h2
-
-	sub.w	#8,d3
+	cmp.w	#RIGHT,d5
+	beq.b	.add
+	subq.w	#8,d3
+	bra.b	.w
+.add
+	addq.w	#8,d3
+.w
 	move.w	d3,d0
 	bsr		write_blanked_color_string
-	movem.l	(a7)+,d0-d4
+	movem.l	(a7)+,d0-d5
 	rts
 	
 draw_lower_point
@@ -4079,7 +4088,7 @@ update_all
 .game_start_screen
     addq.l   #1,state_timer
 
-	; check buttons
+	; check buttons to start game (1P or 2P)
 	lea	player_1(pc),a4
 	move.l	#JPF_BTN_ALL,d2
 	move.l	joystick_port_1_value,d0
@@ -4098,15 +4107,6 @@ update_all
 	move.w	d0,player_configuration
 	bra.b	.play
 .no_1p
-	tst.w	options_select
-	bne.b	.game_options
-	move.l	joystick_port_1_value,d0
-	btst	#JPB_BTN_DOWN,d0
-	beq.b	.no_options
-	move.w	#1,options_select
-	clr.w	option_index
-	clr.l	state_timer
-.no_options
 	move.l	#JPF_BTN_ALL,d2
 	move.l	joystick_port_0_value,d0
 	and.l	d2,d0
@@ -4119,6 +4119,18 @@ update_all
 	move.w	#$0000,player_configuration
 	bra.b	.play
 .no_2p
+
+	; special controls in game options sub-screen
+	tst.w	options_select
+	bne.b	.game_options
+	move.l	joystick_port_1_value,d0
+	btst	#JPB_BTN_DOWN,d0
+	beq.b	.no_options
+	move.w	#1,options_select
+	clr.w	option_index
+	clr.l	state_timer
+.no_options
+
     rts
 .play
 	move.w	#STATE_NEXT_LEVEL,current_state
@@ -4213,23 +4225,27 @@ update_all
 	jmp		(a0)
 	
 update_normal:
-
+	LOGPC	100
 	; check if we're in "countdown" mode
 	; this isn't a pause, because winner is jumping
 	; with joy, so some things are moving
 	
 	move.b	time_countdown_flag(pc),d0
 	beq.b	.no_countdown
-	tst.w	time_left
-	beq.b	.no_countdown
 	cmp.b	#1,d0
 	beq.b	.countdown_phase_one
-	;cmp.b	#2,d0	; phase 2: seconds	
+	;cmp.b	#2,d0	; phase 2: count seconds	
 
 	sub.w	#TICKS_PER_SEC_UPDATE/5,time_ticks
 	bpl.b	.no_timer_dec
+	tst.b	win_by_timeout_flag
+	beq.b	.still_time
+	bra.b	.countdown_over
+.still_time
+
 	move.w	#TICKS_PER_SEC_UPDATE,time_ticks
 	moveq.l	#1,d0
+	bsr		get_winner
 	move.l	a0,a4	; winner
 	bsr		add_to_score
 	lea		second_sound,a0
@@ -4246,7 +4262,6 @@ update_normal:
 	bsr		get_winner
 	tst.b	is_cpu(a0)
 	bne.b	.countdown_over	; no countdown when cpu wins
-
 	; phase two: count seconds as bonus if human player won the game
 	move.b	#2,time_countdown_flag
 	bra.b	.no_sec2
@@ -4576,8 +4591,9 @@ update_evade
 .next_object
 	move.w	generic_element_index,d0
 	cmp.w	#NB_EVADE_OBJECTS*4,d0
-	beq.b	.done
+	beq.b	.done		; all objects have passed
 	
+	; introduce next object in playfield
 	lea		evade_sound,a0
 	bsr		play_fx
 	
@@ -4593,6 +4609,8 @@ update_evade
 	move.w	(a0)+,d2
 	move.w	d2,direction(a4)
 	; compute xpos/ypos
+	bra		.from_left		; TEMP
+	
 	move.w	#RIGHT,d3
 	tst.b	evade_mirror
 	beq.b	.no_mirror
@@ -4642,7 +4660,7 @@ update_evade
 	lea		evade_object,a4
 	; has object hit the player
 	move.l	opponent(a4),a0
-	cmp.l	#BLOW_NONE,hit_by_blow(a0)
+	cmp.w	#BLOW_NONE,hit_by_blow(a0)
 	beq.b	.player_not_hit
 	; block during 3 seconds
 	move.w	#TICKS_PER_SEC_UPDATE*3,misc_timer
@@ -4663,7 +4681,10 @@ update_evade
 	add.w	#ObjectFrame_SIZEOF,d0
 	cmp.w	#3*ObjectFrame_SIZEOF,d0
 	bne.b	.not_over
+	exg.l	a0,a4
+	; give 200 points to the player
 	bsr		award_200_points
+	exg.l	a0,a4
 	; catch up move, object keeps moving even if not visible
 	move.w	#EVADE_SPEED*2*8,d2
 	move.w	#-1,frame(a4)
@@ -4682,12 +4703,12 @@ update_evade
 	beq.b	.right
 	sub.w	d2,d1
 	cmp.w	#-8,d1
-	ble.b	.out_of_screen
+	blt.b	.out_of_screen
 	bra.b	.storex
 .right
 	add.w	d2,d1
 	cmp.w	#SCREEN_WIDTH+8,d1
-	bcc.b	.out_of_screen
+	bgt.b	.out_of_screen
 .storex
 	move.w	d1,xpos(a4)
 	rts
@@ -5078,8 +5099,11 @@ judge_decision:
 	tst.b	is_cpu(a3)
 	seq		game_over_flag(a3)
 	; 4.5 seconds with music playing before announcing game over
-	move.w	#(TICKS_PER_SEC_UPDATE*9)/2,d1	
-.out	
+	move.w	#(TICKS_PER_SEC_UPDATE*9)/2,d1
+.out
+	tst.w	time_left
+	seq		win_by_timeout_flag
+	
 	move.b	#1,time_countdown_flag
 	move.w	d1,time_ticks
 	rts	
@@ -5479,14 +5503,17 @@ update_player:
 	; for another timer... the referee will restart
 	; the round long before this
 	
-	; referee designates the winner
+	; referee designates the winner (if human opponent, not bull or evade)
+	
+	cmp.w	#GM_NORMAL,level_type
+	bne.b	.fight_over
 	
 	lea		referee(pc),a2
 	move.w	#REFEREE_LEGS_DOWN,frame(a2)
+	move.w	#TICKS_PER_SEC_DRAW*2,bubble_timer(a2)
 	tst.b	character_id(a4)
 	beq.b	.white_lost
 	; red lost
-	move.w	#TICKS_PER_SEC_DRAW*2,bubble_timer(a2)
 	move.w	#BUBBLE_WHITE,bubble_type(a2)
 	move.b	#1,hand_white_flag(a2)
 	bra.b	.cont2
@@ -5494,7 +5521,7 @@ update_player:
 	move.w	#BUBBLE_RED,bubble_type(a2)
 	move.b	#1,hand_red_or_japan_flag(a2)
 .cont2
-	move.w	#60*TICKS_PER_SEC_DRAW,point_award_countdown(a4)	
+	move.w	#60*TICKS_PER_SEC_UPDATE,point_award_countdown(a4)	
 	lea	full_point_sound,a0
 	move.l	opponent(a4),a1
 	moveq	#2,d0	; default: 2 points
@@ -5810,6 +5837,7 @@ trans_move_dropped
 
 	rts
 	
+	
 ; what: shows score value above the player
 ; < D0: score index 1:100, ... 10:1000
 ; < A4: player structure
@@ -5827,7 +5855,15 @@ show_awarded_score:
 	add.w	#48,d0
 	bra.b	.cont
 .left
-	sub.w	#48,d0
+	move.l	a0,-(a7)
+	move.l	frame_set(a4),a0
+	add.w	frame(a4),a0
+	move.w	bob_nb_bytes_per_row(a0),d1
+	move.l	(a7)+,a0
+	sub.w	#6,d1	; minus 48 to center character
+	lsl.w	#3,d1	; times 8
+	;sub.w	#48,d0
+	add.w	d1,d0
 .cont
 	
 	move.w	ypos(a4),d1
@@ -5836,7 +5872,6 @@ show_awarded_score:
 	; show score during 2 seconds
 	move.w	#TICKS_PER_SEC_DRAW*2,awarded_score_display_timer(a4)
 	movem.l	(a7)+,a0/d1-d3
-.out
 	rts
 	
 ; < D0: x
@@ -5852,6 +5887,8 @@ show_score_sprite
 	move.l	score_sprite(a4),a0
 	bra		store_sprite_copperlist
 
+
+	
 ; what: moves player laterally, with x limiting
 ; TODO check other player ATM only min/max scenery
 ; < A4: player struct
@@ -5859,12 +5896,13 @@ show_score_sprite
 add_x_player:
 	cmp.w	#STATE_INTRO_SCREEN,current_state
 	beq.b	.simple
-	movem.l	d1-d3,-(a7)
+	movem.l	a0/d1-d3,-(a7)
 	move.w	#X_MIN,d2
 	move.w	#X_MAX,d3
 	move.w	direction(a4),d1
 	cmp.w	#RIGHT,d1
 	beq.b	.minmax_correct
+	; facing left needs x correction (symmetry)
 	; TODO optimize this by pre-calculating
 	; left_x_offset in python script
 	move.l	frame_set(a4),a0
@@ -5872,7 +5910,9 @@ add_x_player:
 	move.w	bob_nb_bytes_per_row(a0),d1
 	sub.w	#6,d1	; minus 48 to center character
 	lsl.w	#3,d1	; times 8
+
 	sub.w	#8,d1	; add more leeway
+	; add offset to min and max
 	add.w	d1,d2
 	add.w	d1,d3
 .minmax_correct
@@ -5893,7 +5933,7 @@ add_x_player:
 	move.w	d2,d1
 .store
 	move.w	d1,xpos(a4)
-	movem.l	(a7)+,d1-d3
+	movem.l	(a7)+,a0/d1-d3
 	rts
 .simple
 	; no check, no boundary checking
@@ -6143,6 +6183,8 @@ fill_opponent_routine_table:
 
 fill_opponent_object
 	bsr	clear_collision_matrix
+	rts		; temp
+	
 	tst.w	misc_timer
 	beq.b	.object_on_screen
 	; object not on screen: no collision
@@ -6329,11 +6371,21 @@ fill_opponent_practice
 .not_same
 	rts
 
+; what: awards 200 points to player (evade, practice)
+; and shows the score
+; < A4 player structure
+; trashes: none
+
 award_200_points
+	move.l	d0,-(a7)
 	move.l	#2,d0
 	bsr		add_to_score
 	moveq.l	#2,d0
-	bra		show_awarded_score
+	bsr		show_awarded_score
+	move.l	(a7)+,d0
+	rts
+	
+	
 	
 ; what: scans player attacking coords (fist, foot)
 ; and checks if collides opponent (player, bull, object)
@@ -6706,7 +6758,7 @@ draw_player:
 	add.w	d5,a3	; mask data
 	
 	; plane 1: clothes data as white
-	move.w	xpos(a4),D0
+	move.w	xpos(a4),D0	
 	cmp.w	#RIGHT,direction(a4)
 	beq.b	.no_offset
 	move.w	d2,d3
@@ -8515,6 +8567,8 @@ cheat_keys
 
 players_reinit_flag:
 	dc.w	0
+win_by_timeout_flag
+	dc.b	0
 time_countdown_flag
 	dc.b	0
 player_up_displayed_flag:
