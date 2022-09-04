@@ -28,11 +28,11 @@
 ; C220: another structure, A.I. related, probably sharing both parties characteristics
 ; TODO: figure out more values from that structure, specially:
 ; +07/+08: frame id/pointer on frame structure, used as input of check_hl_in_ix_list_B009 by A.I
-  so the CPU can recognize the moves
-; +09:
+;  so the CPU can recognize the moves
+; +09 ??? a x-threshold or distance??
 ; +0A: current move index (at least during practice)
 ; +0B/+0C: like 07/08
-
+; +0D ??? a x-threshold or distance??
 ; +0F ($C22F): 
 ; bit 7 set => means players are turning their backs to each other
 ; then
@@ -67,7 +67,7 @@
 ; 0x04: crouch
 ; 0x05: back kick
 ; 0x06: ??
-; 0x07: turn around (only CPU can do that)
+; 0x07: turn around (only CPU can do that without using an aborted back jump/round kick)
 ; 0x08: jumping back kick
 ; 0x09: foot sweep (back)
 ; 0x0A: front kick (can also be small reverse punch at short range apparently)
@@ -86,21 +86,25 @@
 ; 0x17: front sommersault
 ; 0x18: foot sweep (front)
 
-; difficulty level only has an effect before "CMP" levels
-; in CMP (champ) level, difficulty dip switches are ignored,
-; game is just super fast and super hard
+; difficulty level only has an effect before "CMP" level number 16
+; in CMP (champ) level and stage 16 (brige CMP if I'm not mistaken),
+; difficulty dip switches are ignored, game is just super fast
+; and super hard
 
 ; TODO:
 
-; * record all moves to .avi and extract all pics from level 2 C02D = F: done
-; * figure out how cpu_attacks_player_AB2E works how sequences work (master_cpu_move_table_AB58, random??)
+; * figure out how cpu_maybe_attacks_player_AB2E sequences are chosen (with other variable)
+; * figure out if cpu_maybe_attacks_player_AB2E can really return 0 (sound not possible)
+; * inject attack 0E in cpu_maybe_attacks_player_AB2E see what happens
 ; * check & understand ai jump tables computer_ai_jump_table_A5B1
 ; * understand tables located table_AABD
 ; * understand what AB1D does, what's the value of iy
-; * understand the diff between cpu_move_forward_towards_enemy_A6D4/A6E7
+; * understand when cpu performs a sommersault (it happens!! when both players
+; aren't facing and all located on the left side... very rare)
 ; * undestand A53B
 ; * search for C229/whatever with the proper frame values as found in walk_frames_list_AA3B and such tables
 ;   see which frame is which (depends on the graphical tiles)
+
 ; * recode A.I. from fight_mainloop_A390 entrypoint
 
 0000: C3 45 B0    jp   $B045
@@ -7682,7 +7686,7 @@ player_management_routine_46FD:
 4743: 3A 10 63    ld   a,(computer_skill_C910)
 4746: FE 10       cp   $10
 4748: 3E FE       ld   a,$FE
-474A: D2 D6 4D    jp   nc,$477C	; if > $10 skip (CMP)
+474A: D2 D6 4D    jp   nc,$477C	; if > $10 skip (CMP level 16)
 ; if not CMP, check difficulty level
 474D: 21 CD A7    ld   hl,$AD67
 4750: 3A 90 60    ld   a,(dip_switches_copy_C030)
@@ -9765,16 +9769,33 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 57AA: 35          dec  (hl)
 57AB: 23          inc  hl
 57AC: 35          dec  (hl)
+; very strange code getting skill then rotating the value
+; (divide by 4 but get low bits in high bits)
+; then clipping the value to 15 if >= 16
+; looks like someone didn't know about sra...
+; 
+; so basically what it does is that it divides the skill
+; level by 4, to adjust appear period. It creates harder and
+; harder evade stages (if it wasn't already super-hard like that)
+; because objects appear faster and faster. At higher level (not
+; reachable without hacking the game), 2 objects can be present on
+; screen: for instance one object is in the middle of the screen when
+; the next object appears!
+;
+; this is called each time an object is introduced in the evade
+; sequence
+;
 57AD: 3A 10 63    ld   a,(computer_skill_C910)
 57B0: CB 3F       srl  a
 57B2: CB 3F       srl  a
 57B4: FE 10       cp   $10
 57B6: DA BB 5D    jp   c,$57BB
+; clip to 15
 57B9: 3E 0F       ld   a,$0F
 57BB: E6 0F       and  $0F
 57BD: 4F          ld   c,a
 57BE: 06 00       ld   b,$00
-57C0: 21 73 D3    ld   hl,$79D9
+57C0: 21 73 D3    ld   hl,evade_object_period_table_79D9
 57C3: 09          add  hl,bc
 57C4: 7E          ld   a,(hl)
 57C5: CD 5A B0    call $B05A
@@ -14040,20 +14061,13 @@ display_scoring_technique_6CE6:
 79D4: 32 FF 01    ld   ($01FF),a
 79D7: 0C          inc  c
 79D8: FF          rst  $38
-79D9: D2 CE C4    jp   nc,$646E
-79DC: 5A          ld   e,d
-79DD: 55          ld   d,l
-79DE: 50          ld   d,b
-79DF: 4B          ld   c,e
-79E0: 4C          ld   c,h
-79E1: 41          ld   b,c
-79E2: 96          sub  (hl)
-79E3: 9D          sbc  a,l
-79E4: 9D          sbc  a,l
-79E5: 9D          sbc  a,l
-79E6: 9D          sbc  a,l
-79E7: 9D          sbc  a,l
-79E8: 9D          sbc  a,l
+; object appearing rate according to level
+; max level is 24. 24/4 = 6 so more than half of the
+; table isn't used
+; maybe it's a remnant of the first version, where evade stages
+; were twice as frequent
+evade_object_period_table_79D9: 
+	dc.b	78 6E 64 5A 55 50 4B 46 41 3C 37 37 37 37 37 37
 79E9: 21 08 6D    ld   hl,$C702
 79EC: 11 04 00    ld   de,$0004
 79EF: 06 1E       ld   b,$1E
@@ -22133,6 +22147,7 @@ A3DA: DD 7E 02    ld   a,(ix+$08)
 A3DD: A7          and  a
 A3DE: C2 62 A6    jp   nz,$ACC8
 A3E1: C3 6B A6    jp   $ACCB
+
 A3E4: 3A 11 63    ld   a,($C911)
 A3E7: CB BF       res  7,a
 A3E9: FE 50       cp   $50
@@ -22351,26 +22366,26 @@ A5B0: E9          jp   (hl)
 ; (uses the move forward with a special case TODO)
 computer_ai_jump_table_A5B1:
 	dc.w	display_error_text_B075
-	dc.w	cpu_move_forward_towards_enemy_A6D4
-	dc.w	cpu_move_forward_towards_enemy_A6D4
-	dc.w	cpu_move_forward_towards_enemy_A6D4
-	dc.w	cpu_move_forward_towards_enemy_A6D4
-	dc.w	cpu_move_forward_towards_enemy_A6D4
-	dc.w	cpu_move_forward_towards_enemy_A6D4
-	dc.w	cpu_move_forward_towards_enemy_A6D4
-	dc.w	cpu_move_forward_towards_enemy_A6D4
-	dc.w	cpu_move_forward_towards_enemy_A6D4
+	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4
+	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4
+	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4
+	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4
+	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4
+	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4
+	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4
+	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4
+	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4
 computer_ai_jump_table_A5C5
 	dc.w	display_error_text_B075
-	dc.w	cpu_move_forward_towards_enemy_A6E7
+	dc.w	cpu_move_forward_towards_enemy_mid_distance_A6E7
 	dc.w	cpu_forward_or_stop_depending_on_facing_A6EF
 	dc.w	cpu_forward_or_stop_depending_on_facing_A700
-	dc.w	$A711	; jumps to cpu_move_forward_towards_enemy_A6E7
-	dc.w	$A714	; jumps to cpu_move_forward_towards_enemy_A6E7
-	dc.w	$A717
+	dc.w	$A711	; jumps to cpu_move_forward_towards_enemy_mid_distance_A6E7
+	dc.w	$A714	; jumps to cpu_move_forward_towards_enemy_mid_distance_A6E7
+	dc.w	$A717	; jumps to cpu_forward_or_backward_depending_on_facing_A7D5
 	dc.w	$A71A
-	dc.w	$A71D
-	dc.w	$A71D
+	dc.w	cpu_move_forward_towards_enemy_mid_distance_cpu_move_forward_towards_enemy_mid_distance_A71D
+	dc.w	cpu_move_forward_towards_enemy_mid_distance_cpu_move_forward_towards_enemy_mid_distance_A71D
 computer_ai_jump_table_A5D9:
 	dc.w	display_error_text_B075
 	dc.w	$A725
@@ -22657,18 +22672,23 @@ move_found_A6D3:
 	C9          ret
 
 ; move forward with a special case TODO
-cpu_move_forward_towards_enemy_A6D4:
+cpu_move_forward_towards_enemy_far_away_A6D4:
 A6D4: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 ; here writes to C26B (if player 2 CPU) to tell CPU to walk forward
-A6D7: 36 08       ld   (hl),$02
+; hl = C26B
+A6D7: 36 08       ld   (hl),$02		; move forward
+; iy=$C220
 A6D9: FD 7E 07    ld   a,(iy+$0d)
 A6DC: FD BE 03    cp   (iy+$09)
 A6DF: D2 E4 AC    jp   nc,$A6E4
-A6E2: 36 0D       ld   (hl),$07		; TODO see what this is
+; turn back if far away enough (not the only case where it turns back!)
+; not very frequent as human player has to be very far away quickly
+; (using sommersaults)
+A6E2: 36 0D       ld   (hl),$07
 A6E4: C3 10 A4    jp   cpu_move_done_A410
 
 ; simplest & dumbest move forward
-cpu_move_forward_towards_enemy_A6E7:
+cpu_move_forward_towards_enemy_mid_distance_A6E7:
 A6E7: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A6EA: 36 08       ld   (hl),$02
 A6EC: C3 10 A4    jp   cpu_move_done_A410
@@ -22692,11 +22712,12 @@ A709: C2 0E AD    jp   nz,$A70E
 A70C: 36 08       ld   (hl),$02
 A70E: C3 10 A4    jp   cpu_move_done_A410
 
-A711: C3 ED AC    jp   cpu_move_forward_towards_enemy_A6E7
-A714: C3 ED AC    jp   cpu_move_forward_towards_enemy_A6E7
+A711: C3 ED AC    jp   cpu_move_forward_towards_enemy_mid_distance_A6E7
+A714: C3 ED AC    jp   cpu_move_forward_towards_enemy_mid_distance_A6E7
 A717: C3 75 AD    jp   cpu_forward_or_backward_depending_on_facing_A7D5
 A71A: C3 EC AD    jp   $cpu_backward_or_forward_depending_on_facing_A7E6
-; send "walk forward"
+; send "walk forward", exactly the same as A6E7
+cpu_move_forward_towards_enemy_mid_distance_A71D:
 A71D: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A720: 36 08       ld   (hl),$02
 A722: C3 10 A4    jp   cpu_move_done_A410
@@ -22708,7 +22729,7 @@ A728: E6 0F       and  $0F
 ; (actually if reaches that point with the counter aligned on 16, not
 ; sure if it's each 1/4s)
 A72A: C2 94 AD    jp   nz,$A734
-A72D: CD 8E AB    call cpu_attacks_player_AB2E
+A72D: CD 8E AB    call cpu_maybe_attacks_player_AB2E
 A730: A7          and  a
 A731: C2 96 AD    jp   nz,$A73C	; a != 0 => attacked
 ; returns 0: just walk, don't attack
@@ -22725,9 +22746,10 @@ A746: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A749: E6 01       and  $01
 ; one out of 2 times: each 30th second
 A74B: CA 55 AD    jp   z,$A755
-A74E: CD 8E AB    call cpu_attacks_player_AB2E
+A74E: CD 8E AB    call cpu_maybe_attacks_player_AB2E
 A751: A7          and  a
 A752: C2 29 AD    jp   nz,$A783
+; returns 0: just walk, don't attack
 A755: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A758: 36 08       ld   (hl),$02
 A75A: C3 20 AD    jp   $A780
@@ -22752,9 +22774,10 @@ A78A: C2 A4 AD    jp   nz,$A7A4
 A78D: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A790: CB 4F       bit  1,a
 A792: CA 36 AD    jp   z,$A79C
-A795: CD 8E AB    call cpu_attacks_player_AB2E
+A795: CD 8E AB    call cpu_maybe_attacks_player_AB2E
 A798: A7          and  a
 A799: C2 68 AD    jp   nz,$A7C2
+; returns 0: just walk, don't attack
 A79C: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A79F: 36 08       ld   (hl),$02
 A7A1: C3 BF AD    jp   $A7BF
@@ -22803,8 +22826,10 @@ A7FA: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A7FD: 36 08       ld   (hl),$02
 A7FF: C3 10 A4    jp   cpu_move_done_A410
 
-A802: CD 8E AB    call cpu_attacks_player_AB2E
+; pick an attack but fatal error if attack is 0
+A802: CD 8E AB    call cpu_maybe_attacks_player_AB2E
 A805: A7          and  a
+; CPU HAS to attack player there.
 A806: CC D5 B0    call z,display_error_text_B075
 A809: C3 E4 A9    jp   $A3E4
 A80C: FD CB 0F DE bit  7,(iy+$0f)
@@ -22834,10 +22859,11 @@ A846: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A849: 36 01       ld   (hl),$01
 A84B: C3 55 A2    jp   $A855
 
-A84E: CD 8E AB    call cpu_attacks_player_AB2E
+A84E: CD 8E AB    call cpu_maybe_attacks_player_AB2E
 A851: A7          and  a
 A852: CC D5 B0    call z,display_error_text_B075
 A855: C3 E4 A9    jp   $A3E4
+
 A858: C3 10 A4    jp   cpu_move_done_A410
 A85B: FD CB 0F DE bit  7,(iy+$0f)
 A85F: CA 2C A2    jp   z,$A886
@@ -22855,10 +22881,13 @@ A87B: CD 33 AB    call $AB99
 A87E: C2 27 A2    jp   nz,$A88D
 A881: 36 01       ld   (hl),$01
 A883: C3 27 A2    jp   $A88D
-A886: CD 8E AB    call cpu_attacks_player_AB2E
+
+; routine duplicated a lot... pick an attack fails if 0
+A886: CD 8E AB    call cpu_maybe_attacks_player_AB2E
 A889: A7          and  a
 A88A: CC D5 B0    call z,display_error_text_B075
 A88D: C3 E4 A9    jp   $A3E4
+
 A890: C3 10 A4    jp   cpu_move_done_A410
 A893: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A896: 36 14       ld   (hl),$14
@@ -22867,7 +22896,9 @@ A89B: E6 0D       and  $07
 A89D: CA A5 A2    jp   z,$A8A5
 A8A0: 36 08       ld   (hl),$02
 A8A2: C3 10 A4    jp   cpu_move_done_A410
+
 A8A5: C3 E4 A9    jp   $A3E4
+
 A8A8: C3 08 A2    jp   $A802
 A8AB: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A8AE: FD CB 0F DE bit  7,(iy+$0f)
@@ -22952,7 +22983,7 @@ A966: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A969: 36 0D       ld   (hl),$07		; turn around
 A96B: C3 10 A4    jp   cpu_move_done_A410
 
-A96E: CD 8E AB    call cpu_attacks_player_AB2E
+A96E: CD 8E AB    call cpu_maybe_attacks_player_AB2E
 A971: A7          and  a
 A972: C2 D7 A3    jp   nz,$A97D
 A975: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
@@ -22981,7 +23012,7 @@ A9AF: CA 61 A3    jp   z,$A9C1
 A9B2: CD BB AB    call $ABBB
 A9B5: C2 79 A3    jp   nz,$A9D3
 A9B8: C3 61 A3    jp   $A9C1
-A9BB: CD 8E AB    call cpu_attacks_player_AB2E
+A9BB: CD 8E AB    call cpu_maybe_attacks_player_AB2E
 A9BE: C2 79 A3    jp   nz,$A9D3
 A9C1: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A9C4: 36 0D       ld   (hl),$07
@@ -23006,7 +23037,7 @@ A9F4: CD BB AB    call $ABBB
 A9F7: A7          and  a
 A9F8: C2 07 AA    jp   nz,$AA0D
 A9FB: C3 05 AA    jp   $AA05
-A9FE: CD 8E AB    call cpu_attacks_player_AB2E
+A9FE: CD 8E AB    call cpu_maybe_attacks_player_AB2E
 AA01: A7          and  a
 AA02: C2 07 AA    jp   nz,$AA0D
 AA05: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
@@ -23103,9 +23134,10 @@ AB28: DD 7E 02    ld   a,(ix+$08)
 AB2B: CB BF       res  7,a
 AB2D: C9          ret
 
-; > a: 0 don't attack
-cpu_attacks_player_AB2E:
-AB2E: DD 21 52 AB ld   ix,master_cpu_move_table_AB58		; table of pointers of move sequences
+; > a: 0 don't attack, != 0 attack id
+cpu_maybe_attacks_player_AB2E:
+AB2E: DD 21 52 AB ld   ix,master_cpu_move_table_AB58		; table of pointers of move tables
+; choose the proper move list depending on ???
 AB32: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AB35: 23          inc  hl
 AB36: 7E          ld   a,(hl)
@@ -23117,8 +23149,8 @@ AB3D: DD 6E 00    ld   l,(ix+$00)
 AB40: DD 66 01    ld   h,(ix+$01)
 ; get msb of 16 bit counter for randomness
 AB43: ED 5B 8E 60 ld   de,(periodic_counter_16bit_C02E)
-AB47: 5E          ld   e,(hl)
-AB48: 23          inc  hl
+AB47: 5E          ld   e,(hl)	; pick a number 0-value of hl (not included)
+AB48: 23          inc  hl	; skip number of values
 AB49: E5          push hl
 AB4A: CD 0C B0    call random_B006
 AB4D: E1          pop  hl
@@ -23133,8 +23165,8 @@ AB53: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AB56: 77          ld   (hl),a
 AB57: C9          ret
 
-; problem: how does the program know the length of the sequences?
-; some moves are probably done or not depending on how the players are located
+; some moves are probably done or not depending on how the players are
+; located
 ; the CPU isn't going to perform a back move in the void
 
 master_cpu_move_table_AB58:
@@ -23144,11 +23176,11 @@ master_cpu_move_table_AB58:
 	dc.w  move_list_AB84
 	dc.w  move_list_AB84
 
-; move list starts by number of moves
+; move list starts by number of moves (for random pick)
 move_list_AB62:
 	; 13 moves: back, jbk, footsweep, front kick/punch, back round, lunge, jsk, round, lunge, lunge, revpunch, lowk
 	dc.b	0D 05 08 09 0A 0B 0C 0D 0E 0F 10 11 13 14 
-	; lunge lunge backroundkick lungemedium jsk 0E(???) round lunge, lunge, revpunch, lowkick
+	; lunge backroundkick lungemedium jsk 0E(???) round lunge, lunge, revpunch, lowkick
 move_list_AB70:
 	dc.b	0A 0A 0B 0C 0D 0E 0F 10 11 13 14
 	; jump back, front kick, back round, lungemedium, jsk, round, lunge, revpunch, lowkick
@@ -23158,46 +23190,9 @@ move_list_AB7B
 	; pre-jump? back kick jbk foot sweep back
 move_list_AB84
 	dc.b	03 05 08 09
-	
-AB59: AB          xor  e
-AB5A: D0          ret  nc
-AB5B: AB          xor  e
-AB5C: DB AB       in   a,($AB)
-AB5E: 24          inc  h
-AB5F: AB          xor  e
-AB60: 24          inc  h
-AB61: AB          xor  e
-AB62: 07          rlca
-AB63: 05          dec  b
-AB64: 02          ld   (bc),a
-AB65: 03          inc  bc
-AB66: 0A          ld   a,(bc)
-AB67: 0B          dec  bc
-AB68: 06 07       ld   b,$0D
-AB6A: 0E 0F       ld   c,$0F
-AB6C: 10 11       djnz $AB7F
-AB6E: 19          add  hl,de
-AB6F: 14          inc  d
-; move list see move_list_AB70
-AB70: 0A          ld   a,(bc)
-AB71: 0A          ld   a,(bc)
-AB72: 0B          dec  bc
-AB73: 06 07       ld   b,$0D
-AB75: 0E 0F       ld   c,$0F
-AB77: 10 11       djnz $AB8A
-AB79: 19          add  hl,de
-AB7A: 14          inc  d
-AB7B: 02          ld   (bc),a
-AB7C: 0A          ld   a,(bc)
-AB7D: 0B          dec  bc
-AB7E: 06 07       ld   b,$0D
-AB80: 0F          rrca
-AB81: 10 19       djnz $AB96
-AB83: 14          inc  d
-AB84: 09          add  hl,bc
-AB85: 05          dec  b
-AB86: 02          ld   (bc),a
-AB87: 03          inc  bc
+
+
+
 AB88: 3A 10 63    ld   a,(computer_skill_C910)
 AB8B: FE 01       cp   $01
 AB8D: 3E 00       ld   a,$00

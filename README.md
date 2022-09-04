@@ -20,7 +20,8 @@ at each update)
 - 2p make rounds won flash (draw_score_box/erase_score_box) at start
 - when lost, show girls + score (green background)
 - A.I.
-
+- evade: faster object frequency according to the level
+  0: 78 4: 6E 8: 64 12: 5A 16: 55
 bull
 
 evade sequences:
