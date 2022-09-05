@@ -28,6 +28,25 @@ evade sequences:
 sequence: low rear mid front high rear mid front high rear
 sequence: 3x mid front, 2x high rear!!!
 
+multiple evade objects: can be displayed at the same time
+
+a.i investigate
+
+bpset A896 (low kick)
+bpset A8D2
+bpset A849
+bpset A90C rear sommersault (end of sommersault)
+what does A3E4
+; * figure out how pick_cpu_attack_AB2E sequences are chosen (with other variable)
+; * check & understand ai jump tables computer_ai_jump_table_A5B1
+; * understand what identify_opponent_current_frame_AB1D does, what's the value of iy
+; * understand when cpu performs a back sommersault (it happens!! when both players
+; aren't facing and all located on the left side... very rare)
+; * undestand A53B
+; * search for C229/whatever with the proper frame values as found in walk_frames_list_AA3B and such tables
+;   see which frame is which (depends on the graphical tiles)
+* recode A.I. from fight_mainloop_A390 entrypoint
+
 bugs:
 
 - jumping side kick one frame too high

@@ -5,20 +5,21 @@
 ;
 ; CF02: time when entering highscore (BCD)
 ;
-; current level info is copied at 3 locations which mean different things:
+; current level info is propagated at 3 locations which mean different things:
 ;
 ; C0DC: number (1ST, 2ND...)
 ; C900: map index (picture, girl)
-; C910: skill level (increasing skill level dynamically works: computer goes super ninja)
+; C910: skill level (see below)
 ;
-; C028: attack flags, can be 08,09,0A TODO figure out when
-;
+; C028: attack flags (red player/red cpu), can be 08,09,0A TODO figure out when????
+
 ; nb_credits_minus_one_C024: 0 when no credit, then if coin is inserted, set to 1, then
 ; immediately decreased, while showing "press 1P button" screen
 
 ; C910: skill level / speed of computer
 ; 0: slow => 12: super fast. $10 seems a threshold
-; aggressivity is also increased (probably)
+; aggressivity is also increased
+; increasing skill level dynamically works: computer goes super ninja)
 ;
 ; C556-59: 4 bytes looks like counters. When move is completed all 4 values are 8
 
@@ -31,7 +32,8 @@
 ;  so the CPU can recognize the moves
 ; +09 ??? a x-threshold or distance??
 ; +0A: current move index (at least during practice)
-; +0B/+0C: like 07/08
+; +0B/+0C: frame id, like 07/08 for opponent player. Note: bit 8 of C22C set: opponent facing right, maybe
+;     only important for frame display
 ; +0D ??? a x-threshold or distance??
 ; +0F ($C22F): 
 ; bit 7 set => means players are turning their backs to each other
@@ -60,13 +62,19 @@
 ; several: example with front kick and weak reverse punch, that only differ
 ; by attack distance
 ;
+; values marked with "**" trigger the relevant moves only when injecting
+; them by setting a at AB56. Injecting 07 doesn't make CPU turn around, but
+; does something else.
+;
+; also attacks can be triggered in other places
+
 ; 0x00: not moving, guard
 ; 0x01: moving back
 ; 0x02: moving forward
 ; 0x03: pre-jump
 ; 0x04: crouch
 ; 0x05: back kick
-; 0x06: ??
+; 0x06: ** back kick
 ; 0x07: turn around (only CPU can do that without using an aborted back jump/round kick)
 ; 0x08: jumping back kick
 ; 0x09: foot sweep (back)
@@ -74,15 +82,15 @@
 ; 0x0B: back round kick
 ; 0x0C: lunge punch (medium 200-400 forward+forward)
 ; 0x0D: jumping side kick
-; 0x0E: ???
+; 0x0E: ** foot sweep (front)
 ; 0x0F: round kick
 ; 0x10: lunge punch (high 300-600 rear+up)
 ; 0x11: lunge punch (high 500-1000 forward+up)
 ; 0x12: rear sommersault
 ; 0x13: reverse punch (crouch 400-800)
 ; 0x14: low kick
-; 0x15: ???
-; 0x16: ???
+; 0x15: ** low kick
+; 0x16: ** low kick
 ; 0x17: front sommersault
 ; 0x18: foot sweep (front)
 
@@ -93,13 +101,10 @@
 
 ; TODO:
 
-; * figure out how cpu_maybe_attacks_player_AB2E sequences are chosen (with other variable)
-; * figure out if cpu_maybe_attacks_player_AB2E can really return 0 (sound not possible)
-; * inject attack 0E in cpu_maybe_attacks_player_AB2E see what happens
+; * figure out how pick_cpu_attack_AB2E sequences are chosen (with other variable)
 ; * check & understand ai jump tables computer_ai_jump_table_A5B1
-; * understand tables located table_AABD
-; * understand what AB1D does, what's the value of iy
-; * understand when cpu performs a sommersault (it happens!! when both players
+; * understand what identify_opponent_current_frame_AB1D does, what's the value of iy
+; * understand when cpu performs a back sommersault (it happens!! when both players
 ; aren't facing and all located on the left side... very rare)
 ; * undestand A53B
 ; * search for C229/whatever with the proper frame values as found in walk_frames_list_AA3B and such tables
@@ -6445,8 +6450,9 @@
 3DB1: 22 22 23    ld   ($8988),hl
 3DB4: 0A          ld   a,(bc)
 3DB5: 22 22 CD    ld   ($6788),hl
-3DB8: 4B          ld   c,e
-3DB9: B0          or   b
+
+
+3DB7: CD 4B B0 	  call load_iy_with_player_structure_B04B
 3DBA: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 3DBD: FE 02       cp   $08
 3DBF: C2 62 97    jp   nz,$3DC8
@@ -6456,7 +6462,7 @@
 3DCA: C4 D5 B0    call nz,display_error_text_B075
 3DCD: CD BA B0    call $B0BA
 3DD0: 06 13       ld   b,$19
-3DD2: 21 F2 97    ld   hl,$3DF8
+3DD2: 21 F2 97    ld   hl,table_3DF8
 3DD5: 11 09 00    ld   de,$0003
 3DD8: BE          cp   (hl)
 3DD9: CA E9 97    jp   z,$3DE3
@@ -6475,62 +6481,13 @@
 3DF5: 23          inc  hl
 3DF6: 7E          ld   a,(hl)
 3DF7: C9          ret
-3DF8: 00          nop
-3DF9: 00          nop
-3DFA: 00          nop
-3DFB: 80          add  a,b
-3DFC: 01 08 10    ld   bc,$1002
-3DFF: 08          ex   af,af'
-3E00: 01 40 09    ld   bc,$0340
-3E03: 09          add  hl,bc
-3E04: 20 04       jr   nz,$3E0A
-3E06: 04          inc  b
-3E07: 08          ex   af,af'
-3E08: 05          dec  b
-3E09: 0A          ld   a,(bc)
-3E0A: 88          adc  a,b
-3E0B: 0C          inc  c
-3E0C: 06 18       ld   b,$12
-3E0E: 0D          dec  c
-3E0F: 0B          dec  bc
-3E10: 48          ld   c,b
-3E11: 02          ld   (bc),a
-3E12: 07          rlca
-3E13: 28 03       jr   z,$3E1E
-3E15: 0E 01       ld   c,$01
-3E17: 0A          ld   a,(bc)
-3E18: 05          dec  b
-3E19: 81          add  a,c
-3E1A: 0B          dec  bc
-3E1B: 0D          dec  c
-3E1C: 11 06 0C    ld   de,$060C
-3E1F: 41          ld   b,c
-3E20: 07          rlca
-3E21: 02          ld   (bc),a
-3E22: 21 0E 03    ld   hl,$090E
-3E25: 04          inc  b
-3E26: 0F          rrca
-3E27: 0F          rrca
-3E28: 84          add  a,h
-3E29: 10 11       djnz $3E3C
-3E2B: 14          inc  d
-3E2C: 11 10 44    ld   de,$4410
-3E2F: 18 18       jr   $3E43
-3E31: 24          inc  h
-3E32: 19          add  hl,de
-3E33: 19          add  hl,de
-3E34: 02          ld   (bc),a
-3E35: 14          inc  d
-3E36: 14          inc  d
-3E37: 82          add  a,d
-3E38: 15          dec  d
-3E39: 1C          inc  e
-3E3A: 12          ld   (de),a
-3E3B: 1C          inc  e
-3E3C: 15          dec  d
-3E3D: 42          ld   b,d
-3E3E: 1D          dec  e
-3E3F: 1D          dec  e
+
+table_3DF8
+3DF8: 00 00 00 20 01 02 10 02 01 40 03 03 80 04 04 02   ... .....@......
+3E08  05 0A 22 06 0C 12 07 0B 42 08 0D 82 09 0E 01 0A   ..".....B... ...
+3E18  05 21 0B 07 11 0C 06 41 0D 08 81 0E 09 04 0F 0F   .!.....A.... ...
+3E28  24 10 11 14 11 10 44 12 12 84 13 13 08 14 14 28   $.....D........(
+3E38  15 16 18 16 15 48 17 17 88 18 18 77 81 97
 3E40: 22 12 12    ld   ($1818),hl
 3E43: DD 21 3D 9E ld   ix,$3E97
 3E47: FD 6E 0D    ld   l,(iy+$07)
@@ -22123,7 +22080,7 @@ A3A8: CD 03 B0    call check_hl_in_ix_list_B009
 A3AB: E1          pop  hl
 A3AC: A7          and  a
 A3AD: C2 9B A5    jp   nz,$A53B
-A3B0: DD 21 47 AA ld   ix,$jump_frames_list_AA4D
+A3B0: DD 21 47 AA ld   ix,jump_frames_list_AA4D
 A3B4: E5          push hl
 A3B5: CD 03 B0    call check_hl_in_ix_list_B009
 A3B8: E1          pop  hl
@@ -22350,7 +22307,7 @@ A596: C3 37 A5    jp   jump_to_routine_from_table_A59D
 A599: DD 21 51 AC ld   ix,computer_ai_jump_table_A651
 jump_to_routine_from_table_A59D
 A59D: DD E5       push ix
-A59F: CD C5 AC    call classify_opponent_move_A665	; retrieve value 1 -> 9
+A59F: CD C5 AC    call classify_opponent_move_start_A665	; retrieve value 1 -> 9
 A5A2: DD E1       pop  ix
 ; a is the index of the routine in computer_ai_jump_table_A5B1
 A5A4: 87          add  a,a
@@ -22616,9 +22573,14 @@ A664: AA          xor  d
 ; to be used in a per-distance/facing configuration jump table
 ; iy: points on C220 (the A.I. structure)
 ; 1: no particular stuff
-; 6: when player is performing a sommersault forward
-; 9: ???
-classify_opponent_move_A665:
+; 2: frontal high attack
+; 4: crouch
+; 5: in-jump
+; 6: sommersault forward
+; 7: sommersault backwards
+; 8: starting a jump
+; 9: move not in list
+classify_opponent_move_start_A665:
 A665: FD 6E 0B    ld   l,(iy+$0b)
 A668: FD 66 06    ld   h,(iy+$0c)
 A66B: CB BC       res  7,h		; remove last bit
@@ -22629,14 +22591,14 @@ A675: E1          pop  hl
 A676: A7          and  a
 A677: 3E 01       ld   a,$01
 A679: C2 79 AC    jp   nz,move_found_A6D3
-A67C: DD 21 B9 AA ld   ix,$crouch_frame_list_AAB3	; load a table, there are 7 tables like this
+A67C: DD 21 B9 AA ld   ix,crouch_frame_list_AAB3	; load a table, there are 7 tables like this
 A680: E5          push hl
 A681: CD 03 B0    call check_hl_in_ix_list_B009
 A684: E1          pop  hl
 A685: A7          and  a
 A686: 3E 04       ld   a,$04
 A688: C2 79 AC    jp   nz,move_found_A6D3
-A68B: DD 21 47 AA ld   ix,$jump_frames_list_AA4D
+A68B: DD 21 47 AA ld   ix,jump_frames_list_AA4D
 A68F: E5          push hl
 A690: CD 03 B0    call check_hl_in_ix_list_B009
 A693: E1          pop  hl
@@ -22648,22 +22610,22 @@ A69E: E5          push hl
 A69F: CD 03 B0    call check_hl_in_ix_list_B009
 A6A2: E1          pop  hl
 A6A3: A7          and  a
-A6A4: 3E 0C       ld   a,$06		: forward sommersault
+A6A4: 3E 0C       ld   a,$06		; forward sommersault
 A6A6: C2 79 AC    jp   nz,move_found_A6D3
 A6A9: DD 21 A5 AA ld   ix,backwards_sommersault_frame_list_AAA5
 A6AD: CD 03 B0    call check_hl_in_ix_list_B009
 A6B0: A7          and  a
 A6B1: 3E 0D       ld   a,$07		; backwards sommersault
 A6B3: C2 79 AC    jp   nz,move_found_A6D3
-A6B6: CD 76 AA    call $AADC
+A6B6: CD 76 AA    call opponent_starting_frontal_high_attack_AADC
 A6B9: A7          and  a
-A6BA: 3E 08       ld   a,$02
+A6BA: 3E 08       ld   a,$02		; frontal high attack (very large move list!)
 A6BC: C2 79 AC    jp   nz,move_found_A6D3
-A6BF: CD ED AA    call $AAE7
+A6BF: CD ED AA    call opponent_starting_rear_attack_AAE7
 A6C2: A7          and  a
 A6C3: 3E 09       ld   a,$03
 A6C5: C2 79 AC    jp   nz,move_found_A6D3
-A6C8: CD 18 AB    call $AB12
+A6C8: CD 18 AB    call opponent_starting_a_jump_AB12
 A6CB: A7          and  a
 A6CC: 3E 02       ld   a,$08
 A6CE: C2 79 AC    jp   nz,move_found_A6D3
@@ -22729,10 +22691,11 @@ A728: E6 0F       and  $0F
 ; (actually if reaches that point with the counter aligned on 16, not
 ; sure if it's each 1/4s)
 A72A: C2 94 AD    jp   nz,$A734
-A72D: CD 8E AB    call cpu_maybe_attacks_player_AB2E
+A72D: CD 8E AB    call pick_cpu_attack_AB2E
 A730: A7          and  a
-A731: C2 96 AD    jp   nz,$A73C	; a != 0 => attacked
-; returns 0: just walk, don't attack
+A731: C2 96 AD    jp   nz,$A73C	; a != 0 => attacked: always true
+; returns 0: just walk, don't attack. Only reaches here because periodic
+; counter is not a multiple of 16 (0x10)
 A734: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 ; just send walk forward order to CPU
 A737: 36 08       ld   (hl),$02
@@ -22744,15 +22707,16 @@ A73F: FD CB 0F DE bit  7,(iy+$0f)
 A743: CA 57 AD    jp   z,$A75D
 A746: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A749: E6 01       and  $01
-; one out of 2 times: each 30th second
+; one out of 2 times: each 30th second, attack or don't
 A74B: CA 55 AD    jp   z,$A755
-A74E: CD 8E AB    call cpu_maybe_attacks_player_AB2E
+A74E: CD 8E AB    call pick_cpu_attack_AB2E
 A751: A7          and  a
-A752: C2 29 AD    jp   nz,$A783
-; returns 0: just walk, don't attack
+A752: C2 29 AD    jp   nz,$A783		; always true
+; just walk, don't attack, one time out of 2
 A755: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A758: 36 08       ld   (hl),$02
 A75A: C3 20 AD    jp   $A780
+
 A75D: CD 02 AB    call $AB08
 A760: A7          and  a
 A761: CA C6 AD    jp   z,$A76C
@@ -22767,24 +22731,25 @@ A776: 36 09       ld   (hl),$03
 A778: C3 20 AD    jp   $A780
 A77B: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A77E: 36 01       ld   (hl),$01
+
 A780: C3 10 A4    jp   cpu_move_done_A410
 A783: C3 E4 A9    jp   $A3E4
 A786: FD CB 0F DE bit  7,(iy+$0f)
 A78A: C2 A4 AD    jp   nz,$A7A4
 A78D: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
-A790: CB 4F       bit  1,a
+A790: CB 4F       bit  1,a		; once out of 2, following (10 and 11)
 A792: CA 36 AD    jp   z,$A79C
-A795: CD 8E AB    call cpu_maybe_attacks_player_AB2E
+A795: CD 8E AB    call pick_cpu_attack_AB2E
 A798: A7          and  a
-A799: C2 68 AD    jp   nz,$A7C2
-; returns 0: just walk, don't attack
+A799: C2 68 AD    jp   nz,$A7C2		; always true
+; just walk, don't attack
 A79C: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A79F: 36 08       ld   (hl),$02
 A7A1: C3 BF AD    jp   $A7BF
 A7A4: CD F7 AA    call $AAFD
 A7A7: CA BA AD    jp   z,$A7BA
 A7AA: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
-A7AD: CB 47       bit  0,a
+A7AD: CB 47       bit  0,a		; once out of 2, alterning
 A7AF: C2 BA AD    jp   nz,$A7BA
 A7B2: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A7B5: 36 09       ld   (hl),$03
@@ -22826,12 +22791,12 @@ A7FA: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A7FD: 36 08       ld   (hl),$02
 A7FF: C3 10 A4    jp   cpu_move_done_A410
 
-; pick an attack but fatal error if attack is 0
-A802: CD 8E AB    call cpu_maybe_attacks_player_AB2E
+; pick an attack
+A802: CD 8E AB    call pick_cpu_attack_AB2E
 A805: A7          and  a
-; CPU HAS to attack player there.
-A806: CC D5 B0    call z,display_error_text_B075
+A806: CC D5 B0    call z,display_error_text_B075	; never called a != 0 always!
 A809: C3 E4 A9    jp   $A3E4
+
 A80C: FD CB 0F DE bit  7,(iy+$0f)
 A810: C2 4E A2    jp   nz,$A84E
 A813: CD 02 AB    call $AB08
@@ -22856,10 +22821,12 @@ A83F: CD 33 AB    call $AB99
 A842: A7          and  a
 A843: C2 55 A2    jp   nz,$A855
 A846: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
+; move back (parry round kick?)
 A849: 36 01       ld   (hl),$01
 A84B: C3 55 A2    jp   $A855
 
-A84E: CD 8E AB    call cpu_maybe_attacks_player_AB2E
+; routine duplicated a lot... pick an attack fails if 0 (which never happens)
+A84E: CD 8E AB    call pick_cpu_attack_AB2E
 A851: A7          and  a
 A852: CC D5 B0    call z,display_error_text_B075
 A855: C3 E4 A9    jp   $A3E4
@@ -22871,6 +22838,7 @@ A862: CD F7 AA    call $AAFD
 A865: A7          and  a
 A866: CA DB A2    jp   z,$A87B
 A869: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
+; pre-jump ?
 A86C: 36 09       ld   (hl),$03
 A86E: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A871: CB 47       bit  0,a
@@ -22883,17 +22851,19 @@ A881: 36 01       ld   (hl),$01
 A883: C3 27 A2    jp   $A88D
 
 ; routine duplicated a lot... pick an attack fails if 0
-A886: CD 8E AB    call cpu_maybe_attacks_player_AB2E
+A886: CD 8E AB    call pick_cpu_attack_AB2E
 A889: A7          and  a
 A88A: CC D5 B0    call z,display_error_text_B075
 A88D: C3 E4 A9    jp   $A3E4
 
 A890: C3 10 A4    jp   cpu_move_done_A410
 A893: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
+; decide a low kick once out of 8 ticks
 A896: 36 14       ld   (hl),$14
 A898: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A89B: E6 0D       and  $07
 A89D: CA A5 A2    jp   z,$A8A5
+; just walk
 A8A0: 36 08       ld   (hl),$02
 A8A2: C3 10 A4    jp   cpu_move_done_A410
 
@@ -22904,31 +22874,34 @@ A8AB: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A8AE: FD CB 0F DE bit  7,(iy+$0f)
 A8B2: C2 6F A2    jp   nz,$A8CF
 A8B5: E5          push hl
-A8B6: DD 21 3B AA ld   ix,$AA9B
+A8B6: DD 21 3B AA ld   ix,forward_sommersault_frame_list_end_AA9B
 A8BA: FD 6E 0B    ld   l,(iy+$0b)
 A8BD: FD 66 06    ld   h,(iy+$0c)
 A8C0: CB BC       res  7,h
 A8C2: CD 03 B0    call check_hl_in_ix_list_B009
 A8C5: A7          and  a
 A8C6: E1          pop  hl
-A8C7: C2 6F A2    jp   nz,$A8CF
+A8C7: C2 6F A2    jp   nz,$A8CF		; end of forward sommersault: attack
+; walk
 A8CA: 36 08       ld   (hl),$02
 A8CC: C3 E5 A2    jp   $A8E5
+; odds: lunge (0 - 25%), jumping kick (2,3 - 50%), round kick (1 - 25%)
 A8CF: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
-A8D2: 36 10       ld   (hl),$10
+A8D2: 36 10       ld   (hl),$10		; rear+up lunge punch
 A8D4: E6 09       and  $03
 A8D6: CA E8 A2    jp   z,$A8E2
-A8D9: 36 07       ld   (hl),$0D
+A8D9: 36 07       ld   (hl),$0D		; rather a jumping side kick
 A8DB: FE 01       cp   $01
 A8DD: CA E8 A2    jp   z,$A8E2
-A8E0: 36 0F       ld   (hl),$0F
+A8E0: 36 0F       ld   (hl),$0F		; rather a round kick
 A8E2: C3 10 A4    jp   cpu_move_done_A410
+
 A8E5: C3 10 A4    jp   cpu_move_done_A410
 A8E8: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A8EB: FD CB 0F DE bit  7,(iy+$0f)
 A8EF: CA 06 A3    jp   z,$A90C
 A8F2: E5          push hl
-A8F3: DD 21 A3 AA ld   ix,$AAA9
+A8F3: DD 21 A3 AA ld   ix,backwards_sommersault_frame_list_end_AAA9
 A8F7: FD 6E 0B    ld   l,(iy+$0b)
 A8FA: FD 66 06    ld   h,(iy+$0c)
 A8FD: CB BC       res  7,h
@@ -22936,9 +22909,9 @@ A8FF: CD 03 B0    call check_hl_in_ix_list_B009
 A902: A7          and  a
 A903: E1          pop  hl
 A904: C2 06 A3    jp   nz,$A90C
-A907: 36 08       ld   (hl),$02
+A907: 36 08       ld   (hl),$02		; move forward
 A909: C3 0E A3    jp   $A90E
-A90C: 36 01       ld   (hl),$01
+A90C: 36 01       ld   (hl),$01		; move back
 A90E: C3 10 A4    jp   cpu_move_done_A410
 
 A911: C3 08 A2    jp   $A802
@@ -22983,7 +22956,7 @@ A966: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A969: 36 0D       ld   (hl),$07		; turn around
 A96B: C3 10 A4    jp   cpu_move_done_A410
 
-A96E: CD 8E AB    call cpu_maybe_attacks_player_AB2E
+A96E: CD 8E AB    call pick_cpu_attack_AB2E
 A971: A7          and  a
 A972: C2 D7 A3    jp   nz,$A97D
 A975: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
@@ -23012,7 +22985,7 @@ A9AF: CA 61 A3    jp   z,$A9C1
 A9B2: CD BB AB    call $ABBB
 A9B5: C2 79 A3    jp   nz,$A9D3
 A9B8: C3 61 A3    jp   $A9C1
-A9BB: CD 8E AB    call cpu_maybe_attacks_player_AB2E
+A9BB: CD 8E AB    call pick_cpu_attack_AB2E
 A9BE: C2 79 A3    jp   nz,$A9D3
 A9C1: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A9C4: 36 0D       ld   (hl),$07
@@ -23037,7 +23010,7 @@ A9F4: CD BB AB    call $ABBB
 A9F7: A7          and  a
 A9F8: C2 07 AA    jp   nz,$AA0D
 A9FB: C3 05 AA    jp   $AA05
-A9FE: CD 8E AB    call cpu_maybe_attacks_player_AB2E
+A9FE: CD 8E AB    call pick_cpu_attack_AB2E
 AA01: A7          and  a
 AA02: C2 07 AA    jp   nz,$AA0D
 AA05: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
@@ -23076,15 +23049,20 @@ back_kick_frames_list_AA6D:
 repositionning_frame_list_AA8D:
 	dc.b	$88 1A D0 1A 18 1B FF FF
 forward_sommersault_frame_list_AA95:
-	dc.b	$AD 13 B6 13 BF 13 C8 13 D1 13 DA 13 E3 13 FF FF
+	dc.b	$AD 13 B6 13 BF 13
+forward_sommersault_frame_list_end_AA9B
+	dc.b	C8 13 D1 13 DA 13 E3 13 FF FF
 backwards_sommersault_frame_list_AAA5:
-	dc.b	$45 12 4E 12 57 12 60 12 72 12 7B 12 FF FF
+	dc.b	$45 12 4E 12	; includes the follwing frames
+backwards_sommersault_frame_list_end_AAA9:
+	dc.b	57 12 60 12 72 12 7B 12 FF FF
 ; player gets down, including foot sweep
 crouch_frame_list_AAB3:
 	dc.b	$27 0C E0 0D A7 10 DE 12 FF FF
 
 ; some other tables loaded by the code below (accessed by a table too)
-; TODO what are those tables
+; looks like the indexes are real full frame numbers (not actual attack moves)
+
 table_AABD:
 	dc.b	04 05 06 07 08 09 0A 0B 0C 0D 0E FF
 table_AAC9
@@ -23093,39 +23071,49 @@ table_AACD
 	dc.b	02 06 08 0A 0B 0C FF
 table_AAD4
 	dc.b	03 09 0E FF
-table_AAD8
+table_jump_AAD8
 	dc.b	10 11 12 FF
 
-AADC: CD 17 AB    call $AB1D
+; lunge punches (all 3 of them), back round kick (both directions), jumping side kick,
+; round kick
+opponent_starting_frontal_high_attack_AADC
+AADC: CD 17 AB    call identify_opponent_current_frame_AB1D
 AADF: DD 21 B7 AA ld   ix,table_AABD
 AAE3: CD 0F B0    call table_linear_search_B00F
 AAE6: C9          ret
 
-AAE7: CD 17 AB    call $AB1D
+; rear attack but not low attack. Just back kick jumping back kick
+opponent_starting_rear_attack_AAE7
+AAE7: CD 17 AB    call identify_opponent_current_frame_AB1D
 AAEA: DD 21 63 AA ld   ix,table_AAC9
 AAEE: CD 0F B0    call table_linear_search_B00F
 AAF1: C9          ret
-AAF2: CD 17 AB    call $AB1D
+
+AAF2: CD 17 AB    call identify_opponent_current_frame_AB1D
 AAF5: DD 21 67 AA ld   ix,table_AACD
 AAF9: CD 0F B0    call table_linear_search_B00F
 AAFC: C9          ret
-AAFD: CD 17 AB    call $AB1D
+
+AAFD: CD 17 AB    call identify_opponent_current_frame_AB1D
 AB00: DD 21 74 AA ld   ix,table_AAD4
 AB04: CD 0F B0    call table_linear_search_B00F
 AB07: C9          ret
 
-AB08: CD 17 AB    call $AB1D
+AB08: CD 17 AB    call identify_opponent_current_frame_AB1D
 AB0B: FE 0E       cp   $0E
 AB0D: CA 11 AB    jp   z,$AB11
 AB10: AF          xor  a
 AB11: C9          ret
 
-AB12: CD 17 AB    call $AB1D
-AB15: DD 21 72 AA ld   ix,table_AAD8
+opponent_starting_a_jump_AB12
+AB12: CD 17 AB    call identify_opponent_current_frame_AB1D
+AB15: DD 21 72 AA ld   ix,table_jump_AAD8
 AB19: CD 0F B0    call table_linear_search_B00F
 AB1C: C9          ret
 
-AB1D: FD 4E 0B    ld   c,(iy+$0b)
+; iy=C220, loads ix with current frame pointer of opponent, then
+; identifies opponent exact frame/move (starting move probably)
+identify_opponent_current_frame_AB1D: FD 4E 0B    ld   c,(iy+$0b)
 AB20: FD 46 06    ld   b,(iy+$0c)
 AB23: CB B8       res  7,b
 AB25: C5          push bc
@@ -23134,8 +23122,15 @@ AB28: DD 7E 02    ld   a,(ix+$08)
 AB2B: CB BF       res  7,a
 AB2D: C9          ret
 
-; > a: 0 don't attack, != 0 attack id
-cpu_maybe_attacks_player_AB2E:
+; > a: attack id (cf table at start of the source file)
+; but this routine cannot return 0 because tables it points to don't contain 0
+; furthermore, this routine is sometimes followed by a sanity check crashing with
+; an error message if a is 0 on exit. Since it's random, how could the sanity check NOT fail?
+;
+; injecting values performs the move... or the move is discarded by caller (maybe depending
+; on the difficulty setting?)
+
+pick_cpu_attack_AB2E:
 AB2E: DD 21 52 AB ld   ix,master_cpu_move_table_AB58		; table of pointers of move tables
 ; choose the proper move list depending on ???
 AB32: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
