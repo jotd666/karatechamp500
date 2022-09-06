@@ -36,19 +36,23 @@ bpset A896 (low kick)
 bpset A8D2
 bpset A849
 bpset A90C rear sommersault (end of sommersault)
-what does A3E4
-; * figure out how pick_cpu_attack_AB2E sequences are chosen (with other variable)
-; * check & understand ai jump tables computer_ai_jump_table_A5B1
-; * understand what identify_opponent_current_frame_AB1D does, what's the value of iy
+; * figure out how select_cpu_attack_AB2E sequences are chosen
+; (with other variable: address_of_cpu_move_byte_CF04)
+; * check & understand ai jump tables of react_to_opponent_attack_A53B
 ; * understand when cpu performs a back sommersault (it happens!! when both players
 ; aren't facing and all located on the left side... very rare)
-; * undestand A53B
-; * search for C229/whatever with the proper frame values as found in walk_frames_list_AA3B and such tables
-;   see which frame is which (depends on the graphical tiles)
+; understand what 3DB7 does
+; understand what A34D does
+; * undestand A53B jump tables (react to opponent attack), confirm
+  values of C22F (player logical distance) to select jump tables
+; understand A3E4 (most routines end there)
+; figure out what C911 contains/means (tested in A3E4)
+; break in A75D  A73F: when does it jump to A75D?? understand bit  7,(iy+$0f) aka C22F: facing each other if cleared
 * recode A.I. from fight_mainloop_A390 entrypoint
 
 bugs:
 
+- back round kick other direction than opponent: can't be done in normal mode (ok in evade): back kick instead
 - jumping side kick one frame too high
 - evade collisions: front ok, back move ko
 - evade: player moves: trashes object update
