@@ -32,10 +32,18 @@ multiple evade objects: can be displayed at the same time
 
 a.i investigate
 
-bpset A896 (low kick)
-bpset A8D2
+end naming & commenting tables jump_table_A54F
+bpset ACD8 decide to attack check tables
+what is C147, C148, C149
+
+try to reack A980? 
+bpset A90C same direction try ommersault back
+analyse condition of turn around in cpu_move_forward_towards_enemy_far_away_A6D4
+
+diff between attacks/move ends: cpu_attack_selected_A3E4 and cpu_move_done_A410 ?
+memory watch on frames (16 bit) at start of A.I. mainloop
+for instance 13C8 13D1 forward sommersault... vs C22B/C22C
 bpset A849
-bpset A90C rear sommersault (end of sommersault)
 ; * figure out how select_cpu_attack_AB2E sequences are chosen
 ; (with other variable: address_of_cpu_move_byte_CF04)
 ; * check & understand ai jump tables of react_to_opponent_attack_A53B
