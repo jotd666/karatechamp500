@@ -10,7 +10,7 @@
 ; C0DC: number (1ST, 2ND...)
 ; C900: map index (picture, girl)
 ; C910: skill level (see below)
-; C911: ???
+; background_and_state_bits_C911: background+state bits
 
 ; C028: attack flags (red player/red cpu), can be 08,09,0A TODO figure out when????
 
@@ -31,7 +31,7 @@
 ; TODO: figure out more values from that structure, specially:
 ; +07/+08: frame id/pointer on frame structure, used as input of check_hl_in_ix_list_B009 by A.I
 ;  so the CPU can recognize the moves
-; +09 cpu x
+; +09 white player x ($20 min $DF max)
 ; +0A: current move index (at least during practice)
 ; +0B/+0C: frame id, like 07/08 for opponent player. Note: bit 8 of C22C set: opponent facing right, maybe
 ;     only important for frame display
@@ -6044,11 +6044,11 @@
 3AA5: CD B0 96    call $3CB0
 3AA8: CD B9 40    call $40B3
 3AAB: CD 59 41    call $4153
-3AAE: 3A 11 63    ld   a,($C911)
+3AAE: 3A 11 63    ld   a,($background_and_state_bits_C911)
 3AB1: E6 D0       and  $70
 3AB3: FE 80       cp   $20
 3AB5: CA 9E 96    jp   z,$3C3E
-3AB8: 3A 11 63    ld   a,($C911)
+3AB8: 3A 11 63    ld   a,($background_and_state_bits_C911)
 3ABB: CB BF       res  7,a
 3ABD: FE 10       cp   $10
 3ABF: D2 74 9A    jp   nc,$3AD4
@@ -6217,7 +6217,7 @@
 3C3B: CD 17 45    call $451D
 3C3E: CD 51 B0    call $B051
 3C41: C9          ret
-3C42: 3A 11 63    ld   a,($C911)
+3C42: 3A 11 63    ld   a,($background_and_state_bits_C911)
 3C45: CB BF       res  7,a
 3C47: FE 01       cp   $01
 3C49: C2 AD 96    jp   nz,$3CA7
@@ -6268,7 +6268,7 @@
 3CAD: 3B          dec  sp
 3CAE: 7F          ld   a,a
 3CAF: 72          ld   (hl),d
-3CB0: 3A 11 63    ld   a,($C911)
+3CB0: 3A 11 63    ld   a,($background_and_state_bits_C911)
 3CB3: E6 DF       and  $7F
 3CB5: FE 50       cp   $50
 3CB7: DA 7D 96    jp   c,$3CD7
@@ -6278,7 +6278,7 @@
 3CC2: FE 0A       cp   $0A
 3CC4: CA 6A 96    jp   z,$3CCA
 3CC7: 21 8D 97    ld   hl,$3D27
-3CCA: 3A 11 63    ld   a,($C911)
+3CCA: 3A 11 63    ld   a,($background_and_state_bits_C911)
 3CCD: E6 DF       and  $7F
 3CCF: D6 50       sub  $50
 3CD1: CD 00 97    call $3D00
@@ -6489,7 +6489,7 @@ table_3DF8
 3E52: A7          and  a
 3E53: CA D7 9E    jp   z,$3E7D
 3E56: DD 21 9D 97 ld   ix,$3D37
-3E5A: 3A 11 63    ld   a,($C911)
+3E5A: 3A 11 63    ld   a,($background_and_state_bits_C911)
 3E5D: E6 DF       and  $7F
 3E5F: FE 80       cp   $20
 3E61: D4 D5 B0    call nc,display_error_text_B075
@@ -6819,7 +6819,7 @@ table_3DF8
 40AC: CA B8 40    jp   z,$40B2
 40AF: CD D8 B0    call $B072
 40B2: C9          ret
-40B3: 3A 11 63    ld   a,($C911)
+40B3: 3A 11 63    ld   a,($background_and_state_bits_C911)
 40B6: CB BF       res  7,a
 40B8: FE 50       cp   $50
 40BA: CA 76 40    jp   z,$40DC
@@ -7004,7 +7004,7 @@ table_3DF8
 4251: DD 19       add  ix,de
 4253: 10 F3       djnz $424E
 4255: C9          ret
-4256: 3A 11 63    ld   a,($C911)
+4256: 3A 11 63    ld   a,($background_and_state_bits_C911)
 4259: CB BF       res  7,a
 425B: FE 10       cp   $10
 425D: DA C4 48    jp   c,$4264
@@ -7518,19 +7518,19 @@ table_3DF8
 4662: 13          inc  de
 4663: DD 21 40 68 ld   ix,player_1_struct_C240
 4667: 21 1A 97    ld   hl,$3D1A
-466A: 3A 11 63    ld   a,($C911)
+466A: 3A 11 63    ld   a,($background_and_state_bits_C911)
 466D: E6 DF       and  $7F
 466F: FE 50       cp   $50
 4671: CA 28 4C    jp   z,$4682
 4674: 21 9A 97    ld   hl,$3D3A
-4677: 3A 11 63    ld   a,($C911)
+4677: 3A 11 63    ld   a,($background_and_state_bits_C911)
 467A: CB BF       res  7,a
 467C: 87          add  a,a
 467D: 87          add  a,a
 467E: 4F          ld   c,a
 467F: 06 00       ld   b,$00
 4681: 09          add  hl,bc
-4682: 3A 11 63    ld   a,($C911)
+4682: 3A 11 63    ld   a,($background_and_state_bits_C911)
 4685: E6 D0       and  $70
 4687: FE 10       cp   $10
 4689: CA 7C 4C    jp   z,$46D6
@@ -7637,7 +7637,7 @@ player_management_routine_46FD:
 4748: 3E FE       ld   a,$FE
 474A: D2 D6 4D    jp   nc,$477C	; if > $10 skip (CMP level 16)
 ; if not CMP, check difficulty level
-474D: 21 CD A7    ld   hl,attack_decision_table_AD67
+474D: 21 CD A7    ld   hl,counter_attack_time_table_AD67
 4750: 3A 90 60    ld   a,(dip_switches_copy_C030)
 4753: CB 3F       srl  a
 4755: CB 3F       srl  a
@@ -7698,7 +7698,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 47AE: A7          and  a
 47AF: ED 52       sbc  hl,de
 47B1: C2 74 4D    jp   nz,$47D4
-47B4: 3A 11 63    ld   a,($C911)
+47B4: 3A 11 63    ld   a,($background_and_state_bits_C911)
 47B7: CB BF       res  7,a
 47B9: FE 10       cp   $10
 47BB: D2 74 4D    jp   nc,$47D4
@@ -7834,7 +7834,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 48E9: 4F          ld   c,a
 48EA: 09          add  hl,bc
 48EB: DD 21 9D 97 ld   ix,$3D37
-48EF: 3A 11 63    ld   a,($C911)
+48EF: 3A 11 63    ld   a,($background_and_state_bits_C911)
 48F2: 87          add  a,a
 48F3: 87          add  a,a
 48F4: 4F          ld   c,a
@@ -8849,7 +8849,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 5102: 01 03 00    ld   bc,$0009
 5105: ED B0       ldir
 5107: DD 21 DD 97 ld   ix,$3D77
-510B: 3A 11 63    ld   a,($C911)
+510B: 3A 11 63    ld   a,($background_and_state_bits_C911)
 510E: D6 10       sub  $10
 5110: 87          add  a,a
 5111: 87          add  a,a
@@ -9273,7 +9273,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 545C: CD B4 B0    call $B0B4
 545F: 3E 00       ld   a,$00
 5461: CD 12 B0    call $B018
-5464: 3A 11 63    ld   a,($C911)
+5464: 3A 11 63    ld   a,($background_and_state_bits_C911)
 5467: CB BF       res  7,a
 5469: CB 27       sla  a
 546B: 4F          ld   c,a
@@ -9543,7 +9543,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 5616: CD 54 B0    call $B054
 5619: 3E 0A       ld   a,$0A
 561B: CD 54 B0    call $B054
-561E: 3A 11 63    ld   a,($C911)
+561E: 3A 11 63    ld   a,($background_and_state_bits_C911)
 5621: CB 7F       bit  7,a
 5623: C2 49 5C    jp   nz,$5643
 5626: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
@@ -9611,7 +9611,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 56BD: CD 54 B0    call $B054
 56C0: 3E 0B       ld   a,$0B
 56C2: CD 54 B0    call $B054
-56C5: 3A 11 63    ld   a,($C911)
+56C5: 3A 11 63    ld   a,($background_and_state_bits_C911)
 56C8: CB 7F       bit  7,a
 56CA: C2 EA 5C    jp   nz,$56EA
 56CD: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
@@ -9940,14 +9940,14 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 596E: C4 D5 B0    call nz,display_error_text_B075
 5971: CD 51 B0    call $B051
 5974: 47          ld   b,a
-5975: 3A 11 63    ld   a,($C911)
+5975: 3A 11 63    ld   a,($background_and_state_bits_C911)
 5978: CB 7F       bit  7,a
 597A: C2 58 5B    jp   nz,$5B52
 597D: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5980: E6 09       and  $03
 5982: FE 09       cp   $03
 5984: CA FF 53    jp   z,$59FF
-5987: 3A 11 63    ld   a,($C911)
+5987: 3A 11 63    ld   a,($background_and_state_bits_C911)
 598A: CB BF       res  7,a
 598C: FE 51       cp   $51
 598E: C2 36 53    jp   nz,$599C
@@ -9996,7 +9996,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 59F6: C3 DA 5B    jp   $5B7A
 59F9: CD D7 5B    call $5B7D
 59FC: C3 DA 5B    jp   $5B7A
-59FF: 3A 11 63    ld   a,($C911)
+59FF: 3A 11 63    ld   a,($background_and_state_bits_C911)
 5A02: CB BF       res  7,a
 5A04: FE 10       cp   $10
 5A06: D2 B2 5A    jp   nc,$5AB8
@@ -10065,7 +10065,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 5AAF: DD 75 08    ld   (ix+$02),l
 5AB2: DD 74 09    ld   (ix+$03),h
 5AB5: C3 DA 5B    jp   $5B7A
-5AB8: 3A 11 63    ld   a,($C911)
+5AB8: 3A 11 63    ld   a,($background_and_state_bits_C911)
 5ABB: CB BF       res  7,a
 5ABD: FE 51       cp   $51
 5ABF: C2 FA 5A    jp   nz,$5AFA
@@ -10153,7 +10153,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 5B9A: DD 75 08    ld   (ix+$02),l
 5B9D: DD 74 09    ld   (ix+$03),h
 5BA0: C9          ret
-5BA1: 3A 11 63    ld   a,($C911)
+5BA1: 3A 11 63    ld   a,($background_and_state_bits_C911)
 5BA4: CB 7F       bit  7,a
 5BA6: CA 6A 5B    jp   z,$5BCA
 5BA9: DD 6E 08    ld   l,(ix+$02)
@@ -11399,7 +11399,7 @@ practice_table_end_6361:
 648E: 96          sub  (hl)
 648F: 96          sub  (hl)
 6490: FF          rst  $38
-6491: 3A 11 63    ld   a,($C911)
+6491: 3A 11 63    ld   a,($background_and_state_bits_C911)
 6494: E6 DF       and  $7F
 6496: FE 10       cp   $10
 6498: DA 3E C4    jp   c,$649E
@@ -12045,7 +12045,7 @@ practice_table_end_6361:
 6A68: 20 EE       jr   nz,$6A58
 6A6A: 00          nop
 6A6B: DD 21 E1 CA ld   ix,$6AE1
-6A6F: 3A 11 63    ld   a,($C911)
+6A6F: 3A 11 63    ld   a,($background_and_state_bits_C911)
 6A72: CB BF       res  7,a
 6A74: 87          add  a,a
 6A75: 4F          ld   c,a
@@ -12416,7 +12416,7 @@ display_scoring_technique_6CE6:
 6D5B: CF          rst  $08
 6D5C: FF          rst  $38
 6D5D: FF          rst  $38
-6D5E: 3A 11 63    ld   a,($C911)
+6D5E: 3A 11 63    ld   a,($background_and_state_bits_C911)
 6D61: CB BF       res  7,a
 6D63: FE 59       cp   $53
 6D65: C2 CF C7    jp   nz,$6D6F
@@ -12687,7 +12687,7 @@ display_scoring_technique_6CE6:
 6F83: 30 9A       jr   nc,$6FBF
 6F85: 30 9A       jr   nc,$6FC1
 6F87: 30 FF       jr   nc,$6F88
-6F89: 3A 11 63    ld   a,($C911)
+6F89: 3A 11 63    ld   a,($background_and_state_bits_C911)
 6F8C: CB BF       res  7,a
 6F8E: FE 80       cp   $20
 6F90: DC D5 B0    call c,display_error_text_B075
@@ -12708,7 +12708,7 @@ display_scoring_technique_6CE6:
 6FB4: 21 59 DD    ld   hl,$7753
 6FB7: 16 32       ld   d,$98
 6FB9: CD 93 B0    call display_text_B039
-6FBC: 3A 11 63    ld   a,($C911)
+6FBC: 3A 11 63    ld   a,($background_and_state_bits_C911)
 6FBF: CB BF       res  7,a
 6FC1: D6 80       sub  $20
 6FC3: 87          add  a,a
@@ -12904,7 +12904,7 @@ display_scoring_technique_6CE6:
 71C0: 11 E4 6D    ld   de,$C7E4
 71C3: 01 10 00    ld   bc,$0010
 71C6: ED B0       ldir
-71C8: 3A 11 63    ld   a,($C911)
+71C8: 3A 11 63    ld   a,($background_and_state_bits_C911)
 71CB: CB BF       res  7,a
 71CD: D6 90       sub  $30
 71CF: 87          add  a,a
@@ -13101,7 +13101,7 @@ display_scoring_technique_6CE6:
 73A8: 0D          dec  c
 73A9: 02          ld   (bc),a
 73AA: 03          inc  bc
-73AB: 3A 11 63    ld   a,($C911)
+73AB: 3A 11 63    ld   a,($background_and_state_bits_C911)
 73AE: CB BF       res  7,a
 73B0: D6 40       sub  $40
 73B2: 87          add  a,a
@@ -13341,10 +13341,10 @@ display_scoring_technique_6CE6:
 755A: 30 3E       jr   nc,$74FA
 755C: 00          nop
 755D: 32 4B 68    ld   (current_move_C24B),a
-7560: 3A 11 63    ld   a,($C911)
+7560: 3A 11 63    ld   a,($background_and_state_bits_C911)
 7563: CB BF       res  7,a
 7565: FE 10       cp   $10
-7567: DA DB A9    jp   c,$A37B
+7567: DA DB A9    jp   c,$fight_mainloop_A37B
 756A: 47          ld   b,a
 756B: E6 F0       and  $F0
 756D: FE 10       cp   $10
@@ -13478,10 +13478,10 @@ display_scoring_technique_6CE6:
 7655: 06 FF       ld   b,$FF
 7657: 3E 00       ld   a,$00
 7659: 32 CB 68    ld   ($C26B),a
-765C: 3A 11 63    ld   a,($C911)
+765C: 3A 11 63    ld   a,($background_and_state_bits_C911)
 765F: CB BF       res  7,a
 7661: FE 10       cp   $10
-7663: DA DB A9    jp   c,$A37B
+7663: DA DB A9    jp   c,$fight_mainloop_A37B
 7666: 47          ld   b,a
 7667: E6 F0       and  $F0
 7669: FE 10       cp   $10
@@ -14102,7 +14102,7 @@ evade_object_period_table_79D9:
 7A86: 10 EC       djnz $7A6E
 7A88: C9          ret
 7A89: DD 21 18 DB ld   ix,$7B12
-7A8D: 3A 11 63    ld   a,($C911)
+7A8D: 3A 11 63    ld   a,($background_and_state_bits_C911)
 7A90: CB BF       res  7,a
 7A92: FE 50       cp   $50
 7A94: DA 32 DA    jp   c,$7A98
@@ -14144,7 +14144,7 @@ evade_object_period_table_79D9:
 7AD6: 3A 98 60    ld   a,($C032)
 7AD9: CB 4F       bit  1,a
 7ADB: C8          ret  z
-7ADC: 3A 11 63    ld   a,($C911)
+7ADC: 3A 11 63    ld   a,($background_and_state_bits_C911)
 7ADF: FE 54       cp   $54
 7AE1: CA EE DA    jp   z,$7AEE
 7AE4: FE 59       cp   $53
@@ -14397,11 +14397,11 @@ evade_object_period_table_79D9:
 7C58: 0E 07       ld   c,$0D
 7C5A: 18 17       jr   $7C79
 7C5C: FF          rst  $38
-7C5D: 3A 11 63    ld   a,($C911)
+7C5D: 3A 11 63    ld   a,($background_and_state_bits_C911)
 7C60: FE 54       cp   $54
 7C62: 3E 08       ld   a,$02
 7C64: CA D2 D6    jp   z,$7C78
-7C67: 3A 11 63    ld   a,($C911)
+7C67: 3A 11 63    ld   a,($background_and_state_bits_C911)
 7C6A: FE 59       cp   $53
 7C6C: 3E 08       ld   a,$02
 7C6E: CA D2 D6    jp   z,$7C78
@@ -22025,7 +22025,7 @@ A34A: 10 FF       djnz $A34B
 A34C: 00          nop
 
 
-A34D: 3A 11 63    ld   a,($C911)
+A34D: 3A 11 63    ld   a,($background_and_state_bits_C911)
 A350: CB 7F       bit  7,a
 A352: 3E 00       ld   a,$00
 A354: C2 DA A9    jp   nz,$A37A
@@ -22045,12 +22045,12 @@ A377: 77          ld   (hl),a
 A378: 3E FF       ld   a,$FF
 A37A: C9          ret
 
-A37B: CD 4B B0    call load_iy_with_player_structure_B04B
+fight_mainloop_A37B: CD 4B B0    call load_iy_with_player_structure_B04B
 A37E: FD 36 10 00 ld   (iy+$10),$00
 A382: AF          xor  a
 A383: CD 5A B0    call $B05A
 A386: FE 03       cp   $09
-A388: CA DB A9    jp   z,$A37B
+A388: CA DB A9    jp   z,$fight_mainloop_A37B
 A38B: FE 06       cp   $0C
 A38D: C4 D5 B0    call nz,display_error_text_B075
 
@@ -22097,27 +22097,32 @@ A3DD: A7          and  a
 A3DE: C2 62 A6    jp   nz,$ACC8
 A3E1: C3 6B A6    jp   $ACCB
 
-cpu_attack_selected_A3E4:
-A3E4: 3A 11 63    ld   a,($C911)
+cpu_move_done_opponent_can_react_A3E4:
+A3E4: 3A 11 63    ld   a,($background_and_state_bits_C911)
 A3E7: CB BF       res  7,a	; clears bit 7
+; this is during demo mode (blue "karate champ" background), 2 cpu players
+; during cpu vs cpu demo (bridge), it's not $50
 A3E9: FE 50       cp   $50
-A3EB: CA 10 A4    jp   z,cpu_move_done_A410	; don't attack
+A3EB: CA 10 A4    jp   z,cpu_move_done_A410
 A3EE: FD CB 10 4C bit  0,(iy+$10)
 A3F2: C2 10 A4    jp   nz,cpu_move_done_A410
-; we enter here when computer is about to decide if it must attack
-; it doesn't enter here when the computer is walking towards the
-; human player
+; we enter here when computer is about to attack, but (in lower difficulty levels < 16)
+; it lets the opponent a chance to counter attack just before the attack
+; the time for the opponent to react is smaller and smaller with increasing skill level
 ; attack has been already decided by functions that end up
 ; calling A3E4
-A3F5: 21 CD A7    ld   hl,attack_decision_table_AD67
-A3F8: CD 6E A6    call decide_to_attack_depending_on_difficulty_ACCE
+A3F5: 21 CD A7    ld   hl,counter_attack_time_table_AD67
+A3F8: CD 6E A6    call let_opponent_react_depending_on_skill_level_ACCE
+; something animation related must have been set up to handle the special (why?)
+; case of counter attack with jump. Otherwise return code doesn't matter much
 A3FB: FE 03       cp   $09
-A3FD: CA DB A9    jp   z,$A37B		; if returns a=9 loop back (without attacking)
+A3FD: CA DB A9    jp   z,$fight_mainloop_A37B		; jump attack: loop back (without attacking)
 A400: A7          and  a
-A401: CA 03 A4    jp   z,$A409		; attacks if a=0 (or anything else != 9)
+A401: CA 03 A4    jp   z,$A409		; 0
 A404: FE FF       cp   $FF
 A406: C4 D5 B0    call nz,display_error_text_B075
-; computer is launching an attack. iy is A.I. computer player structure (C220)
+; a = $FF: non jump counter attack has been launched by opponent
+; iy is C220
 ; the attack move is already loaded in cpu C26B
 A409: FD CB 10 6C set  0,(iy+$10)
 A40D: C3 30 A9    jp   fight_mainloop_A390
@@ -22134,7 +22139,7 @@ A41C: 06 07       ld   b,$0D
 A41E: CD 57 B0    call $B05D
 A421: A7          and  a
 A422: C4 D5 B0    call nz,display_error_text_B075
-A425: C3 DB A9    jp   $A37B
+A425: C3 DB A9    jp   fight_mainloop_A37B
 
 
 update_players_struct_C2xx_A428:
@@ -22382,7 +22387,7 @@ computer_ai_jump_table_A5ED
 	dc.w	pick_cpu_attack_A802  ; $A914 calls it
 computer_ai_jump_table_A601
 	dc.w	display_error_text_B075
-	dc.w	$A917
+	dc.w	get_out_of_edge_or_low_kick_A917
 	dc.w	$A92F
 	dc.w	front_kick_or_fwd_sommersault_to_recenter_A94E  ; $A932 jumps there
 	dc.w	front_kick_or_fwd_sommersault_to_recenter_A94E	; $A93D jumps there
@@ -22718,7 +22723,7 @@ A734: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A737: 36 08       ld   (hl),$02
 A739: C3 10 A4    jp   cpu_move_done_A410
 
-A73C: C3 E4 A9    jp   cpu_attack_selected_A3E4
+A73C: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
 A73F: FD CB 0F DE bit  7,(iy+$0f)
 A743: CA 57 AD    jp   z,$A75D
@@ -22754,7 +22759,7 @@ A77B: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A77E: 36 01       ld   (hl),$01
 
 A780: C3 10 A4    jp   cpu_move_done_A410
-A783: C3 E4 A9    jp   cpu_attack_selected_A3E4
+A783: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
 A786: FD CB 0F DE bit  7,(iy+$0f)
 A78A: C2 A4 AD    jp   nz,$A7A4
@@ -22780,7 +22785,7 @@ A7B7: C3 BF AD    jp   $A7BF
 A7BA: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A7BD: 36 01       ld   (hl),$01
 A7BF: C3 10 A4    jp   cpu_move_done_A410
-A7C2: C3 E4 A9    jp   cpu_attack_selected_A3E4
+A7C2: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
 just_walk_A7C5: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A7C8: 36 08       ld   (hl),$02
@@ -22820,7 +22825,7 @@ A7FF: C3 10 A4    jp   cpu_move_done_A410
 pick_cpu_attack_A802: CD 8E AB    call select_cpu_attack_AB2E
 A805: A7          and  a
 A806: CC D5 B0    call z,display_error_text_B075	; never called a != 0 always!
-A809: C3 E4 A9    jp   cpu_attack_selected_A3E4
+A809: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
 A80C: FD CB 0F DE bit  7,(iy+$0f)  ; => C22F
 A810: C2 4E A2    jp   nz,$A84E		; jumps if not facing each other
@@ -22856,7 +22861,7 @@ A84B: C3 55 A2    jp   $A855
 A84E: CD 8E AB    call select_cpu_attack_AB2E
 A851: A7          and  a
 A852: CC D5 B0    call z,display_error_text_B075
-A855: C3 E4 A9    jp   cpu_attack_selected_A3E4
+A855: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
 A858: C3 10 A4    jp   cpu_move_done_A410
 
@@ -22882,7 +22887,7 @@ A883: C3 27 A2    jp   $A88D
 A886: CD 8E AB    call select_cpu_attack_AB2E
 ;;A889: A7          and  a
 ;;A88A: CC D5 B0    call z,display_error_text_B075	; can't happen
-A88D: C3 E4 A9    jp   cpu_attack_selected_A3E4
+A88D: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
 A890: C3 10 A4    jp   cpu_move_done_A410
 A893: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
@@ -22895,7 +22900,7 @@ A89D: CA A5 A2    jp   z,$A8A5
 A8A0: 36 08       ld   (hl),$02
 A8A2: C3 10 A4    jp   cpu_move_done_A410
 
-A8A5: C3 E4 A9    jp   cpu_attack_selected_A3E4
+A8A5: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
 A8A8: C3 08 A2    jp   pick_cpu_attack_A802
 
@@ -22954,22 +22959,24 @@ A911: C3 08 A2    jp   pick_cpu_attack_A802
 
 A914: C3 08 A2    jp   pick_cpu_attack_A802
 
-A917: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
-A91A: 36 14       ld   (hl),$14
+get_out_of_edge_or_low_kick_A917: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
+A91A: 36 14       ld   (hl),$14	; low kick
 A91C: FD 7E 03    ld   a,(iy+$09)
-A91F: FE 90       cp   $30
+A91F: FE 90       cp   $30		; if opponent almost completely on the left, don't attack, perform sommersault
 A921: D2 83 A3    jp   nc,$A929
-A924: 36 1D       ld   (hl),$17
-A926: C3 10 A4    jp   cpu_move_done_A410
-A929: C3 E4 A9    jp   cpu_attack_selected_A3E4
+A924: 36 1D       ld   (hl),$17	; sommersault
+A926: C3 10 A4    jp   cpu_move_done_A410	; immediate (it's not an attack)
+A929: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4	; opponent can react to low kick
+
 A92C: 00          nop
 A92D: 00          nop
 A92E: 00          nop
 A92F: C3 06 A2    jp   $A80C
 A932: C3 4E A3    jp   front_kick_or_fwd_sommersault_to_recenter_A94E
+
 A935: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 A938: 36 14       ld   (hl),$14
-A93A: C3 E4 A9    jp   cpu_attack_selected_A3E4
+A93A: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 A93D: C3 4E A3    jp   front_kick_or_fwd_sommersault_to_recenter_A94E
 
 A940: C3 AB A2    jp   high_attack_if_forward_sommersault_or_walk_A8AB
@@ -22990,7 +22997,7 @@ A958: D2 C0 A3    jp   nc,$A960
 ; front sommersault if player x < $30 to get outside the border
 A95B: 36 1D       ld   (hl),$17
 A95D: C3 10 A4    jp   cpu_move_done_A410
-A960: C3 E4 A9    jp   cpu_attack_selected_A3E4
+A960: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 A963: 00          nop
 A964: 00          nop
 A965: 00          nop
@@ -23008,7 +23015,7 @@ pick_cpu_attack_A96E: CD 8E AB    call select_cpu_attack_AB2E
 ;;A978: 36 0D       ld   (hl),$07		; turn around
 ;;A97A: C3 10 A4    jp   cpu_move_done_A410
 
-A97D: C3 E4 A9    jp   cpu_attack_selected_A3E4
+A97D: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
 
 A980: FD CB 0F DE bit  7,(iy+$0f)
@@ -23044,7 +23051,7 @@ A9C9: CB 47       bit  0,a
 A9CB: CA 70 A3    jp   z,$A9D0
 A9CE: 36 08       ld   (hl),$02
 A9D0: C3 10 A4    jp   cpu_move_done_A410
-A9D3: C3 E4 A9    jp   cpu_attack_selected_A3E4
+A9D3: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 A9D6: FD CB 0F DE bit  7,(iy+$0f)
 A9DA: CA FE A3    jp   z,$pick_cpu_attack_A9FE
 A9DD: CD F7 AA    call $opponent_starting_low_attack_AAFD
@@ -23070,7 +23077,7 @@ A9FE: CD 8E AB    call select_cpu_attack_AB2E
 ;;AA05: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 ;;AA08: 36 0D       ld   (hl),$07
 ;;AA0A: C3 10 A4    jp   cpu_move_done_A410
-AA0D: C3 E4 A9    jp   cpu_attack_selected_A3E4
+AA0D: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
 AA10: CD BB AB    call $perform_foot_sweep_back_ABBB
 AA13: A7          and  a
@@ -23078,7 +23085,7 @@ AA14: C2 1F AA    jp   nz,$AA1F
 AA17: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AA1A: 36 0D       ld   (hl),$07
 AA1C: C3 10 A4    jp   cpu_move_done_A410
-AA1F: C3 E4 A9    jp   cpu_attack_selected_A3E4
+AA1F: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 AA22: C3 CE A3    jp   $pick_cpu_attack_A96E
 AA25: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AA28: 36 0D       ld   (hl),$07
@@ -23329,10 +23336,10 @@ ABE0: C3 10 A4    jp   cpu_move_done_A410
 ABE3: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 ; tell CPU to stop moving / stand guard
 ABE6: 36 00       ld   (hl),$00
-ABE8: 21 EF A7    ld   hl,$attack_decision_table_ADEF
-ABEB: CD 6E A6    call decide_to_attack_depending_on_difficulty_ACCE
+ABE8: 21 EF A7    ld   hl,$counter_attack_time_table_ADEF
+ABEB: CD 6E A6    call let_opponent_react_depending_on_skill_level_ACCE
 ABEE: FE 03       cp   $09
-ABF0: CA DB A9    jp   z,$A37B
+ABF0: CA DB A9    jp   z,$fight_mainloop_A37B
 ABF3: A7          and  a
 ABF4: CA F6 AB    jp   z,$ABFC
 ABF7: FE FF       cp   $FF
@@ -23355,10 +23362,10 @@ AC1E: A7          and  a
 AC1F: CA 9E A6    jp   z,$AC3E
 AC22: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AC25: 36 00       ld   (hl),$00
-AC27: 21 1D AE    ld   hl,$attack_decision_table_AE17
-AC2A: CD 6E A6    call decide_to_attack_depending_on_difficulty_ACCE
+AC27: 21 1D AE    ld   hl,$counter_attack_time_table_AE17
+AC2A: CD 6E A6    call let_opponent_react_depending_on_skill_level_ACCE
 AC2D: FE 03       cp   $09
-AC2F: CA DB A9    jp   z,$A37B
+AC2F: CA DB A9    jp   z,$fight_mainloop_A37B
 AC32: A7          and  a
 AC33: CA 20 A6    jp   z,$AC80
 AC36: FE FF       cp   $FF
@@ -23383,10 +23390,10 @@ AC63: A7          and  a
 AC64: C2 20 A6    jp   nz,$AC80
 AC67: 2A 04 6F    ld   hl,(address_of_cpu_move_byte_CF04)
 AC6A: 36 00       ld   (hl),$00
-AC6C: 21 1D AE    ld   hl,$attack_decision_table_AE17
-AC6F: CD 6E A6    call decide_to_attack_depending_on_difficulty_ACCE
+AC6C: 21 1D AE    ld   hl,$counter_attack_time_table_AE17
+AC6F: CD 6E A6    call let_opponent_react_depending_on_skill_level_ACCE
 AC72: FE 03       cp   $09
-AC74: CA DB A9    jp   z,$A37B
+AC74: CA DB A9    jp   z,$fight_mainloop_A37B
 AC77: A7          and  a
 AC78: CA 20 A6    jp   z,$AC80
 AC7B: FE FF       cp   $FF
@@ -23450,10 +23457,11 @@ ACCB: C3 10 A4    jp   cpu_move_done_A410
 ; makes the game easier when called? maybe A.I. hesitates more ?
 ; < hl pointer on a 4 pointer table containing each $20 values of data; each
 ; table corresponds to a difficulty setting (4 total)
-; if uper-hard championship level >= 16: attacks all the time
+; if upper-hard championship level >= 16: no time for player to react just before
+; an attack
 ; > a: $00: attacks
 ; > a: $09: doesn't attack
-decide_to_attack_depending_on_difficulty_ACCE:
+let_opponent_react_depending_on_skill_level_ACCE:
 ACCE: 3A 10 63    ld   a,(computer_skill_C910)
 ACD1: FE 10       cp   $10
 ACD3: 3E 00       ld   a,$00
@@ -23474,34 +23482,37 @@ ACE1: E6 0C       and  $06
 ACE3: 06 00       ld   b,$00
 ACE5: 4F          ld   c,a
 ACE6: 09          add  hl,bc
-; proper table (matching skill level) is loaded in hl
-; now load 2 values from its start
 ACE7: 5E          ld   e,(hl)
 ACE8: 23          inc  hl
 ACE9: 56          ld   d,(hl)
+; proper table (matching skill level) is loaded in de
+; one of the table addresses is $AD8F for instance
 ; check skill level again
 ACEA: 3A 10 63    ld   a,(computer_skill_C910)
 ACED: CB 27       sla  a	; times 2
 ACEF: 6F          ld   l,a
 ACF0: 26 00       ld   h,$00
+; offset for the byte value in the table
 ACF2: 19          add  hl,de
 ACF3: 3A 42 61    ld   a,($C148)
 ACF6: 47          ld   b,a
 ACF7: 3A 4D 61    ld   a,($C147)
 ACFA: B0          or   b
-ACFB: CA FF A6    jp   z,$ACFF
+ACFB: CA FF A6    jp   z,$ACFF	; a=b=0: don't increase hl (harder)
 ACFE: 23          inc  hl
 ACFF: 7E          ld   a,(hl)
 AD00: 47          ld   b,a
 AD01: A7          and  a
-AD02: 3E 00       ld   a,$00
-AD04: CA 1C A7    jp   z,$AD16
-AD07: FA 1C A7    jp   m,$AD16
-AD0A: 78          ld   a,b
+AD02: 3E 00       ld   a,$00	; return value if a<=0
+AD04: CA 1C A7    jp   z,$AD16	; if a=0, exit, attack immediately
+AD07: FA 1C A7    jp   m,$AD16	; if a<0 exit, attack immediately
+; a was strictly positive
+AD0A: 78          ld   a,b	; restore read value of a (number of waiting frames)
 AD0B: A7          and  a
-AD0C: CC D5 B0    call z,display_error_text_B075
+AD0C: CC D5 B0    call z,display_error_text_B075	; can't happen! we just testedf it
 AD0F: FD E5       push iy
-AD11: CD 13 A7    call $AD19
+; this can block cpu moves up to 1/2 second at low skill level
+AD11: CD 13 A7    call let_opponent_react_AD19
 AD14: FD E1       pop  iy
 AD16: C9          ret
 
@@ -23509,15 +23520,28 @@ AD16: C9          ret
 AD17: 00          nop
 AD18: 00          nop
 
-; < b # of iterations
+
+
+; never called in CMP hardest mode (level >= 16)
+; < b # of frames to wait for opponent reaction. 30 frames = 1/2 second (easiest setting)
+; > a:00 no opponent reaction
+;    :09 opponent reacted with a jump (front/back) (from observation)
+;    :ff opponent reacted with some other attack(exits before timeout)
+;
+; to clock that, I've used MAME breakpoint commands
+; bpset AD19,1,{printf "enter: "; time; g}
+; bpset AD64,1,{printf "exit: %02x ",a; time; g}
+
+let_opponent_react_AD19:
+; load proper opponent structure
 AD19: FD 21 40 68 ld   iy,player_1_struct_C240
 AD1D: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 AD20: FE 03       cp   $09
 AD22: CA 83 A7    jp   z,$AD29
 AD25: FD 21 C0 68 ld   iy,player_2_struct_C260
 AD29: FD 6E 0D    ld   l,(iy+$07)
-AD2C: FD 66 02    ld   h,(iy+$08)
-AD2F: CB BC       res  7,h
+AD2C: FD 66 02    ld   h,(iy+$08)	; current player frame/stance id in hl
+AD2F: CB BC       res  7,h			; remove direction of frame
 AD31: E5          push hl
 AD32: DD E1       pop  ix
 AD34: FD 7E 19    ld   a,(iy+$13)
@@ -23530,7 +23554,7 @@ AD44: A7          and  a
 AD45: CA 59 A7    jp   z,$AD53
 AD48: FD BE 0B    cp   (iy+$0b)
 AD4B: C2 59 A7    jp   nz,$AD53
-AD4E: 3E FF       ld   a,$FF
+AD4E: 3E FF       ld   a,$FF	; opponent reacted: exit loop
 AD50: C3 C4 A7    jp   $AD64
 AD53: FD E5       push iy
 AD55: C5          push bc
@@ -23546,13 +23570,17 @@ AD64: C9          ret
 AD65: 00          nop
 AD66: 00          nop
 
-attack_decision_table_AD67:
+counter_attack_time_table_AD67:
 	dc.w	$AD6F
 	dc.w	$AD8F
 	dc.w	$ADAF
 	dc.w	$ADCF
 	
-	; $20 values per entry
+; $20 values per entry, number of frames to wait for opponent response
+; just before cpu attacks (when an attack has been decided)
+; first value matches skill 0, and so on. There are 24 levels
+; so last 8 values are unreachable unless game is hacked to be
+; even harder :)
 AD6F:	dc.b	30 2D 2A 26 23 20 1D 1A   o-.-¯-Ï-0-*&# ..
      AD77  17 14 10 0D 0A 07 04 00 00 00 00 00 FF FF FF FF   ............ÿÿÿÿ
      AD87  FF FE FE FE FE FE FE FE 
@@ -23568,7 +23596,7 @@ ADCF	dc.b	30 14 08 07 06 05 04 03   þþþþþþþþ0.......
 	 
 
 
-attack_decision_table_ADEF:
+counter_attack_time_table_ADEF:
 	dc.w	$ADF7
 	dc.w	$ADF7
 	dc.w	$ADF7
@@ -23577,7 +23605,7 @@ attack_decision_table_ADEF:
 
      ADF7  20 20 18 18 18 18 10 10 08 08 07 07 06 06 04 03     ..............
      AE07  02 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00   ................
-attack_decision_table_AE17:
+counter_attack_time_table_AE17:
 	dc.w	$AE1F 
 	dc.w	$AE1F 
 	dc.w	$AE1F 
@@ -23589,68 +23617,7 @@ AE1F:
      AE37  01 01 01 01 01 01 01 01 00 00 00 00 00 00 00 00   ................
 
 
-ADF7: 80          add  a,b
-ADF8: 80          add  a,b
-ADF9: 12          ld   (de),a
-ADFA: 12          ld   (de),a
-ADFB: 12          ld   (de),a
-ADFC: 12          ld   (de),a
-ADFD: 10 10       djnz $AE0F
-ADFF: 02          ld   (bc),a
-AE00: 02          ld   (bc),a
-AE01: 0D          dec  c
-AE02: 0D          dec  c
-AE03: 0C          inc  c
-AE04: 0C          inc  c
-AE05: 04          inc  b
-AE06: 09          add  hl,bc
-AE07: 08          ex   af,af'
-AE08: 01 00 00    ld   bc,$0000
-AE0B: 00          nop
-AE0C: 00          nop
-AE0D: 00          nop
-AE0E: 00          nop
-AE0F: 00          nop
-AE10: 00          nop
-AE11: 00          nop
-AE12: 00          nop
-AE13: 00          nop
-AE14: 00          nop
-AE15: 00          nop
-AE16: 00          nop
-attack_decision_table_AE17: 1F          rra
-AE18: AE          xor  (hl)
-AE19: 1F          rra
-AE1A: AE          xor  (hl)
-AE1B: 1F          rra
-AE1C: AE          xor  (hl)
-AE1D: 1F          rra
-AE1E: AE          xor  (hl)
-AE1F: 80          add  a,b
-AE20: 80          add  a,b
-AE21: 80          add  a,b
-AE22: 80          add  a,b
-AE23: 12          ld   (de),a
-AE24: 12          ld   (de),a
-AE25: 10 10       djnz $AE37
-AE27: 02          ld   (bc),a
-AE28: 02          ld   (bc),a
-AE29: 0D          dec  c
-AE2A: 0D          dec  c
-AE2B: 0C          inc  c
-AE2C: 0C          inc  c
-AE2D: 05          dec  b
-AE2E: 05          dec  b
-AE2F: 04          inc  b
-AE30: 04          inc  b
-AE31: 09          add  hl,bc
-AE32: 09          add  hl,bc
-AE33: 08          ex   af,af'
-AE34: 08          ex   af,af'
-AE35: 01 01 01    ld   bc,$0101
-AE38: 01 01 01    ld   bc,$0101
-AE3B: 01 01 01    ld   bc,$0101
-AE3E: 01 00 00    ld   bc,$0000
+
 AE41: 00          nop
 AE42: 00          nop
 AE43: 00          nop
@@ -24361,7 +24328,7 @@ B207: 01 09 00    ld   bc,$0003
 B20A: ED B0       ldir
 B20C: 21 60 60    ld   hl,$C0C0
 B20F: 16 32       ld   d,$98
-B211: 3A 11 63    ld   a,($C911)
+B211: 3A 11 63    ld   a,($background_and_state_bits_C911)
 B214: CB BF       res  7,a
 B216: FE 54       cp   $54
 B218: CA 8D B8    jp   z,$B227
@@ -24373,7 +24340,7 @@ B224: CA DB B8    jp   z,$B27B
 B227: 01 08 14    ld   bc,$1402
 B22A: CD 6E B9    call $B3CE
 B22D: 01 04 14    ld   bc,$1404
-B230: 3A 11 63    ld   a,($C911)
+B230: 3A 11 63    ld   a,($background_and_state_bits_C911)
 B233: CB BF       res  7,a
 B235: FE 54       cp   $54
 B237: CA 42 B8    jp   z,$B248
@@ -24390,7 +24357,7 @@ B250: 3A 98 60    ld   a,($C032)
 B253: CB 4F       bit  1,a
 B255: CA DB B8    jp   z,$B27B
 B258: 01 0C 14    ld   bc,$1406
-B25B: 3A 11 63    ld   a,($C911)
+B25B: 3A 11 63    ld   a,($background_and_state_bits_C911)
 B25E: CB BF       res  7,a
 B260: FE 54       cp   $54
 B262: CA D9 B8    jp   z,$B273
@@ -24405,7 +24372,7 @@ B276: 16 32       ld   d,$98
 B278: CD 6E B9    call $B3CE
 B27B: FD E1       pop  iy
 B27D: C9          ret
-B27E: 3A 11 63    ld   a,($C911)
+B27E: 3A 11 63    ld   a,($background_and_state_bits_C911)
 B281: CB BF       res  7,a
 B283: FE 50       cp   $50
 B285: DA 2B B8    jp   c,$B28B
@@ -25330,53 +25297,43 @@ B871: 90          sub  b
 B872: 60          ld   h,b
 B873: 92          sub  d
 B874: 60          ld   h,b
-B875: 01 08 04    ld   bc,$0402
-B878: 02          ld   (bc),a
-B879: 10 80       djnz $B89B
-B87B: 40          ld   b,b
-B87C: 20 00       jr   nz,$B87E
-B87E: 00          nop
-B87F: 01 00 08    ld   bc,$0200
-B882: 01 01 00    ld   bc,$0001
-B885: 04          inc  b
-B886: 08          ex   af,af'
-B887: 01 00 08    ld   bc,$0200
-B88A: 01 01 00    ld   bc,$0001
-B88D: 02          ld   (bc),a
-B88E: 09          add  hl,bc
-B88F: 01 00 08    ld   bc,$0200
-B892: 01 01 00    ld   bc,$0001
-B895: 04          inc  b
-B896: 08          ex   af,af'
-B897: 01 00 08    ld   bc,$0200
-B89A: 01 01 00    ld   bc,$0001
-B89D: 10 04       djnz $B8A3
-B89F: 01 00 08    ld   bc,$0200
-B8A2: 01 01 00    ld   bc,$0001
-B8A5: 04          inc  b
-B8A6: 08          ex   af,af'
-B8A7: 01 00 08    ld   bc,$0200
-B8AA: 01 01 00    ld   bc,$0001
-B8AD: 02          ld   (bc),a
-B8AE: 09          add  hl,bc
-B8AF: 01 00 08    ld   bc,$0200
-B8B2: 01 01 00    ld   bc,$0001
-B8B5: 04          inc  b
-B8B6: 08          ex   af,af'
-B8B7: 01 00 08    ld   bc,$0200
-B8BA: 01 01 00    ld   bc,$0001
-B8BD: 80          add  a,b
-B8BE: 05          dec  b
-B8BF: 01 00 08    ld   bc,$0200
-B8C2: 01 01 00    ld   bc,$0001
-B8C5: 04          inc  b
-B8C6: 08          ex   af,af'
-B8C7: 01 00 08    ld   bc,$0200
-B8CA: 01 01 00    ld   bc,$0001
-B8CD: 02          ld   (bc),a
-B8CE: 09          add  hl,bc
-B8CF: 01 00 08    ld   bc,$0200
-B8D2: 01 01 00    ld   bc,$0001
+; looks very much like joystick combination tables to check player moves
+B875: 
+     B875  01 02 04 08 10 20 40 80 00 00 01 00 02 01 01 00   ..... @.........
+     B885  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     B895  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
+     B8A5  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     B8B5  04 02 01 00 02 01 01 00 20 05 01 00 02 01 01 00   ........ .......
+     B8C5  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     B8D5  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
+     B8E5  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     B8F5  04 02 01 00 02 01 01 00 40 06 01 00 02 01 01 00   ........@.......
+     B905  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     B915  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
+     B925  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     B935  04 02 01 00 02 01 01 00 20 05 01 00 02 01 01 00   ........ .......
+     B945  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     B955  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
+     B965  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     B975  04 02 01 00 02 01 01 00 80 07 01 00 02 01 01 00   ................
+     B985  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     B995  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
+     B9A5  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     B9B5  04 02 01 00 02 01 01 00 20 05 01 00 02 01 01 00   ........ .......
+     B9C5  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     B9D5  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
+     B9E5  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     B9F5  04 02 01 00 02 01 01 00 40 06 01 00 02 01 01 00   ........@.......
+     BA05  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     BA15  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
+     BA25  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     BA35  04 02 01 00 02 01 01 00 20 05 01 00 02 01 01 00   ........ .......
+     BA45  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     BA55  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
+     BA65  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
+     BA75  04 02 01 00 02 01 01 00 
+
+
 B8D5: 04          inc  b
 B8D6: 08          ex   af,af'
 B8D7: 01 00 08    ld   bc,$0200
@@ -28993,7 +28950,7 @@ C90D: 00          nop
 C90E: 00          nop
 C90F: 00          nop
 C910: 00          nop
-C911: 00          nop
+background_and_state_bits_C911: 00          nop
 C912: 00          nop
 C913: 00          nop
 C914: 00          nop
@@ -35168,7 +35125,7 @@ E273: 3E 1C       ld   a,$16
 E275: CD B5 BB    call $BBB5
 E278: C9          ret
 
-E279: 3A 11 63    ld   a,($C911)
+E279: 3A 11 63    ld   a,($background_and_state_bits_C911)
 E27C: FE 02       cp   $08
 E27E: C8          ret  z
 E27F: FD E5       push iy
@@ -35255,7 +35212,7 @@ E328: F2 52 E7    jp   p,$ED58
 E32B: 06 80       ld   b,$20
 E32D: C5          push bc
 E32E: 21 D9 E9    ld   hl,$E373
-E331: 3A 11 63    ld   a,($C911)
+E331: 3A 11 63    ld   a,($background_and_state_bits_C911)
 E334: FE 02       cp   $08
 E336: C2 96 E9    jp   nz,$E33C
 E339: 21 34 E9    ld   hl,$E394
@@ -35265,7 +35222,7 @@ E342: CD 31 B9    call $B391
 E345: 3E 02       ld   a,$08
 E347: CD 5E BC    call $B65E
 E34A: 21 B5 E9    ld   hl,$E3B5
-E34D: 3A 11 63    ld   a,($C911)
+E34D: 3A 11 63    ld   a,($background_and_state_bits_C911)
 E350: FE 02       cp   $08
 E352: C2 52 E9    jp   nz,$E358
 E355: 21 7C E9    ld   hl,$E3D6
@@ -35487,7 +35444,7 @@ E4BE: 10 E8       djnz $E4A2
 E4C0: 3E 1D       ld   a,$17
 E4C2: CD 67 B5    call $B5CD
 E4C5: 21 D9 E9    ld   hl,$E373
-E4C8: 3A 11 63    ld   a,($C911)
+E4C8: 3A 11 63    ld   a,($background_and_state_bits_C911)
 E4CB: FE 02       cp   $08
 E4CD: C2 79 E4    jp   nz,$E4D3
 E4D0: 21 34 E9    ld   hl,$E394
@@ -35499,14 +35456,14 @@ E4DA: C2 F8 E4    jp   nz,$E4F2
 E4DD: 3E 80       ld   a,$20
 E4DF: F5          push af
 E4E0: 21 8B EC    ld   hl,$E62B
-E4E3: 3A 11 63    ld   a,($C911)
+E4E3: 3A 11 63    ld   a,($background_and_state_bits_C911)
 E4E6: FE 02       cp   $08
 E4E8: C2 EE E4    jp   nz,$E4EE
 E4EB: 21 46 EC    ld   hl,$E64C
 E4EE: CD 31 B9    call $B391
 E4F1: F1          pop  af
 E4F2: CD AB B1    call $B1AB
-E4F5: 3A 11 63    ld   a,($C911)
+E4F5: 3A 11 63    ld   a,($background_and_state_bits_C911)
 E4F8: FE 02       cp   $08
 E4FA: CA 82 E5    jp   z,$E528
 E4FD: 06 04       ld   b,$04
@@ -35866,7 +35823,7 @@ E7D2: CD 64 F7    call $FDC4
 E7D5: CD 44 F7    call $FD44
 E7D8: 3E 01       ld   a,$01
 E7DA: CD B5 BB    call $BBB5
-E7DD: 3A 11 63    ld   a,($C911)
+E7DD: 3A 11 63    ld   a,($background_and_state_bits_C911)
 E7E0: D6 10       sub  $10
 E7E2: CB 27       sla  a
 E7E4: 21 68 E3    ld   hl,$E9C2
@@ -35912,7 +35869,7 @@ E831: CB 3C       srl  h
 E833: CB 3D       srl  l
 E835: CB 3D       srl  l
 E837: CB 3D       srl  l
-E839: 3A 11 63    ld   a,($C911)
+E839: 3A 11 63    ld   a,($background_and_state_bits_C911)
 E83C: CD E4 F3    call $F9E4
 E83F: E1          pop  hl
 E840: 06 0A       ld   b,$0A
@@ -39347,7 +39304,7 @@ FDC2: 1C          inc  e
 FDC3: 13          inc  de
 FDC4: 21 E1 F7    ld   hl,$FDE1
 FDC7: C3 77 F7    jp   $FDDD
-FDCA: 3A 11 63    ld   a,($C911)
+FDCA: 3A 11 63    ld   a,($background_and_state_bits_C911)
 FDCD: CB 7F       bit  7,a
 FDCF: C2 77 F7    jp   nz,$FDDD
 FDD2: 21 14 FE    ld   hl,$FE14

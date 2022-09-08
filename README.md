@@ -33,33 +33,31 @@ multiple evade objects: can be displayed at the same time
 a.i investigate
 
 end naming & commenting tables jump_table_A54F
-bpset ACD8 decide to attack check tables
-what is C147, C148, C149
+what is C147, C148, C149, looks zeroed?
+breakpoint at ACFE see if it's reached
 
-try to reack A980? 
+try to reach A980? 
 bpset A90C same direction try ommersault back
 analyse condition of turn around in cpu_move_forward_towards_enemy_far_away_A6D4
 
-diff between attacks/move ends: cpu_attack_selected_A3E4 and cpu_move_done_A410 ?
+
 memory watch on frames (16 bit) at start of A.I. mainloop
 for instance 13C8 13D1 forward sommersault... vs C22B/C22C
 bpset A849
+; get more info about player_2_attack_flags_C028 what does the values mean (09,0A...)
 ; * figure out how select_cpu_attack_AB2E sequences are chosen
 ; (with other variable: address_of_cpu_move_byte_CF04)
 ; * check & understand ai jump tables of react_to_opponent_attack_A53B
-; * understand when cpu performs a back sommersault (it happens!! when both players
-; aren't facing and all located on the left side... very rare)
 ; understand what 3DB7 does
 ; understand what A34D does
 ; * undestand A53B jump tables (react to opponent attack), confirm
-  values of C22F (player logical distance) to select jump tables
-; understand A3E4 (most routines end there)
-; figure out what C911 contains/means (tested in A3E4)
+; how exactly are computed values of C22F (player logical distance) to select jump tables
 ; break in A75D  A73F: when does it jump to A75D?? understand bit  7,(iy+$0f) aka C22F: facing each other if cleared
 * recode A.I. from fight_mainloop_A390 entrypoint
 
 bugs:
 
+- adjust player x $20 (min x) and $DF (max x) so A.I. x/distance values can be used
 - back round kick other direction than opponent: can't be done in normal mode (ok in evade): back kick instead
 - jumping side kick one frame too high
 - evade collisions: front ok, back move ko
