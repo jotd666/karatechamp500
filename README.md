@@ -47,12 +47,10 @@ bpset A849
 ; get more info about player_2_attack_flags_C028 what does the values mean (09,0A...)
 ; * figure out how select_cpu_attack_AB2E sequences are chosen
 ; (with other variable: address_of_cpu_move_byte_CF04)
-; * check & understand ai jump tables of react_to_opponent_attack_A53B
 ; understand what 3DB7 does
-; understand what A34D does
-; * undestand A53B jump tables (react to opponent attack), confirm
-; how exactly are computed values of C22F (player logical distance) to select jump tables
-; break in A75D  A73F: when does it jump to A75D?? understand bit  7,(iy+$0f) aka C22F: facing each other if cleared
+; understand what B6AE does
+; how exactly are computed values of C20F (player logical distance) to select jump tables
+; break in A75D  A73F: when does it jump to A75D??
 * recode A.I. from fight_mainloop_A390 entrypoint
 
 bugs:
