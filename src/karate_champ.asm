@@ -27,6 +27,9 @@
 ; C02D
 ; players_type_human_or_cpu_flags_C02D: 05 1 player vs CPU, 0F 2 players. Changing dynamically works too!
 
+; note: there are 3 structures C220, C240, C260... there are copies of data for instance C229/C22A are copied
+; to C269/C26A. Not sure of everything that's written below in terms of addresses...
+
 ; C220: another structure, A.I. related, probably sharing both parties characteristics
 ; TODO: figure out more values from that structure, specially:
 ; +07/+08: frame id/pointer on frame structure, used as input of check_hl_in_ix_list_B009 by A.I
@@ -50,14 +53,25 @@
 ; C249 (+$9): player 1 x coord. Ranges $20 (32 top left) to $DF (223 right), starts at 0x30 
 ; C24A (+$A): player 1 y coord. $E0 when fighting. Practice:  
 ; C24B (+$B): player 1 current move: codes below
-; C24C (+$C): 0,1,2 rough distance
+; C24C (+$C): rough distance 0-4
+; 0: far
+; 1: intermediate, facing other player  (regardless of other player facing direction)
+; 2: very close, facing other player   ("")
+; 3: intermediate, turning back to other player  ("")
+; 4: very close, turning back to other player    ("")
+;
 ;
 ; C260: player 2 structure
 ; C269 (+$9): x coord. starts at 0xD0 
 ; C26A (+$A): y coord. $E0 when fighting. Practice: $90
 ; C26B: player 2 current move (see codes below). Also set during "practice"
-; C26C: player 2 rough distance to player 1 0: far, 1 intermediate, 2 very close
+; C26C: player 2 rough distance to player 1 0 (same as C24C for second player)
 ;
+; for instance if white is on the left (facing right) and red is on the right, close (facing right)
+; the value of
+; C24C is: 02
+; C26C is: 04
+
 ; the codes don't match exact moves, but rather the attack type
 ; there is often only one attack type (back kick) but sometimes there are
 ; several: example with front kick and weak reverse punch, that only differ
@@ -101,7 +115,8 @@
 ; and super hard
 
 ; TODO:
-
+; get more info about player_2_attack_flags_C028 what does the values mean (09,0A...)
+; probably related to animation frames not to A.I. so less interesting
 ; * recode A.I. from fight_mainloop_A390 entrypoint
 
 0000: C3 45 B0    jp   $B045
@@ -22275,8 +22290,8 @@ A53A: FF          rst  $38
 ; as all the routines jumped to just load ix to a different value, a double
 ; jump could probably have been avoided. But who am I to criticize Z80 code ?
 ;
-;
-; note: no routine seems to ever trigger a block move
+; note: block moves are probably triggered when cpu decides to move back and
+; the player attacks at the same time (code $01)
 ;
 react_to_opponent_attack_A53B
 A53B: DD 21 4F A5 ld   ix,jump_table_A54F
@@ -22298,9 +22313,9 @@ jump_table_A54F:
 	dc.w	ai_load_table_opp_left_cpu_right_closer_A576	; 3
 	dc.w	ai_load_table_opp_left_cpu_right_closest_A57D	; 4 
 	dc.w	ai_load_table_opp_right_cpu_left_far_A584 		; 5
-	dc.w	$A58B 
-	dc.w	$A592 
-	dc.w	$A599 
+	dc.w	ai_load_table_opp_right_cpu_left_close_A58B 	; 6
+	dc.w	ai_load_table_opp_right_cpu_left_closer_A592	; 7 
+	dc.w	ai_load_table_opp_right_cpu_left_closest_A599 	; 8
 
 ; p1 left, p2 right, far away (C20F = 0)
 ai_jump_table_opp_left_cpu_right_very_far_A561:
@@ -22328,13 +22343,16 @@ ai_load_table_opp_right_cpu_left_far_A584:
 A584: DD 21 15 AC ld   ix,ai_jump_table_A615
 A588: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ; 6
+ai_load_table_opp_right_cpu_left_close_A58B:
 A58B: DD 21 83 AC ld   ix,ai_jump_table_A629
 A58F: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ; 7
+ai_load_table_opp_right_cpu_left_closer_A592:
 A592: DD 21 97 AC ld   ix,ai_jump_table_A63D
 A596: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ; p1 right, p2 left, very close (8)
 ; turn back (to face opponent)
+ai_load_table_opp_right_cpu_left_closest_A599:
 A599: DD 21 51 AC ld   ix,computer_ai_jump_table_all_turn_back_A651
 jump_to_routine_from_table_A59D
 A59D: DD E5       push ix
@@ -22745,7 +22763,8 @@ A73C: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
 ; if not facing, either attack or walk forward (50% chance each)
 ; if facing, react to low attack by walking forward/backwards or jump
-cpu_avoids_low_attack_if_facing_else_maybe_attacks_A73F: FD CB 0F DE bit  7,(iy+$0f)
+cpu_avoids_low_attack_if_facing_else_maybe_attacks_A73F:
+A73F: FD CB 0F DE bit  7,(iy+$0f)
 A743: CA 57 AD    jp   z,$A75D
 ; not facing each other
 A746: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
@@ -22776,7 +22795,7 @@ A773: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ; evasive jump up
 A776: 36 09       ld   (hl),$03
 A778: C3 20 AD    jp   $A780
-; move back
+; move back / block possible attack
 A77B: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 A77E: 36 01       ld   (hl),$01
 
@@ -22798,7 +22817,9 @@ A799: C2 68 AD    jp   nz,$A7C2		; always true
 A79C: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 A79F: 36 08       ld   (hl),$02
 A7A1: C3 BF AD    jp   $A7BF
-; not facing each other: if low attack, 50% chance of jump, 50% move back
+; not facing each other: if low attack, 50% chance of jump,
+; 50% ; move back / block possible attack
+
 A7A4: CD F7 AA    call opponent_starting_low_attack_AAFD
 A7A7: CA BA AD    jp   z,$A7BA
 A7AA: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
@@ -22808,7 +22829,7 @@ A7B2: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ; 50% chance evasive jump
 A7B5: 36 09       ld   (hl),$03
 A7B7: C3 BF AD    jp   $A7BF
-; move back
+; move back / block possible attack
 A7BA: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 A7BD: 36 01       ld   (hl),$01
 A7BF: C3 10 A4    jp   cpu_move_done_A410
@@ -22822,7 +22843,8 @@ just_walk_A7CD: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 A7D0: 36 08       ld   (hl),$02
 A7D2: C3 10 A4    jp   cpu_move_done_A410
 
-; move forward, except if back to back in which case move backwards
+; move forward, except if back to back in which case
+; move back / block possible attack
 cpu_forward_or_backward_depending_on_facing_A7D5:
 A7D5: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 A7D8: 36 08       ld   (hl),$02
@@ -22831,7 +22853,7 @@ A7DE: C2 E9 AD    jp   nz,$A7E3
 A7E1: 36 01       ld   (hl),$01
 A7E3: C3 10 A4    jp   cpu_move_done_A410
 
-; move backwards, except if back to back in which case move forwards
+; move backwards/block, except if back to back in which case move forwards
 cpu_backward_or_forward_depending_on_facing_A7E6:
 A7E6: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 A7E9: 36 08       ld   (hl),$02
@@ -22883,7 +22905,7 @@ A83F: CD 33 AB    call perform_foot_sweep_if_level_3_AB99
 A842: A7          and  a
 A843: C2 55 A2    jp   nz,$A855
 A846: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
-; move back (will parry round kick and others high attacks maybe)
+; move back / block possible attack
 A849: 36 01       ld   (hl),$01
 A84B: C3 55 A2    jp   $A855		; and opponent has some time to react...
 
@@ -22895,7 +22917,7 @@ A855: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
 A858: C3 10 A4    jp   cpu_move_done_A410
 
-; if not facing, check if low attack: if low attack jump or move back (50%)
+; if not facing, check if low attack: if low attack jump or move back/block (50%)
 ;                 if not low attack, then perform foot sweep if level >=3 else back
 ; if facing, select an attack
 cpu_react_to_low_attack_or_perform_attack_A85B:
@@ -22911,14 +22933,14 @@ A86C: 36 09       ld   (hl),$03
 A86E: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A871: CB 47       bit  0,a
 A873: C2 30 A2    jp   nz,$A890
-; else move back
+; else move back/block if player attacks
 A876: 36 01       ld   (hl),$01
 A878: C3 27 A2    jp   $A88D
 ; not starting low attack: 
-; move back unless skill level >= 3 in which case attacks with foot sweep
+; move back/block unless skill level >= 3 in which case attacks with foot sweep
 A87B: CD 33 AB    call perform_foot_sweep_if_level_3_AB99
 A87E: C2 27 A2    jp   nz,$A88D
-; move back
+; move back/block
 A881: 36 01       ld   (hl),$01
 A883: C3 27 A2    jp   $A88D
 
@@ -22976,7 +22998,7 @@ A8E5: C3 10 A4    jp   cpu_move_done_A410
 
 move_fwd_or_bwd_checking_sommersault_and_dir_A8E8: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 A8EB: FD CB 0F DE bit  7,(iy+$0f)
-A8EF: CA 06 A3    jp   z,$A90C		; not turning back to each other: goto "move back"
+A8EF: CA 06 A3    jp   z,$A90C		; not turning back to each other: goto "move back/block"
 A8F2: E5          push hl
 ; check if opponent is performing sommersault (back) while
 ; turning backs to each other
@@ -23270,15 +23292,14 @@ AB2D: C9          ret
 ; furthermore, this routine is sometimes followed by a sanity check crashing with
 ; an error message if a is 0 on exit. Since it's random, how could the sanity check NOT fail?
 ;
-; injecting values performs the move... or the move is discarded by caller (maybe depending
-; on the difficulty setting?)
+; injecting values performs the move... or the move is discarded by caller
 
 select_cpu_attack_AB2E:
 AB2E: DD 21 52 AB ld   ix,master_cpu_move_table_AB58		; table of pointers of move tables
-; choose the proper move list depending on ???
-AB32: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
+; choose the proper move list depending on facing & distance
+AB32: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)	; <= C26B
 AB35: 23          inc  hl
-AB36: 7E          ld   a,(hl)
+AB36: 7E          ld   a,(hl)	; get value in C26C: facing configuration
 AB37: 87          add  a,a
 AB38: 4F          ld   c,a
 AB39: 06 00       ld   b,$00
@@ -23303,32 +23324,36 @@ AB53: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 AB56: 77          ld   (hl),a
 AB57: C9          ret
 
-; some moves are probably done or not depending on how the players are
-; located
-; the CPU isn't going to perform a back move in the void
+; some moves are done or not depending on how the players are
+; located and if current player can reach opponent with a blow
+; (the CPU isn't going to perform a back move in the void)
+; the direction of opponent isn't considered here
+; (the 5 values relate to player struct + $0C)
 
 master_cpu_move_table_AB58:
-	dc.w  move_list_AB62
-	dc.w  move_list_AB70
-	dc.w  move_list_AB7B
-	dc.w  move_list_AB84
-	dc.w  move_list_AB84
+	dc.w  move_list_far_away_AB62	; far away (we don't care much about facing)
+	dc.w  move_list_facing_mid_range_AB70		; mid-range, cpu faces opponent (who can face cpu or not...)
+	dc.w  move_list_facing_close_range_AB7B		; close-range, cpu faces opponent
+	dc.w  move_list_turning_back_AB84		; mid-range, cpu has its back turned on opponent
+	dc.w  move_list_turning_back_AB84		; close-range, cpu has its back turned on opponent (same as above)
 
 ; move list starts by number of moves (for random pick)
 ; not the same move indexes as above, move indexes are listed at start of
 ; document
-move_list_AB62:
+move_list_far_away_AB62:
 	; 13 moves: back, jbk, footsweep, front kick/punch, back round, lunge, jsk, round, lunge, lunge, revpunch, lowk
+	; the move doesn't really matter as it cannot connect (too far)
 	dc.b	0D 05 08 09 0A 0B 0C 0D 0E 0F 10 11 13 14 
 	; lunge backroundkick lungemedium jsk 0E(???) round lunge, lunge, revpunch, lowkick
-move_list_AB70:
+move_list_facing_mid_range_AB70:
 	dc.b	0A 0A 0B 0C 0D 0E 0F 10 11 13 14
-	; jump back, front kick, back round, lungemedium, jsk, round, lunge, revpunch, lowkick
-move_list_AB7B
+	; front kick, back round, lungemedium, jsk, round, lunge, revpunch, lowkick
+move_list_facing_close_range_AB7B
+	; small reverse, back round, lungemediumj sk,...
 	dc.b	 08 0A 0B 0C 0D 0F 10 13 14 
-	; this looks like a list of only reverse attacks
-	; pre-jump? back kick jbk foot sweep back
-move_list_AB84
+	; list of only reverse attacks (mostly defensive, cpu turns its back on the opponent)
+	; back kick jbk foot sweep back
+move_list_turning_back_AB84
 	dc.b	03 05 08 09
 
 
@@ -23345,7 +23370,8 @@ AB97: 77          ld   (hl),a
 AB98: C9          ret
 
 ; reacting to jumping side kick at close distance
-perform_foot_sweep_if_level_3_AB99: 3A 10 63    ld   a,(computer_skill_C910)
+perform_foot_sweep_if_level_3_AB99: 
+AB99: 3A 10 63    ld   a,(computer_skill_C910)
 AB9C: FE 08       cp   $02
 AB9E: 3E 00       ld   a,$00
 ABA0: DA A3 AB    jp   c,$ABA9
@@ -23509,7 +23535,9 @@ ACC7: FF          rst  $38
 ACC8: C3 10 A4    jp   cpu_move_done_A410
 ACCB: C3 10 A4    jp   cpu_move_done_A410
 
-; makes the game easier when called? maybe A.I. hesitates more ?
+; blocks a given number of frames (depending on table and level) during which
+; the opponent has time to pre-react before the computed already decided 
+; attack is launched
 ; < hl pointer on a 4 pointer table containing each $20 values of data; each
 ; table corresponds to a difficulty setting (4 total)
 ; if upper-hard championship level >= 16: no time for player to react just before
@@ -23549,6 +23577,11 @@ ACEF: 6F          ld   l,a
 ACF0: 26 00       ld   h,$00
 ; offset for the byte value in the table
 ACF2: 19          add  hl,de
+; check those mysterious C148, C149 values that look = 0
+; everywhere in the code it seems that the only thing that is done with
+; them is that they're set to 0 so the code below is useless
+; (a!=b!=0 would tone the difficulty down slightly, letting the program
+; pick the delay value before the current one
 ACF3: 3A 42 61    ld   a,($C148)
 ACF6: 47          ld   b,a
 ACF7: 3A 4D 61    ld   a,($C147)
@@ -23570,11 +23603,6 @@ AD0F: FD E5       push iy
 AD11: CD 13 A7    call let_opponent_react_AD19
 AD14: FD E1       pop  iy
 AD16: C9          ret
-
-
-AD17: 00          nop
-AD18: 00          nop
-
 
 
 ; never called in CMP hardest mode (level >= 16)
