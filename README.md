@@ -30,21 +30,8 @@ sequence: 3x mid front, 2x high rear!!!
 
 multiple evade objects: can be displayed at the same time
 
-a.i investigate
+check cpu move speed from videos with varying skill level
 
-end naming & commenting tables jump_table_A54F
-breakpoint at ACFE see if it's reached
-
-try to reach A980? 
-bpset A90C same direction try ommersault back
-analyse condition of turn around in cpu_move_forward_towards_enemy_far_away_A6D4
-
-
-memory watch on frames (16 bit) at start of A.I. mainloop
-for instance 13C8 13D1 forward sommersault... vs C22B/C22C
-bpset A849
-
-; how exactly are computed values of C20F (player logical distance) to select jump tables
 * recode A.I. from fight_mainloop_A390 entrypoint
 
 bugs:

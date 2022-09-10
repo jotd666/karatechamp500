@@ -27,12 +27,15 @@
 ; C02D
 ; players_type_human_or_cpu_flags_C02D: 05 1 player vs CPU, 0F 2 players. Changing dynamically works too!
 
-; note: there are 3 structures C220, C240, C260... there are copies of data for instance C229/C22A are copied
+; note: there are 4 structures C200, C220, C240, C260... there are copies of data for instance C229/C22A are copied
 ; to C269/C26A. Not sure of everything that's written below in terms of addresses...
+; C200/C240: player 1 structures
+; C220/C260: player 1 structures
+
 
 ; C220: another structure, A.I. related, probably sharing both parties characteristics
 ; TODO: figure out more values from that structure, specially:
-; +07/+08: frame id/pointer on frame structure, used as input of check_hl_in_ix_list_B009 by A.I
+; +07/+08: frame id/pointer on frame structure of own player, used as input of check_hl_in_ix_list_B009 by A.I
 ;  so the CPU can recognize the moves
 ; +09 white player x ($20 min $DF max)
 ; +0A: current move index (at least during practice)
@@ -6288,6 +6291,9 @@
 3CB5: FE 50       cp   $50
 3CB7: DA 7D 96    jp   c,$3CD7
 3CBA: D6 50       sub  $50
+; demo fight (blue title screen) There's a table but there is probably only
+; one title screen remaining. Others are leftovers from first version where
+; there were more demos in attract mode.
 3CBC: 21 1D 97    ld   hl,$3D17
 3CBF: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 3CC2: FE 0A       cp   $0A
@@ -6296,8 +6302,9 @@
 3CCA: 3A 11 63    ld   a,($background_and_state_bits_C911)
 3CCD: E6 DF       and  $7F
 3CCF: D6 50       sub  $50
-3CD1: CD 00 97    call $3D00
+3CD1: CD 00 97    call $init_player_data_3D00
 3CD4: C3 F7 96    jp   $3CFD
+; normal init
 3CD7: 21 9D 97    ld   hl,$3D37
 3CDA: FE 90       cp   $30
 3CDC: D4 D5 B0    call nc,display_error_text_B075
@@ -6305,19 +6312,23 @@
 3CE1: DA EC 96    jp   c,$3CE6
 3CE4: D6 80       sub  $20
 ; init player X with $30 coord (+$10)
-3CE6: CD 00 97    call $3D00
+3CE6: CD 00 97    call init_player_data_3D00
 3CE9: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 3CEC: FE 0A       cp   $0A
 3CEE: CA F7 96    jp   z,$3CFD
-3CF1: FD CB 02 FE set  7,(iy+$08)
+; player 2: symmetrize
+3CF1: FD CB 02 FE set  7,(iy+$08)	; set direction facing left
 3CF5: FD 7E 03    ld   a,(iy+$09)
-3CF8: ED 44       neg
+3CF8: ED 44       neg				; negate 255-x or something
 3CFA: FD 77 03    ld   (iy+$09),a
 3CFD: C9          ret
 3CFE: 00          nop
 3CFF: 00          nop
 
-3D00: 87          add  a,a
+; init player x,y whatever
+; < a: background image / level index
+; < iy: player struct to initialize (C240, C220)
+init_player_data_3D00: 87          add  a,a
 3D01: 87          add  a,a
 3D02: 4F          ld   c,a
 3D03: 06 00       ld   b,$00
@@ -6329,126 +6340,23 @@
 3D0E: DD E5       push ix
 3D10: D1          pop  de
 3D11: 01 04 00    ld   bc,$0004
+; copy 4 values from for ex 3D53 to C247
 3D14: ED B0       ldir
 3D16: C9          ret
+; start stance, x,y for player 1
+3D17  89 0A 40 D0 89 0A 88 88 89 0A 88 88 89 0A 40 C8   ..@Ð..........@È
+3D27  89 8A C0 D0 89 8A 88 88 89 8A 88 88 89 0A 88 90   ..ÀÐ............
+; normal table
+3D37  89 0A 30 C0 89 0A 30 E0 89 0A 30 C0 89 0A 30 E0   ..0À..0à..0À..0à
+3D47  89 0A 30 E0 89 0A 30 E0 89 0A 30 E0 89 0A 30 E0   ..0à..0à..0à..0à
+3D57  89 0A 30 E0 89 0A 30 E0 89 0A 30 E0 89 0A 30 C0   ..0à..0à..0à..0À
+3D67  89 0A 88 88 89 0A 88 88 89 0A 88 88 89 0A 88 88   ................
+3D77  89 0A 60 C0 89 0A 88 88 89 0A 50 C0 89 0A 60 E0   ..`À......PÀ..`à
+3D87  89 0A 88 88 89 0A 60 E0 89 0A 50 E0 89 0A 60 E0   ......`à..Pà..`à
+3D97  89 0A 50 E0 89 0A 88 88 89 0A 88 88 89 0A 50 C0   ..Pà..........PÀ
+3DA7  89 0A 88 88 89 0A 88 88 89 0A 88 88 89 0A 88 88   ................
+  
 
-3D17: 23          inc  hl
-3D18: 0A          ld   a,(bc)
-3D19: 40          ld   b,b
-3D1A: 70          ld   (hl),b
-3D1B: 23          inc  hl
-3D1C: 0A          ld   a,(bc)
-3D1D: 22 22 23    ld   ($8988),hl
-3D20: 0A          ld   a,(bc)
-3D21: 22 22 23    ld   ($8988),hl
-3D24: 0A          ld   a,(bc)
-3D25: 40          ld   b,b
-3D26: 62          ld   h,d
-3D27: 23          inc  hl
-3D28: 2A 60 70    ld   hl,($D0C0)
-3D2B: 23          inc  hl
-3D2C: 2A 22 22    ld   hl,($8888)
-3D2F: 23          inc  hl
-3D30: 2A 22 22    ld   hl,($8888)
-3D33: 23          inc  hl
-3D34: 0A          ld   a,(bc)
-3D35: 22 30 23    ld   ($8990),hl
-3D38: 0A          ld   a,(bc)
-3D39: 90          sub  b
-3D3A: 60          ld   h,b
-3D3B: 23          inc  hl
-3D3C: 0A          ld   a,(bc)
-3D3D: 90          sub  b
-3D3E: E0          ret  po
-3D3F: 23          inc  hl
-3D40: 0A          ld   a,(bc)
-3D41: 90          sub  b
-3D42: 60          ld   h,b
-3D43: 23          inc  hl
-3D44: 0A          ld   a,(bc)
-3D45: 90          sub  b
-3D46: E0          ret  po
-3D47: 23          inc  hl
-3D48: 0A          ld   a,(bc)
-3D49: 90          sub  b
-3D4A: E0          ret  po
-3D4B: 23          inc  hl
-3D4C: 0A          ld   a,(bc)
-3D4D: 90          sub  b
-3D4E: E0          ret  po
-3D4F: 23          inc  hl
-3D50: 0A          ld   a,(bc)
-3D51: 90          sub  b
-3D52: E0          ret  po
-3D53: 23          inc  hl
-3D54: 0A          ld   a,(bc)
-3D55: 90          sub  b
-3D56: E0          ret  po
-3D57: 23          inc  hl
-3D58: 0A          ld   a,(bc)
-3D59: 90          sub  b
-3D5A: E0          ret  po
-3D5B: 23          inc  hl
-3D5C: 0A          ld   a,(bc)
-3D5D: 90          sub  b
-3D5E: E0          ret  po
-3D5F: 23          inc  hl
-3D60: 0A          ld   a,(bc)
-3D61: 90          sub  b
-3D62: E0          ret  po
-3D63: 23          inc  hl
-3D64: 0A          ld   a,(bc)
-3D65: 90          sub  b
-3D66: 60          ld   h,b
-3D67: 23          inc  hl
-3D68: 0A          ld   a,(bc)
-3D69: 22 22 23    ld   ($8988),hl
-3D6C: 0A          ld   a,(bc)
-3D6D: 22 22 23    ld   ($8988),hl
-3D70: 0A          ld   a,(bc)
-3D71: 22 22 23    ld   ($8988),hl
-3D74: 0A          ld   a,(bc)
-3D75: 22 22 23    ld   ($8988),hl
-3D78: 0A          ld   a,(bc)
-3D79: C0          ret  nz
-3D7A: 60          ld   h,b
-3D7B: 23          inc  hl
-3D7C: 0A          ld   a,(bc)
-3D7D: 22 22 23    ld   ($8988),hl
-3D80: 0A          ld   a,(bc)
-3D81: 50          ld   d,b
-3D82: 60          ld   h,b
-3D83: 23          inc  hl
-3D84: 0A          ld   a,(bc)
-3D85: C0          ret  nz
-3D86: E0          ret  po
-3D87: 23          inc  hl
-3D88: 0A          ld   a,(bc)
-3D89: 22 22 23    ld   ($8988),hl
-3D8C: 0A          ld   a,(bc)
-3D8D: C0          ret  nz
-3D8E: E0          ret  po
-3D8F: 23          inc  hl
-3D90: 0A          ld   a,(bc)
-3D91: 50          ld   d,b
-3D92: E0          ret  po
-3D93: 23          inc  hl
-3D94: 0A          ld   a,(bc)
-3D95: C0          ret  nz
-3D96: E0          ret  po
-3D97: 23          inc  hl
-3D98: 0A          ld   a,(bc)
-3D99: 50          ld   d,b
-3D9A: E0          ret  po
-3D9B: 23          inc  hl
-3D9C: 0A          ld   a,(bc)
-3D9D: 22 22 23    ld   ($8988),hl
-3DA0: 0A          ld   a,(bc)
-3DA1: 22 22 23    ld   ($8988),hl
-3DA4: 0A          ld   a,(bc)
-3DA5: 50          ld   d,b
-3DA6: 60          ld   h,b
-3DA7: 23          inc  hl
 3DA8: 0A          ld   a,(bc)
 3DA9: 22 22 23    ld   ($8988),hl
 3DAC: 0A          ld   a,(bc)
@@ -9252,7 +9160,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 5403: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5406: CB 57       bit  2,a
 5408: CA 0E 54    jp   z,$540E
-; copy the contents of C900 to C910 (8 bytes)
+; copy the contents of C900 to C907 (8 bytes)
 540B: 21 00 63    ld   hl,$C900
 540E: 11 10 63    ld   de,computer_skill_C910
 5411: 01 02 00    ld   bc,$0008
@@ -12061,7 +11969,8 @@ practice_table_end_6361:
 6A67: EB          ex   de,hl
 6A68: 20 EE       jr   nz,$6A58
 6A6A: 00          nop
-6A6B: DD 21 E1 CA ld   ix,$6AE1
+6A6B: DD 21 E1 CA ld   ix,$referee_start_position_table_6AE1
+; start position for referee
 6A6F: 3A 11 63    ld   a,($background_and_state_bits_C911)
 6A72: CB BF       res  7,a
 6A74: 87          add  a,a
@@ -12113,24 +12022,13 @@ practice_table_end_6361:
 6ADE: 45          ld   b,l
 6ADF: FF          rst  $38
 6AE0: FF          rst  $38
-6AE1: 60          ld   h,b
-6AE2: 42          ld   b,d
-6AE3: D2 D0 D2    jp   nc,$7870
-6AE6: 52          ld   d,d
-6AE7: D2 D0 D2    jp   nc,$7870
-6AEA: D0          ret  nc
-6AEB: D2 D0 D2    jp   nc,$7870
-6AEE: D0          ret  nc
-6AEF: D2 D0 D2    jp   nc,$7870
-6AF2: D0          ret  nc
-6AF3: 31 D0 D2    ld   sp,$7870
-6AF6: D0          ret  nc
-6AF7: 22 52 D2    ld   ($7858),hl
-6AFA: D0          ret  nc
-6AFB: D2 D0 D2    jp   nc,$7870
-6AFE: D0          ret  nc
-6AFF: D2 D0 D2    jp   nc,$7870
-6B02: 52          ld   d,d
+
+
+referee_start_position_table_6AE1
+6AE1  C0 48 78 70 78 58 78 70 78 70 78 70 78 70 78 70   ÀHxpxXxpxpxpxpxp
+6AF1  78 70 91 70 78 70 88 58 78 70 78 70 78 70 78 70   xp.pxp.Xxpxpxpxp
+6B01  78 58
+
 6B03: DD 21 00 6D ld   ix,referee_x_pos_C700
 6B07: 11 04 00    ld   de,$0004
 6B0A: 06 05       ld   b,$05
@@ -12448,7 +12346,7 @@ display_scoring_technique_6CE6:
 6D7B: 87          add  a,a
 6D7C: 4F          ld   c,a
 6D7D: 06 00       ld   b,$00
-6D7F: DD 21 E1 CA ld   ix,$6AE1
+6D7F: DD 21 E1 CA ld   ix,$referee_start_position_table_6AE1
 6D83: DD 09       add  ix,bc
 6D85: DD 66 00    ld   h,(ix+$00)
 6D88: DD 6E 01    ld   l,(ix+$01)
@@ -22064,6 +21962,8 @@ A377: 77          ld   (hl),a
 A378: 3E FF       ld   a,$FF
 A37A: C9          ret
 
+; roughly called every 60th frames, sometimes 2 times in the frame
+; probably not or loosely synchronized with 60Hz interrupt
 fight_mainloop_A37B: CD 4B B0    call load_iy_with_player_structure_B04B
 A37E: FD 36 10 00 ld   (iy+$10),$00
 A382: AF          xor  a
@@ -22082,39 +21982,45 @@ A390: CD 4B B0    call load_iy_with_player_structure_B04B
 A393: CD 82 A4    call update_players_struct_C2xx_A428
 A396: CD 47 A9    call move_human_player_A34D
 A399: A7          and  a
-A39A: C2 10 A4    jp   nz,cpu_move_done_A410
+A39A: C2 10 A4    jp   nz,cpu_move_done_A410	; only humans: end
+; 1 player mode: handle computer
 A39D: DD 21 9B AA ld   ix,walk_frames_list_AA3B
 A3A1: FD 6E 0D    ld   l,(iy+$07)
-A3A4: FD 66 02    ld   h,(iy+$08)
+A3A4: FD 66 02    ld   h,(iy+$08)	; <= what the computer frame is
 A3A7: E5          push hl
+; the computer tries to find its own displayed frame in the various lists
+; is the computer walking?
 A3A8: CD 03 B0    call check_hl_in_ix_list_B009
 A3AB: E1          pop  hl
 A3AC: A7          and  a
-A3AD: C2 9B A5    jp   nz,react_to_opponent_attack_A53B
+; if walking/stands guard, computer can attack the player
+A3AD: C2 9B A5    jp   nz,maybe_attack_opponent_A53B
 A3B0: DD 21 47 AA ld   ix,jump_frames_list_AA4D
 A3B4: E5          push hl
 A3B5: CD 03 B0    call check_hl_in_ix_list_B009
 A3B8: E1          pop  hl
 A3B9: A7          and  a
-A3BA: C2 66 AB    jp   nz,$ABCC
-A3BD: DD 21 C7 AA ld   ix,back_kick_frames_list_AA6D
+A3BA: C2 66 AB    jp   nz,handle_cpu_land_from_jump_ABCC
+A3BD: DD 21 C7 AA ld   ix,hitting_frame_list_AA6D
 A3C1: E5          push hl
 A3C2: CD 03 B0    call check_hl_in_ix_list_B009
 A3C5: E1          pop  hl
 A3C6: A7          and  a
-A3C7: C2 E9 AB    jp   nz,$ABE3
-A3CA: DD 21 27 AA ld   ix,repositionning_frame_list_AA8D
+A3C7: C2 E9 AB    jp   nz,full_blown_hit_ABE3	; missed cpu hit: let player react
+; the rest of the routine seems to end in cpu_move_done_A410 100% of the time...
+A3CA: DD 21 27 AA ld   ix,repositionning_frame_list_AA8D	; ???? why did I put "repositionning" there?
 A3CE: E5          push hl
 A3CF: CD 03 B0    call check_hl_in_ix_list_B009
 A3D2: E1          pop  hl
 A3D3: A7          and  a
-A3D4: C2 FF AB    jp   nz,$ABFF
+A3D4: C2 FF AB    jp   nz,$ABFF	; doesn't seem to happen, ever, "repositionning" frames are AWOL
+; ends up jumping to cpu_move_done_A410 whatever the outcome...
 A3D7: E5          push hl
 A3D8: DD E1       pop  ix
 A3DA: DD 7E 02    ld   a,(ix+$08)
 A3DD: A7          and  a
-A3DE: C2 62 A6    jp   nz,$ACC8
-A3E1: C3 6B A6    jp   $ACCB
+A3DE: C2 62 A6    jp   nz,$ACC8		; move done
+A3E1: C3 6B A6    jp   $ACCB		; move done
 
 cpu_move_done_opponent_can_react_A3E4:
 A3E4: 3A 11 63    ld   a,($background_and_state_bits_C911)
@@ -22293,7 +22199,7 @@ A53A: FF          rst  $38
 ; note: block moves are probably triggered when cpu decides to move back and
 ; the player attacks at the same time (code $01)
 ;
-react_to_opponent_attack_A53B
+maybe_attack_opponent_A53B
 A53B: DD 21 4F A5 ld   ix,jump_table_A54F
 A53F: 06 00       ld   b,$00
 A541: FD 4E 0F    ld   c,(iy+$0f); iy = C220: algebraic distance index (0-8 + facing direction bit 7)
@@ -22639,8 +22545,8 @@ A664: AA          xor  d
 ; 9: move not in list
 classify_opponent_move_start_A665:
 A665: FD 6E 0B    ld   l,(iy+$0b)
-A668: FD 66 06    ld   h,(iy+$0c)
-A66B: CB BC       res  7,h		; remove last bit
+A668: FD 66 06    ld   h,(iy+$0c)		; hl <= opponent frame
+A66B: CB BC       res  7,h		; remove last bit (facing direction)
 A66D: DD 21 9B AA ld   ix,$walk_frames_list_AA3B
 A671: E5          push hl
 A672: CD 03 B0    call check_hl_in_ix_list_B009
@@ -22697,12 +22603,14 @@ A6D4: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ; hl = C26B
 A6D7: 36 08       ld   (hl),$02		; move forward
 ; iy=$C220
+; C22D is roughly minus opponent x (CPL which inverts bits, performed at A47C)
+; it actually is done to get 256-opponent x
 A6D9: FD 7E 07    ld   a,(iy+$0d)
 A6DC: FD BE 03    cp   (iy+$09)		; opponent x
 A6DF: D2 E4 AC    jp   nc,$A6E4
-; turn back if far away enough (not the only case where it turns back!)
-; not very frequent as human player has to be very far away quickly
-; (using sommersaults)
+; turn back if player is on the right (almost) half of the screen (difficult
+; to achieve when both players are far away. Possible with well
+; timed sommersaults)
 A6E2: 36 0D       ld   (hl),$07
 A6E4: C3 10 A4    jp   cpu_move_done_A410
 
@@ -23178,13 +23086,16 @@ AA38: C3 10 A4    jp   cpu_move_done_A410
 ; probably specific animation frames of techniques so the computer
 ; can counter attack / react on them
 ; 
-; for example 890A (first item of the first list) is: stand guard
+; for example 890A (0A89 first item of the first list) is: stand guard facing left
+; facing right this would be 8A89
+; 8B22 would be the value in C22B if player starts a jump (joy up) facing right
+
 walk_frames_list_AA3B:
-	dc.b	$89 0A 92 0A 9B 0A A4 0A AD 0A B6 0A BF 0A C8 0A FF FF
+	dc.b	89 0A 92 0A 9B 0A A4 0A AD 0A B6 0A BF 0A C8 0A FF FF
 jump_frames_list_AA4D:
 	dc.b	$22 0B 8E 0B 97 0B A0 0B A9 0B B2 0B BB 0B C4 0B CD 0B D6 0B DF 0B E8 0B F1 0B FA 0B 73 0B FF FF
-	; back kick, jumping back kick, back foot sweep ...
-back_kick_frames_list_AA6D:
+	; frames where the blow reaches its end/is full blown
+hitting_frame_list_AA6D:
 	dc.b	$C0 0C D2 0C 47 0D D7 0D 4C 0E AF 0E 1B 0F 90 0F 0E 10 9E 10 0A 11 6D 11 E2 11 D5 12 4A 13 FF FF
 repositionning_frame_list_AA8D:
 	dc.b	$88 1A D0 1A 18 1B FF FF
@@ -23405,22 +23316,28 @@ ABC8: 3E 03       ld   a,$09
 ABCA: 77          ld   (hl),a
 ABCB: C9          ret
 
-ABCC: FD 6E 0D    ld   l,(iy+$07)
+; computer is jumping
+handle_cpu_land_from_jump_ABCC: FD 6E 0D    ld   l,(iy+$07)
 ABCF: FD 66 02    ld   h,(iy+$08)
 ABD2: 11 D9 0B    ld   de,$0B73
 ABD5: A7          and  a
 ABD6: ED 52       sbc  hl,de
 ABD8: C2 E0 AB    jp   nz,$ABE0
 ABDB: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
+; land if reaches a given point
 ABDE: 36 00       ld   (hl),$00
 ABE0: C3 10 A4    jp   cpu_move_done_A410
+
+; computer just tried to hit player but failed
+; now wait for player response (or not, if skill level is high enough)
+full_blown_hit_ABE3:
 ABE3: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ; tell CPU to stop moving / stand guard
 ABE6: 36 00       ld   (hl),$00
-ABE8: 21 EF A7    ld   hl,$counter_attack_time_table_ADEF
+ABE8: 21 EF A7    ld   hl,counter_attack_time_table_ADEF
 ABEB: CD 6E A6    call let_opponent_react_depending_on_skill_level_ACCE
 ABEE: FE 03       cp   $09
-ABF0: CA DB A9    jp   z,$fight_mainloop_A37B
+ABF0: CA DB A9    jp   z,fight_mainloop_A37B
 ABF3: A7          and  a
 ABF4: CA F6 AB    jp   z,$ABFC
 ABF7: FE FF       cp   $FF
@@ -24256,7 +24173,7 @@ B0FC: 10 F9       djnz $B0F1  ; repeat 8 times
 B0FE: C9          ret
 
 ; < ix: table like walk_frames_list_AA3B, jump_frames_list_AA4D... 2 value list ending with FF FF
-; < hl
+; < hl: frame word
 ; < bc
 ; > a 0 or $FF depending on value in hl & 0x7FFF found in list pointed in ix
 
