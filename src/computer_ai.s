@@ -1,15 +1,18 @@
-; < A4: computer player structure
-; > D0: move to perform
 
+; < A4: computer player structure
+
+handle_cpu_opponent:
 	; first, check if player reaction timer has been loaded, if so, return immediately
 	; without any move
-	move.w	opponent_reaction_timer(a4),d0
+	move.w	frozen_controls_timer(a4),d0
 	beq.b	.no_wait
-	subq.w	#1,d0
-	move.w	d0,opponent_reaction_timer(a4)
-	moveq.w	#0,d0
+	; useful when cpu just made a ground attack, remains stuck for a while
+	; will cause issues with jump attacks/sommersaults, that will be a
+	; special case
+	;;move.l	frozen_joystick_state(a4),d0		; keep doing what it was doing
 	rts
 .no_wait
+	moveq.l	#0,d7
 	rts
 	
 ; 1 player mode: handle computer
@@ -24,18 +27,50 @@
 ;A3AC: A7          and  a
 ;; if walking/stands guard, computer can attack the player
 ;A3AD: C2 9B A5    jp   nz,maybe_attack_opponent_A53B
+
+	move.l	current_move_header(a4),a1
+	move.l	right_frame_set(a1),a0		; current frame
+	cmp.l	#walk_forward_right_frames,a0
+	beq.b	maybe_attack_opponent_A53B
+	cmp.l	#forward_right_frames,a0
+	beq.b	maybe_attack_opponent_A53B
+
+	; not walking, check if currently jumping to avoid a blow
+	; not necessary since controls are frozen during a jump
+	
 ;A3B0: DD 21 47 AA ld   ix,jump_frames_list_AA4D
 ;A3B4: E5          push hl
 ;A3B5: CD 03 B0    call check_hl_in_ix_list_B009
 ;A3B8: E1          pop  hl
 ;A3B9: A7          and  a
 ;A3BA: C2 66 AB    jp   nz,handle_cpu_land_from_jump_ABCC
+
+	; check if frame just changed TODO (implement previous_frame, check it)
+
+	; if frame just changed
+	; check if staying_frames is negative (infinite time for frame, for human cpu)
+	tst.w	current_frame_countdown(a4)
+	bmi		full_blown_hit_ABE3
+	; other cases: check both jump frames (left and right)
+	move.l	frame_set(a4),a1
+	add.w	frame(a4),a1
+	move.l	bob_data(a1),a1
+	cmp.l	#jumping_back_kick_6_right,a1
+	beq.b	full_blown_hit_ABE3
+	cmp.l	#jumping_back_kick_6_left,a1
+	beq.b	full_blown_hit_ABE3
+	cmp.l	#jumping_side_kick_9_right,a1
+	beq.b	full_blown_hit_ABE3
+	cmp.l	#jumping_side_kick_9_left,a1
+	beq.b	full_blown_hit_ABE3
+	
 ;A3BD: DD 21 C7 AA ld   ix,hitting_frame_list_AA6D
 ;A3C1: E5          push hl
 ;A3C2: CD 03 B0    call check_hl_in_ix_list_B009
 ;A3C5: E1          pop  hl
 ;A3C6: A7          and  a
 ;A3C7: C2 E9 AB    jp   nz,full_blown_hit_ABE3	; missed cpu hit: let player react
+
 ;; the rest of the routine seems to end in cpu_move_done_A410 100% of the time...
 ;A3CA: DD 21 27 AA ld   ix,repositionning_frame_list_AA8D	; ???? why did I put "repositionning" there?
 ;A3CE: E5          push hl
@@ -51,7 +86,9 @@
 ;A3DE: C2 62 A6    jp   nz,$ACC8		; move done
 ;A3E1: C3 6B A6    jp   $ACCB		; move done
 
-;cpu_move_done_opponent_can_react_A3E4:
+	bra.b	cpu_move_done_A410
+	
+cpu_move_done_opponent_can_react_A3E4:
 ;A3E4: 3A 11 63    ld   a,($background_and_state_bits_C911)
 ;A3E7: CB BF       res  7,a	; clears bit 7
 ;; this is during demo mode (blue "karate champ" background), 2 cpu players
@@ -83,19 +120,66 @@
 ;
 ;; called after a non-attacking move (walk, sommersault, turn back...)
 ;; but can also be called after deciding an attack...
-;cpu_move_done_A410:
-;A410: 3A 82 60    ld   a,(player_2_attack_flags_C028)
-;A413: FE 03       cp   $09
-;A415: 3E 0B       ld   a,$0B
-;A417: CA 16 A4    jp   z,$A41C
-;A41A: 3E 0A       ld   a,$0A
-;A41C: 06 07       ld   b,$0D
-;A41E: CD 57 B0    call $B05D
-;A421: A7          and  a
-;A422: C4 D5 B0    call nz,display_error_text_B075
-;A425: C3 DB A9    jp   fight_mainloop_A37B
-;
-;
+;; this version doesn't give the chance to react
+cpu_move_done_A410:
+	cmp.l	#MOVE_TURN_AROUND,d7
+	beq.b	.turn_around
+	; convert enum(d7) to bits(d0)
+	move.w	direction(a4),d1
+	move.w	d7,d0
+	bsr		convert_move_enum_to_joy_controls
+	; how many frames will the technique remain ?
+	lea		remain_frames_table(pc),a0
+	add.w	d7,d7
+	move.w	(a0,d7.w),frozen_controls_timer(a4)
+	move.l	d0,frozen_joystick_state(a4)
+	rts
+
+; this move isn't possible with a human player
+; perform it here, and declare "no move"
+.turn_around
+	move.w	direction(a4),d0
+	cmp.w	#RIGHT,d0
+	beq.b	.left
+	move.w	#RIGHT,d0
+	bra.b	.setd
+.left
+	move.w	#LEFT,d0
+.setd
+	move.w	d0,direction(a4)
+	moveq.l	#0,d0	; no move bits
+	rts
+	
+	
+; min value is 1: move is frozen at least 1 frame
+; 1 second!! this is not final, it's just to see if the moves work
+remain_frames_table
+	dc.w	1		; no move
+	dc.w	6		; back/block TODO
+	dc.w	1		; move fwd
+	dc.w	60		; jump
+	dc.w	60		; crouch (computer never does that)
+	dc.w	60		; back kick
+	dc.w	60		; MOVE_BACK_KICK_2 = 6
+	dc.w	60		; MOVE_TURN_AROUND = 7
+	dc.w	60		; MOVE_JUMPING_BACK_KICK = 8
+	dc.w	60		; MOVE_FOOT_SWEEP_BACK = 9
+	dc.w	60		; MOVE_FRONT_KICK_OR_REVERSE_PUNCH = 10
+	dc.w	60		; MOVE_BACK_ROUND_KICK = 11
+	dc.w	60		; MOVE_LUNGE_PUNCH_400 = 12
+	dc.w	60		; MOVE_JUMPING_SIDE_KICK = 13
+	dc.w	60		; MOVE_FOOT_SWEEP_FRONT_1 = 14
+	dc.w	60		; MOVE_ROUND_KICK = 15
+	dc.w	60		; MOVE_LUNGE_PUNCH_600 = 16
+	dc.w	60		; MOVE_LUNGE_PUNCH_1000 = 17
+	dc.w	60		; MOVE_REAR_SOMMERSAULT = 18
+	dc.w	60		; MOVE_REVERSE_PUNCH_800 = 19
+	dc.w	60		; MOVE_LOW_KICK = 20
+	dc.w	60		; MOVE_LOW_KICK_2 = 21
+	dc.w	60		; MOVE_LOW_KICK_3 = 22
+	dc.w	60		; MOVE_FRONT_SOMMERSAULT = 23
+	dc.w	60		; MOVE_FOOT_SWEEP_FRONT_2 = 24
+	
 ;update_players_struct_C2xx_A428:
 ;A428: CD B7 B0    call $B0BD		; calls write_0_in_port_1_BBE2 ???
 ;A42B: ED 5B 4D 68 ld   de,($C247)		; load animation/position of player 1
@@ -140,6 +224,7 @@
 ;A491: 23          inc  hl
 ;A492: CD 3C A4    call $A496
 ;A495: C9          ret
+
 ;A496: E5          push hl
 ;A497: 36 00       ld   (hl),$00
 ;A499: FD 36 0F 03 ld   (iy+$0f),$09
@@ -203,22 +288,7 @@
 ;A523: D2 82 A5    jp   nc,$A528
 ;A526: 3E FF       ld   a,$FF
 ;A528: C9          ret
-;A529: 52          ld   d,d
-;A52A: 1D          dec  e
-;A52B: 40          ld   b,b
-;A52C: 1D          dec  e
-;A52D: 82          add  a,d
-;A52E: 1D          dec  e
-;A52F: 00          nop
-;A530: 8D          adc  a,l
-;A531: A0          and  b
-;A532: 1D          dec  e
-;A533: B2          or   d
-;A534: 1D          dec  e
-;A535: 70          ld   (hl),b
-;A536: 1D          dec  e
-;A537: E2 1D 00    jp   po,$0017
-;A53A: FF          rst  $38
+
 ;
 ;; jump table depending on the value of iy+0xF
 ;; this jumps to another jump table selector (which is not very performant
@@ -228,7 +298,7 @@
 ;; note: block moves are probably triggered when cpu decides to move back and
 ;; the player attacks at the same time (code $01)
 ;;
-;maybe_attack_opponent_A53B
+maybe_attack_opponent_A53B
 ;A53B: DD 21 4F A5 ld   ix,jump_table_A54F
 ;A53F: 06 00       ld   b,$00
 ;A541: FD 4E 0F    ld   c,(iy+$0f); iy = C220: algebraic distance index (0-8 + facing direction bit 7)
@@ -306,259 +376,112 @@
 ;
 ;; makes sense: players are far away, CPU just tries to get closer to player
 ;; but can also change direction
-;computer_ai_jump_table_all_move_towards_opponent_A651:
-;	dc.w	display_error_text_B075                        ; what opponent does:
-;	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4   ; 1: no particular stuff
-;	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4   ; 2: frontal attack
-;	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4   ; 3: rear attack
-;	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4   ; 4: crouch
-;	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4   ; 5 in-jump
-;	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4   ; 6: sommersault forward
-;	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4   ; 7: sommersault backwards
-;	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4   ; 8: starting a jump
-;	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4   ; 9: move not in list
+computer_ai_jump_table_all_move_towards_opponent_A651:
+	dc.l	display_error_text_B075                        ; what opponent does:
+;	dc.l	cpu_move_forward_towards_enemy_far_away_A6D4   ; 1: no particular stuff
+;	dc.l	cpu_move_forward_towards_enemy_far_away_A6D4   ; 2: frontal attack
+;	dc.l	cpu_move_forward_towards_enemy_far_away_A6D4   ; 3: rear attack
+;	dc.l	cpu_move_forward_towards_enemy_far_away_A6D4   ; 4: crouch
+;	dc.l	cpu_move_forward_towards_enemy_far_away_A6D4   ; 5 in-jump
+;	dc.l	cpu_move_forward_towards_enemy_far_away_A6D4   ; 6: sommersault forward
+;	dc.l	cpu_move_forward_towards_enemy_far_away_A6D4   ; 7: sommersault backwards
+;	dc.l	cpu_move_forward_towards_enemy_far_away_A6D4   ; 8: starting a jump
+;	dc.l	cpu_move_forward_towards_enemy_far_away_A6D4   ; 9: move not in list
 ;	
-;ai_jump_table_opp_left_cpu_right_far_A5C5
-;	dc.w	display_error_text_B075                             ; what opponent does:
-;	dc.w	cpu_move_forward_towards_enemy_A6E7	                ; 1: no particular stuff
-;	dc.w	cpu_forward_or_stop_if_facing_A6EF					; 2: frontal attack
-;	dc.w	cpu_forward_or_stop_if_not_facing_A700				; 3: rear attack
-;	dc.w	cpu_move_forward_towards_enemy_A6E7                 ; 4: crouch ($A711 jumps there)
-;	dc.w	cpu_move_forward_towards_enemy_A6E7                 ; 5 in-jump ($A714 jumps there)
-;	dc.w	cpu_forward_or_backward_depending_on_facing_A7D5	; 6: sommersault forward $A717	jumps there
-;	dc.w	cpu_backward_or_forward_depending_on_facing_A7E6	; 7: sommersault backwards $A71A	jumps there 
-;	dc.w	cpu_move_forward_towards_enemy_A71D	                ; 8: starting a jump
-;	dc.w	cpu_move_forward_towards_enemy_A71D	                ; 9: move not in list
+ai_jump_table_opp_left_cpu_right_far_A5C5
+	dc.l	display_error_text_B075                             ; what opponent does:
+;	dc.l	cpu_move_forward_towards_enemy_A6E7	                ; 1: no particular stuff
+;	dc.l	cpu_forward_or_stop_if_facing_A6EF					; 2: frontal attack
+;	dc.l	cpu_forward_or_stop_if_not_facing_A700				; 3: rear attack
+;	dc.l	cpu_move_forward_towards_enemy_A6E7                 ; 4: crouch ($A711 jumps there)
+;	dc.l	cpu_move_forward_towards_enemy_A6E7                 ; 5 in-jump ($A714 jumps there)
+;	dc.l	cpu_forward_or_backward_depending_on_facing_A7D5	; 6: sommersault forward $A717	jumps there
+;	dc.l	cpu_backward_or_forward_depending_on_facing_A7E6	; 7: sommersault backwards $A71A	jumps there 
+;	dc.l	cpu_move_forward_towards_enemy_A71D	                ; 8: starting a jump
+;	dc.l	cpu_move_forward_towards_enemy_A71D	                ; 9: move not in list
 ;	
-;ai_jump_table_opp_left_cpu_right_close_A5D9:
-;	dc.w	display_error_text_B075                             ; what opponent does:
-;	dc.w	attack_once_out_of_16_frames_else_walk_A725         ; 1: no particular stuff
-;	dc.w	cpu_avoids_low_attack_if_facing_else_maybe_attacks_A73F   ; 2: frontal attack
-;	dc.w	cpu_maybe_attacks_if_facing_else_avoids_low_attack_A786   ; 3: rear attack
-;	dc.w	just_walk_A7C5                                      ; 4: crouch
-;	dc.w	just_walk_A7CD                                      ; 5 in-jump
-;	dc.w	cpu_forward_or_backward_depending_on_facing_A7D5    ; 6: sommersault forward
-;	dc.w	cpu_backward_or_forward_depending_on_facing_A7E6    ; 7: sommersault backwards
-;	dc.w	attack_once_out_of_16_frames_else_walk_A725	        ; 8: starting a jump  $A7F7	jumps there
-;	dc.w	cpu_move_forward_towards_enemy_A7FA                 ; 9: move not in list
+ai_jump_table_opp_left_cpu_right_close_A5D9:
+	dc.l	display_error_text_B075                             ; what opponent does:
+;	dc.l	attack_once_out_of_16_frames_else_walk_A725         ; 1: no particular stuff
+;	dc.l	cpu_avoids_low_attack_if_facing_else_maybe_attacks_A73F   ; 2: frontal attack
+;	dc.l	cpu_maybe_attacks_if_facing_else_avoids_low_attack_A786   ; 3: rear attack
+;	dc.l	just_walk_A7C5                                      ; 4: crouch
+;	dc.l	just_walk_A7CD                                      ; 5 in-jump
+;	dc.l	cpu_forward_or_backward_depending_on_facing_A7D5    ; 6: sommersault forward
+;	dc.l	cpu_backward_or_forward_depending_on_facing_A7E6    ; 7: sommersault backwards
+;	dc.l	attack_once_out_of_16_frames_else_walk_A725	        ; 8: starting a jump  $A7F7	jumps there
+;	dc.l	cpu_move_forward_towards_enemy_A7FA                 ; 9: move not in list
 ;	
-;ai_jump_table_opp_left_cpu_right_closer_A5ED	
-;	dc.w	display_error_text_B075                             ; what opponent does:
-;	dc.w	pick_cpu_attack_A802                                ; 1: no particular stuff
-;	dc.w	cpu_reacts_to_low_attack_if_facing_else_attacks_A80C; 2: frontal attack
-;	dc.w	cpu_react_to_low_attack_or_perform_attack_A85B      ; 3: rear attack
-;	dc.w	cpu_small_chance_of_low_kick_else_walk_A893         ; 4: crouch
-;	dc.W	pick_cpu_attack_A802 ; was $A8A8                    ; 5 in-jump
-;	dc.W	pick_cpu_attack_A802 ; was $A8A8                    ; 6: sommersault forward
-;	dc.w	move_fwd_or_bwd_checking_sommersault_and_dir_A8E8   ; 7: sommersault backwards
-;	dc.w	pick_cpu_attack_A802  ; $A911 calls it              ; 8: starting a jump
-;	dc.w	pick_cpu_attack_A802  ; $A914 calls it              ; 9: move not in list
+ai_jump_table_opp_left_cpu_right_closer_A5ED	
+	dc.l	display_error_text_B075                             ; what opponent does:
+;	dc.l	pick_cpu_attack_A802                                ; 1: no particular stuff
+;	dc.l	cpu_reacts_to_low_attack_if_facing_else_attacks_A80C; 2: frontal attack
+;	dc.l	cpu_react_to_low_attack_or_perform_attack_A85B      ; 3: rear attack
+;	dc.l	cpu_small_chance_of_low_kick_else_walk_A893         ; 4: crouch
+;	dc.l	pick_cpu_attack_A802 ; was $A8A8                    ; 5 in-jump
+;	dc.l	pick_cpu_attack_A802 ; was $A8A8                    ; 6: sommersault forward
+;	dc.l	move_fwd_or_bwd_checking_sommersault_and_dir_A8E8   ; 7: sommersault backwards
+;	dc.l	pick_cpu_attack_A802  ; $A911 calls it              ; 8: starting a jump
+;	dc.l	pick_cpu_attack_A802  ; $A914 calls it              ; 9: move not in list
 ;	
-;ai_jump_table_opp_left_cpu_right_closest_A601
-;	dc.w	display_error_text_B075                             ; what opponent does:
-;	dc.w	get_out_of_edge_or_low_kick_A917                    ; 1: no particular stuff
-;	dc.w	cpu_reacts_to_low_attack_if_facing_else_attacks_A80C; 2: frontal attack $A92F
-;	dc.w	front_kick_or_fwd_sommersault_to_recenter_A94E      ; 3: rear attack                                    ; $A932 jumps there
-;	dc.w	perform_low_kick_A935	    						; 4: crouch                                      ; $A93D jumps there
-;	dc.w	front_kick_or_fwd_sommersault_to_recenter_A94E	    ; 5 in-jump                                      ; $A93D jumps there
-;	dc.w	high_attack_if_forward_sommersault_or_walk_A8AB	    ; 6: sommersault forward                        ; $A940 jumps there
-;	dc.w	move_fwd_or_bwd_checking_sommersault_and_dir_A8E8	; 7: sommersault backwards                     ; $A943 jumps there
-;	dc.w	perform_walk_back_A946                             ; 8: starting a jump
-;	dc.w	front_kick_or_fwd_sommersault_to_recenter_A94E      ; 9: move not in list
+ai_jump_table_opp_left_cpu_right_closest_A601
+	dc.l	display_error_text_B075                             ; what opponent does:
+;	dc.l	get_out_of_edge_or_low_kick_A917                    ; 1: no particular stuff
+;	dc.l	cpu_reacts_to_low_attack_if_facing_else_attacks_A80C; 2: frontal attack $A92F
+;	dc.l	front_kick_or_fwd_sommersault_to_recenter_A94E      ; 3: rear attack                                    ; $A932 jumps there
+;	dc.l	perform_low_kick_A935	    						; 4: crouch                                      ; $A93D jumps there
+;	dc.l	front_kick_or_fwd_sommersault_to_recenter_A94E	    ; 5 in-jump                                      ; $A93D jumps there
+;	dc.l	high_attack_if_forward_sommersault_or_walk_A8AB	    ; 6: sommersault forward                        ; $A940 jumps there
+;	dc.l	move_fwd_or_bwd_checking_sommersault_and_dir_A8E8	; 7: sommersault backwards                     ; $A943 jumps there
+;	dc.l	perform_walk_back_A946                             ; 8: starting a jump
+;	dc.l	front_kick_or_fwd_sommersault_to_recenter_A94E      ; 9: move not in list
 ;	                                                            
-;ai_jump_table_A615
-;	dc.w	display_error_text_B075
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;ai_jump_table_A629
-;	dc.w	display_error_text_B075
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;	dc.w	cpu_move_turn_around_A966
-;computer_ai_jump_table_A63D
-;	dc.w	display_error_text_B075       ; what opponent does:
-;	dc.w	select_cpu_attack_A96E        ; 1: no particular stuff
-;	dc.w	cpu_complex_reaction_to_front_attack_A980     ; 2: frontal high attack
-;	dc.w	cpu_complex_reaction_to_rear_attack_A9D6                         ; 3: rear attack               
-;	dc.w	perform_foot_sweep_back_ABBB  ; 4: crouch   $AA10                              
-;	dc.w	select_cpu_attack_A96E        ; 5 in-jump    $AA22                
-;	dc.w	cpu_turn_back_AA25            ; 6: sommersault forward       
-;	dc.w	cpu_turn_back_AA25            ; 7: sommersault backwards     
-;	dc.w	select_cpu_attack_A96E		  ; 8: starting a jump     $AA2D
-;	dc.w	select_cpu_attack_A96E		  ; 9: move not in list      $AA30
-;computer_ai_jump_table_all_turn_back_A651
-;	dc.w	display_error_text_B075
-;	dc.w	cpu_turn_back_AA33
-;	dc.w	cpu_turn_back_AA33
-;	dc.w	cpu_turn_back_AA33
-;	dc.w	cpu_turn_back_AA33
-;	dc.w	cpu_turn_back_AA33
-;	dc.w	cpu_turn_back_AA33
-;	dc.w	cpu_turn_back_AA33
-;	dc.w	cpu_turn_back_AA33
-;	dc.w	cpu_turn_back_AA33
+ai_jump_table_A615
+	dc.l	display_error_text_B075
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+ai_jump_table_A629
+	dc.l	display_error_text_B075
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+;	dc.l	cpu_move_turn_around_A966
+computer_ai_jump_table_A63D
+	dc.l	display_error_text_B075       ; what opponent does:
+;	dc.l	select_cpu_attack_A96E        ; 1: no particular stuff
+;	dc.l	cpu_complex_reaction_to_front_attack_A980     ; 2: frontal high attack
+;	dc.l	cpu_complex_reaction_to_rear_attack_A9D6                         ; 3: rear attack               
+;	dc.l	perform_foot_sweep_back_ABBB  ; 4: crouch   $AA10                              
+;	dc.l	select_cpu_attack_A96E        ; 5 in-jump    $AA22                
+;	dc.l	cpu_turn_back_AA25            ; 6: sommersault forward       
+;	dc.l	cpu_turn_back_AA25            ; 7: sommersault backwards     
+;	dc.l	select_cpu_attack_A96E		  ; 8: starting a jump     $AA2D
+;	dc.l	select_cpu_attack_A96E		  ; 9: move not in list      $AA30
+computer_ai_jump_table_all_turn_back_A651
+	dc.l	display_error_text_B075
+;	dc.l	cpu_turn_back_AA33
+;	dc.l	cpu_turn_back_AA33
+;	dc.l	cpu_turn_back_AA33
+;	dc.l	cpu_turn_back_AA33
+;	dc.l	cpu_turn_back_AA33
+;	dc.l	cpu_turn_back_AA33
+;	dc.l	cpu_turn_back_AA33
+;	dc.l	cpu_turn_back_AA33
+;	dc.l	cpu_turn_back_AA33
 ;
-;A5B1: D5          push de
-;A5B2: B0          or   b
-;A5B3: 74          ld   (hl),h
-;A5B4: AC          xor  h
-;A5B5: 74          ld   (hl),h
-;A5B6: AC          xor  h
-;A5B7: 74          ld   (hl),h
-;A5B8: AC          xor  h
-;A5B9: 74          ld   (hl),h
-;A5BA: AC          xor  h
-;A5BB: 74          ld   (hl),h
-;A5BC: AC          xor  h
-;A5BD: 74          ld   (hl),h
-;A5BE: AC          xor  h
-;A5BF: 74          ld   (hl),h
-;A5C0: AC          xor  h
-;A5C1: 74          ld   (hl),h
-;A5C2: AC          xor  h
-;A5C3: 74          ld   (hl),h
-;A5C4: AC          xor  h
-;A5C5: D5          push de
-;A5C6: B0          or   b
-;A5C7: ED          db   $ed
-;A5C8: AC          xor  h
-;A5C9: EF          rst  $28
-;A5CA: AC          xor  h
-;A5CB: 00          nop
-;A5CC: AD          xor  l
-;A5CD: 11 AD 14    ld   de,$14A7
-;A5D0: AD          xor  l
-;A5D1: 1D          dec  e
-;A5D2: AD          xor  l
-;A5D3: 1A          ld   a,(de)
-;A5D4: AD          xor  l
-;A5D5: 17          rla
-;A5D6: AD          xor  l
-;A5D7: 17          rla
-;A5D8: AD          xor  l
-;A5D9: D5          push de
-;A5DA: B0          or   b
-;A5DB: 85          add  a,l
-;A5DC: AD          xor  l
-;A5DD: 9F          sbc  a,a
-;A5DE: AD          xor  l
-;A5DF: 2C          inc  l
-;A5E0: AD          xor  l
-;A5E1: 65          ld   h,l
-;A5E2: AD          xor  l
-;A5E3: 67          ld   h,a
-;A5E4: AD          xor  l
-;A5E5: 75          ld   (hl),l
-;A5E6: AD          xor  l
-;A5E7: EC AD FD    call pe,$F7A7
-;A5EA: AD          xor  l
-;A5EB: FA AD D5    jp   m,$75A7
-;A5EE: B0          or   b
-;A5EF: 08          ex   af,af'
-;A5F0: A2          and  d
-;A5F1: 06 A2       ld   b,$A8
-;A5F3: 5B          ld   e,e
-;A5F4: A2          and  d
-;A5F5: 39          add  hl,sp
-;A5F6: A2          and  d
-;A5F7: A2          and  d
-;A5F8: A2          and  d
-;A5F9: AB          xor  e
-;A5FA: A2          and  d
-;A5FB: E2 A2 11    jp   po,$11A8
-;A5FE: A3          and  e
-;A5FF: 14          inc  d
-;A600: A3          and  e
-;A601: D5          push de
-;A602: B0          or   b
-;A603: 1D          dec  e
-;A604: A3          and  e
-;A605: 8F          adc  a,a
-;A606: A3          and  e
-;A607: 98          sbc  a,b
-;A608: A3          and  e
-;A609: 95          sub  l
-;A60A: A3          and  e
-;A60B: 97          sub  a
-;A60C: A3          and  e
-;A60D: 40          ld   b,b
-;A60E: A3          and  e
-;A60F: 49          ld   c,c
-;A610: A3          and  e
-;A611: 4C          ld   c,h
-;A612: A3          and  e
-;A613: 4E          ld   c,(hl)
-;A614: A3          and  e
-;A615: D5          push de
-;A616: B0          or   b
-;A617: CC A3 CC    call z,$66A9
-;A61A: A3          and  e
-;A61B: CC A3 CC    call z,$66A9
-;A61E: A3          and  e
-;A61F: CC A3 CC    call z,$66A9
-;A622: A3          and  e
-;A623: CC A3 CC    call z,$66A9
-;A626: A3          and  e
-;A627: CC A3 D5    call z,$75A9
-;A62A: B0          or   b
-;A62B: CC A3 CC    call z,$66A9
-;A62E: A3          and  e
-;A62F: CC A3 CC    call z,$66A9
-;A632: A3          and  e
-;A633: CC A3 CC    call z,$66A9
-;A636: A3          and  e
-;A637: CC A3 CC    call z,$66A9
-;A63A: A3          and  e
-;A63B: CC A3 D5    call z,$75A9
-;A63E: B0          or   b
-;A63F: CE A3       adc  a,$A9
-;A641: 20 A3       jr   nz,$A5EC
-;A643: 7C          ld   a,h
-;A644: A3          and  e
-;A645: 10 AA       djnz $A5F1
-;A647: 88          adc  a,b
-;A648: AA          xor  d
-;A649: 85          add  a,l
-;A64A: AA          xor  d
-;A64B: 85          add  a,l
-;A64C: AA          xor  d
-;A64D: 87          add  a,a
-;A64E: AA          xor  d
-;A64F: 90          sub  b
-;A650: AA          xor  d
-;A651: D5          push de
-;A652: B0          or   b
-;A653: 99          sbc  a,c
-;A654: AA          xor  d
-;A655: 99          sbc  a,c
-;A656: AA          xor  d
-;A657: 99          sbc  a,c
-;A658: AA          xor  d
-;A659: 99          sbc  a,c
-;A65A: AA          xor  d
-;A65B: 99          sbc  a,c
-;A65C: AA          xor  d
-;A65D: 99          sbc  a,c
-;A65E: AA          xor  d
-;A65F: 99          sbc  a,c
-;A660: AA          xor  d
-;A661: 99          sbc  a,c
-;A662: AA          xor  d
-;A663: 99          sbc  a,c
-;A664: AA          xor  d
+
 ;
 ;; given opponent moves (not distance), return a value between 1 and 9
 ;; to be used in a per-distance/facing configuration jump table
@@ -572,7 +495,7 @@
 ;; 7: sommersault backwards
 ;; 8: starting a jump
 ;; 9: move not in list
-;classify_opponent_move_start_A665:
+classify_opponent_move_start_A665:
 ;A665: FD 6E 0B    ld   l,(iy+$0b)
 ;A668: FD 66 06    ld   h,(iy+$0c)		; hl <= opponent frame
 ;A66B: CB BC       res  7,h		; remove last bit (facing direction)
@@ -1141,40 +1064,19 @@
 ;	dc.b	$27 0C E0 0D A7 10 DE 12 FF FF
 ;
 ;; some other tables loaded by the code below (accessed by a table too)
-;; one byte per attack
-;;
-;; codes aren't the same as attack commands but that's not really a problem
-;; thanks to the debugger and conditionnal breakpoints!!!
-;
-;; $01: back kick
-;; $02: jumping side kick
-;; $03: foot sweep back
-;; $04: front kick
-;; $05: small reverse punch
-;; $06: back round kick
-;; $07: lunge punch 400
-;; $08: jumping side kick
-;; $09: foot sweep front
-;; $0A: round kick
-;; $0B: lunge punch 600
-;; $0C: lunge punch 1000
-;; $0D: reverse punch 800
-;; $0E: low kick
-;; $0F: ???? not in those tables
-;; $10: sommersault back/backwards
-;; $11: sommersault front/forward
-;; $12: sommersault back/backwards too!!
-;
-;table_AABD:
-;	dc.b	04 05 06 07 08 09 0A 0B 0C 0D 0E FF
-;table_AAC9
-;	dc.b	01 02 03 FF
-;table_high_attacks_AACD
-;	dc.b	02 06 08 0A 0B 0C FF
-;table_low_attacks_AAD4
-;	dc.b	03 09 0E FF
-;table_sommersaults_AAD8
-;	dc.b	10 11 12 FF
+;; one byte per attack, match ATTACK_* defines above
+
+table_AABD:
+	dc.b	$04,$05,$06,$07,$08,$09,$0A,$0B,$0C,$0D,$0E,$FF
+table_AAC9
+	dc.b	$01,$02,$03,$FF
+table_high_attacks_AACD
+	dc.b	$02,$06,$08,$0A,$0B,$0C,$FF
+table_low_attacks_AAD4
+	dc.b	$03,$09,$0E,$FF
+table_sommersaults_AAD8
+	dc.b	$10,$11,$12,$FF
+	even
 ;
 ;
 ;opponent_starting_frontal_attack_AADC
@@ -1359,7 +1261,12 @@
 ;
 ;; computer just tried to hit player but failed
 ;; now wait for player response (or not, if skill level is high enough)
-;full_blown_hit_ABE3:
+full_blown_hit_ABE3:
+
+; TODO: change current_frame_countdown according to the player reaction time
+; computed from "let_opponent_react_depending_on_skill_level_ACCE"
+; set frozen_controls_timer at the same exact value
+
 ;ABE3: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;; tell CPU to stop moving / stand guard
 ;ABE6: 36 00       ld   (hl),$00
@@ -1373,113 +1280,7 @@
 ;ABF9: C4 D5 B0    call nz,display_error_text_B075
 ;ABFC: C3 10 A4    jp   cpu_move_done_A410
 ;
-;ABFF: DD 21 29 A6 ld   ix,$AC83
-;AC03: FD 5E 0D    ld   e,(iy+$07)
-;AC06: FD 56 02    ld   d,(iy+$08)
-;AC09: CD 06 B0    call $B00C
-;AC0C: A7          and  a
-;AC0D: C4 D5 B0    call nz,display_error_text_B075
-;AC10: E5          push hl
-;AC11: DD E1       pop  ix
-;AC13: FD 6E 0B    ld   l,(iy+$0b)
-;AC16: FD 66 06    ld   h,(iy+$0c)
-;AC19: CB BC       res  7,h
-;AC1B: CD 03 B0    call check_hl_in_ix_list_B009
-;AC1E: A7          and  a
-;AC1F: CA 9E A6    jp   z,$AC3E
-;AC22: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
-;AC25: 36 00       ld   (hl),$00
-;AC27: 21 1D AE    ld   hl,$counter_attack_time_table_AE17
-;AC2A: CD 6E A6    call let_opponent_react_depending_on_skill_level_ACCE
-;AC2D: FE 03       cp   $09
-;AC2F: CA DB A9    jp   z,$fight_mainloop_A37B
-;AC32: A7          and  a
-;AC33: CA 20 A6    jp   z,$AC80
-;AC36: FE FF       cp   $FF
-;AC38: C4 D5 B0    call nz,display_error_text_B075
-;AC3B: C3 20 A6    jp   $AC80
-;AC3E: DD 21 A7 A6 ld   ix,$ACAD
-;AC42: FD 5E 0D    ld   e,(iy+$07)
-;AC45: FD 56 02    ld   d,(iy+$08)
-;AC48: CD 06 B0    call $B00C
-;AC4B: A7          and  a
-;AC4C: C4 D5 B0    call nz,display_error_text_B075
-;AC4F: E5          push hl
-;AC50: FD 6E 0B    ld   l,(iy+$0b)
-;AC53: FD 66 06    ld   h,(iy+$0c)
-;AC56: CB BC       res  7,h
-;AC58: E5          push hl
-;AC59: DD E1       pop  ix
-;AC5B: DD 7E 02    ld   a,(ix+$08)
-;AC5E: DD E1       pop  ix
-;AC60: CD 0F B0    call table_linear_search_B00F
-;AC63: A7          and  a
-;AC64: C2 20 A6    jp   nz,$AC80
-;AC67: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
-;AC6A: 36 00       ld   (hl),$00
-;AC6C: 21 1D AE    ld   hl,$counter_attack_time_table_AE17
-;AC6F: CD 6E A6    call let_opponent_react_depending_on_skill_level_ACCE
-;AC72: FE 03       cp   $09
-;AC74: CA DB A9    jp   z,$fight_mainloop_A37B
-;AC77: A7          and  a
-;AC78: CA 20 A6    jp   z,$AC80
-;AC7B: FE FF       cp   $FF
-;AC7D: C4 D5 B0    call nz,display_error_text_B075
-;AC80: C3 10 A4    jp   cpu_move_done_A410
-;AC83: 22 1A 31    ld   ($911A),hl
-;AC86: A6          and  (hl)
-;AC87: 70          ld   (hl),b
-;AC88: 1A          ld   a,(de)
-;AC89: 37          scf
-;AC8A: A6          and  (hl)
-;AC8B: 12          ld   (de),a
-;AC8C: 1B          dec  de
-;AC8D: A9          xor  c
-;AC8E: A6          and  (hl)
-;AC8F: FF          rst  $38
-;AC90: FF          rst  $38
-;AC91: 50          ld   d,b
-;AC92: 07          rlca
-;AC93: 84          add  a,h
-;AC94: 0F          rrca
-;AC95: 1D          dec  e
-;AC96: 10 DC       djnz $AD0E
-;AC98: 11 EB 11    ld   de,$11EB
-;AC9B: FF          rst  $38
-;AC9C: FF          rst  $38
-;AC9D: B2          or   d
-;AC9E: 0E 33       ld   c,$99
-;ACA0: 0F          rrca
-;ACA1: FF          rst  $38
-;ACA2: FF          rst  $38
-;ACA3: 63          ld   h,e
-;ACA4: 06 7B       ld   b,$DB
-;ACA6: 06 55       ld   b,$55
-;ACA8: 0E 7E       ld   c,$DE
-;ACAA: 18 FF       jr   $ACAB
-;ACAC: FF          rst  $38
-;ACAD: 22 1A BB    ld   ($BB1A),hl
-;ACB0: A6          and  (hl)
-;ACB1: 70          ld   (hl),b
-;ACB2: 1A          ld   a,(de)
-;ACB3: 61          ld   h,c
-;ACB4: A6          and  (hl)
-;ACB5: 12          ld   (de),a
-;ACB6: 1B          dec  de
-;ACB7: 64          ld   h,h
-;ACB8: A6          and  (hl)
-;ACB9: FF          rst  $38
-;ACBA: FF          rst  $38
-;ACBB: 28 2C       jr   z,$AC43
-;ACBD: 22 2B 26    ld   ($8C8B),hl
-;ACC0: FF          rst  $38
-;ACC1: 25          dec  h
-;ACC2: 2D          dec  l
-;ACC3: FF          rst  $38
-;ACC4: 21 24 27    ld   hl,$8D84
-;ACC7: FF          rst  $38
-;ACC8: C3 10 A4    jp   cpu_move_done_A410
-;ACCB: C3 10 A4    jp   cpu_move_done_A410
+
 ;
 ;; blocks a given number of frames (depending on table and level) during which
 ;; the opponent has time to pre-react before the computed already decided 
@@ -1648,3 +1449,9 @@ counter_attack_timers_AE1F:
 	dc.b	$08,$08,$07,$07,$06,$06,$05,$05,$04,$04,$03,$03,$02,$02,$01,$01
 	dc.b	$01,$01,$01,$01,$01,$01,$01,$01,$00,$00,$00,$00,$00,$00,$00,$00
 
+	even
+	
+display_error_text_B075
+	blitz
+	illegal
+	

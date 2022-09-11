@@ -22111,6 +22111,7 @@ A48E: 22 04 6F    ld   (address_of_current_player_move_byte_CF04),hl
 A491: 23          inc  hl
 A492: CD 3C A4    call $A496
 A495: C9          ret
+
 A496: E5          push hl
 A497: 36 00       ld   (hl),$00
 A499: FD 36 0F 03 ld   (iy+$0f),$09
@@ -22174,22 +22175,8 @@ A521: 3E 00       ld   a,$00
 A523: D2 82 A5    jp   nc,$A528
 A526: 3E FF       ld   a,$FF
 A528: C9          ret
-A529: 52          ld   d,d
-A52A: 1D          dec  e
-A52B: 40          ld   b,b
-A52C: 1D          dec  e
-A52D: 82          add  a,d
-A52E: 1D          dec  e
-A52F: 00          nop
-A530: 8D          adc  a,l
-A531: A0          and  b
-A532: 1D          dec  e
-A533: B2          or   d
-A534: 1D          dec  e
-A535: 70          ld   (hl),b
-A536: 1D          dec  e
-A537: E2 1D 00    jp   po,$0017
-A53A: FF          rst  $38
+
+A529:	dc.b  58 17 40 17 28 17 00 27 A0 17 B8 17 D0 17 E8 17 00 FF 
 
 ; jump table depending on the value of iy+0xF
 ; this jumps to another jump table selector (which is not very performant
@@ -23094,7 +23081,7 @@ walk_frames_list_AA3B:
 	dc.b	89 0A 92 0A 9B 0A A4 0A AD 0A B6 0A BF 0A C8 0A FF FF
 jump_frames_list_AA4D:
 	dc.b	$22 0B 8E 0B 97 0B A0 0B A9 0B B2 0B BB 0B C4 0B CD 0B D6 0B DF 0B E8 0B F1 0B FA 0B 73 0B FF FF
-	; frames where the blow reaches its end/is full blown
+	; frames where the blow reaches its end/is full blown (including jumping side kick...)
 hitting_frame_list_AA6D:
 	dc.b	$C0 0C D2 0C 47 0D D7 0D 4C 0E AF 0E 1B 0F 90 0F 0E 10 9E 10 0A 11 6D 11 E2 11 D5 12 4A 13 FF FF
 repositionning_frame_list_AA8D:
@@ -23124,7 +23111,7 @@ crouch_frame_list_AAB3:
 ; $05: small reverse punch
 ; $06: back round kick
 ; $07: lunge punch 400
-; $08: jumping side kick
+; $08: jumping side kick   ; side or back?????
 ; $09: foot sweep front
 ; $0A: round kick
 ; $0B: lunge punch 600
@@ -23344,6 +23331,7 @@ ABF7: FE FF       cp   $FF
 ABF9: C4 D5 B0    call nz,display_error_text_B075
 ABFC: C3 10 A4    jp   cpu_move_done_A410
 
+; seems not to be called. It's possible to call it but I could not trigger it
 ABFF: DD 21 29 A6 ld   ix,$AC83
 AC03: FD 5E 0D    ld   e,(iy+$07)
 AC06: FD 56 02    ld   d,(iy+$08)
@@ -23397,58 +23385,16 @@ AC78: CA 20 A6    jp   z,$AC80
 AC7B: FE FF       cp   $FF
 AC7D: C4 D5 B0    call nz,display_error_text_B075
 AC80: C3 10 A4    jp   cpu_move_done_A410
-AC83: 22 1A 31    ld   ($911A),hl
-AC86: A6          and  (hl)
-AC87: 70          ld   (hl),b
-AC88: 1A          ld   a,(de)
-AC89: 37          scf
-AC8A: A6          and  (hl)
-AC8B: 12          ld   (de),a
-AC8C: 1B          dec  de
-AC8D: A9          xor  c
-AC8E: A6          and  (hl)
-AC8F: FF          rst  $38
-AC90: FF          rst  $38
-AC91: 50          ld   d,b
-AC92: 07          rlca
-AC93: 84          add  a,h
-AC94: 0F          rrca
-AC95: 1D          dec  e
-AC96: 10 DC       djnz $AD0E
-AC98: 11 EB 11    ld   de,$11EB
-AC9B: FF          rst  $38
-AC9C: FF          rst  $38
-AC9D: B2          or   d
-AC9E: 0E 33       ld   c,$99
-ACA0: 0F          rrca
-ACA1: FF          rst  $38
-ACA2: FF          rst  $38
-ACA3: 63          ld   h,e
-ACA4: 06 7B       ld   b,$DB
-ACA6: 06 55       ld   b,$55
-ACA8: 0E 7E       ld   c,$DE
-ACAA: 18 FF       jr   $ACAB
-ACAC: FF          rst  $38
-ACAD: 22 1A BB    ld   ($BB1A),hl
-ACB0: A6          and  (hl)
-ACB1: 70          ld   (hl),b
-ACB2: 1A          ld   a,(de)
-ACB3: 61          ld   h,c
-ACB4: A6          and  (hl)
-ACB5: 12          ld   (de),a
-ACB6: 1B          dec  de
-ACB7: 64          ld   h,h
-ACB8: A6          and  (hl)
-ACB9: FF          rst  $38
-ACBA: FF          rst  $38
-ACBB: 28 2C       jr   z,$AC43
-ACBD: 22 2B 26    ld   ($8C8B),hl
-ACC0: FF          rst  $38
-ACC1: 25          dec  h
-ACC2: 2D          dec  l
-ACC3: FF          rst  $38
-ACC4: 21 24 27    ld   hl,$8D84
-ACC7: FF          rst  $38
+
+; tables, but used by some code that seems not to be called
+AC83  88 1A 91 AC D0 1A 9D AC 18 1B A3 AC FF FF 50 0D   ...¬Ð..¬..£¬ÿÿP.
+AC93  24 0F 17 10 76 11 EB 11 FF FF B8 0E 99 0F FF FF   $...v.ë.ÿÿ¸...ÿÿ
+ACA3  C9 0C DB 0C 55 0E DE 12 FF FF 88 1A BB AC D0 1A   É.Û.U.Þ.ÿÿ..»¬Ð.
+ACB3  C1 AC 18 1B C4 AC FF FF 82 86 88 8B 8C FF 85 87   Á¬..Ä¬ÿÿ.....ÿ..
+ACC3  FF 81 84 8D FF 
+
+
+
 ACC8: C3 10 A4    jp   cpu_move_done_A410
 ACCB: C3 10 A4    jp   cpu_move_done_A410
 

@@ -299,6 +299,29 @@ MOVE_LOW_KICK_3 = 22
 MOVE_FRONT_SOMMERSAULT = 23
 MOVE_FOOT_SWEEP_FRONT_2 = 24
 
+;; codes aren't the same as attack commands but that's not really a problem
+;; thanks to the debugger and conditionnal breakpoints!!!
+;
+ATTACK_BACK_KICK = $01
+ATTACK_JUMPING_SIDE_KICK = $02
+ATTACK_FOOT_SWEEP_BACK = $03
+ATTACK_FRONT_KICK = $04
+ATTACK_WEAK_REVERSE_PUNCH = $05
+ATTACK_BACK_ROUND_KICK = $06
+ATTACK_LUNGE_PUNCH_400 = $07
+ATTACK_JUMPING_BACK_KICK = $08
+ATTACK_FOOT_SWEEP_FRONT = $09
+ATTACK_ROUND_KICK = $0A
+ATTACK_LUNGE_PUNCH_600 = $0B
+ATTACK_LUNGE_PUNCH_1000 = $0C
+ATTACK_REVERSE_PUNCH = $0D
+ATTACK_LOW_KICK = $0E
+;;ATTACK_ $0F: ???? not in those tables
+ATTACK_BACK_SOMMERSAULT = $10
+ATTACK_FRONT_SOMMERSAULT = $11
+ATTACK_BACK_SOMMERSAULT_2 = $12
+
+
 ; don't change the values below, change them above to test!!
 
 	IFND	EVADE_SPEED
@@ -2308,17 +2331,17 @@ draw_loser:
 	rts
 	
 get_winner:
-	lea		player_1(pc),a0
+	lea		player_1,a0
 	tst.b	round_winner(a0)
 	bne.b	.p1
-	lea		player_2(pc),a0
+	lea		player_2,a0
 .p1
 	rts
 get_loser:
-	lea		player_1(pc),a0
+	lea		player_1,a0
 	tst.b	round_winner(a0)
 	beq.b	.p1
-	lea		player_2(pc),a0
+	lea		player_2,a0
 .p1
 	rts
 	
@@ -5590,7 +5613,13 @@ update_player:
 	
 .alive
 	tst.b	controls_blocked_flag
-	beq.b	.no_blocked
+	bne.b	.blocked
+    tst.b	is_cpu(a4)
+	beq.b	.human_player
+	bsr		handle_ai
+	; we arrive here if controls are blocked or
+	; if cpu is in control (because it only moves
+	; with frozen controls & hold timer)
 .blocked
 	moveq.l	#0,d0
 	move.w	frozen_controls_timer(a4),d0
@@ -5602,13 +5631,7 @@ update_player:
 	; controls were frozen
 	move.l	frozen_joystick_state(a4),d0
 	bra.b	.no_demo
-.no_blocked
 
-    tst.b	is_cpu(a4)
-	beq.b	.human_player
-	bsr		handle_ai
-	bra.b	.no_demo
-	
 .human_player
 
     move.l  joystick_state(a4),d0
@@ -5669,6 +5692,7 @@ update_player:
 ;.no_auto_fire
     
     ; read live or recorded controls
+	; enter here with D0: move bits
 .no_demo:
 
 	move.b	move_controls(a4),d2		; previous value
@@ -6932,6 +6956,7 @@ handle_ai
 	rts
 	
 .normal
+
 	include		computer_ai.s
 
 referee_says_very_good:

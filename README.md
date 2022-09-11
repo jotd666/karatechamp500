@@ -32,7 +32,11 @@ multiple evade objects: can be displayed at the same time
 
 check cpu move speed from videos with varying skill level
 
+- table at A529 dump it
 * recode A.I. from fight_mainloop_A390 entrypoint
+
+- OR: provide a table of frozen controls (nb frames) for each move, this will
+  add to the possible wait for player reaction after the move
 
 bugs:
 
