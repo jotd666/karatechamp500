@@ -136,6 +136,7 @@ hand_both_flags = hand_red_or_japan_flag
 	UWORD	block_lock
 	UWORD	nb_rounds_won
 	UWORD	rank
+	UWORD	opponent_reaction_timer		; for A.I
 	UWORD	point_award_countdown
 	UWORD	frozen_controls_timer
 	UWORD	previous_direction   ; previous sprite orientation
@@ -269,6 +270,34 @@ POINTS_BOX_HEIGHT = 18
 MIN_GIRL_PLAYER_DISTANCE = 32
 
 HISCORE_FILE_SIZE = 6*8
+
+; move enumerates (same as the original game)
+
+MOVE_GUARD = 0
+MOVE_BACK = 1
+MOVE_FORWARD = 2
+MOVE_JUMP = 3
+MOVE_CROUCH = 4
+MOVE_BACK_KICK = 5
+MOVE_BACK_KICK_2 = 6
+MOVE_TURN_AROUND = 7
+MOVE_JUMPING_BACK_KICK = 8
+MOVE_FOOT_SWEEP_BACK = 9
+MOVE_FRONT_KICK_OR_REVERSE_PUNCH = 10
+MOVE_BACK_ROUND_KICK = 11
+MOVE_LUNGE_PUNCH_400 = 12
+MOVE_JUMPING_SIDE_KICK = 13
+MOVE_FOOT_SWEEP_FRONT_1 = 14
+MOVE_ROUND_KICK = 15
+MOVE_LUNGE_PUNCH_600 = 16
+MOVE_LUNGE_PUNCH_1000 = 17
+MOVE_REAR_SOMMERSAULT = 18
+MOVE_REVERSE_PUNCH_800 = 19
+MOVE_LOW_KICK = 20
+MOVE_LOW_KICK_2 = 21
+MOVE_LOW_KICK_3 = 22
+MOVE_FRONT_SOMMERSAULT = 23
+MOVE_FOOT_SWEEP_FRONT_2 = 24
 
 ; don't change the values below, change them above to test!!
 
@@ -959,7 +988,7 @@ init_new_play:
 	move.l	(a0,d0.w),picked_practice_table
 	clr.l	current_practice_move_timer
 	move.l	#PRACTICE_WAIT_BEFORE_NEXT_MOVE,next_practice_move_timer
-	clr.w	practice_move_index
+	move.w	#7,practice_move_index
 	
     clr.l   state_timer
 	move.w	#STATE_PLAYING,current_state
@@ -1523,6 +1552,7 @@ hide_sprites:
 ; what: initialize base player properties before each round
 ; < A4 struct
 init_player_common
+	clr.w	opponent_reaction_timer(a4)
 	clr.b	round_winner(a4)
 	clr.b	half_points(a4)
 	clr.w	point_award_countdown(a4)
@@ -6902,7 +6932,7 @@ handle_ai
 	rts
 	
 .normal
-	rts
+	include		computer_ai.s
 
 referee_says_very_good:
 	move.l	a1,-(a7)
@@ -6943,12 +6973,15 @@ update_practice_moves
 	move.l	d0,current_practice_move_timer
 	move.l	picked_practice_table(pc),a0
 	move.w	practice_move_index(pc),d0
-	tst.l	(4,a0,d0.w)
 	bne.b	.no_last_move
 	bsr		referee_says_very_good
 .no_last_move
-	move.l	(a0,d0.w),d0
-	beq.b	.no_more_moves
+	tst.w	d0
+	bmi.b	.no_more_moves
+	move.b	(a0,d0.w),d0
+	move.w	#RIGHT,d1
+	bsr		convert_move_enum_to_joy_controls
+	
 	move.l	d0,current_move_key		; to direct A.I.
 	move.b	#1,current_move_key_message	; display move message
 
@@ -6960,7 +6993,7 @@ update_practice_moves
 	; shorter move type else A.I. would do the jumping kick twice
 	move.l	#PRACTICE_MOVE_DURATION/2,current_practice_move_timer
 .no_jsk
-	addq.w	#4,practice_move_index
+	subq.w	#1,practice_move_index
 .no_more_moves
 	; signal message system to display move name
 	rts
@@ -8067,7 +8100,42 @@ play_fx
     bra _mt_playfx
 .no_sound
     rts
-   
+  
+; d0.b: move enum
+; d1: direction (RIGHT, LEFT) for direction correction
+; trashes: A0
+
+convert_move_enum_to_joy_controls:
+	ext.w	d0
+	add.w	d0,d0
+	add.w	d0,d0
+	lea		enum_to_controls_table(pc),a0
+	move.l	(a0,d0.w),d0
+	cmp.w	#RIGHT,d1
+	beq.b	.out
+	; if left:
+	; change lateral move/action directions
+	moveq.l	#0,d1
+	bclr	#JPB_BTN_LEFT,d0
+	beq.b	.no_left1
+	bset	#JPB_BTN_RIGHT,d1
+.no_left1
+	bclr	#JPB_BTN_RIGHT,d0
+	beq.b	.no_right1
+	bset	#JPB_BTN_LEFT,d1
+.no_right1
+	bclr	#JPB_BTN_ARIGHT,d0
+	beq.b	.no_right2
+	bset	#JPB_BTN_ALEFT,d1
+.no_right2
+	bclr	#JPB_BTN_ALEFT,d0
+	beq.b	.no_left2
+	bset	#JPB_BTN_ARIGHT,d1
+.no_left2
+	or.l	d1,d0
+.out
+	rts
+	
 ; < D0: joystick bits just read
 ; trashes: D1
 convert_joystick_moves_to_buttons
@@ -8696,6 +8764,7 @@ player_one_string_clear
     even
 ; game main tables
 
+
 start_message_list
 	dc.w	24,80
 	dc.l	press_1p_button_for_message 
@@ -9233,6 +9302,35 @@ byte_mirror_table:
 	dc.b	127
 	dc.b	255
 	
+; described facing right
+enum_to_controls_table
+	dc.l	0							; MOVE_GUARD = 0
+	dc.l	JPF_BTN_LEFT				; MOVE_BACK = 1
+	dc.l	JPF_BTN_RIGHT				; MOVE_FORWARD = 2
+	dc.l	JPF_BTN_UP					; MOVE_JUMP = 3
+	dc.l	JPF_BTN_DOWN				; MOVE_CROUCH = 4
+	dc.l	JPF_BTN_ALEFT				; MOVE_BACK_KICK = 5
+	dc.l	JPF_BTN_ALEFT				; MOVE_BACK_KICK_2 = 6
+	dc.l	-1							; MOVE_TURN_AROUND = 7 (not possible)
+	dc.l	JPF_BTN_ALEFT|JPF_BTN_UP	; MOVE_JUMPING_BACK_KICK = 8
+	dc.l	JPF_BTN_ALEFT|JPF_BTN_DOWN	; MOVE_FOOT_SWEEP_BACK = 9
+	dc.l	JPF_BTN_ARIGHT				; MOVE_FRONT_KICK_OR_REVERSE_PUNCH = 10
+	dc.l	JPF_BTN_LEFT|JPF_BTN_ARIGHT	; MOVE_BACK_ROUND_KICK = 11
+	dc.l	JPF_BTN_ARIGHT|JPF_BTN_RIGHT	; MOVE_LUNGE_PUNCH_400 = 12
+	dc.l	JPF_BTN_AUP|JPF_BTN_RIGHT	; MOVE_JUMPING_SIDE_KICK = 13
+	dc.l	JPF_BTN_ARIGHT|JPF_BTN_DOWN	; MOVE_FOOT_SWEEP_FRONT_1 = 14
+	dc.l	JPF_BTN_AUP					; MOVE_ROUND_KICK = 15
+	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT		; MOVE_LUNGE_PUNCH_600 = 16
+	dc.l	JPF_BTN_AUP|JPF_BTN_RIGHT		; MOVE_LUNGE_PUNCH_1000 = 17
+	dc.l	JPF_BTN_AUP|JPF_BTN_UP		; MOVE_REAR_SOMMERSAULT = 18
+	dc.l	JPF_BTN_AUP|JPF_BTN_DOWN		; MOVE_REVERSE_PUNCH_800 = 19
+	dc.l	JPF_BTN_ADOWN		; MOVE_LOW_KICK = 20
+	dc.l	JPF_BTN_ADOWN		; MOVE_LOW_KICK_2 = 21
+	dc.l	JPF_BTN_ADOWN		; MOVE_LOW_KICK_3 = 22
+	dc.l	JPF_BTN_ADOWN|JPF_BTN_UP		; MOVE_FRONT_SOMMERSAULT = 23
+	dc.l	JPF_BTN_ARIGHT|JPF_BTN_DOWN		; MOVE_FOOT_SWEEP_FRONT_2 = 24
+
+
 practice_tables:
 	dc.l	practice_table_1
 	dc.l	practice_table_2
@@ -9243,51 +9341,41 @@ practice_tables:
 REPEAT_PRACTICE = 1
 	ENDC
 	
+; all 3 practice sequences
+; directly ripped from reverse-engineered arcade game (@6301)
+; the sequences are described in reverse order using MOVE_xxx enums
+; example $11=17=MOVE_LUNGE_PUNCH_1000, no need to put back the enums, those
+; are not going to change
 practice_table_1:
-	REPT	REPEAT_PRACTICE
-	dc.l	JPF_BTN_AUP|JPF_BTN_RIGHT	; lunge punch
-	IFD		SHORT_PRACTICE
-	dc.l	0
-	ENDC
-	dc.l	JPF_BTN_ARIGHT	; front kick	
-	dc.l	JPF_BTN_ALEFT	; back kick
-	dc.l	JPF_BTN_ADOWN	; low kick
-	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT	; lunge punch
-	dc.l	JPF_BTN_UP|JPF_BTN_ALEFT	; jumping back kick
-	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
-	dc.l	JPF_BTN_AUP					; round kick
-	ENDR
-	dc.l	0
+	dc.b	$11 	; lunge punch (high, forward)
+	dc.b	$05 	; back kick
+	dc.b	$09 	; foot sweep
+	dc.b	$0A 	; front kick
+	dc.b	$0B 	; back round kick
+	dc.b	$10 	; lunge punch (high, still)
+	dc.b	$14 	; low kick
+	dc.b	$0F 	; round kick  <==== first move of sequence #1
+	
 practice_table_2	
-	REPT	REPEAT_PRACTICE
-	dc.l	JPF_BTN_AUP	; round kick
-	IFD		SHORT_PRACTICE
-	dc.l	0
-	ENDC
-	dc.l	JPF_BTN_ADOWN	; low kick
-	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT	; lunge punch (high, still)
-	dc.l	JPF_BTN_LEFT|JPF_BTN_ARIGHT	; back round kick
-	dc.l	JPF_BTN_ARIGHT	; front kick
-	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
-	dc.l	JPF_BTN_ALEFT	; back kick
-	dc.l	JPF_BTN_AUP|JPF_BTN_RIGHT	; lunge punch (high, forward)
-	ENDR
-	dc.l	0
+	dc.b	$08 	; jumping back kick
+	dc.b	$10 	; lunge punch (high, still)
+	dc.b	$13 	; reverse punch
+	dc.b	$0F 	; round kick
+	dc.b	$09 	; foot sweep (back)
+	dc.b	$14 	; low kick
+	dc.b	$05 	; back kick
+	dc.b	$0A 	; front kick   <==== start of sequence #2
+
 practice_table_3
-	REPT	REPEAT_PRACTICE
-	dc.l	JPF_BTN_ARIGHT	; front kick
-	IFD		SHORT_PRACTICE
-	dc.l	0
-	ENDC
-	dc.l	JPF_BTN_AUP	; round kick
-	dc.l	JPF_BTN_DOWN|JPF_BTN_ALEFT	; foot sweep (back)
-	dc.l	JPF_BTN_ADOWN	; low kick
-	dc.l	JPF_BTN_ALEFT	; back kick
-	dc.l	JPF_BTN_DOWN|JPF_BTN_AUP	; reverse punch
-	dc.l	JPF_BTN_AUP|JPF_BTN_LEFT	; lunge punch (high, still)
-	dc.l	JPF_BTN_UP|JPF_BTN_ALEFT	; jumping back kick
-	ENDR
-	dc.l	0
+	dc.b	$08 	; jumping back kick
+	dc.b	$0F 	; round kick
+	dc.b	$09 	; foot sweep (back)
+	dc.b	$10 	; lunge punch
+	dc.b	$14 	; low kick
+	dc.b	$05 	; back kick
+	dc.b	$0A 	; front kick
+	dc.b	$11 	; lunge punch  <==== start of sequence #3
+	
     
 HW_SpriteXTable
   rept 320
