@@ -135,6 +135,8 @@ hand_both_flags = hand_red_or_japan_flag
 	UWORD	awarded_score_display_timer	
 	UWORD	block_lock
 	UWORD	nb_rounds_won
+	UWORD	rough_distance
+	UWORD	fine_distance
 	UWORD	rank
 	UWORD	opponent_reaction_timer		; for A.I
 	UWORD	point_award_countdown
@@ -321,6 +323,31 @@ ATTACK_BACK_SOMMERSAULT = $10
 ATTACK_FRONT_SOMMERSAULT = $11
 ATTACK_BACK_SOMMERSAULT_2 = $12
 
+; rough distance enums
+; 0: far
+; 1: intermediate, facing other player  (regardless of other player facing direction)
+; 2: very close, facing other player   ("")
+; 3: intermediate, turning back to other player  ("")
+; 4: very close, turning back to other player    ("")
+RDIST_FAR = 0
+RDIST_INTERMEDIATE_FACING_OTHER = 1
+RDIST_CLOSE_FACING_OTHER = 2
+RDIST_INTERMEDIATE_TURNING_BACK_TO_OTHER = 3
+RDIST_CLOSE_TURNING_BACK_TO_OTHER = 4
+
+; fine distance enums
+; 0: players far away
+; 1-4: same but the bigger the number, the closer the players
+; 5-8: 5 player 1 far right ... 8 players 1 & 2 very close, player 1 on the right
+FDIST_VERY_FAR = 0
+FDIST_FAR_OPPONENT_LEFT = 1
+FDIST_CLOSE_OPPONENT_LEFT = 2
+FDIST_CLOSER_OPPONENT_LEFT = 3
+FDIST_CLOSEST_OPPONENT_LEFT = 4
+FDIST_FAR_OPPONENT_RIGHT = 5
+FDIST_CLOSE_OPPONENT_RIGHT = 6
+FDIST_CLOSER_OPPONENT_RIGHT = 7
+FDIST_VERY_CLOSE = 8
 
 ; don't change the values below, change them above to test!!
 
@@ -5520,10 +5547,79 @@ play_loop_fx
     bra _mt_loopfx
 .nosfx
     rts
+
+; what: compute fine distance for player (used in A.I)
+; < A4 cpu structure
+
+update_fine_distance:
+	tst.b	is_cpu(a4)
+	beq.b	.out		; not necessary for human player
+	move.w	#FDIST_FAR,d2
+	moveq	#0,d1
+	move.l	opponent(a4),a3
+	move.w	xpos(a4),d0
+	sub.w	xpos(a3),d0
+	bpl.b	.pos
+	neg.w	d0
+	moveq	#1,d1
+.pos
+
+.out
+	rts
  
+; what: compute rough distance for player
+; < A4 cpu structure
+; there are 2 kinds of distance, that one is the one which
+; is used to select attacks like front kick vs reverse punch
+; also used in A.I. but also in 2 player mode
+; trashes: a lot of registers :)
+
+update_rough_distance:
+	move.w	#RDIST_FAR,d2
+	moveq	#0,d1
+	move.l	opponent(a4),a3
+	move.w	xpos(a4),d0
+	sub.w	xpos(a3),d0
+	bpl.b	.pos
+	neg.w	d0
+	moveq	#1,d1
+.pos
+	cmp.w	#$70,d0
+	bcc.b	.done		; far: ok
+	
+	cmp.w	#$40,d0
+	bcc.b	.intermediate
+	; close
+	move.w	#RDIST_CLOSE_FACING_OTHER,d2
+	bra.b	.resolve_facing
+.intermediate
+	move.w	#RDIST_INTERMEDIATE_FACING_OTHER,d2
+.resolve_facing
+	; facing other player or not?
+	move.w	direction(a4),d3
+	tst		d1
+	beq.b	.player_on_the_right
+; player to the left
+	; to face other, player must face right
+	cmp.w	#RIGHT,d3
+	beq.b	.done
+	addq.w	#2,d2
+	bra.b	.done
+.player_on_the_right:
+	; to face other, player must face left
+	cmp.w	#LEFT,d3
+	beq.b	.done
+	addq.w	#2,d2
+	
+.done
+	move.w	d2,rough_distance(a4)
+	rts
+	
 ; < A4 player structure
 
 update_player:
+	bsr		update_rough_distance
+	bsr		update_fine_distance
 	move.w	hit_by_blow(a4),d0
 	cmp.w	#BLOW_NONE,d0
 	beq.b	.alive

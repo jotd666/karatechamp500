@@ -41,7 +41,8 @@
 ; +0A: current move index (at least during practice)
 ; +0B/+0C: frame id, like 07/08 for opponent player. Note: bit 8 of C22C set: opponent facing right, maybe
 ;     only important for frame display
-; +0D ??? a x-threshold or distance??
+; +0D opponent player x
+; +0E oppnent move index
 ; +0F ($C20F): player logical distance, often addressed as  bit  7,(iy+$0f)
 ; bit 7 set => means players are not facing each other
 ; then
@@ -22085,6 +22086,7 @@ A446: FD 72 02    ld   (iy+$08),d
 A449: FD 75 03    ld   (iy+$09),l	 
 A44C: FD 74 0A    ld   (iy+$0a),h	 ; 
 A44F: D9          exx
+; copy coords to opponent structure
 A450: FD 73 0B    ld   (iy+$0b),e
 A453: FD 72 06    ld   (iy+$0c),d
 A456: FD 75 07    ld   (iy+$0d),l
@@ -22112,6 +22114,7 @@ A491: 23          inc  hl
 A492: CD 3C A4    call $A496
 A495: C9          ret
 
+; sets attack distance (0,1,2)
 A496: E5          push hl
 A497: 36 00       ld   (hl),$00
 A499: FD 36 0F 03 ld   (iy+$0f),$09
@@ -22147,11 +22150,11 @@ A4DF: CB 3F       srl  a
 A4E1: D2 E5 A4    jp   nc,$A4E5
 A4E4: 3C          inc  a
 A4E5: E1          pop  hl
-; sets attack distance (0,1,2)
 A4E6: 77          ld   (hl),a
-A4E7: FD 7E 07    ld   a,(iy+$0d)
-A4EA: FD BE 03    cp   (iy+$09)
+A4E7: FD 7E 07    ld   a,(iy+$0d)	; opponent x
+A4EA: FD BE 03    cp   (iy+$09)		; player x
 A4ED: DA FE A4    jp   c,$A4FE
+; opponent is on the right
 A4F0: FD CB 06 DE bit  7,(iy+$0c)
 A4F4: C2 03 A5    jp   nz,$A509
 A4F7: FD CB 0F FE set  7,(iy+$0f)
@@ -22160,6 +22163,7 @@ A4FE: FD CB 06 DE bit  7,(iy+$0c)
 A502: CA 03 A5    jp   z,$A509
 A505: FD CB 0F FE set  7,(iy+$0f)
 A509: C9          ret
+
 A50A: 7E          ld   a,(hl)
 A50B: A7          and  a
 A50C: FA 1A A5    jp   m,$A51A
@@ -22196,6 +22200,7 @@ A548: DD 6E 00    ld   l,(ix+$00)
 A54B: DD 66 01    ld   h,(ix+$01)
 A54E: E9          jp   (hl)
 
+; 0: players very far away
 ; 1-4: same but the bigger the number, the closer the players
 ; 5-8: 5 player 1 far right ... 8 players 1 & 2 very close, player 1 on the right
 
@@ -24593,6 +24598,7 @@ B439: FD 23       inc  iy
 B43B: 05          dec  b
 B43C: C2 76 B9    jp   nz,$B3DC
 B43F: C9          ret
+
 B440: DD 7E 00    ld   a,(ix+$00)
 B443: BA          cp   d
 B444: CA 4A B4    jp   z,$B44A

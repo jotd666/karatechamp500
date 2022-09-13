@@ -1,7 +1,11 @@
 
+
+
+
 ; < A4: computer player structure
 
 handle_cpu_opponent:
+	
 	; first, check if player reaction timer has been loaded, if so, return immediately
 	; without any move
 	move.w	frozen_controls_timer(a4),d0
@@ -70,21 +74,6 @@ handle_cpu_opponent:
 ;A3C5: E1          pop  hl
 ;A3C6: A7          and  a
 ;A3C7: C2 E9 AB    jp   nz,full_blown_hit_ABE3	; missed cpu hit: let player react
-
-;; the rest of the routine seems to end in cpu_move_done_A410 100% of the time...
-;A3CA: DD 21 27 AA ld   ix,repositionning_frame_list_AA8D	; ???? why did I put "repositionning" there?
-;A3CE: E5          push hl
-;A3CF: CD 03 B0    call check_hl_in_ix_list_B009
-;A3D2: E1          pop  hl
-;A3D3: A7          and  a
-;A3D4: C2 FF AB    jp   nz,$ABFF	; doesn't seem to happen, ever, "repositionning" frames are AWOL
-;; ends up jumping to cpu_move_done_A410 whatever the outcome...
-;A3D7: E5          push hl
-;A3D8: DD E1       pop  ix
-;A3DA: DD 7E 02    ld   a,(ix+$08)
-;A3DD: A7          and  a
-;A3DE: C2 62 A6    jp   nz,$ACC8		; move done
-;A3E1: C3 6B A6    jp   $ACCB		; move done
 
 	bra.b	cpu_move_done_A410
 	
@@ -180,114 +169,6 @@ remain_frames_table
 	dc.w	60		; MOVE_FRONT_SOMMERSAULT = 23
 	dc.w	60		; MOVE_FOOT_SWEEP_FRONT_2 = 24
 	
-;update_players_struct_C2xx_A428:
-;A428: CD B7 B0    call $B0BD		; calls write_0_in_port_1_BBE2 ???
-;A42B: ED 5B 4D 68 ld   de,($C247)		; load animation/position of player 1
-;A42F: 2A 43 68    ld   hl,($C249)		; load xy for player 1
-;A432: D9          exx  ; EXX exchanges BC, DE, and HL with shadow registers with BC', DE', and HL'.
-;A433: ED 5B CD 68 ld   de,($C267)		; load animation/position of player 2
-;A437: 2A C3 68    ld   hl,($C269)		; load xy for player 2
-;A43A: 3A 82 60    ld   a,(player_2_attack_flags_C028)
-;A43D: FE 03       cp   $09
-;A43F: CA 49 A4    jp   z,$A443
-;A442: D9          exx	; depending on the configuration (which is the human opponent), swap values
-;; frame ID (16 bit) in e and d
-;A443: FD 73 0D    ld   (iy+$07),e
-;A446: FD 72 02    ld   (iy+$08),d
-;; l: x coord (player 1: $C209) min $20
-;A449: FD 75 03    ld   (iy+$09),l	 
-;A44C: FD 74 0A    ld   (iy+$0a),h	 ; 
-;A44F: D9          exx
-;A450: FD 73 0B    ld   (iy+$0b),e
-;A453: FD 72 06    ld   (iy+$0c),d
-;A456: FD 75 07    ld   (iy+$0d),l
-;A459: FD 74 0E    ld   (iy+$0e),h
-;A45C: CD 60 B0    call $B0C0
-;A45F: FD CB 02 DE bit  7,(iy+$08)
-;A463: CA 20 A4    jp   z,$A480
-;A466: FD CB 02 BE res  7,(iy+$08)
-;A46A: FD 7E 03    ld   a,(iy+$09)
-;A46D: 2F          cpl
-;A46E: FD 77 03    ld   (iy+$09),a
-;A471: FD 7E 06    ld   a,(iy+$0c)
-;A474: EE 20       xor  $80
-;A476: FD 77 06    ld   (iy+$0c),a
-;A479: FD 7E 07    ld   a,(iy+$0d)
-;A47C: 2F          cpl
-;A47D: FD 77 07    ld   (iy+$0d),a
-;A480: 21 CB 68    ld   hl,$C26B
-;A483: 3A 82 60    ld   a,(player_2_attack_flags_C028)
-;A486: FE 03       cp   $09
-;A488: CA 2E A4    jp   z,$A48E
-;A48B: 21 4B 68    ld   hl,current_move_C24B
-;A48E: 22 04 6F    ld   (address_of_current_player_move_byte_CF04),hl
-;A491: 23          inc  hl
-;A492: CD 3C A4    call $A496
-;A495: C9          ret
-
-;A496: E5          push hl
-;A497: 36 00       ld   (hl),$00
-;A499: FD 36 0F 03 ld   (iy+$0f),$09
-;A49D: DD 21 00 6F ld   ix,$CF00
-;A4A1: 2A 93 A5    ld   hl,($A539)
-;A4A4: 22 08 6F    ld   ($CF02),hl
-;A4A7: 21 83 A5    ld   hl,$A529
-;A4AA: FD 56 07    ld   d,(iy+$0d)
-;A4AD: FD 5E 0E    ld   e,(iy+$0e)
-;A4B0: AF          xor  a
-;A4B1: FD 35 0F    dec  (iy+$0f)
-;A4B4: CA E5 A4    jp   z,$A4E5
-;A4B7: CD 0A A5    call $A50A
-;A4BA: A7          and  a
-;A4BB: CA 69 A4    jp   z,$A4C3
-;A4BE: 23          inc  hl
-;A4BF: 23          inc  hl
-;A4C0: C3 B0 A4    jp   $A4B0
-;A4C3: FD 7E 03    ld   a,(iy+$09)
-;A4C6: 86          add  a,(hl)
-;A4C7: DD 77 00    ld   (ix+$00),a
-;A4CA: 23          inc  hl
-;A4CB: 7E          ld   a,(hl)
-;A4CC: DD 77 01    ld   (ix+$01),a
-;A4CF: 23          inc  hl
-;A4D0: CD 48 B0    call $B042
-;A4D3: A7          and  a
-;A4D4: CA B0 A4    jp   z,$A4B0
-;A4D7: 3E 03       ld   a,$09
-;A4D9: FD 96 0F    sub  (iy+$0f)
-;A4DC: FD 77 0F    ld   (iy+$0f),a
-;A4DF: CB 3F       srl  a
-;A4E1: D2 E5 A4    jp   nc,$A4E5
-;A4E4: 3C          inc  a
-;A4E5: E1          pop  hl
-;; sets attack distance (0,1,2)
-;A4E6: 77          ld   (hl),a
-;A4E7: FD 7E 07    ld   a,(iy+$0d)
-;A4EA: FD BE 03    cp   (iy+$09)
-;A4ED: DA FE A4    jp   c,$A4FE
-;A4F0: FD CB 06 DE bit  7,(iy+$0c)
-;A4F4: C2 03 A5    jp   nz,$A509
-;A4F7: FD CB 0F FE set  7,(iy+$0f)
-;A4FB: C3 03 A5    jp   $A509
-;A4FE: FD CB 06 DE bit  7,(iy+$0c)
-;A502: CA 03 A5    jp   z,$A509
-;A505: FD CB 0F FE set  7,(iy+$0f)
-;A509: C9          ret
-;A50A: 7E          ld   a,(hl)
-;A50B: A7          and  a
-;A50C: FA 1A A5    jp   m,$A51A
-;A50F: FD 86 03    add  a,(iy+$09)
-;A512: 3E 00       ld   a,$00
-;A514: D2 82 A5    jp   nc,$A528
-;A517: C3 8C A5    jp   $A526
-;A51A: ED 44       neg
-;A51C: 47          ld   b,a
-;A51D: FD 7E 03    ld   a,(iy+$09)
-;A520: 90          sub  b
-;A521: 3E 00       ld   a,$00
-;A523: D2 82 A5    jp   nc,$A528
-;A526: 3E FF       ld   a,$FF
-;A528: C9          ret
 
 ;
 ;; jump table depending on the value of iy+0xF
@@ -311,54 +192,54 @@ maybe_attack_opponent_A53B
 ;; 1-4: same but the bigger the number, the closer the players
 ;; 5-8: 5 player 1 far right ... 8 players 1 & 2 very close, player 1 on the right
 ;
-;jump_table_A54F: 
-;	dc.w	ai_load_table_opp_left_cpu_right_very_far_A561	; 0
-;	dc.w	ai_load_table_opp_left_cpu_right_far_A561		; 1
-;	dc.w	ai_load_table_opp_left_cpu_right_close_A56F		; 2
-;	dc.w	ai_load_table_opp_left_cpu_right_closer_A576	; 3
-;	dc.w	ai_load_table_opp_left_cpu_right_closest_A57D	; 4 
-;	dc.w	ai_load_table_opp_right_cpu_left_far_A584 		; 5
-;	dc.w	ai_load_table_opp_right_cpu_left_close_A58B 	; 6
-;	dc.w	ai_load_table_opp_right_cpu_left_closer_A592	; 7 
-;	dc.w	ai_load_table_opp_right_cpu_left_closest_A599 	; 8
+jump_table_A54F: 
+	dc.l	ai_jump_table_all_move_towards_opponent_A651	; 0
+	dc.l	ai_jump_table_opp_left_far_A5C5		; 1
+	dc.l	ai_jump_table_opp_left_close_A5D9		; 2
+	dc.l	ai_jump_table_opp_left_closer_A5ED	; 3
+	dc.l	ai_jump_table_opp_left_closest_A601	; 4 
+	dc.l	ai_jump_table_opp_right_far_A615 		; 5
+	dc.l	ai_jump_table_opp_right_close_A629 	; 6
+	dc.l	ai_jump_table_opp_right_closer_A63D	; 7 
+	dc.l	ai_jump_table_all_turn_back_A651 	; 8
 ;
 ;; p1 left, p2 right, far away (C20F = 0)
-;ai_jump_table_opp_left_cpu_right_very_far_A561:
-;A561: DD 21 B1 A5 ld   ix,computer_ai_jump_table_all_move_towards_opponent_A651
+;ai_load_table_opp_left_cpu_right_very_far_A561:
+;A561: DD 21 B1 A5 ld   ix,0
 ;A565: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ;
 ;; p1 left, p2 right, less far away (1)
 ;ai_load_table_opp_left_cpu_right_far_A561: 
-;A561: DD 21 65 A5 ld   ix,ai_jump_table_opp_left_cpu_right_far_A5C5
+;A561: DD 21 65 A5 ld   ix,1
 ;A56C: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ;; p1 left, p2 right, less far away (2)
 ;ai_load_table_opp_left_cpu_right_close_A56F:
-;A56F: DD 21 73 A5 ld   ix,ai_jump_table_opp_left_cpu_right_close_A5D9
+;A56F: DD 21 73 A5 ld   ix,2
 ;A573: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ;; p1 left, p2 right, less far away (3)
 ;ai_load_table_opp_left_cpu_right_closer_A576:
-;A576: DD 21 E7 A5 ld   ix,ai_jump_table_opp_left_cpu_right_closer_A5ED
+;A576: DD 21 E7 A5 ld   ix,3
 ;A57A: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ;; p1 left, p2 right, very close (4)
 ;ai_load_table_opp_left_cpu_right_closest_A57D:
-;A57D: DD 21 01 AC ld   ix,ai_jump_table_opp_left_cpu_right_closest_A601
+;A57D: DD 21 01 AC ld   ix,4
 ;A581: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ;; p1 right, p2 left, far away (5)
 ;ai_load_table_opp_right_cpu_left_far_A584:
-;A584: DD 21 15 AC ld   ix,ai_jump_table_A615
+;A584: DD 21 15 AC ld   ix,5
 ;A588: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ;; 6
 ;ai_load_table_opp_right_cpu_left_close_A58B:
-;A58B: DD 21 83 AC ld   ix,ai_jump_table_A629
+;A58B: DD 21 83 AC ld   ix,
 ;A58F: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ;; 7
 ;ai_load_table_opp_right_cpu_left_closer_A592:
-;A592: DD 21 97 AC ld   ix,ai_jump_table_A63D
+;A592: DD 21 97 AC ld   ix,
 ;A596: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ;; p1 right, p2 left, very close (8)
 ;; turn back (to face opponent)
 ;ai_load_table_opp_right_cpu_left_closest_A599:
-;A599: DD 21 51 AC ld   ix,computer_ai_jump_table_all_turn_back_A651
+;A599: DD 21 51 AC ld   ix,
 ;jump_to_routine_from_table_A59D
 ;A59D: DD E5       push ix
 ;A59F: CD C5 AC    call classify_opponent_move_start_A665	; retrieve value 1 -> 9
@@ -376,7 +257,7 @@ maybe_attack_opponent_A53B
 ;
 ;; makes sense: players are far away, CPU just tries to get closer to player
 ;; but can also change direction
-computer_ai_jump_table_all_move_towards_opponent_A651:
+ai_jump_table_all_move_towards_opponent_A651:
 	dc.l	display_error_text_B075                        ; what opponent does:
 ;	dc.l	cpu_move_forward_towards_enemy_far_away_A6D4   ; 1: no particular stuff
 ;	dc.l	cpu_move_forward_towards_enemy_far_away_A6D4   ; 2: frontal attack
@@ -388,7 +269,7 @@ computer_ai_jump_table_all_move_towards_opponent_A651:
 ;	dc.l	cpu_move_forward_towards_enemy_far_away_A6D4   ; 8: starting a jump
 ;	dc.l	cpu_move_forward_towards_enemy_far_away_A6D4   ; 9: move not in list
 ;	
-ai_jump_table_opp_left_cpu_right_far_A5C5
+ai_jump_table_opp_left_far_A5C5
 	dc.l	display_error_text_B075                             ; what opponent does:
 ;	dc.l	cpu_move_forward_towards_enemy_A6E7	                ; 1: no particular stuff
 ;	dc.l	cpu_forward_or_stop_if_facing_A6EF					; 2: frontal attack
@@ -400,7 +281,7 @@ ai_jump_table_opp_left_cpu_right_far_A5C5
 ;	dc.l	cpu_move_forward_towards_enemy_A71D	                ; 8: starting a jump
 ;	dc.l	cpu_move_forward_towards_enemy_A71D	                ; 9: move not in list
 ;	
-ai_jump_table_opp_left_cpu_right_close_A5D9:
+ai_jump_table_opp_left_close_A5D9:
 	dc.l	display_error_text_B075                             ; what opponent does:
 ;	dc.l	attack_once_out_of_16_frames_else_walk_A725         ; 1: no particular stuff
 ;	dc.l	cpu_avoids_low_attack_if_facing_else_maybe_attacks_A73F   ; 2: frontal attack
@@ -412,7 +293,7 @@ ai_jump_table_opp_left_cpu_right_close_A5D9:
 ;	dc.l	attack_once_out_of_16_frames_else_walk_A725	        ; 8: starting a jump  $A7F7	jumps there
 ;	dc.l	cpu_move_forward_towards_enemy_A7FA                 ; 9: move not in list
 ;	
-ai_jump_table_opp_left_cpu_right_closer_A5ED	
+ai_jump_table_opp_left_closer_A5ED	
 	dc.l	display_error_text_B075                             ; what opponent does:
 ;	dc.l	pick_cpu_attack_A802                                ; 1: no particular stuff
 ;	dc.l	cpu_reacts_to_low_attack_if_facing_else_attacks_A80C; 2: frontal attack
@@ -424,7 +305,7 @@ ai_jump_table_opp_left_cpu_right_closer_A5ED
 ;	dc.l	pick_cpu_attack_A802  ; $A911 calls it              ; 8: starting a jump
 ;	dc.l	pick_cpu_attack_A802  ; $A914 calls it              ; 9: move not in list
 ;	
-ai_jump_table_opp_left_cpu_right_closest_A601
+ai_jump_table_opp_left_closest_A601
 	dc.l	display_error_text_B075                             ; what opponent does:
 ;	dc.l	get_out_of_edge_or_low_kick_A917                    ; 1: no particular stuff
 ;	dc.l	cpu_reacts_to_low_attack_if_facing_else_attacks_A80C; 2: frontal attack $A92F
@@ -436,29 +317,29 @@ ai_jump_table_opp_left_cpu_right_closest_A601
 ;	dc.l	perform_walk_back_A946                             ; 8: starting a jump
 ;	dc.l	front_kick_or_fwd_sommersault_to_recenter_A94E      ; 9: move not in list
 ;	                                                            
-ai_jump_table_A615
+ai_jump_table_opp_right_far_A615
 	dc.l	display_error_text_B075
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-ai_jump_table_A629
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+ai_jump_table_opp_right_close_A629
 	dc.l	display_error_text_B075
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-;	dc.l	cpu_move_turn_around_A966
-computer_ai_jump_table_A63D
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+	dc.l	cpu_move_turn_around_A966
+ai_jump_table_opp_right_closer_A63D
 	dc.l	display_error_text_B075       ; what opponent does:
 ;	dc.l	select_cpu_attack_A96E        ; 1: no particular stuff
 ;	dc.l	cpu_complex_reaction_to_front_attack_A980     ; 2: frontal high attack
@@ -467,20 +348,22 @@ computer_ai_jump_table_A63D
 ;	dc.l	select_cpu_attack_A96E        ; 5 in-jump    $AA22                
 ;	dc.l	cpu_turn_back_AA25            ; 6: sommersault forward       
 ;	dc.l	cpu_turn_back_AA25            ; 7: sommersault backwards     
-;	dc.l	select_cpu_attack_A96E		  ; 8: starting a jump     $AA2D
-;	dc.l	select_cpu_attack_A96E		  ; 9: move not in list      $AA30
+;	dc.l	select_cpu_attack_A96E		  ; 8: starting a jump
+;	dc.l	select_cpu_attack_A96E		  ; 9: move not in list
+; opponent right closest: just landed it cpu back (not possible otherwise)
+; turn back (no need to test)
 computer_ai_jump_table_all_turn_back_A651
 	dc.l	display_error_text_B075
-;	dc.l	cpu_turn_back_AA33
-;	dc.l	cpu_turn_back_AA33
-;	dc.l	cpu_turn_back_AA33
-;	dc.l	cpu_turn_back_AA33
-;	dc.l	cpu_turn_back_AA33
-;	dc.l	cpu_turn_back_AA33
-;	dc.l	cpu_turn_back_AA33
-;	dc.l	cpu_turn_back_AA33
-;	dc.l	cpu_turn_back_AA33
-;
+	dc.l	cpu_turn_back_AA33
+	dc.l	cpu_turn_back_AA33
+	dc.l	cpu_turn_back_AA33
+	dc.l	cpu_turn_back_AA33
+	dc.l	cpu_turn_back_AA33
+	dc.l	cpu_turn_back_AA33
+	dc.l	cpu_turn_back_AA33
+	dc.l	cpu_turn_back_AA33
+	dc.l	cpu_turn_back_AA33
+
 
 ;
 ;; given opponent moves (not distance), return a value between 1 and 9
@@ -1021,18 +904,13 @@ classify_opponent_move_start_A665:
 ;AA1F: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 ;AA22: C3 CE A3    jp   select_cpu_attack_A96E
 ;
-;cpu_turn_back_AA25:
-;AA25: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
-;AA28: 36 0D       ld   (hl),$07
-;AA2A: C3 10 A4    jp   cpu_move_done_A410
-;
-;AA2D: C3 CE A3    jp   select_cpu_attack_A96E
-;AA30: C3 CE A3    jp   select_cpu_attack_A96E
-;
-;cpu_turn_back_AA33:
+cpu_turn_back_AA25:
+cpu_turn_back_AA33:
 ;AA33: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;AA36: 36 0D       ld   (hl),$07
 ;AA38: C3 10 A4    jp   cpu_move_done_A410
+	move.w	#7,d7
+	bra		cpu_move_done_A410
 ;
 ;; collection of tables exploited by B009 at various points of the A.I. code
 ;; probably specific animation frames of techniques so the computer
@@ -1454,4 +1332,6 @@ counter_attack_timers_AE1F:
 display_error_text_B075
 	blitz
 	illegal
+
+
 	
