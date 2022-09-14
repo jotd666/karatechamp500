@@ -336,17 +336,25 @@ RDIST_INTERMEDIATE_TURNING_BACK_TO_OTHER = 3
 RDIST_CLOSE_TURNING_BACK_TO_OTHER = 4
 
 ; fine distance enums
-; 0: players far away
-; 1-4: same but the bigger the number, the closer the players
-; 5-8: 5 player 1 far right ... 8 players 1 & 2 very close, player 1 on the right
+; 0: back 2 back distance > 0x70
+; 1-4: opponent faces current player (which can turn its back to opponent, see bit 7)
+; 1: back 2 back distance > 0x58
+; 2: back 2 back distance > 0x40
+; 3: back 2 back distance > 0x28
+; 4: back 2 back distance > 0x10
+; 5-7: opponent turns back to current player (which can turn its back to opponent, see bit 7)
+; 5: back 2 back distance > 0x60
+; 6: back 2 back distance > 0x30
+; 7: back 2 back distance > 0x18
+; 8: smaller distance (<= 0x10/0x18) (at least one player must turn his back)
 FDIST_VERY_FAR = 0
-FDIST_FAR_OPPONENT_LEFT = 1
-FDIST_CLOSE_OPPONENT_LEFT = 2
-FDIST_CLOSER_OPPONENT_LEFT = 3
-FDIST_CLOSEST_OPPONENT_LEFT = 4
-FDIST_FAR_OPPONENT_RIGHT = 5
-FDIST_CLOSE_OPPONENT_RIGHT = 6
-FDIST_CLOSER_OPPONENT_RIGHT = 7
+FDIST_FAR_OPPONENT_FACES = 1
+FDIST_CLOSE_OPPONENT_FACES = 2
+FDIST_CLOSER_OPPONENT_FACES = 3
+FDIST_CLOSEST_OPPONENT_FACES = 4
+FDIST_FAR_OPPONENT_TURNS_BACK = 5
+FDIST_CLOSE_OPPONENT_TURNS_BACK = 6
+FDIST_CLOSER_OPPONENT_TURNS_BACK = 7
 FDIST_VERY_CLOSE = 8
 
 ; don't change the values below, change them above to test!!

@@ -44,12 +44,22 @@
 ; +0D opponent player x
 ; +0E oppnent move index
 ; +0F ($C20F): player logical distance, often addressed as  bit  7,(iy+$0f)
-; bit 7 set => means players are not facing each other
+; distance seems to be computed from the backs of the players
+; bit 7 set => means current player is turning his back to opponent)
 ; then
-; 0: players far away, player 1 to the left, player 2 to the right
-; 1-4: same but the bigger the number, the closer the players
-; 5-8: 5 player 1 far right ... 8 players 1 & 2 very close, player 1 on the right
-
+; 0: back 2 back distance > 0x70
+; 1-4: opponent faces current player (which can turn its back to opponent, see bit 7)
+; 1: back 2 back distance > 0x58
+; 2: back 2 back distance > 0x40
+; 3: back 2 back distance > 0x28
+; 4: back 2 back distance > 0x10
+; 5-7: opponent turns back to current player (which can turn its back to opponent, see bit 7)
+; 5: back 2 back distance > 0x60
+; 6: back 2 back distance > 0x30
+; 7: back 2 back distance > 0x18
+; 8: smaller distance (<= 0x10/0x18) (at least one player must turn his back)
+;
+; there's a $10 (8 ?) offset depending on facing
 
 ; C240: player 1 structure
 ; +2: 0 when not animated, else number of ticks to stay in the current animation frame
@@ -75,6 +85,12 @@
 ; the value of
 ; C24C is: 02
 ; C26C is: 04
+;
+; changing C249 immediately reflects on player 1 (white) moving x wise
+; changing C269 immediately reflects on player 2 (red) moving x wise
+; players can't be exactly at the same position. At least $10 distance is required
+; (setting values too close to each other results in game correcting them, same for min/max)
+;
 
 ; the codes don't match exact moves, but rather the attack type
 ; there is often only one attack type (back kick) but sometimes there are
@@ -22200,57 +22216,54 @@ A548: DD 6E 00    ld   l,(ix+$00)
 A54B: DD 66 01    ld   h,(ix+$01)
 A54E: E9          jp   (hl)
 
-; 0: players very far away
-; 1-4: same but the bigger the number, the closer the players
-; 5-8: 5 player 1 far right ... 8 players 1 & 2 very close, player 1 on the right
-
+; fine distance 0-8 see table at the start of the file
 jump_table_A54F: 
-	dc.w	ai_load_table_opp_left_cpu_right_very_far_A561	; 0
-	dc.w	ai_load_table_opp_left_cpu_right_far_A561		; 1
-	dc.w	ai_load_table_opp_left_cpu_right_close_A56F		; 2
-	dc.w	ai_load_table_opp_left_cpu_right_closer_A576	; 3
-	dc.w	ai_load_table_opp_left_cpu_right_closest_A57D	; 4 
-	dc.w	ai_load_table_opp_right_cpu_left_far_A584 		; 5
-	dc.w	ai_load_table_opp_right_cpu_left_close_A58B 	; 6
-	dc.w	ai_load_table_opp_right_cpu_left_closer_A592	; 7 
-	dc.w	ai_load_table_opp_right_cpu_left_closest_A599 	; 8
+	dc.w	ai_load_table_opp_faces_very_far_A561	; 0
+	dc.w	ai_load_table_opp_faces_far_A561		; 1
+	dc.w	ai_load_table_opp_faces_close_A56F		; 2
+	dc.w	ai_load_table_opp_faces_closer_A576	; 3
+	dc.w	ai_load_table_opp_faces_closest_A57D	; 4 
+	dc.w	ai_load_table_opp_turns_back_far_A584 		; 5
+	dc.w	ai_load_table_opp_turns_back_close_A58B 	; 6
+	dc.w	ai_load_table_opp_turns_back_closer_A592	; 7 
+	dc.w	ai_load_table_opp_turns_back_closest_A599 	; 8
 
 ; p1 left, p2 right, far away (C20F = 0)
-ai_jump_table_opp_left_cpu_right_very_far_A561:
+ai_jump_table_opp_faces_very_far_A561:
 A561: DD 21 B1 A5 ld   ix,computer_ai_jump_table_all_move_towards_opponent_A651
 A565: C3 37 A5    jp   jump_to_routine_from_table_A59D
 
 ; p1 left, p2 right, less far away (1)
-ai_load_table_opp_left_cpu_right_far_A561: 
-A561: DD 21 65 A5 ld   ix,ai_jump_table_opp_left_cpu_right_far_A5C5
+ai_load_table_opp_faces_far_A561: 
+A561: DD 21 65 A5 ld   ix,ai_jump_table_opp_faces_far_A5C5
 A56C: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ; p1 left, p2 right, less far away (2)
-ai_load_table_opp_left_cpu_right_close_A56F:
-A56F: DD 21 73 A5 ld   ix,ai_jump_table_opp_left_cpu_right_close_A5D9
+ai_load_table_opp_faces_close_A56F:
+A56F: DD 21 73 A5 ld   ix,ai_jump_table_opp_faces_close_A5D9
 A573: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ; p1 left, p2 right, less far away (3)
-ai_load_table_opp_left_cpu_right_closer_A576:
-A576: DD 21 E7 A5 ld   ix,ai_jump_table_opp_left_cpu_right_closer_A5ED
+ai_load_table_opp_faces_closer_A576:
+A576: DD 21 E7 A5 ld   ix,ai_jump_table_opp_faces_closer_A5ED
 A57A: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ; p1 left, p2 right, very close (4)
-ai_load_table_opp_left_cpu_right_closest_A57D:
-A57D: DD 21 01 AC ld   ix,ai_jump_table_opp_left_cpu_right_closest_A601
+ai_load_table_opp_faces_closest_A57D:
+A57D: DD 21 01 AC ld   ix,ai_jump_table_opp_faces_closest_A601
 A581: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ; p1 right, p2 left, far away (5)
-ai_load_table_opp_right_cpu_left_far_A584:
+ai_load_table_opp_turns_back_far_A584:
 A584: DD 21 15 AC ld   ix,ai_jump_table_A615
 A588: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ; 6
-ai_load_table_opp_right_cpu_left_close_A58B:
+ai_load_table_opp_turns_back_close_A58B:
 A58B: DD 21 83 AC ld   ix,ai_jump_table_A629
 A58F: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ; 7
-ai_load_table_opp_right_cpu_left_closer_A592:
+ai_load_table_opp_turns_back_closer_A592:
 A592: DD 21 97 AC ld   ix,ai_jump_table_A63D
 A596: C3 37 A5    jp   jump_to_routine_from_table_A59D
 ; p1 right, p2 left, very close (8)
 ; turn back (to face opponent)
-ai_load_table_opp_right_cpu_left_closest_A599:
+ai_load_table_opp_turns_back_closest_A599:
 A599: DD 21 51 AC ld   ix,computer_ai_jump_table_all_turn_back_A651
 jump_to_routine_from_table_A59D
 A59D: DD E5       push ix
@@ -22281,7 +22294,7 @@ computer_ai_jump_table_all_move_towards_opponent_A651:
 	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4   ; 8: starting a jump
 	dc.w	cpu_move_forward_towards_enemy_far_away_A6D4   ; 9: move not in list
 	
-ai_jump_table_opp_left_cpu_right_far_A5C5
+ai_jump_table_opp_faces_far_A5C5
 	dc.w	display_error_text_B075                             ; what opponent does:
 	dc.w	cpu_move_forward_towards_enemy_A6E7	                ; 1: no particular stuff
 	dc.w	cpu_forward_or_stop_if_facing_A6EF					; 2: frontal attack
@@ -22293,7 +22306,7 @@ ai_jump_table_opp_left_cpu_right_far_A5C5
 	dc.w	cpu_move_forward_towards_enemy_A71D	                ; 8: starting a jump
 	dc.w	cpu_move_forward_towards_enemy_A71D	                ; 9: move not in list
 	
-ai_jump_table_opp_left_cpu_right_close_A5D9:
+ai_jump_table_opp_faces_close_A5D9:
 	dc.w	display_error_text_B075                             ; what opponent does:
 	dc.w	attack_once_out_of_16_frames_else_walk_A725         ; 1: no particular stuff
 	dc.w	cpu_avoids_low_attack_if_facing_else_maybe_attacks_A73F   ; 2: frontal attack
@@ -22305,7 +22318,7 @@ ai_jump_table_opp_left_cpu_right_close_A5D9:
 	dc.w	attack_once_out_of_16_frames_else_walk_A725	        ; 8: starting a jump  $A7F7	jumps there
 	dc.w	cpu_move_forward_towards_enemy_A7FA                 ; 9: move not in list
 	
-ai_jump_table_opp_left_cpu_right_closer_A5ED	
+ai_jump_table_opp_faces_closer_A5ED	
 	dc.w	display_error_text_B075                             ; what opponent does:
 	dc.w	pick_cpu_attack_A802                                ; 1: no particular stuff
 	dc.w	cpu_reacts_to_low_attack_if_facing_else_attacks_A80C; 2: frontal attack
@@ -22317,7 +22330,7 @@ ai_jump_table_opp_left_cpu_right_closer_A5ED
 	dc.w	pick_cpu_attack_A802  ; $A911 calls it              ; 8: starting a jump
 	dc.w	pick_cpu_attack_A802  ; $A914 calls it              ; 9: move not in list
 	
-ai_jump_table_opp_left_cpu_right_closest_A601
+ai_jump_table_opp_faces_closest_A601
 	dc.w	display_error_text_B075                             ; what opponent does:
 	dc.w	get_out_of_edge_or_low_kick_A917                    ; 1: no particular stuff
 	dc.w	cpu_reacts_to_low_attack_if_facing_else_attacks_A80C; 2: frontal attack $A92F
