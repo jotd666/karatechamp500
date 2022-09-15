@@ -329,7 +329,7 @@ ai_jump_table_opp_turns_back_closer_A63D
 ;	dc.l	select_cpu_attack_A96E		  ; 9: move not in list
 ; opponent right closest: just landed it cpu back (not possible otherwise)
 ; turn back (no need to test)
-computer_ai_jump_table_all_turn_back_A651
+ai_jump_table_all_turn_back_A651:
 	dc.l	display_error_text_B075
 	dc.l	cpu_turn_back_AA33
 	dc.l	cpu_turn_back_AA33
@@ -881,6 +881,7 @@ classify_opponent_move_start_A665:
 ;AA1F: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 ;AA22: C3 CE A3    jp   select_cpu_attack_A96E
 ;
+cpu_move_turn_around_A966:
 cpu_turn_back_AA25:
 cpu_turn_back_AA33:
 ;AA33: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)

@@ -2433,9 +2433,9 @@ HORIZ_ARROW_Y = UP_ARROW_Y+10
 ARROW_HORIZ_X_SHIFT = 24
 
 .draw_move_message
-	move.l	current_move_key_last_jump(pc),d4
+	move.l	current_move_key_last_jump,d4
 	bne.b	.last
-	move.l	current_move_key(pc),d4
+	move.l	current_move_key,d4
 .last
 	moveq.w	#4,d2
 	moveq.w	#8,d3
@@ -5556,26 +5556,96 @@ play_loop_fx
 .nosfx
     rts
 
-; what: compute fine distance for player (used in A.I)
-; < A4 cpu structure
 
-update_fine_distance:
-	tst.b	is_cpu(a4)
-	beq.b	.out		; not necessary for human player
-	move.w	#FDIST_FAR,d2
+; what: return x position of the player's back
+; the position of the player's back is the same as xpos(a4)
+; if player is facing right
+; < A4: player structure
+; > D0: x position
+; trashes: none
+
+get_back_x_position:
+	move.w	direction(a4),d0
+	cmp.w	#RIGHT,d0
+	beq.b	.just_x
+	move.w	xpos(a4),d0
+	add.w	#$20,d0
+	rts
+.just_x
+	move.w	xpos(a4),d0
+	rts
+	
+; what: just get player x - opponent x
+; used in update_xxx_distance methods
+; < A4: player structure
+; > D0: distance in pixels
+; > D1: 0 if positive distance, 1 if negative (opponent on the right)
+; updates N
+; trashes A3
+
+get_players_raw_distance
 	moveq	#0,d1
 	move.l	opponent(a4),a3
-	move.w	xpos(a4),d0
-	sub.w	xpos(a3),d0
+	bsr		get_back_x_position
+	movem.l	d0/a4,-(a7)
+	move.l	a3,a4
+	bsr		get_back_x_position
+	movem.l	(a7)+,d1/a4		; d0 is restored as d1
+	exg		d0,d1
+	sub.w	d1,d0
 	bpl.b	.pos
 	neg.w	d0
 	moveq	#1,d1
 .pos
-
-.out
 	rts
- 
-; what: compute rough distance for player
+	
+; what: compute fine distance for players
+; < A4 cpu structure
+; > D0: fine distance 0-8 + sign bit (bit 7) like the
+; original arcade game (see fine distance enums above)
+; trashes: none
+
+update_fine_distance
+	movem.l	a3/d1-d4,-(a7)
+	bsr		get_players_raw_distance
+	move.l	opponent(a4),a3
+	move.w	direction(a3),d2	; opponent facing direction
+	move.w	direction(a4),d3	; current player direction
+	; now check if opponent is turning its back to the player
+	; that will select a different values table
+	moveq	#0,d4
+	cmp.w	#RIGHT,d2
+	beq.b	.opponent_right
+	; opponent left
+	; is player facing left?
+	cmp.w	#LEFT,d3
+	beq.b	.fr0
+	bset	#7,d4	; not facing opponent: set bit
+.fr0
+	lea		opponent_facing_distance_table(pc),a3
+	tst		d1
+	bne.b	.opponent_done	; on the left, facing right
+.opponent_right
+	; is player facing right?
+	cmp.w	#RIGHT,d3
+	beq.b	.fr1
+	bset	#7,d4	; not facing opponent: set bit
+.fr1
+	lea		opponent_facing_distance_table(pc),a3
+	tst		d1
+	beq.b	.opponent_done	; on the right, facing right
+.opponent_turns_its_back
+	lea		opponent_turning_back_distance_table(pc),a3
+.opponent_done
+	lsr.w	#3,d0		; divide by 8 (distance computation has a resolution of 8)
+	or.b	(a3,d0.w),d4		; value 0-8 + bit 7
+	move.w	d4,d0
+	movem.l	(a7)+,a3/d1-d4
+	rts
+	
+	
+; now the current player facing bit
+; what: compute rough distance for players
 ; < A4 cpu structure
 ; there are 2 kinds of distance, that one is the one which
 ; is used to select attacks like front kick vs reverse punch
@@ -5585,13 +5655,7 @@ update_fine_distance:
 update_rough_distance:
 	move.w	#RDIST_FAR,d2
 	moveq	#0,d1
-	move.l	opponent(a4),a3
-	move.w	xpos(a4),d0
-	sub.w	xpos(a3),d0
-	bpl.b	.pos
-	neg.w	d0
-	moveq	#1,d1
-.pos
+	bsr		get_players_raw_distance
 	cmp.w	#$70,d0
 	bcc.b	.done		; far: ok
 	
@@ -8894,6 +8958,45 @@ player_one_string_clear
 ; game main tables
 
 
+opponent_facing_distance_table
+	dc.b	FDIST_VERY_CLOSE
+	dc.b	FDIST_VERY_CLOSE
+	dc.b	FDIST_CLOSEST_OPPONENT_FACES	; 0x10
+	dc.b	FDIST_CLOSEST_OPPONENT_FACES
+	dc.b	FDIST_CLOSEST_OPPONENT_FACES
+	dc.b	FDIST_CLOSER_OPPONENT_FACES	; 0x28
+	dc.b	FDIST_CLOSER_OPPONENT_FACES
+	dc.b	FDIST_CLOSER_OPPONENT_FACES
+	dc.b	FDIST_CLOSE_OPPONENT_FACES	; 0x40
+	dc.b	FDIST_CLOSE_OPPONENT_FACES
+	dc.b	FDIST_CLOSE_OPPONENT_FACES
+	dc.b	FDIST_FAR_OPPONENT_FACES	; 0x58
+	dc.b	FDIST_FAR_OPPONENT_FACES
+	dc.b	FDIST_FAR_OPPONENT_FACES
+	REPT	16
+	dc.b	FDIST_VERY_FAR	; 0x70
+	ENDR
+	
+opponent_turning_back_distance_table
+	dc.b	FDIST_VERY_CLOSE
+	dc.b	FDIST_VERY_CLOSE
+	dc.b	FDIST_VERY_CLOSE
+	dc.b	FDIST_CLOSER_OPPONENT_TURNS_BACK
+	dc.b	FDIST_CLOSER_OPPONENT_TURNS_BACK
+	dc.b	FDIST_CLOSER_OPPONENT_TURNS_BACK
+	dc.b	FDIST_CLOSE_OPPONENT_TURNS_BACK
+	dc.b	FDIST_CLOSE_OPPONENT_TURNS_BACK
+	dc.b	FDIST_CLOSE_OPPONENT_TURNS_BACK
+	dc.b	FDIST_CLOSE_OPPONENT_TURNS_BACK
+	dc.b	FDIST_CLOSE_OPPONENT_TURNS_BACK
+	dc.b	FDIST_CLOSE_OPPONENT_TURNS_BACK
+	dc.b	FDIST_FAR_OPPONENT_TURNS_BACK
+	dc.b	FDIST_FAR_OPPONENT_TURNS_BACK
+	REPT	18
+	dc.b	FDIST_VERY_FAR
+	ENDR
+	even
+	
 start_message_list
 	dc.w	24,80
 	dc.l	press_1p_button_for_message 
