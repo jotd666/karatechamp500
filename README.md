@@ -38,11 +38,10 @@ check cpu move speed from videos with varying skill level
 - OR: provide a table of frozen controls (nb frames) for each move, this will
   add to the possible wait for player reaction after the move
 
-- turn back: check x coord: distance 8 => 3 or 4 after turn back
-  check fine distance using 2P mode
 
 bugs:
 
+- player hit (F8) => animation stops (reworked frozen controls for A.I. broke it)
 - adjust player x $20 (min x) and $DF (max x) so A.I. x/distance values can be used
 - back round kick other direction than opponent: can't be done in normal mode (ok in evade): back kick instead
 - jumping side kick one frame too high

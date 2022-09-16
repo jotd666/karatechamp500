@@ -175,7 +175,7 @@ Execbase  = 4
 ; ---------------debug/adjustable variables
 
 ; if set skips intro, game starts immediately
-;DIRECT_GAME_START
+DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
 ;DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
@@ -185,7 +185,7 @@ Execbase  = 4
 ; repeat a long time just to test moves
 ;REPEAT_PRACTICE = 10
 ; change default round time
-ROUND_TIME = 30
+ROUND_TIME = 90
 
 
 ;HIGHSCORES_TEST
@@ -1885,87 +1885,60 @@ DEBUG_Y = 24
 
         
 draw_debug
+	move.w	#$FF0,d5
     lea player_1,a2
     move.w  #DEBUG_X,d0
     move.w  #DEBUG_Y,d1
     lea .p1x(pc),a0
-	move.w	#$FF0,d2
+	move.w	d5,d2
     bsr write_blanked_color_string
     lsl.w   #3,d0
     add.w  #DEBUG_X,d0
     clr.l   d2
     move.w xpos(a2),d2
     move.w  #5,d3
-	move.w	#$FF0,d4
+	move.w	d5,d4
     bsr write_blanked_color_decimal_number
     move.w  #DEBUG_X,d0
     add.w  #8,d1
-    move.l  d0,d4
     lea .p1y(pc),a0
- 	move.w	#$FF0,d4
+ 	move.w	d5,d2
     bsr write_blanked_color_string
     lsl.w   #3,d0
     add.w  #DEBUG_X,d0
     clr.l   d2
     move.w ypos(a2),d2
     move.w  #3,d3
-	move.w	#$FF0,d4
-    bsr write_blanked_color_string
-    move.l  d4,d0
-    ;;
-    add.w  #8,d1
-    lea .cmc(pc),a0
-    bsr write_string
-    lsl.w   #3,d0
-    add.w  #DEBUG_X,d0
-    clr.l   d2
-    move.w current_frame_countdown(a2),d2
-    move.w  #5,d3
-	move.w	#$FF0,d4
-    bsr write_blanked_color_string
-
+	move.w	d5,d4
+    bsr write_blanked_color_decimal_number
+    ;; rough distance
     move.w  #DEBUG_X,d0
     add.w  #8,d1
-    move.l  d0,d4
-    lea .ctrl(pc),a0
-	move.w	#$FF0,d4
+    lea .rdist1(pc),a0
+ 	move.w	d5,d2
     bsr write_blanked_color_string
     lsl.w   #3,d0
     add.w  #DEBUG_X,d0
     clr.l   d2
-    move.w player+move_controls,d2
-    move.w  #4,d3
-    bsr write_hexadecimal_number
-	
-    move.w  #DEBUG_X,d0
-    add.w  #8,d1
-    move.l  d0,d4
-    lea .frame_count(pc),a0
-    bsr write_string
-    lsl.w   #3,d0
-    add.w  #DEBUG_X,d0
-    clr.l   d2
-    move.w player+frame,d2
-	divu	#PlayerFrame_SIZEOF,d2
-	and.l	#$FFFF,d2
+    move.w rough_distance(a2),d2
     move.w  #3,d3
-    bsr write_hexadecimal_number
-	
-	IFEQ	1
+	move.w	d5,d4
+    bsr write_blanked_color_decimal_number
+	;; fine distance
     move.w  #DEBUG_X,d0
     add.w  #8,d1
     move.l  d0,d4
-    lea .pv(pc),a0
-    bsr write_string
+    lea .fdist1(pc),a0
+	move.w	d5,d2
+    bsr write_blanked_color_string
     lsl.w   #3,d0
     add.w  #DEBUG_X,d0
     clr.l   d2
-    move.w previous_valid_direction+2(pc),d2
+    move.w fine_distance(a2),d2
     move.w  #3,d3
-    bsr write_decimal_number
-    move.l  d4,d0
-	ENDC
- 
+	move.w	d5,d4
+    bsr write_blanked_color_decimal_number
+	
 
     rts
     
@@ -1973,10 +1946,10 @@ draw_debug
         dc.b    "P1X ",0
 .p1y
         dc.b    "P1Y ",0
-.cmc
-		dc.b	"CMC ",0
-.ctrl
-		dc.b	"CTRL ",0
+.rdist1
+		dc.b	"RD1 ",0
+.fdist1
+		dc.b	"FD1 ",0
 .frame_count
 		dc.b "FCNT ",0
 .tx
@@ -5601,12 +5574,12 @@ get_players_raw_distance
 	
 ; what: compute fine distance for players
 ; < A4 cpu structure
-; > D0: fine distance 0-8 + sign bit (bit 7) like the
+; updates fine distance 0-8 + sign bit (bit 7) like the
 ; original arcade game (see fine distance enums above)
 ; trashes: none
 
 update_fine_distance
-	movem.l	a3/d1-d4,-(a7)
+	movem.l	a3/d0-d4,-(a7)
 	bsr		get_players_raw_distance
 	move.l	opponent(a4),a3
 	move.w	direction(a3),d2	; opponent facing direction
@@ -5619,7 +5592,7 @@ update_fine_distance
 	; opponent left
 	; is player facing left?
 	cmp.w	#LEFT,d3
-	beq.b	.fr0
+	bne.b	.fr0
 	bset	#7,d4	; not facing opponent: set bit
 .fr0
 	lea		opponent_facing_distance_table(pc),a3
@@ -5628,7 +5601,7 @@ update_fine_distance
 .opponent_right
 	; is player facing right?
 	cmp.w	#RIGHT,d3
-	beq.b	.fr1
+	bne.b	.fr1
 	bset	#7,d4	; not facing opponent: set bit
 .fr1
 	lea		opponent_facing_distance_table(pc),a3
@@ -5639,8 +5612,8 @@ update_fine_distance
 .opponent_done
 	lsr.w	#3,d0		; divide by 8 (distance computation has a resolution of 8)
 	or.b	(a3,d0.w),d4		; value 0-8 + bit 7
-	move.w	d4,d0
-	movem.l	(a7)+,a3/d1-d4
+	move.w	d4,fine_distance(a4)
+	movem.l	(a7)+,a3/d0-d4
 	rts
 	
 	
