@@ -304,6 +304,7 @@ MOVE_FOOT_SWEEP_FRONT_2 = 24
 ;; codes aren't the same as attack commands but that's not really a problem
 ;; thanks to the debugger and conditionnal breakpoints!!!
 ;
+ATTACK_NONE = 0
 ATTACK_BACK_KICK = $01
 ATTACK_JUMPING_SIDE_KICK = $02
 ATTACK_FOOT_SWEEP_BACK = $03
@@ -3901,6 +3902,7 @@ level3_interrupt:
     bsr draw_debug
 .no_debug
     bsr update_all
+	addq.b	#1,randomness_timer
     move.w  vbl_counter(pc),d0
     addq.w  #1,d0
     cmp.w   #5,d0
@@ -8748,6 +8750,10 @@ bonus_phase_index:
 after_bonus_phase_timer:
 	dc.w	0
 	
+; 8-bit timer which is never reset from state to state
+randomness_timer:
+	dc.b	0
+	even
 ; general purpose timer for non-game states (intro, game over...)
 state_timer:
     dc.l    0

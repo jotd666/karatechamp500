@@ -22364,10 +22364,10 @@ ai_jump_table_A629
 	dc.w	cpu_move_turn_around_A966
 	dc.w	cpu_move_turn_around_A966
 	dc.w	cpu_move_turn_around_A966
-computer_ai_jump_table_A63D
+ai_jump_table_A63D
 	dc.w	display_error_text_B075       ; what opponent does:
 	dc.w	select_cpu_attack_A96E        ; 1: no particular stuff
-	dc.w	cpu_complex_reaction_to_front_attack_A980     ; 2: frontal high attack
+	dc.w	cpu_complex_reaction_to_front_attack_A980     ; 2: frontal attack
 	dc.w	cpu_complex_reaction_to_rear_attack_A9D6                         ; 3: rear attack               
 	dc.w	perform_foot_sweep_back_ABBB  ; 4: crouch   $AA10                              
 	dc.w	select_cpu_attack_A96E        ; 5 in-jump    $AA22                
@@ -22998,11 +22998,16 @@ A97D: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 cpu_complex_reaction_to_front_attack_A980:
 A980: FD CB 0F DE bit  7,(iy+$0f)
 A984: C2 BB A3    jp   nz,$A9BB
-; not facing each other
+; facing opponent, who is turning its back to cpu
+; (this routine is only called from distance 07 or 87)
+; it probably doesn't end up here very frequently (or never)
+; I played a lot and I never ended up there...
 A987: CD 02 AB    call opponent_starting_low_kick_AB08
 A98A: A7          and  a
 A98B: CA 35 A3    jp   z,$A995
-; react to low kick by jumping back kick if not facing
+; react to low kick by jumping back kick if facing
+; (but, but... opponent is turning its back..., why????)
+; the low kick, after that, cpu is turned the wrong way)
 A98E: CD AA AB    call perform_jumping_back_kick_ABAA
 A991: A7          and  a
 A992: C2 79 A3    jp   nz,$A9D3	; always true
@@ -23015,14 +23020,17 @@ A99F: 36 09       ld   (hl),$03	; jump to avoid low attack
 A9A1: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 A9A4: E6 09       and  $03
 A9A6: CA 70 A3    jp   z,$A9D0	; 25% chance: jump to avoid low attack
-A9A9: C3 61 A3    jp   $A9C1	; 75% chance: turn back
+A9A9: C3 61 A3    jp   $A9C1	; 75% chance: turn back (and maybe get hit)
 A9AC: CD F8 AA    call opponent_starting_high_attack_AAF2
 A9AF: CA 61 A3    jp   z,$A9C1
-; react to high attack by foot sweep
+; react to high attack by foot sweep, back (has a chance to land)
 A9B2: CD BB AB    call perform_foot_sweep_back_ABBB
 A9B5: C2 79 A3    jp   nz,$A9D3		; always true: end move
 A9B8: C3 61 A3    jp   $A9C1
-; facing each other
+; back to back (not facing, but this routine is only used
+; with distance $87 so computer is turning its back too)
+; it happens sometimes, but opponent has to perform some frontal
+; attack that cannot connect, like low kick...
 A9BB: CD 8E AB    call select_cpu_attack_AB2E
 A9BE: C2 79 A3    jp   nz,$A9D3
 A9C1: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
