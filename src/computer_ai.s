@@ -1046,7 +1046,7 @@ cpu_turn_back_AA33:
 ;	; frames where the blow reaches its end/is full blown
 ;hitting_frame_list_AA6D:
 ;	dc.b	$C0 0C D2 0C 47 0D D7 0D 4C 0E AF 0E 1B 0F 90 0F 0E 10 9E 10 0A 11 6D 11 E2 11 D5 12 4A 13 FF FF
-;repositionning_frame_list_AA8D:
+;block_frame_list_AA8D:
 ;	dc.b	$88 1A D0 1A 18 1B FF FF
 ;forward_sommersault_frame_list_AA95:
 ;	dc.b	$AD 13 B6 13 BF 13

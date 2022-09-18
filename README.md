@@ -40,6 +40,9 @@ check cpu move speed from videos with varying skill level
 
 - add ATTACK_* enums in move headers (info.json files for attacks)
 
+- understand what means code in ABFF computer blocks attack and 
+  checks opponent status with strange tables
+  
 bugs:
 
 - player hit (F8) => animation stops (reworked frozen controls for A.I. broke it)

@@ -22025,13 +22025,12 @@ A3C5: E1          pop  hl
 A3C6: A7          and  a
 A3C7: C2 E9 AB    jp   nz,full_blown_hit_ABE3	; missed cpu hit: let player react
 ; the rest of the routine seems to end in cpu_move_done_A410 100% of the time...
-A3CA: DD 21 27 AA ld   ix,repositionning_frame_list_AA8D	; ???? why did I put "repositionning" there?
+A3CA: DD 21 27 AA ld   ix,blocking_frame_list_AA8D
 A3CE: E5          push hl
 A3CF: CD 03 B0    call check_hl_in_ix_list_B009
 A3D2: E1          pop  hl
 A3D3: A7          and  a
-A3D4: C2 FF AB    jp   nz,$ABFF	; doesn't seem to happen, ever, "repositionning" frames are AWOL
-; ends up jumping to cpu_move_done_A410 whatever the outcome...
+A3D4: C2 FF AB    jp   nz,$computer_completed_a_blocking_move_ABFF	; computer has completed a blocking move
 A3D7: E5          push hl
 A3D8: DD E1       pop  ix
 A3DA: DD 7E 02    ld   a,(ix+$08)
@@ -23106,24 +23105,32 @@ AA38: C3 10 A4    jp   cpu_move_done_A410
 walk_frames_list_AA3B:
 	dc.b	89 0A 92 0A 9B 0A A4 0A AD 0A B6 0A BF 0A C8 0A FF FF
 jump_frames_list_AA4D:
-	dc.b	$22 0B 8E 0B 97 0B A0 0B A9 0B B2 0B BB 0B C4 0B CD 0B D6 0B DF 0B E8 0B F1 0B FA 0B 73 0B FF FF
+	dc.b	22 0B 8E 0B 97 0B A0 0B A9 0B B2 0B BB 0B C4 0B CD 0B D6 0B DF 0B E8 0B F1 0B FA 0B 73 0B FF FF
 	; frames where the blow reaches its end/is full blown (including jumping side kick...)
 hitting_frame_list_AA6D:
-	dc.b	$C0 0C D2 0C 47 0D D7 0D 4C 0E AF 0E 1B 0F 90 0F 0E 10 9E 10 0A 11 6D 11 E2 11 D5 12 4A 13 FF FF
-repositionning_frame_list_AA8D:
-	dc.b	$88 1A D0 1A 18 1B FF FF
+	dc.b	C0 0C D2 0C 47 0D D7 0D 4C 0E AF 0E 1B 0F 90 0F 0E 10 9E 10 0A 11 6D 11 E2 11 D5 12 4A 13 FF FF
+blocking_frame_list_AA8D:  ; final moves of blocks
+	dc.b	88 1A      D0 1A      18 1B FF FF
+	
+
+	;        uchiuke  sotouke     gedanbarai
 forward_sommersault_frame_list_AA95:
-	dc.b	$AD 13 B6 13 BF 13
+	dc.b	AD 13 B6 13 BF 13
 forward_sommersault_frame_list_end_AA9B
 	dc.b	C8 13 D1 13 DA 13 E3 13 FF FF
 backwards_sommersault_frame_list_AAA5:
-	dc.b	$45 12 4E 12	; includes the follwing frames
+	dc.b	45 12 4E 12	; includes the follwing frames
+	 ;     start  next frame
 backwards_sommersault_frame_list_end_AAA9:
-	dc.b	57 12 60 12 72 12 7B 12 FF FF
+	dc.b	57 12            60 12 72 12      7B 12 FF FF
+	 ;       zenith         frame  almost    landing
+	 ;     of bwdsommersault after  landing
 ; player gets down, including foot sweep
+; all frames are final frames of the moves. transition frames
+; aren't listed
 crouch_frame_list_AAB3:
 	dc.b	$27 0C E0 0D   A7 10 DE 12 FF FF
-	        crouch  fwsb   fswf   rvp
+	        crouch  fwsb   fswf   reverse punch (800)
 ; some other tables loaded by the code below (accessed by a table too)
 ; one byte per attack
 ;
@@ -23364,8 +23371,9 @@ ABF7: FE FF       cp   $FF
 ABF9: C4 D5 B0    call nz,display_error_text_B075
 ABFC: C3 10 A4    jp   cpu_move_done_A410
 
-; seems not to be called. It's possible to call it but I could not trigger it
-ABFF: DD 21 29 A6 ld   ix,$AC83
+; called if the computer blocks
+computer_completed_a_blocking_move_ABFF:
+ABFF: DD 21 29 A6 ld   ix,block_and_others_table_AC83
 AC03: FD 5E 0D    ld   e,(iy+$07)
 AC06: FD 56 02    ld   d,(iy+$08)
 AC09: CD 06 B0    call $B00C
@@ -23376,12 +23384,15 @@ AC11: DD E1       pop  ix
 AC13: FD 6E 0B    ld   l,(iy+$0b)
 AC16: FD 66 06    ld   h,(iy+$0c)
 AC19: CB BC       res  7,h
+; check if opponent blocks or something else...
 AC1B: CD 03 B0    call check_hl_in_ix_list_B009
 AC1E: A7          and  a
 AC1F: CA 9E A6    jp   z,$AC3E
+; the opponent is also blocking (difficult to reach here... since
+; computer is blocking it means that the opponent is attacking...
 AC22: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 AC25: 36 00       ld   (hl),$00
-AC27: 21 1D AE    ld   hl,$counter_attack_time_table_AE17
+AC27: 21 1D AE    ld   hl,counter_attack_time_table_AE17
 AC2A: CD 6E A6    call let_opponent_react_depending_on_skill_level_ACCE
 AC2D: FE 03       cp   $09
 AC2F: CA DB A9    jp   z,$fight_mainloop_A37B
@@ -23390,7 +23401,8 @@ AC33: CA 20 A6    jp   z,$AC80
 AC36: FE FF       cp   $FF
 AC38: C4 D5 B0    call nz,display_error_text_B075
 AC3B: C3 20 A6    jp   $AC80
-AC3E: DD 21 A7 A6 ld   ix,$ACAD
+
+AC3E: DD 21 A7 A6 ld   ix,block_and_others_table_ACAD
 AC42: FD 5E 0D    ld   e,(iy+$07)
 AC45: FD 56 02    ld   d,(iy+$08)
 AC48: CD 06 B0    call $B00C
@@ -23404,12 +23416,14 @@ AC58: E5          push hl
 AC59: DD E1       pop  ix
 AC5B: DD 7E 02    ld   a,(ix+$08)
 AC5E: DD E1       pop  ix
+; check if opponent blocks or something else...
+; ix can be ACC4 (gedan barai), ACC1 (soto uke?)
 AC60: CD 0F B0    call table_linear_search_B00F
 AC63: A7          and  a
 AC64: C2 20 A6    jp   nz,$AC80
 AC67: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 AC6A: 36 00       ld   (hl),$00
-AC6C: 21 1D AE    ld   hl,$counter_attack_time_table_AE17
+AC6C: 21 1D AE    ld   hl,counter_attack_time_table_AE17
 AC6F: CD 6E A6    call let_opponent_react_depending_on_skill_level_ACCE
 AC72: FE 03       cp   $09
 AC74: CA DB A9    jp   z,$fight_mainloop_A37B
@@ -23419,12 +23433,23 @@ AC7B: FE FF       cp   $FF
 AC7D: C4 D5 B0    call nz,display_error_text_B075
 AC80: C3 10 A4    jp   cpu_move_done_A410
 
-; tables, but used by some code that seems not to be called
-AC83  88 1A 91 AC D0 1A 9D AC 18 1B A3 AC FF FF 50 0D   ...¬Ð..¬..£¬ÿÿP.
-AC93  24 0F 17 10 76 11 EB 11 FF FF B8 0E 99 0F FF FF   $...v.ë.ÿÿ¸...ÿÿ
-ACA3  C9 0C DB 0C 55 0E DE 12 FF FF 88 1A BB AC D0 1A   É.Û.U.Þ.ÿÿ..»¬Ð.
-ACB3  C1 AC 18 1B C4 AC FF FF 82 86 88 8B 8C FF 85 87   Á¬..Ä¬ÿÿ.....ÿ..
-ACC3  FF 81 84 8D FF 
+
+; contains 3 block end frames plus one repositionning (?) frame
+; (writing 881A to C247 makes character skips to the left)
+; plus probably 2 other frames that don't exist (games goes into ERROR
+; when C247 is written with those: $AC91 $AC9D $ACA3, and more 
+; importantly: I could not make the game use them, never written in
+; C22B which holds player 1 current frame pointer)
+block_and_others_table_AC83
+	dc.b	88 1A 91 AC D0 1A 9D AC 18 1B A3 AC FF FF 
+AC91  50 0D 24 0F 17 10 76 11 EB 11 FF FF B8 0E 99 0F FF FF   $...v.ë.ÿÿ¸...ÿÿ
+ACA3  C9 0C DB 0C 55 0E DE 12 FF FF 
+; block and others $ACBB ACC1 ACC4 what are those???
+block_and_others_table_ACAD
+	dc.b	88 1A BB AC D0 1A C1 AC 18 1B C4 AC FF FF 
+; 82 86 88 8B 8C FF 
+ACC1  85 87 FF 
+ACC4  81 84 8D FF 
 
 
 
@@ -24179,6 +24204,7 @@ B11F: C3 89 B1    jp   $B123
 B122: AF          xor  a	; a <= 0
 B123: C9          ret
 
+; another search routine
 B124: 01 04 00    ld   bc,$0004
 B127: DD 6E 00    ld   l,(ix+$00)
 B12A: DD 66 01    ld   h,(ix+$01)
