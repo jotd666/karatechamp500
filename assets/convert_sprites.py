@@ -89,6 +89,8 @@ move_param_dict = {
 "reverse_punch_800":{"score":800,"height":hl,"blow_type":bs,"back_blow_type":bb},
 "round_kick":{"score":600,"height":hn,"left_shift":12,"blow_type":br},  # round kick can't be blocked
 "weak_reverse_punch":{"score":200,"height":hm,"blow_type":bs,"back_blow_type":bb},
+"sommersault":{"score":0,"height":hn,"blow_type":bn,"back_blow_type":bn},
+"sommersault_back":{"score":0,"height":hn,"blow_type":bn,"back_blow_type":bn},
 }
 # divide score by 100
 for d in move_param_dict.values():
@@ -286,8 +288,14 @@ def process_player_tiles():
 
     for d in moves_list:
         # load info
-        with open(os.path.join(moves_dir,d,"info.json")) as f:
-            info = json.load(f)
+        info_file = os.path.join(moves_dir,d,"info.json")
+        try:
+            with open(info_file) as f:
+                info = json.load(f)
+        except json.decoder.JSONDecodeError as e:
+            print("** decode error in "+info_file)
+            raise
+
         deltas = info["deltas"]
         has_hit_mask = info.get("hit_mask",True)
         is_symmetrical = info.get("symmetrical",False)
@@ -518,6 +526,7 @@ def process_player_tiles():
     UWORD   blow_type
     UWORD   back_blow_type
     UWORD   animation_flags
+    UWORD   attack_id
     LABEL   PlayerFrameSet_SIZEOF
 
 ANIM_LOOP_BIT = 0
@@ -561,12 +570,19 @@ ANIM_MANUAL_FLAG = 1<<ANIM_MANUAL_BIT
             if not aflags:
                 aflags = ["0"]
 
-            params = move_param_dict.get(name,{"score":0,"height":hn,"left_shift":0})
+            params = move_param_dict.get(name)
+            if params:
+                # the move is in move_param dict: generate an attack id name
+                # (which must exist and be valued in the source, those values originate
+                # from original arcade machine)
+                params["attack_id"] = "ATTACK_"+name.upper()
+            else:
+                params = {"score":0,"height":hn,"left_shift":0,"attack_id":"ATTACK_NONE"}
             params["left_shift"] = params.get("left_shift",0)
             params["blow_type"] = params.get("blow_type",bn)
             params["back_blow_type"] = params.get("back_blow_type",params["blow_type"])
             f.write(("\tdc.w\t{score}\n\tdc.w\t{height}\n\tdc.w\t{left_shift}\n"+
-            "\tdc.w\t{blow_type}\n\tdc.w\t{back_blow_type}\n").format(**params))
+            "\tdc.w\t{blow_type}\n\tdc.w\t{back_blow_type}\n\tdc.w\t{attack_id}\n").format(**params))
             f.write("\tdc.w\t{}\t\n".format("|".join(aflags)))
             create_frame_sequence("_right","_right",1)
             create_frame_sequence("_left","_right" if symmetrical else "_left",-1)

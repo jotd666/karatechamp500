@@ -341,15 +341,15 @@ ai_jump_table_opp_turns_back_close_A629
 	dc.l	cpu_move_turn_around_A966
 ai_jump_table_opp_turns_back_closer_A63D
 	dc.l	display_error_text_B075       ; what opponent does:
-	dc.l	select_cpu_attack_A96E        ; 1: no particular stuff
+	dc.l	pick_cpu_attack_A96E        ; 1: no particular stuff
 	dc.l	cpu_complex_reaction_to_front_attack_A980     ; 2: frontal high attack
 	dc.l	cpu_complex_reaction_to_rear_attack_A9D6                         ; 3: rear attack               
 	dc.l	perform_foot_sweep_back_ABBB  ; 4: crouch   $AA10                              
-	dc.l	select_cpu_attack_A96E        ; 5 in-jump    $AA22                
+	dc.l	pick_cpu_attack_A96E        ; 5 in-jump    $AA22                
 	dc.l	cpu_turn_back_AA25            ; 6: sommersault forward       
 	dc.l	cpu_turn_back_AA25            ; 7: sommersault backwards     
-	dc.l	select_cpu_attack_A96E		  ; 8: starting a jump
-	dc.l	select_cpu_attack_A96E		  ; 9: move not in list
+	dc.l	pick_cpu_attack_A96E		  ; 8: starting a jump
+	dc.l	pick_cpu_attack_A96E		  ; 9: move not in list
 ; opponent right closest: just landed it cpu back (not possible otherwise)
 ; turn back (no need to test)
 ai_jump_table_all_turn_back_A651:
@@ -540,6 +540,10 @@ cpu_forward_or_stop_if_not_facing_A700:
 attack_once_out_of_16_frames_else_walk_A725:
 	move.b	randomness_timer,d0
 	and.b	#$F,d0
+	bne.b	just_walk_A7C5
+	; 1/16 probability to attack
+	bsr.b		select_cpu_attack_AB2E
+	bra.b	cpu_move_done_opponent_can_react_A3E4
 	
 ;; if not facing, either attack or walk forward (50% chance each)
 ;; if facing, react to low attack by walking forward/backwards or jump
@@ -623,6 +627,11 @@ attack_once_out_of_16_frames_else_walk_A725:
 ;A7D0: 36 08       ld   (hl),$02
 ;A7D2: C3 10 A4    jp   cpu_move_done_A410
 ;
+just_walk_A7C5:
+just_walk_A7CD:
+	move.w	#MOVE_FORWARD,d7
+	bra.b	cpu_move_done_A410
+	
 ;; move forward, except if back to back in which case
 ;; move back / block possible attack
 ;cpu_forward_or_backward_depending_on_facing_A7D5:
@@ -663,6 +672,10 @@ cpu_backward_or_forward_depending_on_facing_A7E6
 ;A806: CC D5 B0    call z,display_error_text_B075	; never called a != 0 always!
 ;A809: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 ;
+pick_cpu_attack_A802
+	bsr.b	select_cpu_attack_AB2E
+	bra.b	cpu_move_done_opponent_can_react_A3E4
+	
 ;cpu_reacts_to_low_attack_if_facing_else_attacks_A80C:
 ;A80C: FD CB 0F DE bit  7,(iy+$0f)  ; => C20F
 ;A810: C2 4E A2    jp   nz,$A84E		; jumps if not facing each other
@@ -696,6 +709,38 @@ cpu_backward_or_forward_depending_on_facing_A7E6
 ;A849: 36 01       ld   (hl),$01
 ;A84B: C3 55 A2    jp   $A855		; and opponent has some time to react...
 ;
+cpu_reacts_to_low_attack_if_facing_else_attacks_A80C:
+	move.w	fine_distance(a4),d0
+	btst	#7,d0
+	bne.b	.not_facing
+	bsr		opponent_starting_low_kick_AB08
+	tst		d0
+	beq.b	.not_low_kick
+	; react to low kick, but not at first level
+	bsr.b	perform_jumping_side_kick_if_level_2_AB88
+	tst		d0
+	bne.b	cpu_move_done_opponent_can_react_A3E4	; attack triggered
+.not_low_kick
+	bsr.b	opponent_starting_low_attack_AAFD
+	tst		d0
+	beq.b	.not_low_attack
+	;; react to foot sweep/low kick
+	move.l	#MOVE_JUMP,d7
+	move.b	randomness_timer,d0
+	and.b	#3,d0
+	beq.b	cpu_move_done_A410		; jumps to avoid 1 time out of 4
+.move_back
+	move.l	#MOVE_BACK,d7		; else moves back
+	bra.b	cpu_move_done_opponent_can_react_A3E4
+.not_low_attack
+	bsr.b	opponent_starting_high_attack_AAF2
+	tst		d0
+	beq.b	.move_back
+	bsr.b	perform_foot_sweep_if_level_3_AB99
+	tst		d0
+	beq.b	.move_back
+	bra.b	cpu_move_done_opponent_can_react_A3E4
+	
 ;; routine duplicated a lot... pick an attack fails if 0 (which never happens)
 ;A84E: CD 8E AB    call select_cpu_attack_AB2E
 ;A851: A7          and  a
@@ -825,11 +870,14 @@ cpu_small_chance_of_low_kick_else_walk_A893:
 ;A926: C3 10 A4    jp   cpu_move_done_A410	; immediate (it's not an attack)
 ;A929: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4	; opponent can react to low kick
 ;
-;A92C: 00          nop
-;A92D: 00          nop
-;A92E: 00          nop
-;A92F: C3 06 A2    jp   cpu_reacts_to_low_attack_if_facing_else_attacks_A80C
-;A932: C3 4E A3    jp   front_kick_or_fwd_sommersault_to_recenter_A94E
+get_out_of_edge_or_low_kick_A917:
+	move.w	#MOVE_LOW_KICK,d7
+	move.l	opponent(a4),a3
+	move.w	xpos(a3),d0
+	cmp.w	#$30-$20,d0		; there's a $20 offset in the arcade game that we don't have here
+	bcs.b	cpu_move_done_opponent_can_react_A3E4
+	move.w	#MOVE_SOMMERSAULT,d7
+	bra.b	cpu_move_done_A410
 ;
 ;perform_low_kick_A935: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;A938: 36 14       ld   (hl),$14
@@ -846,7 +894,12 @@ cpu_small_chance_of_low_kick_else_walk_A893:
 ;A949: 36 01       ld   (hl),$01
 ;A94B: C3 10 A4    jp   cpu_move_done_A410
 ;
-;front_kick_or_fwd_sommersault_to_recenter_A94E: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
+perform_walk_back_A946:
+	move.w	#MOVE_BACK,d7
+	bra.b	cpu_move_done_A410
+	
+;front_kick_or_fwd_sommersault_to_recenter_A94E: 
+; 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;; front kick
 ;A951: 36 0A       ld   (hl),$0A
 ;A953: FD 7E 03    ld   a,(iy+$09)		; C209: white player x coordinate
@@ -857,6 +910,14 @@ cpu_small_chance_of_low_kick_else_walk_A893:
 ;A95D: C3 10 A4    jp   cpu_move_done_A410
 ;A960: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
+front_kick_or_fwd_sommersault_to_recenter_A94E:
+	move.w	#MOVE_FRONT_KICK_OR_REVERSE_PUNCH,d7
+	move.l	opponent(a4),a3
+	move.w	xpos(a3),d0
+	cmp.w	#$30-$20,d0
+	bcc.b	cpu_move_done_opponent_can_react_A3E4
+	move.w	#MOVE_SOMMERSAULT,d7
+	bra.b	cpu_move_done_A410
 
 ;
 ;
@@ -959,7 +1020,7 @@ cpu_complex_reaction_to_front_attack_A980:
 ;;;AA1A: 36 0D       ld   (hl),$07
 ;;;AA1C: C3 10 A4    jp   cpu_move_done_A410
 ;AA1F: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
-;AA22: C3 CE A3    jp   select_cpu_attack_A96E
+;AA22: C3 CE A3    jp   pick_cpu_attack_A96E
 ;
 cpu_move_turn_around_A966:
 cpu_turn_back_AA25:
@@ -967,7 +1028,7 @@ cpu_turn_back_AA33:
 ;AA33: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;AA36: 36 0D       ld   (hl),$07
 ;AA38: C3 10 A4    jp   cpu_move_done_A410
-	move.w	#7,d7
+	move.w	#MOVE_TURN_AROUND,d7
 	bra		cpu_move_done_A410
 ;
 ;; collection of tables exploited by B009 at various points of the A.I. code
@@ -997,7 +1058,7 @@ cpu_turn_back_AA33:
 ;	dc.b	57 12 60 12 72 12 7B 12 FF FF
 ;; player gets down, including foot sweep
 ;crouch_frame_list_AAB3:
-;	dc.b	$27 0C E0 0D A7 10 DE 12 FF FF
+;	dc.b	27 0C E0 0D A7 10 DE 12 FF FF
 ;
 ;; some other tables loaded by the code below (accessed by a table too)
 ;; one byte per attack, match ATTACK_* defines above
@@ -1021,6 +1082,11 @@ table_sommersaults_AAD8
 ;AAE3: CD 0F B0    call table_linear_search_B00F
 ;AAE6: C9          ret
 ;
+opponent_starting_frontal_attack_AADC:
+	bsr		identify_opponent_current_move_AB1D
+	lea		table_AABD(pc),a0
+	bra.b	table_linear_search_B00F
+	
 ;; rear attack but not low attack. Just back kick jumping back kick
 ;opponent_starting_rear_attack_AAE7
 ;AAE7: CD 17 AB    call identify_opponent_current_move_AB1D
@@ -1028,18 +1094,33 @@ table_sommersaults_AAD8
 ;AAEE: CD 0F B0    call table_linear_search_B00F
 ;AAF1: C9          ret
 ;
+opponent_starting_rear_attack_AAE7:
+	bsr		identify_opponent_current_move_AB1D
+	lea		table_AAC9(pc),a0
+	bra.b	table_linear_search_B00F
+
 ;opponent_starting_high_attack_AAF2
 ;AAF2: CD 17 AB    call identify_opponent_current_move_AB1D
 ;AAF5: DD 21 67 AA ld   ix,table_high_attacks_AACD
 ;AAF9: CD 0F B0    call table_linear_search_B00F
 ;AAFC: C9          ret
 ;
+opponent_starting_high_attack_AAF2:
+	bsr		identify_opponent_current_move_AB1D
+	lea		table_high_attacks_AACD(pc),a0
+	bra.b	table_linear_search_B00F
+
 ;opponent_starting_low_attack_AAFD:
 ;AAFD: CD 17 AB    call identify_opponent_current_move_AB1D
 ;AB00: DD 21 74 AA ld   ix,table_low_attacks_AAD4
 ;AB04: CD 0F B0    call table_linear_search_B00F
 ;AB07: C9          ret
 ;
+opponent_starting_low_attack_AAFD:
+	bsr.b		identify_opponent_current_move_AB1D
+	lea		table_low_attacks_AAD4(pc),a0
+	bra.b	table_linear_search_B00F
+
 ;; return a = 0 if current frame is $0E (low kick)
 ;opponent_starting_low_kick_AB08
 ;AB08: CD 17 AB    call identify_opponent_current_move_AB1D
@@ -1048,99 +1129,54 @@ table_sommersaults_AAD8
 ;AB10: AF          xor  a
 ;AB11: C9          ret
 ;
+opponent_starting_low_kick_AB08:
+	bsr.b		identify_opponent_current_move_AB1D
+	cmp.b	#ATTACK_LOW_KICK,d0
+	beq.b	.out
+	moveq	#0,d0
+.out
+	rts
+	
 ;opponent_starting_a_jump_AB12
 ;AB12: CD 17 AB    call identify_opponent_current_move_AB1D
 ;AB15: DD 21 72 AA ld   ix,table_sommersaults_AAD8
 ;AB19: CD 0F B0    call table_linear_search_B00F
 ;AB1C: C9          ret
 ;
+opponent_starting_a_jump_AB12
+	bsr.b		identify_opponent_current_move_AB1D
+	lea		table_sommersaults_AAD8(pc),a0
+	bra.b	table_linear_search_B00F
+
 ;; iy=C220, loads ix with current frame pointer of opponent, then
 ;; identifies opponent exact frame/move (starting move probably)
-;identify_opponent_current_move_AB1D: FD 4E 0B    ld   c,(iy+$0b)
+;identify_opponent_current_move_AB1D:
+;; load current frame pointer
+;AB1D: FD 4E 0B    ld   c,(iy+$0b)
 ;AB20: FD 46 06    ld   b,(iy+$0c)
+;; remove direction bit
 ;AB23: CB B8       res  7,b
 ;AB25: C5          push bc
 ;AB26: DD E1       pop  ix
+;; load at offset 8 to get move id. Ex 4 = front kick
 ;AB28: DD 7E 02    ld   a,(ix+$08)
 ;AB2B: CB BF       res  7,a
 ;AB2D: C9          ret
-;
+
+; > D0.W: ATTACK_* enumerate
 identify_opponent_current_move_AB1D:
 	move.l	opponent(a4),a3
-	move.l	joystick_state(a3),d0
-;; > a: attack id (cf table at start of the source file)
-;; but this routine cannot return 0 because tables it points to don't contain 0
-;; furthermore, this routine is sometimes followed by a sanity check crashing with
-;; an error message if a is 0 on exit. Since it's random, how could the sanity check NOT fail?
-;;
-;; injecting values performs the move... or the move is discarded by caller
-;
-;select_cpu_attack_AB2E:
-;AB2E: DD 21 52 AB ld   ix,master_cpu_move_table_AB58		; table of pointers of move tables
-;; choose the proper move list depending on facing & distance
-;AB32: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)	; <= C26B
-;AB35: 23          inc  hl
-;AB36: 7E          ld   a,(hl)	; get value in C26C: facing configuration
-;AB37: 87          add  a,a
-;AB38: 4F          ld   c,a
-;AB39: 06 00       ld   b,$00
-;AB3B: DD 09       add  ix,bc
-;AB3D: DD 6E 00    ld   l,(ix+$00)
-;AB40: DD 66 01    ld   h,(ix+$01)
-;; get msb of 16 bit counter for randomness
-;AB43: ED 5B 8E 60 ld   de,(periodic_counter_16bit_C02E)
-;AB47: 5E          ld   e,(hl)	; pick a number 0-value of hl (not included)
-;AB48: 23          inc  hl	; skip number of values
-;AB49: E5          push hl
-;AB4A: CD 0C B0    call random_B006
-;AB4D: E1          pop  hl
-;AB4E: 06 00       ld   b,$00
-;AB50: 4F          ld   c,a
-;AB51: 09          add  hl,bc
-;; gets CPU move to make
-;AB52: 7E          ld   a,(hl)
-;AB53: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
-;; gives attack order to the CPU
-;; only attack moves (not walk moves) are given here
-;AB56: 77          ld   (hl),a
-;AB57: C9          ret
+	move.l	current_move_header(a3),a3
+	move.w	attack_id(a3),d0
+	rts
+	
+
 ;
 ; > D0: nonzero if attacking, else zero
-select_cpu_attack_AB2E
-	illegal
-;; some moves are done or not depending on how the players are
-;; located and if current player can reach opponent with a blow
-;; (the CPU isn't going to perform a back move in the void)
-;; the direction of opponent isn't considered here
-;; (the 5 values relate to player struct + $0C)
-;
-master_cpu_move_table_AB58:
-	dc.l  move_list_far_away_AB62	; far away (we don't care much about facing)
-	dc.l  move_list_facing_mid_range_AB70		; mid-range, cpu faces opponent (who can face cpu or not...)
-	dc.l  move_list_facing_close_range_AB7B		; close-range, cpu faces opponent
-	dc.l  move_list_turning_back_AB84		; mid-range, cpu has its back turned on opponent
-	dc.l  move_list_turning_back_AB84		; close-range, cpu has its back turned on opponent (same as above)
-;
-;; move list starts by number of moves (for random pick)
-;; not the same move indexes as above, move indexes are listed at start of
-;; document
-move_list_far_away_AB62:
-;	; 13 moves: back, jbk, footsweep, front kick/punch, back round, lunge, jsk, round, lunge, lunge, revpunch, lowk
-;	; the move doesn't really matter as it cannot connect (too far)
-	dc.b	$0D,MOVE_BACK_KICK,MOVE_JUMPING_BACK_KICK,MOVE_FOOT_SWEEP_BACK,MOVE_FRONT_KICK_OR_REVERSE_PUNCH
-	dc.b	MOVE_BACK_ROUND_KICK,MOVE_LUNGE_PUNCH_400,MOVE_JUMPING_SIDE_KICK,MOVE_FOOT_SWEEP_FRONT_1,MOVE_ROUND_KICK
-	dc.b	MOVE_LUNGE_PUNCH_600,MOVE_LUNGE_PUNCH_1000,MOVE_REVERSE_PUNCH_800,MOVE_LOW_KICK
-;	; lunge backroundkick lungemedium jsk 0E(???) round lunge, lunge, revpunch, lowkick
-move_list_facing_mid_range_AB70:
-	dc.b	10,$0A,$0B,$0C,$0D,$0E,$0F,$10,$11,$13,$14
-;	; front kick, back round, lungemedium, jsk, round, lunge, revpunch, lowkick
-move_list_facing_close_range_AB7B
-	; small reverse, back round, lungemediumj sk,...
-	dc.b	 8,$0A,$0B,$0C,$0D,$0F,$10,$13,$14 
-	; list of only reverse attacks (mostly defensive, cpu turns its back on the opponent)
-	; back kick jbk foot sweep back
-move_list_turning_back_AB84
-	dc.b	3,$05,$08,$09
+pick_cpu_attack_A96E
+	bsr.b	select_cpu_attack_AB2E
+	bra.b	cpu_move_done_opponent_can_react_A3E4
+	
 ;
 ;
 ;
@@ -1339,41 +1375,6 @@ full_blown_hit_ABE3:
 ;; bpset AD19,1,{printf "enter: "; time; g}
 ;; bpset AD64,1,{printf "exit: %02x ",a; time; g}
 ;
-;let_opponent_react_AD19:
-;; load proper opponent structure
-;AD19: FD 21 40 68 ld   iy,player_1_struct_C240
-;AD1D: 3A 82 60    ld   a,(player_2_attack_flags_C028)
-;AD20: FE 03       cp   $09
-;AD22: CA 83 A7    jp   z,$AD29
-;AD25: FD 21 C0 68 ld   iy,player_2_struct_C260
-;AD29: FD 6E 0D    ld   l,(iy+$07)
-;AD2C: FD 66 02    ld   h,(iy+$08)	; current player frame/stance id in hl
-;AD2F: CB BC       res  7,h			; remove direction of frame
-;AD31: E5          push hl
-;AD32: DD E1       pop  ix
-;AD34: FD 7E 19    ld   a,(iy+$13)
-;AD37: A7          and  a
-;AD38: CA 59 A7    jp   z,$AD53
-;AD3B: DD BE 02    cp   (ix+$08)
-;AD3E: CA 4E A7    jp   z,$AD4E
-;AD41: FD 7E 18    ld   a,(iy+$12)
-;AD44: A7          and  a
-;AD45: CA 59 A7    jp   z,$AD53
-;AD48: FD BE 0B    cp   (iy+$0b)
-;AD4B: C2 59 A7    jp   nz,$AD53
-;AD4E: 3E FF       ld   a,$FF	; opponent reacted: exit loop
-;AD50: C3 C4 A7    jp   $AD64
-;AD53: FD E5       push iy
-;AD55: C5          push bc
-;AD56: 3E 01       ld   a,$01
-;AD58: CD 5A B0    call $B05A
-;AD5B: C1          pop  bc
-;AD5C: FD E1       pop  iy
-;AD5E: A7          and  a
-;AD5F: C2 C4 A7    jp   nz,$AD64
-;AD62: 10 65       djnz $AD29
-;AD64: C9          ret
-;
 
 counter_attack_timer_table_AD67:
 	dc.l	counter_attack_timers_AD6F
@@ -1427,6 +1428,108 @@ counter_attack_timers_AE1F:
 	dc.b	$01,$01,$01,$01,$01,$01,$01,$01,$00,$00,$00,$00,$00,$00,$00,$00
 
 	even
+
+; < A0: table of byte values, end with $FF
+; < D0: value to search for
+; > D0: 0 if not found, 1 if found
+; trashes: D1, A0
+table_linear_search_B00F
+	move.b	(a0)+,d1
+	bmi.b	.not_found
+	cmp.b	d0,d1
+	bne.b	table_linear_search_B00F
+	; found
+	moveq.l	#1,d0
+	rts
+	
+.not_found
+	moveq.l	#0,d0
+	rts
+	
+;; > a: attack id (cf table at start of the source file)
+;; but this routine cannot return 0 because tables it points to don't contain 0
+;; furthermore, this routine is sometimes followed by a sanity check crashing with
+;; an error message if a is 0 on exit. Since it's random, how could the sanity check NOT fail?
+;;
+;; injecting values performs the move... or the move is discarded by caller
+;
+;select_cpu_attack_AB2E:
+;AB2E: DD 21 52 AB ld   ix,master_cpu_move_table_AB58		; table of pointers of move tables
+;; choose the proper move list depending on facing & distance
+;AB32: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)	; <= C26B
+;AB35: 23          inc  hl
+;AB36: 7E          ld   a,(hl)	; get value in C26C: facing configuration
+;AB37: 87          add  a,a
+;AB38: 4F          ld   c,a
+;AB39: 06 00       ld   b,$00
+;AB3B: DD 09       add  ix,bc
+;AB3D: DD 6E 00    ld   l,(ix+$00)
+;AB40: DD 66 01    ld   h,(ix+$01)
+;; get msb of 16 bit counter for randomness
+;AB43: ED 5B 8E 60 ld   de,(periodic_counter_16bit_C02E)
+;AB47: 5E          ld   e,(hl)	; pick a number 0-value of hl (not included)
+;AB48: 23          inc  hl	; skip number of values
+;AB49: E5          push hl
+;AB4A: CD 0C B0    call random_B006
+;AB4D: E1          pop  hl
+;AB4E: 06 00       ld   b,$00
+;AB50: 4F          ld   c,a
+;AB51: 09          add  hl,bc
+;; gets CPU move to make
+;AB52: 7E          ld   a,(hl)
+;AB53: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
+;; gives attack order to the CPU
+;; only attack moves (not walk moves) are given here
+;AB56: 77          ld   (hl),a
+;AB57: C9          ret
+
+select_cpu_attack_AB2E
+	move.w	rough_distance(a4),d0
+	add.w	d0,d0
+	add.w	d0,d0
+	lea		master_cpu_move_table_AB58(pc),a0
+	move.l	(a0,d0.w),a0		; selected attack table
+	moveq.l	#0,d0
+	move.b	(a0)+,d0
+	bsr		randrange
+	move.b	(a0,d0.w),d7	; cpu attack move
+	rts
+	
+	
+;; some moves are done or not depending on how the players are
+;; located and if current player can reach opponent with a blow
+;; (the CPU isn't going to perform a back move in the void)
+;; the direction of opponent isn't considered here
+;; (the 5 values relate to player struct + $0C)
+;
+
+master_cpu_move_table_AB58:
+	dc.l  move_list_far_away_AB62	; far away (we don't care much about facing)
+	dc.l  move_list_facing_mid_range_AB70		; mid-range, cpu faces opponent (who can face cpu or not...)
+	dc.l  move_list_facing_close_range_AB7B		; close-range, cpu faces opponent
+	dc.l  move_list_turning_back_AB84		; mid-range, cpu has its back turned on opponent
+	dc.l  move_list_turning_back_AB84		; close-range, cpu has its back turned on opponent (same as above)
+;
+;; move list starts by number of moves (for random pick)
+;; not the same move indexes as above, move indexes are listed at start of
+;; document
+move_list_far_away_AB62:
+;	; 13 moves: back, jbk, footsweep, front kick/punch, back round, lunge, jsk, round, lunge, lunge, revpunch, lowk
+;	; the move doesn't really matter as it cannot connect (too far)
+	dc.b	$0D,MOVE_BACK_KICK,MOVE_JUMPING_BACK_KICK,MOVE_FOOT_SWEEP_BACK,MOVE_FRONT_KICK_OR_REVERSE_PUNCH
+	dc.b	MOVE_BACK_ROUND_KICK,MOVE_LUNGE_PUNCH_400,MOVE_JUMPING_SIDE_KICK,MOVE_FOOT_SWEEP_FRONT_1,MOVE_ROUND_KICK
+	dc.b	MOVE_LUNGE_PUNCH_600,MOVE_LUNGE_PUNCH_1000,MOVE_REVERSE_PUNCH_800,MOVE_LOW_KICK
+;	; lunge backroundkick lungemedium jsk 0E(???) round lunge, lunge, revpunch, lowkick
+move_list_facing_mid_range_AB70:
+	dc.b	10,$0A,$0B,$0C,$0D,$0E,$0F,$10,$11,$13,$14
+;	; front kick, back round, lungemedium, jsk, round, lunge, revpunch, lowkick
+move_list_facing_close_range_AB7B
+	; small reverse, back round, lungemediumj sk,...
+	dc.b	 8,$0A,$0B,$0C,$0D,$0F,$10,$13,$14 
+	; list of only reverse attacks (mostly defensive, cpu turns its back on the opponent)
+	; back kick jbk foot sweep back
+move_list_turning_back_AB84
+	dc.b	3,$05,$08,$09
 	
 display_error_text_B075
 	blitz

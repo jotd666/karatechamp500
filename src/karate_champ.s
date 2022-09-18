@@ -317,12 +317,12 @@ ATTACK_FOOT_SWEEP_FRONT = $09
 ATTACK_ROUND_KICK = $0A
 ATTACK_LUNGE_PUNCH_600 = $0B
 ATTACK_LUNGE_PUNCH_1000 = $0C
-ATTACK_REVERSE_PUNCH = $0D
+ATTACK_REVERSE_PUNCH_800 = $0D
 ATTACK_LOW_KICK = $0E
 ;;ATTACK_ $0F: ???? not in those tables
-ATTACK_BACK_SOMMERSAULT = $10
-ATTACK_FRONT_SOMMERSAULT = $11
-ATTACK_BACK_SOMMERSAULT_2 = $12
+ATTACK_SOMMERSAULT_BACK = $10
+ATTACK_SOMMERSAULT = $11
+ATTACK_SOMMERSAULT_BACK_2 = $12
 
 ; rough distance enums
 ; 0: far
@@ -2820,7 +2820,7 @@ draw_bull_stage
 	
 	bsr		draw_referee
 	bsr		draw_active_player
-	lea		bull(pc),a2
+	lea		bull,a2
 	move.w	xpos(a2),d0
 	move.w	ypos(a2),d1
 	move.w	direction(a2),d2

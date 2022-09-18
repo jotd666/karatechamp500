@@ -1,5 +1,4 @@
 {"name": "jumping_side_kick",
-"attack":"ATTACK_JUMPING_SIDE_KICK",
 "deltas":
 [[0, 0, 0], 
 [1, 4, 0], 

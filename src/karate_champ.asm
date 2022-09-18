@@ -22366,15 +22366,15 @@ ai_jump_table_A629
 	dc.w	cpu_move_turn_around_A966
 ai_jump_table_A63D
 	dc.w	display_error_text_B075       ; what opponent does:
-	dc.w	select_cpu_attack_A96E        ; 1: no particular stuff
+	dc.w	pick_cpu_attack_A96E        ; 1: no particular stuff
 	dc.w	cpu_complex_reaction_to_front_attack_A980     ; 2: frontal attack
 	dc.w	cpu_complex_reaction_to_rear_attack_A9D6                         ; 3: rear attack               
 	dc.w	perform_foot_sweep_back_ABBB  ; 4: crouch   $AA10                              
-	dc.w	select_cpu_attack_A96E        ; 5 in-jump    $AA22                
+	dc.w	pick_cpu_attack_A96E        ; 5 in-jump    $AA22                
 	dc.w	cpu_turn_back_AA25            ; 6: sommersault forward       
 	dc.w	cpu_turn_back_AA25            ; 7: sommersault backwards     
-	dc.w	select_cpu_attack_A96E		  ; 8: starting a jump     $AA2D
-	dc.w	select_cpu_attack_A96E		  ; 9: move not in list      $AA30
+	dc.w	pick_cpu_attack_A96E		  ; 8: starting a jump     $AA2D
+	dc.w	pick_cpu_attack_A96E		  ; 9: move not in list      $AA30
 computer_ai_jump_table_all_turn_back_A651
 	dc.w	display_error_text_B075
 	dc.w	cpu_turn_back_AA33
@@ -22984,7 +22984,7 @@ A966: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 A969: 36 0D       ld   (hl),$07		; turn around
 A96B: C3 10 A4    jp   cpu_move_done_A410
 
-select_cpu_attack_A96E: CD 8E AB    call select_cpu_attack_AB2E
+pick_cpu_attack_A96E: CD 8E AB    call select_cpu_attack_AB2E
 ;;A971: A7          and  a
 ;;A972: C2 D7 A3    jp   nz,$A97D   always true
 ; not reached so commented
@@ -23080,15 +23080,15 @@ AA10: CD BB AB    call perform_foot_sweep_back_ABBB
 ;;AA1A: 36 0D       ld   (hl),$07
 ;;AA1C: C3 10 A4    jp   cpu_move_done_A410
 AA1F: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
-AA22: C3 CE A3    jp   select_cpu_attack_A96E
+AA22: C3 CE A3    jp   pick_cpu_attack_A96E
 
 cpu_turn_back_AA25:
 AA25: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 AA28: 36 0D       ld   (hl),$07
 AA2A: C3 10 A4    jp   cpu_move_done_A410
 
-AA2D: C3 CE A3    jp   select_cpu_attack_A96E
-AA30: C3 CE A3    jp   select_cpu_attack_A96E
+AA2D: C3 CE A3    jp   pick_cpu_attack_A96E
+AA30: C3 CE A3    jp   pick_cpu_attack_A96E
 
 cpu_turn_back_AA33:
 AA33: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
@@ -23122,14 +23122,16 @@ backwards_sommersault_frame_list_end_AAA9:
 	dc.b	57 12 60 12 72 12 7B 12 FF FF
 ; player gets down, including foot sweep
 crouch_frame_list_AAB3:
-	dc.b	$27 0C E0 0D A7 10 DE 12 FF FF
-
+	dc.b	$27 0C E0 0D   A7 10 DE 12 FF FF
+	        crouch  fwsb   fswf   rvp
 ; some other tables loaded by the code below (accessed by a table too)
 ; one byte per attack
 ;
 ; codes aren't the same as attack commands but that's not really a problem
 ; thanks to the debugger and conditionnal breakpoints!!!
-
+; computer fetches them in frame ids at offset 8
+; in identify_opponent_current_move_AB1D
+;
 ; $01: back kick
 ; $02: jumping side kick
 ; $03: foot sweep back
@@ -23202,12 +23204,17 @@ AB1C: C9          ret
 
 ; iy=C220, loads ix with current frame pointer of opponent, then
 ; identifies opponent exact frame/move (starting move probably)
-identify_opponent_current_move_AB1D: FD 4E 0B    ld   c,(iy+$0b)
+identify_opponent_current_move_AB1D: 
+; load current frame pointer
+AB1D: FD 4E 0B    ld   c,(iy+$0b)
 AB20: FD 46 06    ld   b,(iy+$0c)
+; remove direction bit
 AB23: CB B8       res  7,b
 AB25: C5          push bc
 AB26: DD E1       pop  ix
+; load at offset 8 to get move id. Ex 4 = front kick
 AB28: DD 7E 02    ld   a,(ix+$08)
+; reset move direction bit
 AB2B: CB BF       res  7,a
 AB2D: C9          ret
 
@@ -23223,7 +23230,7 @@ AB2E: DD 21 52 AB ld   ix,master_cpu_move_table_AB58		; table of pointers of mov
 ; choose the proper move list depending on facing & distance
 AB32: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)	; <= C26B
 AB35: 23          inc  hl
-AB36: 7E          ld   a,(hl)	; get value in C26C: facing configuration
+AB36: 7E          ld   a,(hl)	; get value in C26C: facing configuration/rough distance 0-4
 AB37: 87          add  a,a
 AB38: 4F          ld   c,a
 AB39: 06 00       ld   b,$00
