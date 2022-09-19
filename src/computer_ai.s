@@ -74,7 +74,22 @@ handle_cpu_opponent:
 ;A3C5: E1          pop  hl
 ;A3C6: A7          and  a
 ;A3C7: C2 E9 AB    jp   nz,full_blown_hit_ABE3	; missed cpu hit: let player react
-
+; the rest of the routine is used to maintain block as long as needed
+; (as long as opponent is performing the same menacing move or another
+; move of the same attack height)
+;A3CA: DD 21 27 AA ld   ix,blocking_frame_list_AA8D
+;A3CE: E5          push hl
+;A3CF: CD 03 B0    call check_hl_in_ix_list_B009
+;A3D2: E1          pop  hl
+;A3D3: A7          and  a
+;A3D4: C2 FF AB    jp   nz,$computer_completed_a_blocking_move_ABFF	; computer has completed a blocking move
+;A3D7: E5          push hl
+;A3D8: DD E1       pop  ix
+;A3DA: DD 7E 02    ld   a,(ix+$08)
+;A3DD: A7          and  a
+;A3DE: C2 62 A6    jp   nz,$ACC8		; move done
+;A3E1: C3 6B A6    jp   $ACCB		; move done
+	; TOCODE
 	bra.b	cpu_move_done_A410
 	
 cpu_move_done_opponent_can_react_A3E4:
@@ -550,7 +565,7 @@ attack_once_out_of_16_frames_else_walk_A725:
 ;cpu_avoids_low_attack_if_facing_else_maybe_attacks_A73F:
 ;A73F: FD CB 0F DE bit  7,(iy+$0f)
 ;A743: CA 57 AD    jp   z,$A75D
-;; not facing each other
+;; not facing opponent
 ;A746: 3A 8E 60    ld   a,(periodic_counter_16bit_C02E)
 ;A749: E6 01       and  $01
 ;; 50% chance attack
@@ -563,7 +578,17 @@ attack_once_out_of_16_frames_else_walk_A725:
 ;A758: 36 08       ld   (hl),$02
 ;A75A: C3 20 AD    jp   $A780		; cpu_move_done_A410
 ;
-;; facing each other
+cpu_avoids_low_attack_if_facing_else_maybe_attacks_A73F
+	move.w	fine_distance(a4),d0
+	btst	#7,d0
+	beq.b	.facing
+	; not facing: can attack
+	btst	#0,randomness_timer
+	beq.b	just_walk_A7C5
+	bsr.b	select_cpu_attack_AB2E
+	bra.b	cpu_move_done_opponent_can_react_A3E4
+.facing
+;; facing opponent
 ;A75D: CD 02 AB    call opponent_starting_low_kick_AB08
 ;A760: A7          and  a
 ;A761: CA C6 AD    jp   z,$A76C
@@ -586,6 +611,18 @@ attack_once_out_of_16_frames_else_walk_A725:
 ;A780: C3 10 A4    jp   cpu_move_done_A410
 ;A783: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 ;
+	bsr		opponent_starting_low_kick_AB08
+	tst		d0
+	bne.b	just_walk_A7C5
+	bsr		opponent_starting_low_attack_AAFD
+	tst		d0
+	bne.b	.not_low_attack
+	moveq.l	#MOVE_JUMP,d7
+	bra.b	cpu_move_done_A410
+.not_low_attack
+	moveq.l	#MOVE_BACK,d7
+	bra.b	cpu_move_done_A410
+	
 ;cpu_maybe_attacks_if_facing_else_avoids_low_attack_A786:
 ;A786: FD CB 0F DE bit  7,(iy+$0f)
 ;A78A: C2 A4 AD    jp   nz,$A7A4
@@ -876,18 +913,17 @@ get_out_of_edge_or_low_kick_A917:
 	move.w	xpos(a3),d0
 	cmp.w	#$30-$20,d0		; there's a $20 offset in the arcade game that we don't have here
 	bcs.b	cpu_move_done_opponent_can_react_A3E4
-	move.w	#MOVE_SOMMERSAULT,d7
+	move.w	#MOVE_FRONT_SOMMERSAULT,d7
 	bra.b	cpu_move_done_A410
 ;
 ;perform_low_kick_A935: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;A938: 36 14       ld   (hl),$14
 ;A93A: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 ;
-;A93D: C3 4E A3    jp   front_kick_or_fwd_sommersault_to_recenter_A94E
-;
-;A940: C3 AB A2    jp   high_attack_if_forward_sommersault_or_walk_A8AB
-;
-;A943: C3 E2 A2    jp   move_fwd_or_bwd_checking_sommersault_and_dir_A8E8
+perform_low_kick_A935:
+	move.l	#MOVE_LOW_KICK,d7
+	bra.b	cpu_move_done_opponent_can_react_A3E4
+	
 ;
 ;perform_walk_back_A946:
 ;A946: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
@@ -916,7 +952,7 @@ front_kick_or_fwd_sommersault_to_recenter_A94E:
 	move.w	xpos(a3),d0
 	cmp.w	#$30-$20,d0
 	bcc.b	cpu_move_done_opponent_can_react_A3E4
-	move.w	#MOVE_SOMMERSAULT,d7
+	move.w	#MOVE_FRONT_SOMMERSAULT,d7
 	bra.b	cpu_move_done_A410
 
 ;
@@ -1121,7 +1157,7 @@ opponent_starting_low_attack_AAFD:
 	lea		table_low_attacks_AAD4(pc),a0
 	bra.b	table_linear_search_B00F
 
-;; return a = 0 if current frame is $0E (low kick)
+;; return a != 0 if current frame is $0E (low kick)
 ;opponent_starting_low_kick_AB08
 ;AB08: CD 17 AB    call identify_opponent_current_move_AB1D
 ;AB0B: FE 0E       cp   $0E

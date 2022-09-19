@@ -2871,9 +2871,9 @@ draw_normal:
 .no_start_level
 
 	bsr	erase_referee
-	lea	player_1(pc),a4
+	lea	player_1,a4
 	bsr	erase_player
-	lea	player_2(pc),a4
+	lea	player_2,a4
 	bsr	erase_player
 
 	tst.w	pause_round_timer
@@ -2887,9 +2887,9 @@ draw_normal:
 	; girl showing, no referee
 	bsr	draw_referee
 .no_referee
-	lea	player_1(pc),a4
+	lea	player_1,a4
     bsr draw_player
-	lea	player_2(pc),a4
+	lea	player_2,a4
     bsr draw_player
 	
 	move.l	technique_to_display(pc),d6

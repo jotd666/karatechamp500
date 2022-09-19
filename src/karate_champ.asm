@@ -133,11 +133,18 @@
 ; in CMP (champ) level and stage 16 (brige CMP if I'm not mistaken),
 ; difficulty dip switches are ignored, game is just super fast
 ; and super hard
+;
+;A.I: how computer maintains its moves ?
+;
+; - attack moves: once the attack went through (and failed), depending
+;   on the skill level, computer waits a while with the move frozen
+;   (including jumping moves, which looks a bit weird). In champion level
+;   from level 16, there is no wait at all.
+; - blocking moves: maintaned as long as the opponent is performing
+;   an attack move with a matching attack height
 
-; TODO:
-; get more info about player_2_attack_flags_C028 what does the values mean (09,0A...)
+; I should get more info about player_2_attack_flags_C028 what does the values mean (09,0A...)
 ; probably related to animation frames not to A.I. so less interesting
-; * recode A.I. from fight_mainloop_A390 entrypoint
 
 0000: C3 45 B0    jp   $B045
 0003: C3 59 41    jp   $4153
@@ -6619,7 +6626,7 @@ table_3DF8
 3FEE: 46          ld   b,(hl)
 3FEF: C5          push bc
 3FF0: DD E1       pop  ix
-3FF2: CD 06 B0    call $B00C
+3FF2: CD 06 B0    call $key_value_linear_search_B00C
 3FF5: A7          and  a
 3FF6: C4 D5 B0    call nz,display_error_text_B075
 3FF9: DD E1       pop  ix
@@ -6956,7 +6963,7 @@ table_3DF8
 4268: FD 5E 0D    ld   e,(iy+$07)
 426B: FD 56 02    ld   d,(iy+$08)
 426E: CB BA       res  7,d
-4270: CD 06 B0    call $B00C
+4270: CD 06 B0    call $key_value_linear_search_B00C
 4273: A7          and  a
 4274: CA DB 48    jp   z,$427B
 4277: AF          xor  a
@@ -6966,7 +6973,7 @@ table_3DF8
 4280: FD 5E 0D    ld   e,(iy+$07)
 4283: FD 56 02    ld   d,(iy+$08)
 4286: CB BA       res  7,d
-4288: CD 06 B0    call $B00C
+4288: CD 06 B0    call $key_value_linear_search_B00C
 428B: A7          and  a
 428C: C4 D5 B0    call nz,display_error_text_B075
 428F: FD 7E 0A    ld   a,(iy+$0a)
@@ -7074,7 +7081,7 @@ table_3DF8
 4376: FD 5E 0D    ld   e,(iy+$07)
 4379: FD 56 02    ld   d,(iy+$08)
 437C: CB BA       res  7,d
-437E: CD 06 B0    call $B00C
+437E: CD 06 B0    call $key_value_linear_search_B00C
 4381: D1          pop  de
 4382: C1          pop  bc
 4383: A7          and  a
@@ -8156,7 +8163,7 @@ get_current_frame_contents_478D: FD 6E 0D    ld   l,(iy+$07)
 4C17: FD 56 02    ld   d,(iy+$08)
 4C1A: CB BA       res  7,d
 4C1C: DD 21 9F 46 ld   ix,$4C3F
-4C20: CD 06 B0    call $B00C
+4C20: CD 06 B0    call $key_value_linear_search_B00C
 4C23: A7          and  a
 4C24: C2 9E 46    jp   nz,$4C3E
 4C27: FD 7E 03    ld   a,(iy+$09)
@@ -22024,7 +22031,9 @@ A3C2: CD 03 B0    call check_hl_in_ix_list_B009
 A3C5: E1          pop  hl
 A3C6: A7          and  a
 A3C7: C2 E9 AB    jp   nz,full_blown_hit_ABE3	; missed cpu hit: let player react
-; the rest of the routine seems to end in cpu_move_done_A410 100% of the time...
+; the rest of the routine is used to maintain block as long as needed
+; (as long as opponent is performing the same menacing move or another
+; move of the same attack height)
 A3CA: DD 21 27 AA ld   ix,blocking_frame_list_AA8D
 A3CE: E5          push hl
 A3CF: CD 03 B0    call check_hl_in_ix_list_B009
@@ -23111,9 +23120,8 @@ hitting_frame_list_AA6D:
 	dc.b	C0 0C D2 0C 47 0D D7 0D 4C 0E AF 0E 1B 0F 90 0F 0E 10 9E 10 0A 11 6D 11 E2 11 D5 12 4A 13 FF FF
 blocking_frame_list_AA8D:  ; final moves of blocks
 	dc.b	88 1A      D0 1A      18 1B FF FF
-	
-
-	;        uchiuke  sotouke     gedanbarai
+	;       uchiuke   sotouke     gedanbarai
+	;       (high)    (medium)    (low)
 forward_sommersault_frame_list_AA95:
 	dc.b	AD 13 B6 13 BF 13
 forward_sommersault_frame_list_end_AA9B
@@ -23344,9 +23352,10 @@ ABCA: 77          ld   (hl),a
 ABCB: C9          ret
 
 ; computer is jumping
-handle_cpu_land_from_jump_ABCC: FD 6E 0D    ld   l,(iy+$07)
+handle_cpu_land_from_jump_ABCC: FD 6E 0D
+ABCC:	ld   l,(iy+$07)
 ABCF: FD 66 02    ld   h,(iy+$08)
-ABD2: 11 D9 0B    ld   de,$0B73
+ABD2: 11 D9 0B    ld   de,$0B73    ; jump frame
 ABD5: A7          and  a
 ABD6: ED 52       sbc  hl,de
 ABD8: C2 E0 AB    jp   nz,$ABE0
@@ -23371,25 +23380,30 @@ ABF7: FE FF       cp   $FF
 ABF9: C4 D5 B0    call nz,display_error_text_B075
 ABFC: C3 10 A4    jp   cpu_move_done_A410
 
-; called if the computer blocks
+; called if the computer blocks, checks if computer must
+; maintain the block depending on opponent current frame/move
+; it will stop blocking as soon as the current opponent blow
+; doesn't match the current computer block
 computer_completed_a_blocking_move_ABFF:
-ABFF: DD 21 29 A6 ld   ix,block_and_others_table_AC83
+ABFF: DD 21 29 A6 ld   ix,block_key_table_AC83
 AC03: FD 5E 0D    ld   e,(iy+$07)
 AC06: FD 56 02    ld   d,(iy+$08)
-AC09: CD 06 B0    call $B00C
+; look for de (computer current block frame) in key/value table
+; the frames match high/medium/low attack moves that can be blocked
+AC09: CD 06 B0    call key_value_linear_search_B00C
 AC0C: A7          and  a
 AC0D: C4 D5 B0    call nz,display_error_text_B075
 AC10: E5          push hl
 AC11: DD E1       pop  ix
+; ix contains the corresponding pointer
+; now load opponent frame
 AC13: FD 6E 0B    ld   l,(iy+$0b)
 AC16: FD 66 06    ld   h,(iy+$0c)
 AC19: CB BC       res  7,h
-; check if opponent blocks or something else...
+; check if opponent performs some moves (facing computer block)...
 AC1B: CD 03 B0    call check_hl_in_ix_list_B009
 AC1E: A7          and  a
-AC1F: CA 9E A6    jp   z,$AC3E
-; the opponent is also blocking (difficult to reach here... since
-; computer is blocking it means that the opponent is attacking...
+AC1F: CA 9E A6    jp   z,$AC3E	; opponent doesn't perform one of the moves
 AC22: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 AC25: 36 00       ld   (hl),$00
 AC27: 21 1D AE    ld   hl,counter_attack_time_table_AE17
@@ -23402,10 +23416,15 @@ AC36: FE FF       cp   $FF
 AC38: C4 D5 B0    call nz,display_error_text_B075
 AC3B: C3 20 A6    jp   $AC80
 
-AC3E: DD 21 A7 A6 ld   ix,block_and_others_table_ACAD
+; search for the same moves, but by attack id this time (not by frame id)
+; 7 bit is set but it's still attack id
+; it looks that the frame/move search isn't very reliable, this search
+; looks very redundant (and in a lot of other parts of the code it's
+; also done that way)
+AC3E: DD 21 A7 A6 ld   ix,block_key_table_ACAD
 AC42: FD 5E 0D    ld   e,(iy+$07)
 AC45: FD 56 02    ld   d,(iy+$08)
-AC48: CD 06 B0    call $B00C
+AC48: CD 06 B0    call key_value_linear_search_B00C
 AC4B: A7          and  a
 AC4C: C4 D5 B0    call nz,display_error_text_B075
 AC4F: E5          push hl
@@ -23416,11 +23435,11 @@ AC58: E5          push hl
 AC59: DD E1       pop  ix
 AC5B: DD 7E 02    ld   a,(ix+$08)
 AC5E: DD E1       pop  ix
-; check if opponent blocks or something else...
-; ix can be ACC4 (gedan barai), ACC1 (soto uke?)
 AC60: CD 0F B0    call table_linear_search_B00F
 AC63: A7          and  a
+; if opponent is performing a move matching the block
 AC64: C2 20 A6    jp   nz,$AC80
+; move not found: stand guard, wait for opponent reaction
 AC67: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 AC6A: 36 00       ld   (hl),$00
 AC6C: 21 1D AE    ld   hl,counter_attack_time_table_AE17
@@ -23434,22 +23453,29 @@ AC7D: C4 D5 B0    call nz,display_error_text_B075
 AC80: C3 10 A4    jp   cpu_move_done_A410
 
 
-; contains 3 block end frames plus one repositionning (?) frame
-; (writing 881A to C247 makes character skips to the left)
-; plus probably 2 other frames that don't exist (games goes into ERROR
-; when C247 is written with those: $AC91 $AC9D $ACA3, and more 
-; importantly: I could not make the game use them, never written in
-; C22B which holds player 1 current frame pointer)
-block_and_others_table_AC83
-	dc.b	88 1A 91 AC D0 1A 9D AC 18 1B A3 AC FF FF 
-AC91  50 0D 24 0F 17 10 76 11 EB 11 FF FF B8 0E 99 0F FF FF   $...v.ë.ÿÿ¸...ÿÿ
-ACA3  C9 0C DB 0C 55 0E DE 12 FF FF 
-; block and others $ACBB ACC1 ACC4 what are those???
-block_and_others_table_ACAD
-	dc.b	88 1A BB AC D0 1A C1 AC 18 1B C4 AC FF FF 
-; 82 86 88 8B 8C FF 
-ACC1  85 87 FF 
-ACC4  81 84 8D FF 
+block_key_table_AC83
+	dc.w	$1A88,$AC91	; high block
+	dc.w	$1AD0,$AC9D	; medium block
+	dc.w	$1B18,$ACA3	; low block
+	dc.w	$FFFF 
+; hitting points of high techniques
+	                  brkick (and next frame)    jskick (and landing)
+AC91  dc.b	50 0D     24 0F                           17 10           
+          lpunch 600      lpunch 1000
+      dc.b  76 11            EB 11 FF FF 
+; hitting points of medium techniques
+AC9D  dc.b	B8 0E 99 0F FF FF
+; hitting points of low techniques
+ACA3  dc.b	C9 0C DB 0C 55 0E DE 12 FF FF 
+
+block_key_table_ACAD
+	dc.w	$1A88,high_attacks_ACBB	; high block
+	dc.w	$1AD0,medium_attacks_ACC1	; medium block
+	dc.w	$1B18,low_attacks_ACC4	; low block
+	dc.w	$FFFF 
+high_attacks_ACBB dc.b	82 86 88 8B 8C FF ; jskick brkick jbkick lp600 lp1000
+medium_attacks_ACC1 dc.b	85 87 FF ; weak reverse, lunge punch 400
+low_attacks_ACC4 dc.b	81 84 8D FF  ; back kick, front kick, revpunch 800 
 
 
 
@@ -24073,7 +24099,7 @@ B000: C3 69 B0    jp   $B0C3
 B003: C3 7B B0    jp   $B0DB
 random_B006: C3 EE B0    jp   $B0EE
 B009: C3 FF B0    jp   check_hl_in_ix_list_B0FF
-B00C: C3 84 B1    jp   $B124
+key_value_linear_search_B00C: C3 84 B1    jp   key_value_linear_search_B124
 table_linear_search_B00F: C3 42 B1    jp   table_linear_search_B148
 B012: C3 56 B1    jp   $B15C
 B015: C3 D1 B1    jp   $B171
@@ -24204,18 +24230,24 @@ B11F: C3 89 B1    jp   $B123
 B122: AF          xor  a	; a <= 0
 B123: C9          ret
 
-; another search routine
-B124: 01 04 00    ld   bc,$0004
+; another search routine (key value)
+; < de: word to look for
+; < ix: table to look into
+; > a=0 found
+; > if found loads hl with the word after 
+; the value of de found in ix list
+
+key_value_linear_search_B124: 01 04 00    ld   bc,$0004
 B127: DD 6E 00    ld   l,(ix+$00)
 B12A: DD 66 01    ld   h,(ix+$01)
 B12D: 7D          ld   a,l
 B12E: A4          and  h
 B12F: FE FF       cp   $FF
-B131: CA 4D B1    jp   z,$B147
+B131: CA 4D B1    jp   z,$B147	; h=a=$FF => end
 B134: A7          and  a
 B135: ED 52       sbc  hl,de
 B137: CA 9F B1    jp   z,$B13F
-B13A: DD 09       add  ix,bc
+B13A: DD 09       add  ix,bc	; add 4 to ix
 B13C: C3 8D B1    jp   $B127
 B13F: DD 6E 08    ld   l,(ix+$02)
 B142: DD 66 09    ld   h,(ix+$03)

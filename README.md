@@ -5,7 +5,7 @@ todo:
 if crouch when end of foot sweep (back or front) 
 then connect to crouch
 crouch connects to reverse punch: implemented? check
-
+implement "TOCODE" tags in computer_ai.s
 
 if py<(py_start-32) (not jumping)
 if going left and 0<px-px_other<threshold, don't move left
@@ -38,18 +38,15 @@ check cpu move speed from videos with varying skill level
 - OR: provide a table of frozen controls (nb frames) for each move, this will
   add to the possible wait for player reaction after the move
 
-- add ATTACK_* enums in move headers (info.json files for attacks)
-
-- understand what means code in ABFF computer blocks attack and 
-  checks opponent status with strange tables
   
 bugs:
 
 - player hit (F8) => animation stops (reworked frozen controls for A.I. broke it)
-- adjust player x $20 (min x) and $DF (max x) so A.I. x/distance values can be used
 - back round kick other direction than opponent: can't be done in normal mode (ok in evade): back kick instead
 - jumping side kick one frame too high
-- evade collisions: front ok, back move ko
+- jump: too short, maybe duplicate frame sequence
+- hits don't seem to register anymore
+- evade collisions: front ok, back move ko (and trashes game)
 - evade: player moves: trashes object update
 - evade: sometimes random end to practice with start music... then crash...
 - 2P game over player message: doesn't stay long enough
@@ -59,13 +56,11 @@ bugs:
 - intro karateka wrong move (sometimes stuck x=0 on left) + pb erase
 - break planks sometimes breaks planks while away
 - bull add restore bg on right
-- sometimes some blows don't connect: check debug pic
 - check/fix consistency in options
-- jump not correct
 - optimization: do not check hits if player distance is too high
 - reduce memory: collision maps as bits: would gain 50kb
 - timeout win: no win animation
-- practice: jumping back kick asked 2 times in the end (2 player)p
+
 
 
 
