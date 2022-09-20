@@ -22377,7 +22377,7 @@ ai_jump_table_A63D
 	dc.w	pick_cpu_attack_A96E        ; 1: no particular stuff
 	dc.w	cpu_complex_reaction_to_front_attack_A980     ; 2: frontal attack
 	dc.w	cpu_complex_reaction_to_rear_attack_A9D6                         ; 3: rear attack               
-	dc.w	perform_foot_sweep_back_ABBB  ; 4: crouch   $AA10                              
+	dc.w	foot_sweep_back_AA10  ; 4: crouch                              
 	dc.w	pick_cpu_attack_A96E        ; 5 in-jump    $AA22                
 	dc.w	cpu_turn_back_AA25            ; 6: sommersault forward       
 	dc.w	cpu_turn_back_AA25            ; 7: sommersault backwards     
@@ -23081,7 +23081,7 @@ AA08: 36 0D       ld   (hl),$07
 AA0A: C3 10 A4    jp   cpu_move_done_A410
 AA0D: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
-AA10: CD BB AB    call perform_foot_sweep_back_ABBB
+foot_sweep_back_AA10: CD BB AB    call perform_foot_sweep_back_ABBB
 ;;AA13: A7          and  a
 ;;AA14: C2 1F AA    jp   nz,$AA1F	; always true
 ;;AA17: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
