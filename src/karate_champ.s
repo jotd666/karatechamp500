@@ -2926,7 +2926,7 @@ erase_girl
 	bra		restore_background
 		
 draw_girl
-	move.w	girl_frame_index(pc),d4
+	move.w	girl_frame_index,d4
 	bmi.b	.no_draw
 	
 	; draw girl

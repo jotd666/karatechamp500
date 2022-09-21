@@ -638,6 +638,15 @@ cpu_avoids_low_attack_if_facing_else_maybe_attacks_A73F
 ;A79C: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;A79F: 36 08       ld   (hl),$02
 ;A7A1: C3 BF AD    jp   $A7BF
+
+cpu_maybe_attacks_if_facing_else_avoids_low_attack_A786
+	move.w	fine_distance(a4),d0
+	btst	#7,d0
+	bne.b	.not_facing
+	move.b	randomness_timer,d0
+	btst	#1,d0
+	beq.b	just_walk_A7C5
+	bra.b	pick_cpu_attack_A802
 ;; not facing each other: if low attack, 50% chance of jump,
 ;; 50% ; move back / block possible attack
 ;
@@ -656,6 +665,16 @@ cpu_avoids_low_attack_if_facing_else_maybe_attacks_A73F
 ;A7BF: C3 10 A4    jp   cpu_move_done_A410
 ;A7C2: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 ;
+.not_facing
+	bsr.b	opponent_starting_low_attack_AAFD
+	tst		d0
+	beq.b	perform_walk_back_A946
+	move.b	randomness_timer,d0
+	btst	#0,d0
+	bne.b	perform_walk_back_A946
+	move.w	#MOVE_JUMP,d7
+	bra.b	cpu_move_done_A410
+	
 ;just_walk_A7C5: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;A7C8: 36 08       ld   (hl),$02
 ;A7CA: C3 10 A4    jp   cpu_move_done_A410
@@ -804,6 +823,26 @@ cpu_reacts_to_low_attack_if_facing_else_attacks_A80C:
 ;A881: 36 01       ld   (hl),$01
 ;A883: C3 27 A2    jp   $A88D
 ;
+cpu_react_to_low_attack_or_perform_attack_A85B
+	move.w	fine_distance(a4),d0
+	btst	#7,d0
+	beq.b	pick_cpu_attack_A802
+	; not facing
+	bsr.b		opponent_starting_low_attack_AAFD
+	tst		d0
+	beq.b	.counter_low_attack
+
+
+.counter_low_attack
+	bsr		perform_foot_sweep_if_level_3_AB99
+	tst		d0
+	bne.b	cpu_move_done_opponent_can_react_A3E4
+	; low skill level, just parry
+	move.w	#MOVE_JUMP,d7
+	btst	#0,randomness_timer
+	bne.b	cpu_move_done_A410
+	bra.b	perform_walk_back_A946
+	
 ;; facing each other... pick an attack
 ;A886: CD 8E AB    call select_cpu_attack_AB2E
 ;;;A889: A7          and  a
@@ -812,6 +851,9 @@ cpu_reacts_to_low_attack_if_facing_else_attacks_A80C:
 ;
 ;A890: C3 10 A4    jp   cpu_move_done_A410
 ;
+
+	
+
 ;cpu_small_chance_of_low_kick_else_walk_A893:
 ;A893: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;; decide a low kick once out of 8 ticks (12% chance of low kick)
@@ -910,10 +952,22 @@ high_attack_if_forward_sommersault_or_walk_A8AB
 ;A90C: 36 01       ld   (hl),$01		; move back
 ;A90E: C3 10 A4    jp   cpu_move_done_A410
 ;
-;A911: C3 08 A2    jp   pick_cpu_attack_A802
-;
-;A914: C3 08 A2    jp   pick_cpu_attack_A802
-;
+move_fwd_or_bwd_checking_sommersault_and_dir_A8E8:
+	move.w	fine_distance(a4),d0
+	btst	#7,d0
+	beq.b	perform_walk_back_A946
+
+	; the frame counter
+	bsr		identify_opponent_current_move_AB1D
+	cmp.w	#ATTACK_SOMMERSAULT_BACK,d0
+	bne.b	perform_walk_back_A946
+	; sommersault, but which frame
+	move.l	opponent(a4),a3
+	move.w	frame(a3),d0
+	cmp.w	#7*4,d0		; 4 last frames (there are 11 frames)
+	bcs.b	perform_walk_back_A946
+	bra.b	just_walk_A7C5
+	
 ;get_out_of_edge_or_low_kick_A917: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;A91A: 36 14       ld   (hl),$14	; low kick
 ;A91C: FD 7E 03    ld   a,(iy+$09)	; opponent x
