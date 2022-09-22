@@ -22586,12 +22586,12 @@ A69E: E5          push hl
 A69F: CD 03 B0    call check_hl_in_ix_list_B009
 A6A2: E1          pop  hl
 A6A3: A7          and  a
-A6A4: 3E 0C       ld   a,$06		; forward sommersault
+A6A4: 3E 0C       ld   a,$06		; during forward sommersault (not at start)
 A6A6: C2 79 AC    jp   nz,move_found_A6D3
 A6A9: DD 21 A5 AA ld   ix,backwards_sommersault_frame_list_AAA5
 A6AD: CD 03 B0    call check_hl_in_ix_list_B009
 A6B0: A7          and  a
-A6B1: 3E 0D       ld   a,$07		; backwards sommersault
+A6B1: 3E 0D       ld   a,$07		; during backwards sommersault (not at start)
 A6B3: C2 79 AC    jp   nz,move_found_A6D3
 A6B6: CD 76 AA    call opponent_starting_frontal_attack_AADC
 A6B9: A7          and  a
@@ -22601,7 +22601,7 @@ A6BF: CD ED AA    call opponent_starting_rear_attack_AAE7
 A6C2: A7          and  a
 A6C3: 3E 09       ld   a,$03
 A6C5: C2 79 AC    jp   nz,move_found_A6D3
-A6C8: CD 18 AB    call opponent_starting_a_jump_AB12
+A6C8: CD 18 AB    call opponent_starting_a_sommersault_AB12
 A6CB: A7          and  a
 A6CC: 3E 02       ld   a,$08
 A6CE: C2 79 AC    jp   nz,move_found_A6D3
@@ -23211,7 +23211,7 @@ AB0D: CA 11 AB    jp   z,$AB11
 AB10: AF          xor  a
 AB11: C9          ret
 
-opponent_starting_a_jump_AB12
+opponent_starting_a_sommersault_AB12
 AB12: CD 17 AB    call identify_opponent_current_move_AB1D
 AB15: DD 21 72 AA ld   ix,table_sommersaults_AAD8
 AB19: CD 0F B0    call table_linear_search_B00F

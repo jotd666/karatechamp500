@@ -38,6 +38,7 @@ check cpu move speed from videos with varying skill level
 - OR: provide a table of frozen controls (nb frames) for each move, this will
   add to the possible wait for player reaction after the move
 
+- to code: full blown hit, how much cpu holds block
   
 bugs:
 

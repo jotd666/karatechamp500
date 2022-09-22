@@ -32,12 +32,10 @@ handle_cpu_opponent:
 ;; if walking/stands guard, computer can attack the player
 ;A3AD: C2 9B A5    jp   nz,maybe_attack_opponent_A53B
 
-	move.l	current_move_header(a4),a1
-	move.l	right_frame_set(a1),a0		; current frame
-	cmp.l	#walk_forward_right_frames,a0
-	beq.b	maybe_attack_opponent_A53B
-	cmp.l	#forward_right_frames,a0
-	beq.b	maybe_attack_opponent_A53B
+	move.l	a4,a0
+	bsr		is_walking_move
+	tst		d0
+	bne.b	maybe_attack_opponent_A53B
 
 	; not walking, check if currently jumping to avoid a blow
 	; not necessary since controls are frozen during a jump
@@ -374,6 +372,7 @@ ai_jump_table_all_turn_back_A651:
 	dc.l	cpu_turn_back_AA33
 	dc.l	cpu_turn_back_AA33
 	dc.l	cpu_turn_back_AA33
+	
 	dc.l	cpu_turn_back_AA33
 	dc.l	cpu_turn_back_AA33
 	dc.l	cpu_turn_back_AA33
@@ -393,13 +392,10 @@ ai_jump_table_all_turn_back_A651:
 ;; 7: sommersault backwards
 ;; 8: starting a jump
 ;; 9: move not in list
-classify_opponent_move_start_A665:
-	illegal
-	; TOCODE
 ;A665: FD 6E 0B    ld   l,(iy+$0b)
 ;A668: FD 66 06    ld   h,(iy+$0c)		; hl <= opponent frame
 ;A66B: CB BC       res  7,h		; remove last bit (facing direction)
-;A66D: DD 21 9B AA ld   ix,$walk_frames_list_AA3B
+;A66D: DD 21 9B AA ld   ix,walk_frames_list_AA3B
 ;A671: E5          push hl
 ;A672: CD 03 B0    call check_hl_in_ix_list_B009
 ;A675: E1          pop  hl
@@ -440,13 +436,73 @@ classify_opponent_move_start_A665:
 ;A6C2: A7          and  a
 ;A6C3: 3E 09       ld   a,$03
 ;A6C5: C2 79 AC    jp   nz,move_found_A6D3
-;A6C8: CD 18 AB    call opponent_starting_a_jump_AB12
+;A6C8: CD 18 AB    call opponent_starting_a_sommersault_AB12
 ;A6CB: A7          and  a
 ;A6CC: 3E 02       ld   a,$08
 ;A6CE: C2 79 AC    jp   nz,move_found_A6D3
 ;A6D1: 3E 03       ld   a,$09
 ;move_found_A6D3:
 ;	C9          ret
+
+; > D0: 1-9
+classify_opponent_move_start_A665:
+	moveq.l	#1,d1
+	move.l	opponent(a4),a3
+	move.l	a3,a0
+	bsr.b	is_walking_move
+	tst		d0
+	bne.b	.out
+
+	moveq.l	#4,d1
+	move.l	current_move_header(a3),a0
+	move.l	right_frame_set(a0),a0		; current frame
+	cmp.l	#crouch_right_frames,a0
+	beq.b	.out
+	moveq.l	#5,d1
+	cmp.l	#jump_right_frames,a0
+	beq.b	.out
+	
+	; sommersaults
+	; this is coded slightly differently than the original routine
+	; I hope it's faithful
+	;
+	; 
+	moveq.l	#8,d1	; starting it
+	bsr.b	opponent_starting_a_sommersault_AB12
+	tst		D0
+	beq.b	.no_sommersault
+	; once a sommersault is detected, if sommersault just started, return
+	; value is 8 regardless of front/back sault type
+	; first check if sommersault is clearly engaged
+
+	move.w	frame(a3),d0
+	cmp.w	#3*PlayerFrame_SIZEOF,d0	; check against 3 first frames
+	bcs.b	.out		; starting the sommersault
+	; engaged, check which sommersault
+	moveq.l	#6,d1
+	move.w	attack_id(a0),d0
+	cmp.w	#ATTACK_SOMMERSAULT,d0
+	beq.b	.out
+	moveq.l	#7,d0
+	bra.b	.out
+
+.no_sommersault	
+	moveq.l	#2,d1
+	bsr		opponent_starting_frontal_attack_AADC
+	tst		d0
+	bne.b	.out
+	
+	moveq.l	#3,d1
+	bsr		opponent_starting_rear_attack_AAE7
+	tst		d0
+	bne.b	.out
+	
+	moveq.l	#9,d1
+.out
+	move.l	d1,d0
+	rts
+
+
 ;
 ;; move forward with a special case
 ;cpu_move_forward_towards_enemy_far_away_A6D4:
@@ -906,7 +962,7 @@ high_attack_if_forward_sommersault_or_walk_A8AB
 	; sommersault, but which frame
 	move.l	opponent(a4),a3
 	move.w	frame(a3),d0
-	cmp.w	#7*4,d0		; 3 last frames
+	cmp.w	#7*PlayerFrame_SIZEOF,d0		; 3 last frames
 	bcs.b	just_walk_A7C5
 .attack
 ;; odds: lunge (0 - 25%), jumping kick (2,3 - 50%), round kick (1 - 25%)
@@ -964,7 +1020,7 @@ move_fwd_or_bwd_checking_sommersault_and_dir_A8E8:
 	; sommersault, but which frame
 	move.l	opponent(a4),a3
 	move.w	frame(a3),d0
-	cmp.w	#7*4,d0		; 4 last frames (there are 11 frames)
+	cmp.w	#7*PlayerFrame_SIZEOF,d0		; 4 last frames (there are 11 frames)
 	bcs.b	perform_walk_back_A946
 	bra.b	just_walk_A7C5
 	
@@ -1265,7 +1321,7 @@ opponent_starting_low_kick_AB08:
 ;AB19: CD 0F B0    call table_linear_search_B00F
 ;AB1C: C9          ret
 ;
-opponent_starting_a_jump_AB12
+opponent_starting_a_sommersault_AB12
 	bsr.b		identify_opponent_current_move_AB1D
 	lea		table_sommersaults_AAD8(pc),a0
 	bra.b	table_linear_search_B00F
@@ -1617,7 +1673,25 @@ select_cpu_attack_AB2E
 	bsr		randrange
 	move.b	(a0,d0.w),d7	; cpu attack move
 	rts
-	
+
+; < A0: player_structure
+; > D0: 1 if walking, 0 if not walking
+is_walking_move:
+	moveq.l	#0,d0
+	move.l	current_move_header(a0),a0	
+	move.l	right_frame_set(a0),a0		; current frame
+	cmp.l	#walk_forward_right_frames,a0
+	beq.b	.walking
+	cmp.l	#forward_right_frames,a0
+	beq.b	.walking
+	cmp.l	#walk_backwards_right_frames,a0
+	beq.b	.walking
+	cmp.l	#backwards_right_frames,a0
+	beq.b	.walking
+	rts
+.walking
+	moveq	#1,d0
+	rts
 	
 ;; some moves are done or not depending on how the players are
 ;; located and if current player can reach opponent with a blow

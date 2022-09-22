@@ -3140,7 +3140,7 @@ write_string_list
 	
 erase_bull
 	movem.l	a0-a1/d0-d3,-(a7)
-	lea	bull(pc),a4
+	lea	bull,a4
 	bsr		erase_bubble
 	move.w	previous_xpos(a4),d0
 	move.w	previous_ypos(a4),d1
