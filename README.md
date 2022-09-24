@@ -30,7 +30,7 @@ sequence: 3x mid front, 2x high rear!!!
 
 multiple evade objects: can be displayed at the same time
 
-check cpu move speed from videos with varying skill level
+
 
 - table at A529 dump it
 * recode A.I. from fight_mainloop_A390 entrypoint
@@ -39,10 +39,13 @@ check cpu move speed from videos with varying skill level
   add to the possible wait for player reaction after the move
 
 - to code: full blown hit, how much cpu holds block
+- make A.I. do something now that it's fully coded
+- check cpu move speed from videos with varying skill level: no need: frame speed up
+  has been reversed, now have to code it
   
 bugs:
 
-- player hit (F8) => animation stops (reworked frozen controls for A.I. broke it)
+- player controls completely broken (joypad reads probably ruined)
 - back round kick other direction than opponent: can't be done in normal mode (ok in evade): back kick instead
 - jumping side kick one frame too high
 - jump: too short, maybe duplicate frame sequence

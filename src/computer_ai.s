@@ -1454,6 +1454,7 @@ perform_foot_sweep_back_ABBB:
 ;; computer just tried to hit player but failed
 ;; now wait for player response (or not, if skill level is high enough)
 full_blown_hit_ABE3:
+	blitz
 	illegal		; TOCODE
 ; TODO: change current_frame_countdown according to the player reaction time
 ; computed from "let_opponent_react_depending_on_skill_level_ACCE"
@@ -1555,18 +1556,25 @@ full_blown_hit_ABE3:
 ;; bpset AD64,1,{printf "exit: %02x ",a; time; g}
 ;
 
+; this is used for computer reaction, but also in a different way
+; for animation speedup depending on the difficulty level
+;
+; for animation, only negative values are considered. Positive values
+; are seen as 0 (no frame count decrease = no speed increase)
+;
+; for reaction time, negative values count as 0 (no time to react
+; after a CPU attack)
+;
 counter_attack_timer_table_AD67:
-	dc.l	counter_attack_timers_AD6F
-	dc.l	counter_attack_timers_AD8F
-	dc.l	counter_attack_timers_ADAF
-	dc.l	counter_attack_timers_ADCF
+	dc.l	counter_attack_timers_AD6F		; easy
+	dc.l	counter_attack_timers_AD8F		; medium
+	dc.l	counter_attack_timers_ADAF		; hard
+	dc.l	counter_attack_timers_ADCF		; hardest
 	
 ; $20 values per entry, number of frames to wait for opponent response
 ; just before cpu attacks (when an attack has been decided)
 ; first value matches skill 0, and so on. There are 24 levels, plus a 1 or 2
-; handicap (first value is not reachable as some hardcoded variables prevent it)
-; so last 6 values are unreachable unless game is hacked to be
-; even harder :)
+; handicap
 
 counter_attack_timers_AD6F:
 	dc.b	$30,$2D,$2A,$26,$23,$20,$1D,$1A
@@ -1595,6 +1603,7 @@ counter_attack_time_table_ADEF:
 counter_attack_timers_ADF7:
 	dc.b	$20,$20,$18,$18,$18,$18,$10,$10,$08,$08,$07,$07,$06,$06,$04,$03
 	dc.b	$02,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	
 counter_attack_time_table_AE17:
 	dc.l	counter_attack_timers_AE1F 
 	dc.l	counter_attack_timers_AE1F 

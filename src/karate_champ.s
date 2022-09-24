@@ -3156,7 +3156,7 @@ erase_bull
 BULL_X_STEP = 4
 
 update_bull:
-	lea	bull(pc),a2
+	lea	bull,a2
 	move.l	xpos(a2),previous_xpos(a2)
 	move.w	bull_bubble_counter(a2),d0
 	addq.w	#1,d0
@@ -5756,13 +5756,7 @@ update_player:
 	
 .alive
 	tst.b	controls_blocked_flag
-	bne.b	.blocked
-    tst.b	is_cpu(a4)
-	beq.b	.human_player
-	bsr		handle_ai
-	; we arrive here if controls are blocked or
-	; if cpu is in control (because it only moves
-	; with frozen controls & hold timer)
+	beq.b	.no_blocked
 .blocked
 	moveq.l	#0,d0
 	move.w	frozen_controls_timer(a4),d0
@@ -5774,7 +5768,12 @@ update_player:
 	; controls were frozen
 	move.l	frozen_joystick_state(a4),d0
 	bra.b	.no_demo
+.no_blocked
 
+    tst.b	is_cpu(a4)
+	beq.b	.human_player
+	bsr		handle_ai
+	bra.b	.no_demo
 .human_player
 
     move.l  joystick_state(a4),d0

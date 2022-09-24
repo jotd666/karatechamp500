@@ -7536,8 +7536,8 @@ player_management_routine_46FD:
 4707: FD 66 02    ld   h,(iy+$08)
 470A: CB BC       res  7,h
 470C: E5          push hl
-470D: DD E1       pop  ix
-470F: DD 4E 05    ld   c,(ix+$05)
+470D: DD E1       pop  ix	; current frame data
+470F: DD 4E 05    ld   c,(ix+$05)	; load c (number of ticks of current frame?)
 4712: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 4715: E6 06       and  $0C
 4717: FE 06       cp   $0C	; 2 players human?
@@ -7583,22 +7583,23 @@ player_management_routine_46FD:
 ; check skill level (just for moves speed, not for A.I)
 4743: 3A 10 63    ld   a,(computer_skill_C910)
 4746: FE 10       cp   $10
-4748: 3E FE       ld   a,$FE
+; CMP level 16+: set maximum speed: -2 ticks per frame for all moves
+4748: 3E FE       ld   a,$FE		
 474A: D2 D6 4D    jp   nc,$477C	; if > $10 skip (CMP level 16)
 ; if not CMP, check difficulty level
-474D: 21 CD A7    ld   hl,counter_attack_time_table_AD67
+474D: 21 CD A7    ld   hl,counter_attack_timer_table_AD67
 4750: 3A 90 60    ld   a,(dip_switches_copy_C030)
 4753: CB 3F       srl  a
 4755: CB 3F       srl  a
 4757: CB 3F       srl  a
 4759: E6 0C       and  $06
-; difficulty level 00 easy ... 06 hardest
+; difficulty level 00 easy ... 06 hardest to pick one of the 4 tables
 475B: 5F          ld   e,a
 475C: 16 00       ld   d,$00
 475E: 19          add  hl,de
 475F: 5E          ld   e,(hl)
 4760: 23          inc  hl
-4761: 56          ld   d,(hl)
+4761: 56          ld   d,(hl)		; de points on the timer table
 4762: 3A 10 63    ld   a,(computer_skill_C910)
 4765: 87          add  a,a
 4766: 6F          ld   l,a
@@ -7610,14 +7611,22 @@ player_management_routine_46FD:
 4771: B0          or   b
 4772: CA DC 4D    jp   z,$4776
 4775: 23          inc  hl
+; It's loading a from one of the
+; counter attack timer tables, but if it's > 0 then
+; it sets it to 0... So all the values > 0 (which
+; seem to be very well tuned) are zeroed... Only remains
+; the negative ones (to speed up cpu moves)
+; 
+; the positive values are used for computer reaction
+;
 4776: 7E          ld   a,(hl)
 4777: A7          and  a
 4778: FA D6 4D    jp   m,$477C
 477B: AF          xor  a
 ; skips there on high difficulty level (high speed actually)
-477C: 81          add  a,c
-477D: CA 29 4D    jp   z,$4783
-4780: F2 25 4D    jp   p,$4785
+477C: 81          add  a,c		; sub delay to c => in a
+477D: CA 29 4D    jp   z,$4783	; can't be zero!
+4780: F2 25 4D    jp   p,$4785	; can't be negative
 4783: 3E 01       ld   a,$01
 4785: FD E5       push iy
 4787: CD 5A B0    call $B05A
@@ -22061,7 +22070,7 @@ A3F2: C2 10 A4    jp   nz,cpu_move_done_A410
 ; the time for the opponent to react is smaller and smaller with increasing skill level
 ; attack has been already decided by functions that end up
 ; calling A3E4
-A3F5: 21 CD A7    ld   hl,counter_attack_time_table_AD67
+A3F5: 21 CD A7    ld   hl,counter_attack_timer_table_AD67
 A3F8: CD 6E A6    call let_opponent_react_depending_on_skill_level_ACCE
 ; something animation related must have been set up to handle the special (why?)
 ; case of counter attack with jump. Otherwise return code doesn't matter much
@@ -23524,11 +23533,11 @@ ACEF: 6F          ld   l,a
 ACF0: 26 00       ld   h,$00
 ; offset for the byte value in the table
 ACF2: 19          add  hl,de
-; check those mysterious C148, C149 values that look = 0
+; check those mysterious C148, C147 values that look = 0
 ; everywhere in the code it seems that the only thing that is done with
 ; them is that they're set to 0 so the code below is useless
-; (a!=b!=0 would tone the difficulty down slightly, letting the program
-; pick the delay value before the current one
+; (a!=b!=0 would crank the difficulty up slightly, letting the program
+; pick the (shorter) delay value after the current one (they come in pairs)
 ACF3: 3A 42 61    ld   a,($C148)
 ACF6: 47          ld   b,a
 ACF7: 3A 4D 61    ld   a,($C147)
@@ -23600,17 +23609,27 @@ AD64: C9          ret
 AD65: 00          nop
 AD66: 00          nop
 
-counter_attack_time_table_AD67:
-	dc.w	$AD6F
-	dc.w	$AD8F
-	dc.w	$ADAF
-	dc.w	$ADCF
+; this is used for computer reaction, but also in a different way
+; for animation speedup depending on the difficulty level
+;
+; for animation, only negative values are considered. Positive values
+; are seen as 0 (no frame count decrease = no speed increase)
+;
+; for reaction time, negative values count as 0 (no time to react
+; after a CPU attack)
+;
+counter_attack_timer_table_AD67:
+	dc.w	$AD6F		; easy
+	dc.w	$AD8F		; medium
+	dc.w	$ADAF		; hard
+	dc.w	$ADCF		; hardest
 	
 ; $20 values per entry, number of frames to wait for opponent response
 ; just before cpu attacks (when an attack has been decided)
-; first value matches skill 0, and so on. There are 24 levels
-; so last 8 values are unreachable unless game is hacked to be
-; even harder :)
+; first value matches skill 0, and so on. The values go in pair,
+; a mysterious C148/C147 memory location allows to pick the second item,
+; otherwise each skill level shifts 2 by 2. And after level 16, it's maxed out
+; to -2 ($FE) for animation and 0 for reaction time
 AD6F:	dc.b	30 2D 2A 26 23 20 1D 1A   o-.-¯-Ï-0-*&# ..
      AD77  17 14 10 0D 0A 07 04 00 00 00 00 00 FF FF FF FF   ............ÿÿÿÿ
      AD87  FF FE FE FE FE FE FE FE 
@@ -24979,7 +24998,9 @@ B658: 3E FF       ld   a,$FF
 B65A: CD E2 BB    call write_1_in_port_1_BBE8
 B65D: C9          ret
 
-; < a
+; < a: probably? number of frames to wait until next frame
+; this can be slower or faster if a computer is playing
+; depending on the difficulty level
 B65E: CD E8 BB    call write_0_in_port_1_BBE2
 B661: F5          push af
 B662: 3A 82 60    ld   a,(player_2_attack_flags_C028)
