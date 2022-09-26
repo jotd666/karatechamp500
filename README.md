@@ -43,13 +43,13 @@ multiple evade objects: can be displayed at the same time
 - check cpu move speed from videos with varying skill level: no need: frame speed up
   has been reversed, now have to code it
   
+- git: add ignore rules for unstaged files!!
+
 bugs:
 
-- player controls completely broken (joypad reads probably ruined)
 - back round kick other direction than opponent: can't be done in normal mode (ok in evade): back kick instead
 - jumping side kick one frame too high
 - jump: too short, maybe duplicate frame sequence
-- hits don't seem to register anymore
 - evade collisions: front ok, back move ko (and trashes game)
 - evade: player moves: trashes object update
 - evade: sometimes random end to practice with start music... then crash...

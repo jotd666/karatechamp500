@@ -177,7 +177,7 @@ Execbase  = 4
 ; if set skips intro, game starts immediately
 DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
-;DIRECT_GAME_START_2P_IS_CPU = 1
+DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
 ;PLAYERS_START_CLOSE
 ; practice has only 1 move
@@ -4288,7 +4288,6 @@ update_all
 	jmp		(a0)
 	
 update_normal:
-	LOGPC	100
 	; check if we're in "countdown" mode
 	; this isn't a pause, because winner is jumping
 	; with joy, so some things are moving

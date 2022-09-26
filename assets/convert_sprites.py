@@ -525,8 +525,8 @@ def process_player_tiles():
     UWORD   hit_left_shift
     UWORD   blow_type
     UWORD   back_blow_type
-    UWORD   animation_flags
     UWORD   attack_id
+    UWORD   animation_flags
     LABEL   PlayerFrameSet_SIZEOF
 
 ANIM_LOOP_BIT = 0
