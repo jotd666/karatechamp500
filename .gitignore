@@ -17,3 +17,4 @@ src/*_bobs.s
 src/datetime
 src/*palette.s
 karate_champ
+sounds/*.raw

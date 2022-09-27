@@ -9,14 +9,15 @@ handle_cpu_opponent:
 	; first, check if player reaction timer has been loaded, if so, return immediately
 	; without any move
 	move.w	frozen_controls_timer(a4),d0
-	beq.b	.no_wait
+	bne.b	.no_wait
 	; useful when cpu just made a ground attack, remains stuck for a while
 	; will cause issues with jump attacks/sommersaults, that will be a
 	; special case
 	;;move.l	frozen_joystick_state(a4),d0		; keep doing what it was doing
+	bra.b	.main_ai
 	rts
 .no_wait
-	moveq.l	#0,d7
+	moveq.l	#MOVE_GUARD,d0
 	rts
 	
 ; 1 player mode: handle computer
@@ -31,7 +32,8 @@ handle_cpu_opponent:
 ;A3AC: A7          and  a
 ;; if walking/stands guard, computer can attack the player
 ;A3AD: C2 9B A5    jp   nz,maybe_attack_opponent_A53B
-
+.main_ai
+	
 	move.l	a4,a0
 	bsr		is_walking_move
 	tst		d0
@@ -211,20 +213,14 @@ maybe_attack_opponent_A53B
 	bclr.b	#7,d0
 	add.w	d0,d0
 	add.w	d0,d0
-	move.l	(a0,d0.w),a0
-	; now a0 is the table matching the fine distance
-	; we have to classify opponent current move in 9 categories 1-9
-	; 0: error (can't happen)
-	; 1: no particular stuff (guard)
-	; 2: frontal attack
-	; 3: rear attack
-	; 4: crouch
-	; 5: in-jump
-	; 6: sommersault forward
-	; 7: sommersault backwards
-	; 8: starting a jump
-	; 9: move not in list
-
+	move.l	(a0,d0.w),a2
+	
+	bsr		classify_opponent_move_start_A665
+	add.w	d0,d0
+	add.w	d0,d0
+	move.l	(a2,d0.w),a0
+	jmp		(a0)
+	
 ; there's a jump that loads a table and jumps to it. Better load the table using a table
 ; than code that does the same for each case
 
@@ -267,7 +263,21 @@ opponent_distance_jump_table_A54F:
 	dc.l	ai_jump_table_all_turn_back_A651 	; 8
 ;
 
-;
+
+	; now a0 is the table matching the fine distance
+	; we have to classify opponent current move in 9 categories 1-9
+	; 0: error (can't happen)
+	; 1: no particular stuff (guard)
+	; 2: frontal attack
+	; 3: rear attack
+	; 4: crouch
+	; 5: in-jump
+	; 6: sommersault forward
+	; 7: sommersault backwards
+	; 8: starting a jump
+	; 9: move not in list
+
+
 ;; makes sense: players are far away, CPU just tries to get closer to player
 ;; but can also change direction
 ai_jump_table_all_move_towards_opponent_A651:
@@ -1738,8 +1748,15 @@ move_list_turning_back_AB84
 	dc.b	3,$05,$08,$09
 	
 display_error_text_B075
-	blitz
+	lea		.error_text(pc),a0
+	move.w	#SCREEN_WIDTH/2-16,d0
+	move.w	#NB_LINES/2-4,d1
+	move.w	#$FFF,D2
+	bsr		write_blanked_color_string
 	illegal
 
+.error_text
+	dc.b	"ERROR",0
+	even
 
 	

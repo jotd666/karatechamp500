@@ -47,7 +47,7 @@ multiple evade objects: can be displayed at the same time
 
 bugs:
 
-- back round kick other direction than opponent: can't be done in normal mode (ok in evade): back kick instead
+- debug A.I: ATM doing nothing!!
 - jumping side kick one frame too high
 - jump: too short, maybe duplicate frame sequence
 - evade collisions: front ok, back move ko (and trashes game)

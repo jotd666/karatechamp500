@@ -3227,7 +3227,7 @@ set_bull_direction:
 
 draw_bull:
 	movem.l	a0-a1/a4/d0-d4,-(a7)
-	lea	bull(pc),a4
+	lea	bull,a4
 	lea	bull_0,a0
 	move.w	#10,d2	; 32+16
 	move.w	#40,d3
@@ -7097,7 +7097,7 @@ handle_ai
 	rts
 	
 .normal
-
+	
 	include		computer_ai.s
 
 referee_says_very_good:
@@ -8495,6 +8495,24 @@ do_back_round_kick_right:
 	move.w	direction(a4),d0
 	cmp.w	#RIGHT,d0
 	beq.b	.no_turn
+	; turns back and performs kick, but only
+	; 1) if not fighting (evade, bull)
+	; 2) if would not be turning back to the opponent
+	;    when turn is completed
+	; else, just do back kick
+	;
+	; now player is facing left.
+	move.w	level_type,d0
+	cmp.w	#GM_NORMAL,d0
+	beq.b	.must_test
+	cmp.w	#GM_PRACTICE,d0
+	beq.b	.turn
+.must_test
+	move.l	opponent(a4),a0
+	move.w	xpos(a0),d0
+	cmp.w	xpos(a4),d0
+	bcs.b	do_back_kick
+.turn
 	move.w	#RIGHT,direction(a4)	
 .no_turn
 	lea	back_round_kick_frames(pc),a0
@@ -8511,6 +8529,21 @@ do_back_round_kick_left:
 	move.w	direction(a4),d0
 	cmp.w	#LEFT,d0
 	beq.b	.no_turn
+	; turns back, but only
+	; 1) if not fighting (evade, bull)
+	; 2) if would not be turning back to the opponent
+	;    when turn is completed
+	move.w	level_type,d0
+	cmp.w	#GM_NORMAL,d0
+	beq.b	.must_test
+	cmp.w	#GM_PRACTICE,d0
+	beq.b	.turn
+.must_test
+	move.l	opponent(a4),a0
+	move.w	xpos(a0),d0
+	cmp.w	xpos(a4),d0
+	bcc.b	do_back_kick
+.turn
 	move.w	#LEFT,direction(a4)
 .no_turn
 	lea	back_round_kick_frames(pc),a0
