@@ -871,7 +871,7 @@ intro:
 	lea	player_1,a4		; which player???
     move.l  score(a4),d0
     lea     hiscore_table(pc),a0
-    moveq.w  #6-1,d1
+    moveq	 #6-1,d1
     move.w   #-1,high_score_position
 .hiloop
     cmp.l  (a0),d0
@@ -1109,7 +1109,7 @@ draw_background_pic
 	move.w	#NB_BYTES_PER_BACKBUFFER_LINE,d2
 	clr.w	d0
 	clr.w	d1
-	moveq.w	#NB_PLANES-1,d7
+	moveq	#NB_PLANES-1,d7
 	lea		screen_data,a2
 	moveq.l	#-1,d3
 	move.w	#256,d4
@@ -1190,7 +1190,7 @@ draw_joys:
 
 erase_4_planes:
 	movem.l	a2-a3/d3-d4/d7,-(a7)
-	moveq.w	#NB_PLANES-1,d7
+	moveq	#NB_PLANES-1,d7
 	lea		screen_data,a2
 	move.l	d3,d4
 	moveq.l	#-1,d3
@@ -1254,7 +1254,7 @@ draw_panel_bitmap:
 	lea		panel_mask,a3
 	lea		_custom,a5
 .loop
-	moveq.w	#0,d1
+	moveq	#0,d1
 	move.w	#PANEL_X,d0
 	move.l	a4,a1
 	move.l	a1,a2  
@@ -1597,7 +1597,7 @@ store_sprite_copperlist
     rts
     
 hide_sprites:
-    moveq.w  #7,d1
+    moveq  #7,d1
     lea  sprites,a0
     lea empty_sprite,a1
 .emptyspr
@@ -2034,7 +2034,7 @@ draw_first_all
 	move.w	#112,d1
 	move.b	#'1',d6
 	lea		hiscore_table(pc),a1
-	moveq.w	#5,d5
+	moveq	#5,d5
 .loop	
 	move.w	#8,d2
 	move.w	#16,d3
@@ -2411,8 +2411,8 @@ ARROW_HORIZ_X_SHIFT = 24
 	bne.b	.last
 	move.l	current_move_key,d4
 .last
-	moveq.w	#4,d2
-	moveq.w	#8,d3
+	moveq	#4,d2
+	moveq	#8,d3
 	move.w	#ARROW_LEFT_X,d0
 	move.w	#UP_ARROW_Y,d1
 	; up arrows
@@ -2716,7 +2716,7 @@ draw_break
 	bsr		blit_4_planes_cookie_cut
 	; draw planks
 	; 10 planks
-	moveq.w	#9,d4
+	moveq	#9,d4
 	move.w	#140,d0
 	move.w	#172,d1
 	move.w	#4,d2
@@ -2778,8 +2778,8 @@ draw_break
 .draw_arrows
 	tst.b	controls_blocked_flag
 	bne.b	.dout
-	moveq.w	#4,d2
-	moveq.w	#8,d3
+	moveq	#4,d2
+	moveq	#8,d3
 	move.w	#DEMO_X_CONTROLS+12,d0
 	move.w	#DEMO_Y_CONTROLS+2,d1
 	lea	up_arrow,a0
@@ -3050,7 +3050,7 @@ random:
 randrange:
 	movem.l	d1-d3,-(a7)
 	; compute mask, check higher bit of max value
-	moveq.w	#8,d2
+	moveq	#8,d2
 .count
 	btst	d2,d0
 	dbne	d2,.count
@@ -3196,7 +3196,7 @@ update_bull:
 	; reached right: next sequence
 	bsr		init_bull
 .out	
-	moveq.w	#0,d0
+	moveq	#0,d0
 .no_move
 	move.w	d0,current_frame_countdown(a2)
 	
@@ -3605,7 +3605,7 @@ exc10
 
 lockup
 	lea	screen_data,a1
-	moveq.w	#3,d3
+	moveq	#3,d3
 .cploop
 	clr.l	D0
 	clr.l	D1
@@ -3623,7 +3623,7 @@ lockup
     lsl.w   #3,d0
     lea screen_data,a1
     move.l  d3,d2
-    moveq.w #8,d3
+    moveq #8,d3
     bsr write_hexadecimal_number    
 .lockup
     bra.b   .lockup
@@ -3909,7 +3909,7 @@ level3_interrupt:
     bne.b   .normal
     ; update a second time, simulate 60Hz
     bsr update_all
-    moveq.w #0,d0    
+    moveq #0,d0    
 .normal
     move.w  d0,vbl_counter
 	tst.w	cheat_keys
@@ -4126,7 +4126,7 @@ init_all
 	move.w	#32,ypos(a4)
 	move.w	#4,y_speed(a4)
 	;bsr		update_player
-	lea		bull(pc),a4
+	lea		bull,a4
 	move.w	#128,xpos(a4)
 	move.w	#12,ypos(a4)
 	clr.w	y_speed(a4)
@@ -4236,7 +4236,7 @@ update_all
 	subq.w	#4,d2
 	bpl.b	.okstore
 	; get latest valid value index
-	moveq.w	#0,d2
+	moveq	#0,d2
 .find_last_loop
 	tst		(4,a2,d2.w)
 	bmi.b	.okstore
@@ -4757,7 +4757,7 @@ update_evade
 .no_change
 	move.w	d1,current_frame_countdown(a4)
 .alive
-	moveq.w	#EVADE_SPEED,d2
+	moveq	#EVADE_SPEED,d2
 .do_move
 	move.w	direction(a4),d0
 	move.w	xpos(a4),d1
@@ -4814,7 +4814,7 @@ update_break
 	lea		bull_sound,a0
 	bsr		play_fx
 	addq.w	#1,planks_broken
-	moveq.w	#4,d0		; break each 4/60th seconds
+	moveq	#4,d0		; break each 4/60th seconds
 .no_update_planks
 	move.w	d0,bonus_phase_index
 .out
@@ -5553,23 +5553,22 @@ get_back_x_position:
 ; used in update_xxx_distance methods
 ; < A4: player structure
 ; > D0: distance in pixels
-; > D1: 0 if positive distance, 1 if negative (opponent on the right)
-; updates N
+; > D1: 0 if positive distance, $FF if negative (opponent on the right)
 ; trashes A3
 
-get_players_raw_distance
-	moveq	#0,d1
+get_players_raw_distance:
 	move.l	opponent(a4),a3
 	bsr		get_back_x_position
+	; D0 is player x position of player back
 	movem.l	d0/a4,-(a7)
 	move.l	a3,a4
 	bsr		get_back_x_position
 	movem.l	(a7)+,d1/a4		; d0 is restored as d1
 	exg		d0,d1
 	sub.w	d1,d0
+	smi		d1
 	bpl.b	.pos
 	neg.w	d0
-	moveq	#1,d1
 .pos
 	rts
 	
@@ -5581,6 +5580,7 @@ get_players_raw_distance
 
 update_fine_distance
 	movem.l	a3/d0-d4,-(a7)
+
 	bsr		get_players_raw_distance
 	move.l	opponent(a4),a3
 	move.w	direction(a3),d2	; opponent facing direction
@@ -5614,6 +5614,8 @@ update_fine_distance
 	lsr.w	#3,d0		; divide by 8 (distance computation has a resolution of 8)
 	or.b	(a3,d0.w),d4		; value 0-8 + bit 7
 	move.w	d4,fine_distance(a4)
+
+
 	movem.l	(a7)+,a3/d0-d4
 	rts
 	
@@ -5771,7 +5773,7 @@ update_player:
 
     tst.b	is_cpu(a4)
 	beq.b	.human_player
-	bsr		handle_ai
+	jsr		handle_ai
 	bra.b	.no_demo
 .human_player
 
@@ -6758,7 +6760,7 @@ restore_background:
 	bpl.b	.positive
 	add.w	d0,d2	; reduce width (clip x)
 	bmi.b	.out	; width is negative: do nothing
-	moveq.w	#0,d0
+	moveq	#0,d0
 	bra.b	.not_maxed
 .positive
 	add.w	d2,d4
@@ -7089,16 +7091,6 @@ draw_player:
 .out
 	rts
 	
-handle_ai
-	moveq.l	#0,d0
-	cmp.w	#GM_PRACTICE,level_type
-	bne.b	.normal
-	move.l	current_move_key(pc),d0
-	rts
-	
-.normal
-	
-	include		computer_ai.s
 
 referee_says_very_good:
 	move.l	a1,-(a7)
@@ -9785,6 +9777,7 @@ blank_19_message
 	include	player_frames.s
 	include	hit_lists.s
 	include	player_bob_masks.s
+	
 
 intro_screen_params_table:
 	dc.l	hiscore_screen
@@ -10111,7 +10104,19 @@ collision_matrix:
 	ds.b	COLLISION_NB_COLS*COLLISION_NB_ROWS
 collision_matrix_buffer_end
 	ds.b	COLLISION_NB_COLS*16	; for rock/plank in evade mode
+	
     SECTION  S4,CODE
+
+handle_ai
+	moveq.l	#0,d0
+	cmp.w	#GM_PRACTICE,level_type
+	bne.b	.normal
+	move.l	current_move_key,d0
+	rts
+	
+.normal	
+	include	computer_ai.s
+	
     include ptplayer.s
 
     SECTION  S5,DATA,CHIP

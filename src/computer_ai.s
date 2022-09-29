@@ -3,7 +3,7 @@
 DECIDE_MOVE:MACRO
 	move.l	#MOVE_\1,d7
 	ENDM
-	
+
 
 ; < A4: computer player structure
 
@@ -213,14 +213,17 @@ maybe_attack_opponent_A53B
 ;
 	lea		opponent_distance_jump_table_A54F(pc),a0
 	move.w	fine_distance(a4),d0
-	bclr.b	#7,d0
+	bclr	#7,d0
+	
+	move.w	d0,$110
+	
 	add.w	d0,d0
 	add.w	d0,d0
 	move.l	(a0,d0.w),a2
-	
-	LOGPC	100
+
 
 	bsr		classify_opponent_move_start_A665
+	move.w	d0,$112
 	add.w	d0,d0
 	add.w	d0,d0
 	move.l	(a2,d0.w),a0
@@ -498,7 +501,7 @@ classify_opponent_move_start_A665:
 	move.w	attack_id(a0),d0
 	cmp.w	#ATTACK_SOMMERSAULT,d0
 	beq.b	.out
-	moveq.l	#7,d0
+	moveq.l	#7,d1
 	bra.b	.out
 
 .no_sommersault	
@@ -1641,11 +1644,11 @@ counter_attack_timers_AE1F:
 ; < A0: table of byte values, end with $FF
 ; < D0: value to search for
 ; > D0: 0 if not found, 1 if found
-; trashes: D1, A0
+; trashes: D6, A0
 table_linear_search_B00F
-	move.b	(a0)+,d1
+	move.b	(a0)+,d6
 	bmi.b	.not_found
-	cmp.b	d0,d1
+	cmp.b	d0,d6
 	bne.b	table_linear_search_B00F
 	; found
 	moveq.l	#1,d0

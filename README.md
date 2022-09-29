@@ -45,9 +45,7 @@ multiple evade objects: can be displayed at the same time
 
 bugs:
 
-- debug A.I: bogus and delays are disabled + ERROR when player does
-  something else than walking but that's a start
-  => log moves which aren't guard & move forward
+- hold computer movements until attack is complete
 - jumping side kick one frame too high
 - jump: too short, maybe duplicate frame sequence
 - evade collisions: front ok, back move ko (and trashes game)
