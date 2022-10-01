@@ -45,7 +45,14 @@ multiple evade objects: can be displayed at the same time
 
 bugs:
 
+- player can react just before attack: flash green screen to debug, finish coding of the timer
+- player can react: attack countdown attribute
+
 - hold computer movements until attack is complete
+- remain stuck when full fledged move, depending on skill level
+  use the hit_type of the frame not the -1 of the frame advance
+  (code it in the animation part, not the A.I. part)
+- hold computer block movements until opponent attack is complete
 - movement lock of player when opponent is hit doesn't seem to work
 - jump: too short, maybe duplicate frame sequence
 - evade collisions: front ok, back move ko (and trashes game)
@@ -61,6 +68,7 @@ bugs:
 - check/fix consistency in options
 - optimization: do not check hits if player distance is too high
 - reduce memory: collision maps as bits: would gain 50kb
+- reduce memory: try to split frames into 3-4 strips of height 16
 - timeout win: no win animation
 
 

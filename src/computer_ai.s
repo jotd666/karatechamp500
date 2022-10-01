@@ -95,7 +95,7 @@ handle_cpu_opponent:
 	; TOCODE
 	bra.b	cpu_move_done_A410
 	
-cpu_move_done_opponent_can_react_A3E4:
+cpu_move_decided_opponent_can_react_A3E4:
 ; special cases in demo mode
 ;A3E4: 3A 11 63    ld   a,($background_and_state_bits_C911)
 ;A3E7: CB BF       res  7,a	; clears bit 7
@@ -131,6 +131,18 @@ cpu_move_done_opponent_can_react_A3E4:
 ;; but can also be called after deciding an attack...
 ;; this version doesn't give the chance to react (because most of the time
 ;; the computer is performing a non-attacking move)
+
+	lea	counter_attack_time_table_AD67(pc),a0
+	bsr	let_opponent_react_depending_on_skill_level_ACCE
+	tst		d0
+	beq.b	cpu_move_done_A410		; attack immediately
+	
+	; time attack for later
+	move.w	d0,computer_next_attack_timer(a4)
+	move.w	d7,computer_next_attack(a4)
+	bra.b	out_without_moving
+	
+	
 cpu_move_done_A410:
 	cmp.l	#MOVE_TURN_AROUND,d7
 	beq.b	.turn_around
@@ -157,6 +169,7 @@ cpu_move_done_A410:
 	move.w	#LEFT,d0
 .setd
 	move.w	d0,direction(a4)
+out_without_moving:
 	moveq.l	#0,d0	; no move bits
 	move.l	d0,frozen_joystick_state(a4)
 	rts
@@ -191,7 +204,26 @@ remain_frames_table
 	dc.w	60		; MOVE_FRONT_SOMMERSAULT = 23
 	dc.w	60		; MOVE_FOOT_SWEEP_FRONT_2 = 24
 	
+; < A0: attack time master table (with 4 levels of difficulty)
+; > D0: number of frames to wait
 
+; trashes D1,A1
+let_opponent_react_depending_on_skill_level_ACCE:
+	move.w	opponent(a4),a1
+	move.w	rank(a1),d1
+	cmp.w	#16,d1
+	bcc.b	.immediately	; no wait, attack immediately
+	
+	move.w	skill_level_option,d0
+	move.l	(a0,d1.w),a0		; proper time table depending on skill level
+	add.w	d1,d1		; values come in couples, TODO figure out the handicap
+	moveq	#0,d0
+	move.b	(a0,d1.w),d0	; number of frames to wait to opponent attack
+	bmi.b	.immediately	; negative => 0
+	rts
+.immediately
+	moveq	#0,d0
+	rts
 ;
 ;; jump table depending on the value of iy+0xF
 ;; this jumps to another jump table selector (which is not very performant
@@ -211,12 +243,12 @@ maybe_attack_opponent_A53B
 ;A54B: DD 66 01    ld   h,(ix+$01)
 ;A54E: E9          jp   (hl)
 ;
-	move.w	#$F00,$DFF180
+	move.w	#$F00,$DFF180		; TEMP
 	lea		opponent_distance_jump_table_A54F(pc),a0
 	move.w	fine_distance(a4),d0
 	bclr	#7,d0
 	
-	move.w	d0,$110
+	move.w	d0,$110		; TEMP
 	
 	add.w	d0,d0
 	add.w	d0,d0
@@ -224,7 +256,7 @@ maybe_attack_opponent_A53B
 
 
 	bsr		classify_opponent_move_start_A665
-	move.w	d0,$112
+	move.w	d0,$112		; TEMP
 	add.w	d0,d0
 	add.w	d0,d0
 	move.l	(a2,d0.w),a0
@@ -628,7 +660,7 @@ cpu_forward_or_stop_if_not_facing_A700:
 ;A737: 36 08       ld   (hl),$02
 ;A739: C3 10 A4    jp   cpu_move_done_A410
 ;
-;A73C: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
+;A73C: C3 E4 A9    jp   cpu_move_decided_opponent_can_react_A3E4
 ;
 attack_once_out_of_16_frames_else_walk_A725:
 	move.b	randomness_timer,d0
@@ -636,7 +668,7 @@ attack_once_out_of_16_frames_else_walk_A725:
 	bne.b	just_walk_A7C5
 	; 1/16 probability to attack
 	bsr.b		select_cpu_attack_AB2E
-	bra.b	cpu_move_done_opponent_can_react_A3E4
+	bra.b	cpu_move_decided_opponent_can_react_A3E4
 	
 ;; if not facing, either attack or walk forward (50% chance each)
 ;; if facing, react to low attack by walking forward/backwards or jump
@@ -664,7 +696,7 @@ cpu_avoids_low_attack_if_facing_else_maybe_attacks_A73F
 	btst	#0,randomness_timer
 	beq.b	just_walk_A7C5
 	bsr.b	select_cpu_attack_AB2E
-	bra.b	cpu_move_done_opponent_can_react_A3E4
+	bra.b	cpu_move_decided_opponent_can_react_A3E4
 .facing
 ;; facing opponent
 ;A75D: CD 02 AB    call opponent_starting_low_kick_AB08
@@ -687,7 +719,7 @@ cpu_avoids_low_attack_if_facing_else_maybe_attacks_A73F
 ;A77E: 36 01       ld   (hl),$01
 ;
 ;A780: C3 10 A4    jp   cpu_move_done_A410
-;A783: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
+;A783: C3 E4 A9    jp   cpu_move_decided_opponent_can_react_A3E4
 ;
 	bsr		opponent_starting_low_kick_AB08
 	tst		d0
@@ -741,7 +773,7 @@ cpu_maybe_attacks_if_facing_else_avoids_low_attack_A786
 ;A7BA: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;A7BD: 36 01       ld   (hl),$01
 ;A7BF: C3 10 A4    jp   cpu_move_done_A410
-;A7C2: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
+;A7C2: C3 E4 A9    jp   cpu_move_decided_opponent_can_react_A3E4
 ;
 .not_facing
 	bsr.b	opponent_starting_low_attack_AAFD
@@ -844,7 +876,7 @@ cpu_reacts_to_low_attack_if_facing_else_attacks_A80C:
 	; react to low kick, but not at first level
 	bsr.b	perform_jumping_side_kick_if_level_2_AB88
 	tst		d0
-	bne.b	cpu_move_done_opponent_can_react_A3E4	; attack triggered
+	bne.b	cpu_move_decided_opponent_can_react_A3E4	; attack triggered
 .not_low_kick
 	bsr.b	opponent_starting_low_attack_AAFD
 	tst		d0
@@ -856,7 +888,7 @@ cpu_reacts_to_low_attack_if_facing_else_attacks_A80C:
 	beq.b	cpu_move_done_A410		; jumps to avoid 1 time out of 4
 .move_back
 	DECIDE_MOVE	BACK		; else moves back
-	bra.b	cpu_move_done_opponent_can_react_A3E4
+	bra.b	cpu_move_decided_opponent_can_react_A3E4
 .not_low_attack
 	bsr.b	opponent_starting_high_attack_AAF2
 	tst		d0
@@ -864,13 +896,13 @@ cpu_reacts_to_low_attack_if_facing_else_attacks_A80C:
 	bsr.b	perform_foot_sweep_if_level_3_AB99
 	tst		d0
 	beq.b	.move_back
-	bra.b	cpu_move_done_opponent_can_react_A3E4
+	bra.b	cpu_move_decided_opponent_can_react_A3E4
 	
 ;; routine duplicated a lot... pick an attack fails if 0 (which never happens)
 ;A84E: CD 8E AB    call select_cpu_attack_AB2E
 ;A851: A7          and  a
 ;A852: CC D5 B0    call z,display_error_text_B075
-;A855: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
+;A855: C3 E4 A9    jp   cpu_move_decided_opponent_can_react_A3E4
 ;
 ;A858: C3 10 A4    jp   cpu_move_done_A410
 ;
@@ -914,7 +946,7 @@ cpu_react_to_low_attack_or_perform_attack_A85B
 .counter_low_attack
 	bsr		perform_foot_sweep_if_level_3_AB99
 	tst		d0
-	bne.b	cpu_move_done_opponent_can_react_A3E4
+	bne.b	cpu_move_decided_opponent_can_react_A3E4
 	; low skill level, just parry
 	DECIDE_MOVE	JUMP
 	btst	#0,randomness_timer
@@ -925,7 +957,7 @@ cpu_react_to_low_attack_or_perform_attack_A85B
 ;A886: CD 8E AB    call select_cpu_attack_AB2E
 ;;;A889: A7          and  a
 ;;;A88A: CC D5 B0    call z,display_error_text_B075	; can't happen
-;A88D: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
+;A88D: C3 E4 A9    jp   cpu_move_decided_opponent_can_react_A3E4
 ;
 ;A890: C3 10 A4    jp   cpu_move_done_A410
 ;
@@ -943,15 +975,15 @@ cpu_react_to_low_attack_or_perform_attack_A85B
 ;A8A0: 36 08       ld   (hl),$02
 ;A8A2: C3 10 A4    jp   cpu_move_done_A410
 ;
-;A8A5: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
+;A8A5: C3 E4 A9    jp   cpu_move_decided_opponent_can_react_A3E4
 ;
 cpu_small_chance_of_low_kick_else_walk_A893:
 	DECIDE_MOVE	LOW_KICK
 	move.b	randomness_timer,d0
 	and.b	#7,d0
-	beq.b	cpu_move_done_opponent_can_react_A3E4
+	beq.b	cpu_move_decided_opponent_can_react_A3E4
 	DECIDE_MOVE	FORWARD
-	bra.b	cpu_move_done_opponent_can_react_A3E4
+	bra.b	cpu_move_decided_opponent_can_react_A3E4
 
 ;
 ;high_attack_if_forward_sommersault_or_walk_A8AB: 
@@ -1053,24 +1085,24 @@ move_fwd_or_bwd_checking_sommersault_and_dir_A8E8:
 ;A921: D2 83 A3    jp   nc,$A929
 ;A924: 36 1D       ld   (hl),$17	; sommersault
 ;A926: C3 10 A4    jp   cpu_move_done_A410	; immediate (it's not an attack)
-;A929: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4	; opponent can react to low kick
+;A929: C3 E4 A9    jp   cpu_move_decided_opponent_can_react_A3E4	; opponent can react to low kick
 ;
 get_out_of_edge_or_low_kick_A917:
 	DECIDE_MOVE	LOW_KICK
 	move.l	opponent(a4),a3
 	move.w	xpos(a3),d0
 	cmp.w	#$30-$20,d0		; there's a $20 offset in the arcade game that we don't have here
-	bcs.b	cpu_move_done_opponent_can_react_A3E4
+	bcs.b	cpu_move_decided_opponent_can_react_A3E4
 	DECIDE_MOVE	FRONT_SOMMERSAULT
 	bra.b	cpu_move_done_A410
 ;
 ;perform_low_kick_A935: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;A938: 36 14       ld   (hl),$14
-;A93A: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
+;A93A: C3 E4 A9    jp   cpu_move_decided_opponent_can_react_A3E4
 ;
 perform_low_kick_A935:
 	DECIDE_MOVE	LOW_KICK
-	bra.b	cpu_move_done_opponent_can_react_A3E4
+	bra.b	cpu_move_decided_opponent_can_react_A3E4
 	
 ;
 ;perform_walk_back_A946:
@@ -1092,14 +1124,14 @@ perform_walk_back_A946:
 ;; front sommersault if player x < $30 to get outside the border
 ;A95B: 36 1D       ld   (hl),$17
 ;A95D: C3 10 A4    jp   cpu_move_done_A410
-;A960: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
+;A960: C3 E4 A9    jp   cpu_move_decided_opponent_can_react_A3E4
 
 front_kick_or_fwd_sommersault_to_recenter_A94E:
 	DECIDE_MOVE	FRONT_KICK_OR_REVERSE_PUNCH
 	move.l	opponent(a4),a3
 	move.w	xpos(a3),d0
 	cmp.w	#$30-$20,d0
-	bcc.b	cpu_move_done_opponent_can_react_A3E4
+	bcc.b	cpu_move_decided_opponent_can_react_A3E4
 	DECIDE_MOVE		FRONT_SOMMERSAULT
 	bra.b	cpu_move_done_A410
 
@@ -1143,7 +1175,7 @@ front_kick_or_fwd_sommersault_to_recenter_A94E:
 ;; turn back or walk forward (50% chance)
 ;A9CE: 36 08       ld   (hl),$02
 ;A9D0: C3 10 A4    jp   cpu_move_done_A410
-;A9D3: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
+;A9D3: C3 E4 A9    jp   cpu_move_decided_opponent_can_react_A3E4
 
 cpu_complex_reaction_to_front_attack_A980:
 	move.w	fine_distance(a4),d0
@@ -1161,7 +1193,7 @@ cpu_complex_reaction_to_front_attack_A980:
 .facing
 	bsr	select_cpu_attack_AB2E
 	tst	d0
-	bne.b	cpu_move_done_opponent_can_react_A3E4
+	bne.b	cpu_move_decided_opponent_can_react_A3E4
 	DECIDE_MOVE	TURN_AROUND
 	btst	#0,randomness_timer		; 50% chance
 	beq.b	cpu_move_done_A410
@@ -1205,7 +1237,7 @@ cpu_complex_reaction_to_rear_attack_A9D6:
 ;AA05: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;AA08: 36 0D       ld   (hl),$07
 ;AA0A: C3 10 A4    jp   cpu_move_done_A410
-;AA0D: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
+;AA0D: C3 E4 A9    jp   cpu_move_decided_opponent_can_react_A3E4
 ;
 
 
@@ -1215,12 +1247,12 @@ cpu_complex_reaction_to_rear_attack_A9D6:
 ;;;AA17: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;;;AA1A: 36 0D       ld   (hl),$07
 ;;;AA1C: C3 10 A4    jp   cpu_move_done_A410
-;AA1F: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
+;AA1F: C3 E4 A9    jp   cpu_move_decided_opponent_can_react_A3E4
 ;AA22: C3 CE A3    jp   pick_cpu_attack_A96E
 ;
 foot_sweep_back_AA10
 	DECIDE_MOVE	FOOT_SWEEP_BACK
-	bra.b	cpu_move_done_opponent_can_react_A3E4
+	bra.b	cpu_move_decided_opponent_can_react_A3E4
 
 cpu_move_turn_around_A966:
 cpu_turn_back_AA25:
@@ -1376,7 +1408,7 @@ identify_opponent_current_move_AB1D:
 pick_cpu_attack_A802
 pick_cpu_attack_A96E
 	bsr.b	select_cpu_attack_AB2E
-	bra.b	cpu_move_done_opponent_can_react_A3E4
+	bra.b	cpu_move_decided_opponent_can_react_A3E4
 	
 ;
 ;
@@ -1590,7 +1622,7 @@ full_blown_hit_ABE3:
 ; for reaction time, negative values count as 0 (no time to react
 ; after a CPU attack)
 ;
-counter_attack_timer_table_AD67:
+counter_attack_time_table_AD67:
 	dc.l	counter_attack_timers_AD6F		; easy
 	dc.l	counter_attack_timers_AD8F		; medium
 	dc.l	counter_attack_timers_ADAF		; hard

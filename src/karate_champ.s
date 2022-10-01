@@ -130,6 +130,8 @@ hand_both_flags = hand_red_or_japan_flag
 	ULONG	joystick_state
 	ULONG	connecting_move_bits
 	ULONG	score
+	UWORD	computer_next_attack
+	UWORD	computer_next_attack_timer
 	APTR	awarded_score_sprite
 	APTR	awarded_score_sprite_2
 	UWORD	awarded_score_display_timer	
@@ -138,7 +140,6 @@ hand_both_flags = hand_red_or_japan_flag
 	UWORD	rough_distance
 	UWORD	fine_distance
 	UWORD	rank
-	UWORD	opponent_reaction_timer		; for A.I
 	UWORD	point_award_countdown
 	UWORD	frozen_controls_timer
 	UWORD	previous_direction   ; previous sprite orientation
@@ -495,6 +496,11 @@ OPTION_KEYBOARD = 3<<2
 OPTIONS_1P_WHITE = 0
 OPTIONS_1P_RED = 1<<2
 
+OPTIONS_SKILL_EASY = 0
+OPTIONS_SKILL_MEDIUM = 1<<2
+OPTIONS_SKILL_HARD = 2<<2
+OPTIONS_SKILL_HARDEST = 3<<2
+
 X_MIN = 0
 X_MAX = SCREEN_WIDTH-48
 GUARD_X_DISTANCE = 64		; to confirm
@@ -699,6 +705,7 @@ Start:
 	move.w	d0,bpl1mod(a5)
     move.w	d0,bpl2mod(a5)
 
+	move.w	#OPTIONS_SKILL_MEDIUM,skill_level_option
 	move.w	#OPTIONS_1P_WHITE,human_1p_player
 	; set default options, according to connected joypads
 	move.w	#OPTION_TWO_JOYSTICKS,player_2_controls_option
@@ -1611,7 +1618,8 @@ hide_sprites:
 ; what: initialize base player properties before each round
 ; < A4 struct
 init_player_common
-	clr.w	opponent_reaction_timer(a4)
+	clr.w	computer_next_attack_timer(a4)
+	clr.w	computer_next_attack(a4)
 	clr.b	round_winner(a4)
 	clr.b	half_points(a4)
 	clr.w	point_award_countdown(a4)
@@ -8684,7 +8692,9 @@ option_index
 	dc.w	0
 
 vbl_counter:
-    dc.w    0	
+    dc.w    0
+skill_level_option:
+	dc.w	0
 player_1_controls_option:
 	dc.w	0
 player_2_controls_option:
@@ -9054,6 +9064,7 @@ options_values_strings_list
 options_values_list
 	dc.l	player_1_controls_option,option_name_table_controls
 	dc.l	player_2_controls_option,option_name_table_controls
+	dc.l	skill_level_option,option_name_table_skill_level
 	dc.l	human_1p_player,option_name_table_human_1p
 
 option_name_table_controls
@@ -9067,6 +9078,12 @@ option_name_table_human_1p
 	dc.l	option_1p_white
 	dc.l	option_1p_red
 	dc.l	-1
+	
+option_name_table_skill_level
+	dc.l	option_easy
+	dc.l	option_medium
+	dc.l	option_hard
+	dc.l	option_hardest
 	
 practice_message_list
 	dc.w	56,112
@@ -9268,6 +9285,15 @@ pos10
     dc.b    "10G",0
 pos10plus
 	dc.b	"CMP",0
+	
+option_easy:
+	dc.b	" EASY",0
+option_medium:
+	dc.b	"MEDIUM",0
+option_hard:
+	dc.b	" HARD",0
+option_hardest:
+	dc.b	"HARDEST",0
 	
 option_winuae_joypad
 	dc.b	"WINUAE JOYPAD",0
