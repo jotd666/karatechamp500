@@ -41,12 +41,12 @@ multiple evade objects: can be displayed at the same time
 - to code: full blown hit, how much cpu holds block
 - check cpu move speed from videos with varying skill level: no need: frame speed up
   has been reversed, now have to code it
-  
+- skill level in options  
 
 bugs:
 
 - hold computer movements until attack is complete
-- jumping side kick one frame too high
+- movement lock of player when opponent is hit doesn't seem to work
 - jump: too short, maybe duplicate frame sequence
 - evade collisions: front ok, back move ko (and trashes game)
 - evade: player moves: trashes object update

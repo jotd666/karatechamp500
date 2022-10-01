@@ -66,9 +66,9 @@ handle_cpu_opponent:
 	beq.b	full_blown_hit_ABE3
 	cmp.l	#jumping_back_kick_6_left,a1
 	beq.b	full_blown_hit_ABE3
-	cmp.l	#jumping_side_kick_9_right,a1
+	cmp.l	#jumping_side_kick_7_right,a1
 	beq.b	full_blown_hit_ABE3
-	cmp.l	#jumping_side_kick_9_left,a1
+	cmp.l	#jumping_side_kick_7_left,a1
 	beq.b	full_blown_hit_ABE3
 	
 ;A3BD: DD 21 C7 AA ld   ix,hitting_frame_list_AA6D
@@ -211,6 +211,7 @@ maybe_attack_opponent_A53B
 ;A54B: DD 66 01    ld   h,(ix+$01)
 ;A54E: E9          jp   (hl)
 ;
+	move.w	#$F00,$DFF180
 	lea		opponent_distance_jump_table_A54F(pc),a0
 	move.w	fine_distance(a4),d0
 	bclr	#7,d0

@@ -177,7 +177,7 @@ Execbase  = 4
 ; if set skips intro, game starts immediately
 DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
-DIRECT_GAME_START_2P_IS_CPU = 1
+;DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
 ;PLAYERS_START_CLOSE
 ; practice has only 1 move
@@ -5382,6 +5382,7 @@ init_bull
 .ok
 	bsr	get_active_player
 	lea	bull(pc),a2
+	move.l	a4,opponent(a2)
 	move.w	ypos(a4),ypos(a2)
 	clr.w	frame(a2)
 	clr.w	current_frame_countdown(a2)
@@ -6376,9 +6377,10 @@ fill_opponent_routine_table:
 	dc.l	fill_opponent_practice	; deviated from its purpose
 	dc.l	fill_opponent_bull
 	dc.l	fill_opponent_break	; nothing to do
-	dc.l	fill_opponent_object
+	dc.l	fill_opponent_evade
 
-fill_opponent_object
+
+fill_opponent_evade
 	bsr	clear_collision_matrix
 	rts		; temp
 	
@@ -6391,11 +6393,14 @@ fill_opponent_object
 	; opponent is the current "player"
 	; fill matrix with player hit points first
 	lea		evade_object(pc),a4
-	bsr		fill_opponent_normal
+	bsr		fill_opponent_evade_bull_shared
 
 	; opponent is the current object
 	lea		evade_object(pc),a5
+	
+	
 ; the opponent here is a much simpler shape: rectangular
+; (object or bull head and tail)
 ; what we do here is that we draw a rectangle, but if we encounter
 ; a 1-value (the player) when drawing it, we consider that the object/bull
 ; has hit the player
@@ -6456,7 +6461,6 @@ fill_opponent_break
 	rts
 	
 fill_opponent_bull
-	bsr	clear_collision_matrix
 	; plot the opponent (player) in the collision matrix
 	lea		bull(pc),a4
 	bsr		fill_opponent_normal
@@ -6472,7 +6476,12 @@ fill_opponent_normal
 	bsr		clear_collision_matrix
 	; > A0: collision matrix
 	move.l	opponent(a4),a5
-	
+	; if opponent is already hit, don't check anything
+	; (which is 1) useless and 2) avoids that opponent on the ground
+	; fails boundary conditions of the matrix as there's a display
+	; offset of 32 when lying and that isn't checked)
+	cmp.w	#BLOW_NONE,hit_by_blow(a5)
+	bne.b	.out		; no need for collisions, opponent is already hit
 	move.w	ypos(a5),d1
 	sub.w	level_players_y_min(pc),d1	; can't be negative
 	; sanity check
