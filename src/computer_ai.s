@@ -8,6 +8,14 @@ DECIDE_MOVE:MACRO
 ; < A4: computer player structure
 
 handle_cpu_opponent:
+	move.w	computer_next_attack_timer(a4),d0
+	beq.b	.main_ai
+	
+	subq.w	#1,d0
+	move.w	d0,computer_next_attack_timer(a4)
+	bne		out_without_moving
+	move.w	computer_next_attack(a4),d7
+	bra		cpu_move_done_A410
 	
 	; first, check if player reaction timer has been loaded, if so, return immediately
 	; without any move
@@ -17,11 +25,8 @@ handle_cpu_opponent:
 	; will cause issues with jump attacks/sommersaults, that will be a
 	; special case
 	;;move.l	frozen_joystick_state(a4),d0		; keep doing what it was doing
-	bra.b	.main_ai
-	rts
-.no_wait
-	moveq.l	#MOVE_GUARD,d0
-	rts
+
+
 	
 ; 1 player mode: handle computer
 ;A39D: DD 21 9B AA ld   ix,walk_frames_list_AA3B
