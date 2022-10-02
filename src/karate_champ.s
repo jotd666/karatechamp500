@@ -178,7 +178,7 @@ Execbase  = 4
 ; if set skips intro, game starts immediately
 DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
-;DIRECT_GAME_START_2P_IS_CPU = 1
+DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
 ;PLAYERS_START_CLOSE
 ; practice has only 1 move
@@ -562,7 +562,7 @@ Start:
         ; A0 contains resload
         
     cmp.l   #'WHDL',D0
-    bne.b   .standard
+    bne   .standard
     move.l a0,_resload
     move.b  d1,_keyexit
     ;move.l  a0,a2
@@ -572,7 +572,7 @@ Start:
     bsr load_highscores
    
 	
-    bra.b   .startup
+    bra   .startup
 .standard
     ; open dos library, graphics library
     move.l  $4.W,a6
@@ -594,7 +594,7 @@ Start:
     move.l  #MODE_OLDFILE,d2
     jsr     _LVOOpen(a6)
     move.l  d0,d1
-    beq.b   .no_floppy
+    beq   .no_floppy
     
     ; "floppy" file found
     jsr     _LVOClose(a6)
@@ -614,7 +614,7 @@ Start:
 
 ; no multitask
     tst.l   _resload
-    bne.b   .no_forbid
+    bne   .no_forbid
     move.l  _gfxbase(pc),a4
     move.l StartList(a4),gfxbase_copperlist
 
@@ -710,12 +710,12 @@ Start:
 	; set default options, according to connected joypads
 	move.w	#OPTION_TWO_JOYSTICKS,player_2_controls_option
 	tst.b	controller_joypad_1
-	beq.b	.joystick_1
+	beq	.joystick_1
 	move.w	#OPTION_WINUAE_JOYPAD,player_1_controls_option
 .joystick_1
 	move.w	#OPTION_KEYBOARD,player_2_controls_option
 	tst.b	controller_joypad_0
-	beq.b	.joystick_2
+	beq	.joystick_2
 	move.w	#OPTION_WINUAE_JOYPAD,player_2_controls_option
 .joystick_2
 	bsr		update_options_string
@@ -748,22 +748,22 @@ intro:
     
     IFD DIRECT_GAME_START
 	move.w	#1,cheat_keys	; enable cheat in that mode, we need to test the game
-    bra.b   .restart
+    bra   .restart
     ENDC
  	lea		player_1,a4
    
 .intro_loop    
     cmp.w   #STATE_INTRO_SCREEN,current_state
-    bne.b   .out_intro
+    bne   .out_intro
     tst.b   quit_flag
-    bne.b   .out
+    bne   .out
 	move.l	#JPF_BTN_ALL,d2
     move.l  joystick_port_0_value(pc),d0
 	and.l	d2,d0
-    bne.b   .out_loop
+    bne   .out_loop
     move.l  joystick_port_1_value(pc),d0
 	and.l	d2,d0
-    beq.b   .intro_loop
+    beq   .intro_loop
 .out_loop
     clr.b   demo_mode
 .out_intro  
@@ -786,9 +786,9 @@ intro:
 .game_start_loop
     bsr random      ; so the enemies aren't going to do the same things at first game
     tst.b   quit_flag
-    bne.b   .out
+    bne   .out
     cmp.w  #STATE_GAME_START_SCREEN,current_state
-    beq.b   .game_start_loop
+    beq   .game_start_loop
 
 .no_credit
 	; 2 frames to make sure that joystick is read again
@@ -813,7 +813,7 @@ intro:
     
     bsr	redraw_level
 
-;;;    bra.b   .normal_level
+;;;    bra   .normal_level
 ;;;	; not reached
 ;;;	moveq	#1,d0	; reinit everything
 ;;;    bsr init_players_and_referee
@@ -823,7 +823,7 @@ intro:
 ;;;    move.w  #STATE_BONUS_SCREEN,current_state
 ;;;    move.w #INTERRUPTS_ON_MASK,intena(a5)
 ;;;    
-;;;    bra.b   .mainloop
+;;;    bra   .mainloop
 .normal_level    
     ; for debug
     ;;bsr draw_bounds
@@ -840,36 +840,36 @@ intro:
     move.w #INTERRUPTS_ON_MASK,intena(a5)
 .mainloop
     tst.b   quit_flag
-    bne.b   .out
+    bne   .out
 	; jumps according to state
     DEF_STATE_CASE_TABLE
     
 .game_start_screen
 .intro_screen       ; not reachable from mainloop
-    bra.b   intro
+    bra   intro
 
 .playing
-    bra.b   .mainloop
+    bra   .mainloop
 
 .game_over
-    bra.b   .mainloop
+    bra   .mainloop
 .next_fight
 	clr.w	players_reinit_flag
-    bra.b   .new_level
+    bra   .new_level
 .next_level
 	move.w	#2,players_reinit_flag
-    bra.b   .new_level
+    bra   .new_level
 .next_round
 	move.w	#1,players_reinit_flag
 
     tst.b   demo_mode
-    beq.b   .no_demo
+    beq   .no_demo
     ; lose one life in demo mode: return to intro
     move.w  #STATE_GAME_OVER,current_state
     move.l  #1,state_timer
-    bra.b   .game_over
+    bra   .game_over
 .no_demo
-    bra.b   .new_level
+    bra   .new_level
 	
 	
 	; not reachable, score insertion after game over
@@ -883,7 +883,7 @@ intro:
 .hiloop
     cmp.l  (a0),d0
 	addq.l	#8,(a0)
-    bcs.b   .lower
+    bcs   .lower
     ; higher or equal to a score
     ; shift all scores below to insert ours
     st.b    highscore_needs_saving
@@ -891,7 +891,7 @@ intro:
     subq.w  #8,a0
     move.l  a0,a2   ; store for later
     tst.w   d1
-    beq.b   .storesc    ; no lower scores: exit (else crash memory!)
+    beq   .storesc    ; no lower scores: exit (else crash memory!)
 	move.w	d1,d2
 	; set a0 and a1 at the end of the score memory
 	subq.w	#1,d2
@@ -915,7 +915,7 @@ intro:
     neg.w   d1
     add.w   #6-1,d1
     move.w  d1,high_score_position
-    bra.b   .hiout
+    bra   .hiout
 .lower
     dbf d1,.hiloop
 .hiout    
@@ -923,21 +923,21 @@ intro:
 
     ; save highscores if whdload
     tst.b   highscore_needs_saving
-    beq.b   .no_save
+    beq   .no_save
     tst.l   _resload
-    beq.b   .no_save
+    beq   .no_save
     tst.w   cheat_keys
-    bne.b   .no_save
+    bne   .no_save
     bsr     save_highscores
 .no_save
     ; 3 seconds
     move.l  #GAME_OVER_TIMER,state_timer
     move.w  #STATE_GAME_OVER,current_state
-    bra.b   .game_over
+    bra   .game_over
 .out      
     ; quit
     tst.l   _resload
-    beq.b   .normal_end
+    beq   .normal_end
     
     ; quit whdload
 	pea	TDREASON_OK
@@ -978,11 +978,11 @@ wait_bof
 .wait	move.l	$dff004,d0
 	and.l	#$1ff00,d0
 	cmp.l	#260<<8,d0
-	bne.b	.wait
+	bne	.wait
 .wait2	move.l	$dff004,d0
 	and.l	#$1ff00,d0
 	cmp.l	#260<<8,d0
-	beq.b	.wait2
+	beq	.wait2
 	move.l	(a7)+,d0
 	rts    
     
@@ -1012,7 +1012,7 @@ init_new_play:
 	move.w	#START_LEVEL_TYPE,level_type
     move.w  #START_LEVEL,background_number
     cmp.w	#GM_PRACTICE,level_type
-	bne.b	.no_practice
+	bne	.no_practice
 	clr.w	background_number	; practice => level number
 .no_practice
 
@@ -1022,15 +1022,15 @@ init_new_play:
     ; global init at game start
 	
 	tst.b	demo_mode
-	beq.b	.no_demo
+	beq	.no_demo
 	; toggle demo
 	move.w	demo_level_number(pc),d0
 	move.w	d0,background_number
 	btst	#0,d0
-	beq.b	.demo_level_1
+	beq	.demo_level_1
 	;lea		demo_moves_2,a0
 	;lea		demo_moves_2_end,a1
-	bra.b	.rset
+	bra	.rset
 .demo_level_1	
 	;lea		demo_moves_1,a0
 	;lea		demo_moves_1_end,a1
@@ -1081,14 +1081,14 @@ init_level:
 draw_background_pic
 	move.w	background_number(pc),d0
 	cmp.w	loaded_level(pc),d0
-	beq.b	.unpacked
+	beq	.unpacked
 	move.w	d0,loaded_level
 	bsr		load_default_palette
 	bsr		get_level_params
 	
 	move.l	a1,a0
 	move.l	(background_palette_data,a0),d0
-	beq.b	.no_colors
+	beq	.no_colors
 	move.l	d0,a2
 	
 	lea	(color_change_1,a2),a1
@@ -1109,7 +1109,7 @@ draw_background_pic
 	; blit the panel
 	move.w	background_number(pc),d0
 	btst	#7,d0
-	bne.b	.unpacked
+	bne	.unpacked
 	bsr		draw_panel_bitmap
 .unpacked
 	lea	backbuffer,a0
@@ -1130,7 +1130,7 @@ draw_background_pic
 	dbf		d7,.loop
 	
 	cmp.w	#GM_PRACTICE,level_type	
-	bne.b	.no_practice
+	bne	.no_practice
 	; trash the bottom of the level
 
 	bsr		draw_joys
@@ -1150,7 +1150,7 @@ draw_background_pic
 ; < A1 points to start/end color
 change_color:
 	move.w	(2,a1),d2
-	bmi.b	.out
+	bmi	.out
 	move.w	(a1),d1
 
 	; change optional palette entries
@@ -1158,7 +1158,7 @@ change_color:
 ; > D5: palette index, negative if not found
 ; > N set if not found
 	bsr	color_lookup
-	bmi.b	.out
+	bmi	.out
 	move.w	d5,d0
 	bsr		set_color
 .out
@@ -1225,9 +1225,9 @@ draw_points_box:
 	lea		player_1,a1
 	lea		player_2,a2
 	tst.b	is_cpu(a1)
-	bne.b	.cpu
+	bne	.cpu
 	tst.b	is_cpu(a2)
-	bne.b	.cpu
+	bne	.cpu
 
 	lea		points_box,a0
 	move.w	#POINTS_BOX_X,d0
@@ -1285,7 +1285,7 @@ draw_panel:
 	lea		pos_table(pc),a1
 	bsr		is_one_player_mode
 	tst	d0
-	beq.b	.2p
+	beq	.2p
 	bsr		get_active_player
 	; current level
 	lea		rects_string(pc),a0
@@ -1306,7 +1306,7 @@ draw_panel:
 	
 	move.w	#48,d0
 	bsr		write_color_string
-	bra.b	.cont
+	bra	.cont
 .2p
 
 	lea		player_1,a4
@@ -1330,31 +1330,31 @@ draw_panel:
 	bsr		write_color_string
 	
 	cmp.w	#GM_NORMAL,level_type
-	bne.b	.cont
+	bne	.cont
 	bsr		draw_points_box
 .cont
 	cmp.w	#GM_PRACTICE,level_type
-	bne.b	.no_practice
+	bne	.no_practice
 	lea		practice,a0
 	move.w	#64/8+2,d2
 	move.w	#16,d3
 	move.w	#32,d0
 	move.w	#40,d1
 	bsr		blit_4_planes_cookie_cut	
-	bra.b	.hiscore
+	bra	.hiscore
 .no_practice
 	cmp.w	#GM_EVADE,level_type
-	bne.b	.no_evade
+	bne	.no_evade
 	lea		evade,a0
 	move.w	#64/8+2,d2
 	move.w	#24,d3
 	move.w	#32,d0
 	move.w	#38,d1
 	bsr		blit_4_planes_cookie_cut
-	bra.b	.hiscore
+	bra	.hiscore
 .no_evade
 	cmp.w	#GM_BREAK,level_type
-	bne.b	.no_break
+	bne	.no_break
 	lea		demo,a0
 	move.w	#64/8+2,d2
 	move.w	#24,d3
@@ -1385,39 +1385,39 @@ draw_score:
 	move.w	active_players_flashing_timer(pc),d0
 	addq.w	#1,d0
 	cmp.w	#TICKS_PER_SEC_DRAW,d0	; 1 second
-	bne.b	.no_timeout
+	bne	.no_timeout
 	; timeout
 	move.w	#144,d0
 	move.w	#24,d1
 
 	eor.b	#1,player_up_displayed_flag
-	beq.b	.clear
+	beq	.clear
 	; display 1UP and/or 2UP
 	move.w	#$FFF,d2
 	; clear 1UP and 2UP
 	tst.b	is_cpu+player_1
-	bne.b	.nop1w
+	bne	.nop1w
 	lea		p1_string(pc),a0
 	bsr		write_blanked_color_string
 	move.w	#144,d0
 .nop1w
 	tst.b	is_cpu+player_2
-	bne.b	.flashout
+	bne	.flashout
 	add.w	#16,d1
 	lea		p2_string(pc),a0
 	bsr		write_blanked_color_string
-	bra.b	.flashout
+	bra	.flashout
 .clear
 	lea		up_clear(pc),a0
 	moveq	#0,d2		; black
 	; clear 1UP and 2UP
 	tst.b	is_cpu+player_1
-	bne.b	.nop1c
+	bne	.nop1c
 	bsr		write_blanked_color_string
 	move.w	#144,d0
 .nop1c
 	tst.b	is_cpu+player_2
-	bne.b	.flashout
+	bne	.flashout
 	add.w	#16,d1
 	bsr		write_blanked_color_string
 .flashout
@@ -1434,7 +1434,7 @@ draw_score:
 	
 	; only draw score if needed
 	tst.b	score_update_message
-	beq.b	.no_update
+	beq	.no_update
 	clr.b	score_update_message
 	; time
 	move.w	#104,d0
@@ -1446,7 +1446,7 @@ draw_score:
     move.w  #$FFF,d4
 	bsr write_blanked_color_decimal_number
 	cmp.w	#10,d2
-	bcc.b	.more
+	bcc	.more
 	lea		double_zero_string+1(pc),a0	; single zero
     move.w  d4,d2
 	bsr write_blanked_color_string
@@ -1489,9 +1489,9 @@ draw_score:
 
 draw_player_score
 	tst.b	is_cpu(a4)
-	bne.b	.cpu
+	bne	.cpu
 	move.l	score(a4),d2
-	beq.b	.pz
+	beq	.pz
 	; write trailing zeroes
     move.w  #SCORE_X_POS+32,d0
 	lea		double_zero_string(pc),a0
@@ -1513,18 +1513,18 @@ draw_player_score
 ; < A4: player structure
 hide_awarded_score:
 	move.w	awarded_score_display_timer(a4),d0
-	beq.b	.out
+	beq	.out
 	subq.w	#1,d0
 	movem.l	d0,-(a7)
-	bne.b	.no_hide2
+	bne	.no_hide2
 	; hide
 	move.l	awarded_score_sprite(a4),d0
-	beq.b	.no_hide	; safety
+	beq	.no_hide	; safety
 	move.l	d0,a0
 	clr.l	(a0)		; hide
 .no_hide
 	move.l	awarded_score_sprite_2(a4),d0
-	beq.b	.no_hide2	; safety
+	beq	.no_hide2	; safety
 	move.l	d0,a0
 	clr.l	(a0)		; hide
 .no_hide2
@@ -1547,7 +1547,7 @@ draw_2_upper_points
 	lea		one_ellipse(pc),a0
 	move.w	d1,d4
 	cmp.w	#2,d4
-	bcs.b	.h1
+	bcs	.h1
 	move.w	#POINT_SCORED_COLOR,d2	
 .h1
 	add.w	#40,d0
@@ -1557,13 +1557,13 @@ draw_2_upper_points
 	
 	move.w	#POINT_EMPTY_COLOR,d2	
 	cmp.w	#4,d4
-	bcs.b	.h2
+	bcs	.h2
 	move.w	#POINT_SCORED_COLOR,d2	
 .h2
 	cmp.w	#RIGHT,d5
-	beq.b	.add
+	beq	.add
 	subq.w	#8,d3
-	bra.b	.w
+	bra	.w
 .add
 	addq.w	#8,d3
 .w
@@ -1575,7 +1575,7 @@ draw_2_upper_points
 draw_lower_point
 	move.w	#POINT_SCORED_COLOR,d2
 	btst	#0,d1
-	bne.b	.score
+	bne	.score
 	move.w	#POINT_EMPTY_COLOR,d2	
 .score
 	lea		one_ellipse(pc),a0
@@ -1653,13 +1653,13 @@ update_options_string
 	lea	options_values_list(pc),a1
 .loop
 	move.w	(a0)+,d0
-	bmi.b	.out
+	bmi	.out
 	addq.w	#2,a0
 	move.l	(a1)+,a2
 	move.w	(a2),d1		; option value
 	move.l	(a1)+,a2
 	move.l	(a2,d1.w),(a0)+
-	bra.b	.loop
+	bra	.loop
 .out
 	rts
 	
@@ -1670,7 +1670,7 @@ get_level_params:
 	move.w	background_number(pc),d0
 	lea		level_params_table,a1
 	btst	#7,d0
-	beq.b	.normal
+	beq	.normal
 	bclr	#7,d0
 	lea		intro_screen_params_table,a1
 .normal
@@ -1716,7 +1716,7 @@ init_players_and_referee:
 	
 	move.w	players_reinit_flag(pc),d0
 	tst	d0
-	beq.b	.reinit_fight		; just reinit fight
+	beq	.reinit_fight		; just reinit fight
 	; round/level: reset timer
 	
 
@@ -1729,12 +1729,12 @@ init_players_and_referee:
 	clr.w	scored_points(a4)
 
 	cmp.w	#1,d0
-	beq.b	.reinit_fight
+	beq	.reinit_fight
 	; > 1: new level
 	
 	move.w	#-1,girl_frame_index
 	tst.l	girl_structure(a1)
-	beq.b	.no_girl
+	beq	.no_girl
 	clr.w	girl_frame_index
 .no_girl
 
@@ -1749,7 +1749,7 @@ init_players_and_referee:
 	move.w	#GIRL_ANIM_NB_TICKS,girl_frame_timer
 	
 	cmp.w	#2,d0
-	beq.b	.reinit_fight
+	beq	.reinit_fight
 	; reinit players completely
 	lea		player_1,a4
 	clr.w	rank(a4)
@@ -1777,7 +1777,7 @@ init_players_and_referee:
 	move.b	#1,character_id(a4)
 	move.w 	#RIGHT,direction(a4)
 	move.w	background_number(pc),d0
-	beq.b	.pract
+	beq	.pract
 	move.w 	#LEFT,direction(a4)
 .pract
 
@@ -1799,14 +1799,14 @@ init_players_and_referee:
 
 	lea player_2,a4
     move.w	p2_init_xpos(a1),xpos(a4)
-	bne.b	.no_zero_x
+	bne	.no_zero_x
 	; symmetrical
 	move.w	#SCREEN_WIDTH-32,d5
 	sub.w	p1_init_xpos(a1),d5
 	move.w	d5,xpos(a4)
 .no_zero_x
     move.w	p2_init_ypos(a1),ypos(a4)
-	bne.b	.no_zero_y
+	bne	.no_zero_y
 	move.w	d6,ypos(a4)		; 0 means same y as p1
 .no_zero_y
 	sub.w	#50,d6	; margin y where players can't go
@@ -1831,7 +1831,7 @@ init_players_and_referee:
 	
 	bsr		is_one_player_mode
 	tst		d0
-	bne.b	.1p
+	bne	.1p
 	; other_flashing_timer is going to be used to make round
 	; score flash
 	move.w	#1,other_flashing_timer
@@ -1841,7 +1841,7 @@ init_players_and_referee:
     
     move.w  #TICKS_PER_SEC_UPDATE,D0   
     tst.b   music_played
-    bne.b   .played
+    bne   .played
     st.b    music_played
 
 
@@ -1849,7 +1849,7 @@ init_players_and_referee:
     ELSE
     IFND     DIRECT_GAME_START
     tst.b   demo_mode
-    beq.b   .no_demo
+    beq   .no_demo
     ENDC
 
 .no_demo
@@ -2000,7 +2000,7 @@ draw_first_all
 .intro_screen		; !draw_first
     move.b  intro_step(pc),d0
     cmp.b   #1,d0
-    beq.b   .init1
+    beq   .init1
     ; second part: cpu vs cpu fake fight
     bsr hide_sprites
 	bsr	draw_background_pic
@@ -2077,12 +2077,12 @@ draw_first_all
 	lea		.dan(pc),a0
 	move.b	(-1,a1),d4		; level/dan
 	cmp.b	#11+'0',d4
-	bcc.b	.champ
+	bcc	.champ
 	cmp.b	#10+'0',d4
-	bcs.b	.below
+	bcs	.below
 	move.b	#'1',(a0)+
 	move.b	#'0',(a0)+
-	bra.b	.wdan
+	bra	.wdan
 .below
 	move.b	#' ',(a0)+
 	move.b	d4,(a0)+
@@ -2090,7 +2090,7 @@ draw_first_all
 	move.b	#'D',(a0)+
 	move.b	#'A',(a0)+
 	move.b	#'N',(a0)
-	bra.b	.cw
+	bra	.cw
 .champ
 	move.b	#'C',(a0)+
 	move.b	#'H',(a0)+
@@ -2149,13 +2149,13 @@ draw_all
 
 ; draw intro screen
 .intro_screen	; draw
-    bra.b   draw_intro_screen
+    bra   draw_intro_screen
 
 	
 .game_start_screen	; draw
 
 	tst.w	options_select
-	beq.b	.out
+	beq	.out
 	bsr		draw_options_values
 .out
     rts
@@ -2172,7 +2172,7 @@ PLAYER_ONE_Y = 102-14
     
 .game_over
     cmp.l   #GAME_OVER_TIMER,state_timer
-    bne.b   .draw_complete
+    bne   .draw_complete
     bsr hide_sprites
 
     move.w  #72,d0
@@ -2185,7 +2185,7 @@ PLAYER_ONE_Y = 102-14
     lea game_over_string(pc),a0
     bsr write_color_string
     
-    bra.b   .draw_complete
+    bra   .draw_complete
 .playing	; !draw
 	bsr	draw_score
 
@@ -2200,7 +2200,7 @@ PLAYER_ONE_Y = 102-14
     ; handle highscore in draw routine eek
     move.l  high_score(pc),d4
     cmp.l   d2,d4
-    bcc.b   .no_score_update
+    bcc   .no_score_update
     
     move.l  d2,high_score
     bsr draw_high_score
@@ -2257,11 +2257,11 @@ draw_winner:
 	bsr		blit_4_planes_cookie_cut
 	
 	tst.b	manual_animation(a4)
-	beq.b	.no_closest
+	beq	.no_closest
 	; draw big head
 	lea	big_head_1,a0
 	tst.w	bonus_phase_index
-	beq.b	.1
+	beq	.1
 	lea	big_head_2,a0
 .1
 	move.w	xpos(a4),d0
@@ -2280,10 +2280,10 @@ draw_winner:
 	
 draw_loser:
 	tst.l	state_timer
-	beq.b	.first_draw
+	beq	.first_draw
 	cmp.l	#$80,state_timer
-	bcs.b	.no_god
-	bsr.b	.draw_loser_game_over
+	bcs	.no_god
+	bsr	.draw_loser_game_over
 .no_god
 	; draw player & girl
 	bsr		get_loser
@@ -2309,7 +2309,7 @@ draw_loser:
 .draw_loser_game_over
 	bsr		get_winner
 	tst.b	is_cpu(a0)
-	bne.b	.full_game_over
+	bne	.full_game_over
 	move.w	#14,d2
 	move.w	#GAME_OVER_X-16,d0
 	bsr		.draw_game_over_rect
@@ -2319,7 +2319,7 @@ draw_loser:
 	add.b	#'1',d3
 	lea		.xp_game_over_message(pc),a0
 	move.b	d3,(a0)
-	bra.b	.game_over
+	bra	.game_over
 .full_game_over
 	move.w	#11,d2
 	move.w	#GAME_OVER_X,d0
@@ -2350,14 +2350,14 @@ draw_loser:
 get_winner:
 	lea		player_1,a0
 	tst.b	round_winner(a0)
-	bne.b	.p1
+	bne	.p1
 	lea		player_2,a0
 .p1
 	rts
 get_loser:
 	lea		player_1,a0
 	tst.b	round_winner(a0)
-	beq.b	.p1
+	beq	.p1
 	lea		player_2,a0
 .p1
 	rts
@@ -2365,15 +2365,15 @@ get_loser:
 draw_practice:
 	; draw moves names & controls
 	tst.b	current_move_key_message
-	bmi.b	.erase_move_message
-	bne.b	.draw_move_message
+	bmi	.erase_move_message
+	bne	.draw_move_message
 	
 	; draw normal if message has been read
 	move.l	state_timer(pc),d0
-	beq.b	.draw_practice_message
+	beq	.draw_practice_message
 	cmp.l	#PRACTICE_SKIP_MESSAGE_LEN,d0
-	beq.b	.erase_practice_message
-	bcc.b	draw_normal
+	beq	.erase_practice_message
+	bcc	draw_normal
 .draw_practice_message:
 	
 	bsr	draw_referee
@@ -2383,7 +2383,7 @@ draw_practice:
 	lea		practice_message_list(pc),a1
 .loop
 	move.w	(a1)+,d0
-	bmi.b	.out_msg
+	bmi	.out_msg
 	move.w	(a1)+,d1
 	move.l	(a1)+,a0
 	move.w	#$ffc,d2
@@ -2398,7 +2398,7 @@ draw_practice:
 	move.w	d3,d0
 	move.w	#$f00,d2
 	bsr		write_color_string
-	bra.b	.loop
+	bra	.loop
 .out_msg
 
 	rts
@@ -2416,7 +2416,7 @@ ARROW_HORIZ_X_SHIFT = 24
 
 .draw_move_message
 	move.l	current_move_key_last_jump,d4
-	bne.b	.last
+	bne	.last
 	move.l	current_move_key,d4
 .last
 	moveq	#4,d2
@@ -2426,11 +2426,11 @@ ARROW_HORIZ_X_SHIFT = 24
 	; up arrows
 	lea	up_arrow,a0
 	btst	#JPB_BTN_UP,d4
-	beq.b	.no_dir_up
+	beq	.no_dir_up
 	bsr		blit_4_planes_cookie_cut
 .no_dir_up
 	btst	#JPB_BTN_AUP,d4
-	beq.b	.no_tech_up
+	beq	.no_tech_up
 	move.w	#ARROW_RIGHT_X,d0
 	bsr		blit_4_planes_cookie_cut
 .no_tech_up
@@ -2439,11 +2439,11 @@ ARROW_HORIZ_X_SHIFT = 24
 	move.w	#ARROW_LEFT_X,d0
 	move.w	#DOWN_ARROW_Y,d1
 	btst	#JPB_BTN_DOWN,d4
-	beq.b	.no_dir_down
+	beq	.no_dir_down
 	bsr		blit_4_planes_cookie_cut
 .no_dir_down
 	btst	#JPB_BTN_ADOWN,d4
-	beq.b	.no_tech_down
+	beq	.no_tech_down
 	move.w	#ARROW_RIGHT_X,d0
 	bsr		blit_4_planes_cookie_cut
 .no_tech_down
@@ -2452,11 +2452,11 @@ ARROW_HORIZ_X_SHIFT = 24
 	move.w	#ARROW_HORIZ_LEFT_X,d0
 	move.w	#HORIZ_ARROW_Y,d1
 	btst	#JPB_BTN_LEFT,d4
-	beq.b	.no_dir_left
+	beq	.no_dir_left
 	bsr		blit_4_planes_cookie_cut
 .no_dir_left
 	btst	#JPB_BTN_ALEFT,d4
-	beq.b	.no_tech_left
+	beq	.no_tech_left
 	move.w	#ARROW_HORIZ_RIGHT_X,d0
 	bsr		blit_4_planes_cookie_cut
 .no_tech_left
@@ -2465,11 +2465,11 @@ ARROW_HORIZ_X_SHIFT = 24
 	move.w	#ARROW_HORIZ_RIGHT_X+ARROW_HORIZ_X_SHIFT,d0
 	move.w	#HORIZ_ARROW_Y,d1
 	btst	#JPB_BTN_RIGHT,d4
-	beq.b	.no_dir_right
+	beq	.no_dir_right
 	bsr		blit_4_planes_cookie_cut
 .no_dir_right
 	btst	#JPB_BTN_ARIGHT,d4
-	beq.b	.no_tech_right
+	beq	.no_tech_right
 	move.w	#ARROW_HORIZ_RIGHT_X+ARROW_HORIZ_X_SHIFT,d0
 	bsr		blit_4_planes_cookie_cut
 .no_tech_right
@@ -2478,19 +2478,19 @@ ARROW_HORIZ_X_SHIFT = 24
 	lea		move_name_table_right(pc),a0
 	bsr		decode_technique_name
 	tst.l	d0
-	beq.b	.no_tech	; should not happen!!
+	beq	.no_tech	; should not happen!!
 	move.l	d0,a1
 	move.w	#256-24,d1
 .wl
 	move.l	(a1)+,d3
-	beq.b	.no_tech
+	beq	.no_tech
 	; display word
 	move.l	d3,a0
 	move.w	#8,d0
 	move.w	#$FFF,d2
 	bsr		write_color_string
 	add.w	#8,d1
-	bra.b	.wl
+	bra	.wl
 .no_tech
 	clr.b	current_move_key_message	; ack
 	rts
@@ -2511,7 +2511,7 @@ ARROW_HORIZ_X_SHIFT = 24
 ; < a4 character structure
 erase_bubble
 	move.w	previous_bubble_xpos(a4),d0
-	beq.b	.no_erase
+	beq	.no_erase
 	move.w	previous_bubble_ypos(a4),d1
 	move.w	previous_bubble_width(a4),d2
 	move.w	previous_bubble_height(a4),d3
@@ -2558,7 +2558,7 @@ draw_very_good_bubble
 draw_better_luck_bubble
 	lea	better_luck_bubble,a0
 	lea	white_right_bubble_leg,a1
-	bra.b	draw_girl_bubble
+	bra	draw_girl_bubble
 	
 draw_my_hero_bubble
 	lea	my_hero_bubble,a0
@@ -2629,7 +2629,7 @@ draw_bubble
 	
 draw_moo_bubble_left
 	lea	moo_bubble,a0
-	bra.b	dwb
+	bra	dwb
 ; what: draw "white" bubble (to the left)
 draw_white_bubble
 	lea	white_bubble,a0
@@ -2637,7 +2637,7 @@ dwb:
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
 	sub.w	#24,d0
-	bmi.b	.out
+	bmi	.out
 	sub.w	#24,d1
 	move.w	#6,d2
 	move.w	#16,d3
@@ -2663,7 +2663,7 @@ draw_evade
 	; erase object
 	lea	evade_object,a4
 	move.w	ypos(a4),d1
-	beq.b	.no_erase
+	beq	.no_erase
 	sub.w	#8,d1
 	move.w	xpos(a4),d0
 	sub.w	#8,d0
@@ -2674,11 +2674,11 @@ draw_evade
 	bsr	draw_active_player
 	
 	tst.w	misc_timer
-	bne.b	.no_object_move
+	bne	.no_object_move
 
 	lea		evade_object,a4
 	move.w	frame(a4),d2
-	bmi.b	.no_object_move
+	bmi	.no_object_move
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
 	move.l	object_frame(a4),a1
@@ -2700,19 +2700,19 @@ draw_evade
 
 draw_break
 	tst.l	state_timer
-	beq.b	.init_draw
+	beq	.init_draw
 	bsr		get_active_player
 	; compute dest address
 	
 	move.w	previous_ypos(a4),d3
-	beq.b	.no_erase		; 0: not possible: first draw
+	beq	.no_erase		; 0: not possible: first draw
 	move.w	previous_xpos(a4),d2
 	
 	move.l	d2,d0
 	move.l	d3,d1
 	move.w	#80,d2	; width (no shifting)
 	move.w	#60,d3	; height
-	bsr.b		restore_background
+	bsr		restore_background
 .no_erase
 	bsr		draw_player
 
@@ -2747,13 +2747,13 @@ draw_break
 	move.w	#DEMO_Y_CONTROLS,d1
 	bsr		blit_4_planes_cookie_cut
 	tst.w	show_challenge_message
-	beq.b	.sd
-	bsr.b	.draw_arrows
+	beq	.sd
+	bsr	.draw_arrows
 .sd
 	move.w	challenge_blink_timer(pc),d4
 	addq.w	#1,d4
 	cmp.w	#6,d4
-	bne.b	.no_toggle
+	bne	.no_toggle
 
 	move.w	#48,d0
 	move.w	#232,d1
@@ -2764,7 +2764,7 @@ draw_break
 	bsr		write_blanked_color_string
 
 	eor.w	#1,show_challenge_message
-	beq.b	.out
+	beq	.out
 	
 	move.w	d5,d0
 	move.w	d6,d1
@@ -2785,7 +2785,7 @@ draw_break
 	rts
 .draw_arrows
 	tst.b	controls_blocked_flag
-	bne.b	.dout
+	bne	.dout
 	moveq	#4,d2
 	moveq	#8,d3
 	move.w	#DEMO_X_CONTROLS+12,d0
@@ -2821,7 +2821,7 @@ draw_break
 draw_bull_stage
 	; draw normal if message has been read
 	;move.l	state_timer(pc),d0
-	;beq.b	.draw_practice_message
+	;beq	.draw_practice_message
 	bsr		erase_referee
 	bsr		erase_active_player
 	bsr		erase_bull
@@ -2843,22 +2843,22 @@ draw_normal:
 	; if round pause type is RP_START_FIGHT_OR_ROUND and 2 player mode
 	; we have to display round score first
 	cmp.w	#RP_2P_SHOW_SCORE,pause_round_type
-	bne.b	.no_start_round
+	bne	.no_start_round
 	tst.w	other_flashing_toggle
-	beq.b	.no_start_round
+	beq	.no_start_round
 	move.w	other_flashing_timer(pc),d0
 	subq.w	#1,d0
-	beq.b	.flash_timeout
+	beq	.flash_timeout
 	move.w	d0,other_flashing_timer
-	bra.b	.no_start_round
+	bra	.no_start_round
 .flash_timeout
 	move.w	#TICKS_PER_SEC_DRAW/4,other_flashing_timer
 	move.w	other_flashing_toggle(pc),d6
 	btst	#0,d6
-	beq.b	.points_draw
+	beq	.points_draw
 	; erase points
 	bsr		erase_points_box
-	bra.b	.dec
+	bra	.dec
 .points_draw
 	; draw points
 	bsr		draw_points_box
@@ -2868,11 +2868,11 @@ draw_normal:
 .no_start_round
 
 	tst.b	erase_girl_message
-	bne.b	.force_erase
+	bne	.force_erase
 	tst.w	pause_round_timer
-	beq.b	.no_start_level
+	beq	.no_start_level
 	cmp.w	#RP_START_LEVEL,pause_round_type
-	bne.b	.no_start_level
+	bne	.no_start_level
 .force_erase
 	clr.b	erase_girl_message
 	bsr	erase_girl
@@ -2885,13 +2885,13 @@ draw_normal:
 	bsr	erase_player
 
 	tst.w	pause_round_timer
-	beq.b	.no_start_level2
+	beq	.no_start_level2
 	cmp.w	#RP_START_LEVEL,pause_round_type
-	bne.b	.no_start_level2
+	bne	.no_start_level2
 	bsr	draw_girl
 .no_start_level2
 	tst.w	girl_frame_index
-	bpl.b	.no_referee
+	bpl	.no_referee
 	; girl showing, no referee
 	bsr	draw_referee
 .no_referee
@@ -2901,7 +2901,7 @@ draw_normal:
     bsr draw_player
 	
 	move.l	technique_to_display(pc),d6
-	beq.b	.no_tech
+	beq	.no_tech
 	bsr		erase_points_box
 	clr.l	technique_to_display
 	move.l	d6,a1
@@ -2909,14 +2909,14 @@ draw_normal:
 	bsr		wait_blit
 .wl
 	move.l	(a1)+,d3
-	beq.b	.no_tech
+	beq	.no_tech
 	; display word
 	move.l	d3,a0
 	move.w	#40,d0
 	move.w	#$FFF,d2
 	bsr		write_color_string
 	add.w	#8,d1
-	bra.b	.wl
+	bra	.wl
 .no_tech		
 	
 	rts
@@ -2935,7 +2935,7 @@ erase_girl
 		
 draw_girl
 	move.w	girl_frame_index,d4
-	bmi.b	.no_draw
+	bmi	.no_draw
 	
 	; draw girl
 	bsr		get_level_params
@@ -2986,9 +2986,9 @@ draw_high_score
 
 CONTROL_TEST:MACRO
 	btst	#JPB_BTN_\1,d0
-	beq.b	.no_\1
+	beq	.no_\1
 	bset	#CTB_\2,d1
-	bra.b	\3
+	bra	\3
 .no_\1
     ENDM
 	
@@ -3033,7 +3033,7 @@ add_to_points:
 	move.w	scored_points(a4),d1
 	add.w	d0,d1
 	cmp.w	#6,d1
-	bcs.b	.not_maxed
+	bcs	.not_maxed
 	move.w	#5,d1
 .not_maxed
 	move.w	d1,scored_points(a4)
@@ -3063,7 +3063,7 @@ randrange:
 	btst	d2,d0
 	dbne	d2,.count
 	tst.w	d2
-	bmi.b	.err
+	bmi	.err
 	addq.l	#1,d2
 	move.l	d0,d1
 	moveq.l	#0,d3
@@ -3073,7 +3073,7 @@ randrange:
 	bsr		random
 	and.l	d3,d0
 	cmp.l	d1,d0
-	bcc.b	.loop
+	bcc	.loop
 	movem.l	(a7)+,d1-d3
     rts
 .err
@@ -3085,7 +3085,7 @@ draw_start_screen
 
 	
 	tst.w	options_select
-	bne.b	.options_select
+	bne	.options_select
 	
 	lea		start_message_list(pc),a1
 	move.w	#$fff,d0
@@ -3135,13 +3135,13 @@ write_string_list
 	move.w	d0,d2
 .loop
 	move.w	(a1)+,d0
-	bmi.b	.out_msg
+	bmi	.out_msg
 	move.w	(a1)+,d1
 	move.l	(a1)+,a0
 	move.w	d0,d3
 	bsr		write_blanked_color_string
 	move.w	d3,d0
-	bra.b	.loop
+	bra	.loop
 .out_msg
 	movem.l	(a7)+,d1-d3
 	rts
@@ -3152,7 +3152,7 @@ erase_bull
 	bsr		erase_bubble
 	move.w	previous_xpos(a4),d0
 	move.w	previous_ypos(a4),d1
-	beq.b	.no_erase
+	beq	.no_erase
 	subq.w	#8,d1
 	move.w	#80,d2
 	move.w	#56,d3	; height
@@ -3169,7 +3169,7 @@ update_bull:
 	move.w	bull_bubble_counter(a2),d0
 	addq.w	#1,d0
 	cmp.w	#32,d0
-	bne.b	.no_rb
+	bne	.no_rb
 	moveq	#0,d0
 .no_rb
 	move.w	d0,bull_bubble_counter(a2)
@@ -3177,7 +3177,7 @@ update_bull:
 	move.w	current_frame_countdown(a2),d0
 	addq.w	#1,d0
 	cmp.w	#5,d0
-	bne.b	.no_move
+	bne	.no_move
 	eor.w	#4,frame(a2)
 	lea		bull_sound,a0
 	bsr		play_fx
@@ -3185,22 +3185,22 @@ update_bull:
 	move.w	xpos(a2),d2
 	move.w	direction(a2),d1
 	cmp.w	#RIGHT,d1
-	beq.b	.to_right
+	beq	.to_right
 	; move left
 	subq.w	#BULL_X_STEP,d2
 	cmp.w	#-16,d2
-	bge.b	.keep_moving
+	bge	.keep_moving
 	; reached left: next sequence
 	bsr		init_bull
-	bra.b	.out
+	bra	.out
 .keep_moving
 	move.w	d2,xpos(a2)
-	bra.b	.out
+	bra	.out
 .to_right
 	; move left
 	addq.w	#BULL_X_STEP,d2
 	cmp.w	#SCREEN_WIDTH-48,d2
-	ble.b	.keep_moving
+	ble	.keep_moving
 	; reached right: next sequence
 	bsr		init_bull
 .out	
@@ -3223,7 +3223,7 @@ mirror_halo
 set_bull_direction:
 	lea	bull_0,a0
 	cmp.w	bull_sprite_direction,d0
-	beq.b	.no_mirror
+	beq	.no_mirror
 	move.w	d0,bull_sprite_direction	; note down
 	move.w	#10,d0	; 64+16
 	move.w	#120,d1	; 40*3
@@ -3249,12 +3249,12 @@ draw_bull:
 	; draw "moo" bubble if enabled (1/4 of the time)
 	move.w	#8,D0
 	cmp.w	bull_bubble_counter(a4),d0
-	bcc.b	.no_bubble
+	bcc	.no_bubble
 	move.w	direction(a4),d0
 	cmp.w	#RIGHT,d0
-	beq.b	.draw
+	beq	.draw
 	bsr		draw_moo_bubble_left
-	bra.b	.no_bubble
+	bra	.no_bubble
 .draw
 	bsr		draw_moo_bubble_right
 .no_bubble
@@ -3303,7 +3303,7 @@ ENEMY_Y_SPACING = 24
 draw_intro_screen
 
 	cmp.b	#1,intro_step
-	beq.b	.draw_step_1
+	beq	.draw_step_1
 	; draw step 2
 	lea		player_1(pc),a4
 	bsr		erase_player
@@ -3336,7 +3336,7 @@ draw_intro_screen
 	bsr		draw_bull
 	lea		bull(pc),a4
 	tst.w	frame(a4)
-	bne.b	.no_red_horn
+	bne	.no_red_horn
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
 	move.w	#4,d2
@@ -3375,10 +3375,10 @@ clear_plane_any_cpu:
 clear_plane_any_cpu_any_height 
     movem.l d0-D3/a0-a2,-(a7)
     subq.w  #1,d3
-    bmi.b   .out
+    bmi   .out
     lea mulNB_BYTES_PER_LINE_table(pc),a2
     add.w   d1,d1
-    beq.b   .no_add
+    beq   .no_add
     move.w  (a2,d1.w),d1
     add.w   d1,a1
 .no_add
@@ -3387,13 +3387,13 @@ clear_plane_any_cpu_any_height
     add.w   d0,a1
 	move.l	a1,d1
     btst    #0,d1
-    bne.b   .odd
+    bne   .odd
     cmp.w   #4,d2
-    bcs.b   .odd
+    bcs   .odd
 	btst	#0,d2
-	bne.b	.odd
+	bne	.odd
 	btst	#1,d2
-	beq.b	.even
+	beq	.even
 .odd    
     ; odd address
     move.w  d3,d0
@@ -3425,7 +3425,7 @@ clear_plane_any_cpu_any_height
     ; next line
     add.w   #NB_BYTES_PER_LINE,a1
     dbf d0,.yloop2
-    bra.b   .out
+    bra   .out
     
 ; what: clears a plane of any width (using blitter), 16 height
 ; args:
@@ -3487,7 +3487,7 @@ clear_plane_any_blitter_internal:
     ; pre-compute the maximum of shit here
     lea mulNB_BYTES_PER_LINE_table(pc),a2
     add.w   d1,d1
-    beq.b   .d1_zero    ; optim
+    beq   .d1_zero    ; optim
     move.w  (a2,d1.w),d1
     swap    d1
     clr.w   d1
@@ -3495,7 +3495,7 @@ clear_plane_any_blitter_internal:
 .d1_zero
     move.l  #$030A0000,d5   ; minterm useC useD & rect clear (0xA) 
     move    d0,d6
-    beq.b   .d0_zero
+    beq   .d0_zero
     and.w   #$F,d6
     and.w   #$1F0,d0
     lsr.w   #3,d0
@@ -3578,7 +3578,7 @@ init_interrupts
 FATAL_EXC:MACRO
 	movem.l	D0-a6,$100.W
 	lea	.\1(pc),a0
-	bra.b	lockup
+	bra	lockup
 	ENDM
 	
 exc8
@@ -3593,20 +3593,20 @@ excc
     even
 exc28
     FATAL_EXC	linea_error
-    bra.b lockup
+    bra lockup
 .linea_error:
     dc.b    "LINEA ERROR AT ",0
     even
 exc2f
     FATAL_EXC	linef_error
-    bra.b lockup
+    bra lockup
 .linef_error:
     dc.b    "LINEF ERROR AT ",0
     even
 
 exc10
     FATAL_EXC	illegal_error
-    bra.b lockup
+    bra lockup
 .illegal_error:
     dc.b    "ILLEGAL INSTR AT ",0
     even
@@ -3634,7 +3634,7 @@ lockup
     moveq #8,d3
     bsr write_hexadecimal_number    
 .lockup
-    bra.b   .lockup
+    bra   .lockup
 	
 finalize_sound
     bsr stop_sounds
@@ -3712,14 +3712,14 @@ level2_interrupt:
 	
     bclr    #7,d0
     seq (a0,d0.w)       ; updates keyboard table
-    bne.b   .no_playing     ; we don't care about key release
+    bne   .no_playing     ; we don't care about key release
     ; cheat key activation sequence
     move.l  cheat_sequence_pointer(pc),a0
     cmp.b   (a0)+,d0
-    bne.b   .reset_cheat
+    bne   .reset_cheat
     move.l  a0,cheat_sequence_pointer
     tst.b   (a0)
-    bne.b   .cheat_end
+    bne   .cheat_end
     move.w  #$0FF,_custom+color    
     st.b    cheat_keys
 	; in case cheat is enabled after a legit hiscore
@@ -3729,77 +3729,77 @@ level2_interrupt:
 .cheat_end
     
     cmp.b   #$45,d0
-    bne.b   .no_esc
+    bne   .no_esc
     cmp.w   #STATE_INTRO_SCREEN,current_state
-    beq.b   .no_esc
+    beq   .no_esc
     cmp.w   #STATE_GAME_START_SCREEN,current_state
-    beq.b   .no_esc
+    beq   .no_esc
     move.l  #1,state_timer
     move.w  #STATE_GAME_OVER,current_state
 .no_esc
     
     cmp.w   #STATE_PLAYING,current_state
-    bne.b   .no_playing
+    bne   .no_playing
     tst.b   demo_mode
-    bne.b   .no_pause
+    bne   .no_pause
     cmp.b   #$19,d0
-    bne.b   .no_pause
+    bne   .no_pause
 	; in that game we need pause even if music
 	; is playing, obviously
 ;    tst.b   music_playing
-;    bne.b   .no_pause
+;    bne   .no_pause
     bsr	toggle_pause
 .no_pause
     tst.w   cheat_keys
-    beq.b   .no_playing
+    beq   .no_playing
         
     cmp.b   #$50,d0
     seq.b   level_completed_flag
 
     cmp.b   #$51,d0
-    bne.b   .no_invincible
+    bne   .no_invincible
     eor.b   #1,invincible_cheat_flag
     move.b  invincible_cheat_flag(pc),d0
-    beq.b   .x
+    beq   .x
     move.w  #$F,d0
 .x
     and.w   #$FF,d0
     or.w  #$0F0,d0
     move.w  d0,_custom+color
-    bra.b   .no_playing
+    bra   .no_playing
 .no_invincible
     cmp.b   #$52,d0
-    bne.b   .no_infinite_lives
+    bne   .no_infinite_lives
 
     and.w   #$FF,d0
     or.w  #$0F0,d0
     move.w  d0,_custom+color
-    bra.b   .no_playing
+    bra   .no_playing
 .no_infinite_lives
     cmp.b   #$53,d0     ; F4
-    bne.b   .no_debug
+    bne   .no_debug
     ; show/hide debug info
     eor.b   #1,debug_flag
-    bra.b   .no_playing
+    bra   .no_playing
 .no_debug
     cmp.b   #$54,d0     ; F5
-    bne.b   .no_redraw
+    bne   .no_redraw
    
 	bsr		redraw_level
-    bra.b   .no_playing
+    bra   .no_playing
 .no_redraw
     cmp.b   #$55,d0     ; F6
-    bne.b   .toggle_hit_zones
+    bne   .toggle_hit_zones
 	eor.b   #1,draw_hit_zones_flag
-    bra.b   .no_playing
+    bra   .no_playing
 .toggle_hit_zones
     cmp.b   #$56,d0     ; F7
-    bne.b   .no_timeout
+    bne   .no_timeout
 	move.w	#1,time_left
-    bra.b   .no_playing
+    bra   .no_playing
 .no_timeout
     cmp.b   #$57,d0     ; F8
-    bne.b   .no_1p_wins
+    bne   .no_1p_wins
 	move.w	#3,player_1+scored_points
 	clr.w	player_2+scored_points
 	move.w	#BLOW_STOMACH,player_2+hit_by_blow
@@ -3808,10 +3808,10 @@ level2_interrupt:
 	movem.l	d0-a6,-(a7)
 	bsr		draw_score
 	movem.l	(a7)+,d0-a6
-    bra.b   .no_playing
+    bra   .no_playing
 .no_1p_wins
     cmp.b   #$58,d0     ; F9
-    bne.b   .no_2p_wins
+    bne   .no_2p_wins
 	move.w	#3,player_2+scored_points
 	clr.w	player_1+scored_points
 	move.w	#BLOW_STOMACH,player_1+hit_by_blow
@@ -3820,12 +3820,12 @@ level2_interrupt:
 	movem.l	d0-a6,-(a7)
 	bsr		draw_score
 	movem.l	(a7)+,d0-a6
-    bra.b   .no_playing
+    bra   .no_playing
 .no_2p_wins
 .no_playing
 
     cmp.b   _keyexit(pc),d0
-    bne.b   .no_quit
+    bne   .no_quit
     st.b    quit_flag
 .no_quit
 
@@ -3841,7 +3841,7 @@ level2_interrupt:
 	
 toggle_pause
 	eor.b   #1,pause_flag
-	beq.b	.out
+	beq	.out
 	bsr		stop_sounds
 	move.w	#1,start_music_countdown	; music will resume when unpaused
 .out
@@ -3879,34 +3879,34 @@ level3_interrupt:
     lea  _custom,a5
     move.w  (intreqr,a5),d0
     btst    #5,d0
-    bne.b   .vblank
+    bne   .vblank
     move.w  (intreqr,a5),d0
     btst    #4,d0
-    beq.b   .blitter
+    beq   .blitter
     tst.b   demo_mode
-    bne.b   .no_pause
+    bne   .no_pause
     tst.b   pause_flag
-    bne.b   .outcop
+    bne   .outcop
 .no_pause
     ; copper interrupt: start drawing
 	; see if state has changed
 	move.w	current_state(pc),d0
 	cmp.w	previous_state(pc),d0
-	beq.b	.no_state_change
+	beq	.no_state_change
 	clr.l	state_timer
 	move.w	d0,previous_state
-	bra.b	.init
+	bra	.init
 	; but if state timer is zero (set manually), initialize first
 .no_state_change
 	tst.l	state_timer
-	bne.b	.not_first
+	bne	.not_first
 .init
 	bsr init_all
 	bsr	draw_first_all
 .not_first
     bsr draw_all
     tst.b   debug_flag
-    beq.b   .no_debug
+    beq   .no_debug
     bsr draw_debug
 .no_debug
     bsr update_all
@@ -3914,20 +3914,20 @@ level3_interrupt:
     move.w  vbl_counter(pc),d0
     addq.w  #1,d0
     cmp.w   #5,d0
-    bne.b   .normal
+    bne   .normal
     ; update a second time, simulate 60Hz
     bsr update_all
     moveq #0,d0    
 .normal
     move.w  d0,vbl_counter
 	tst.w	cheat_keys
-	beq.b	.outcop
+	beq	.outcop
 	; check left CTRL
 	move.b	$BFEC01,d0
 	ror.b	#1,d0
 	not.b	d0
 	cmp.b	#$63,d0
-	beq.b	.no_pause
+	beq	.no_pause
 .outcop
     move.w  #$0010,(intreq,a5) 
     movem.l (a7)+,d0-a6
@@ -3946,22 +3946,22 @@ level3_interrupt:
 	moveq.l	#0,d0
 	move.w	player_1_controls_option(pc),d2
 	cmp.w	#OPTION_KEYBOARD,d2
-	beq.b	.kb1
+	beq	.kb1
 	tst.b	controller_joypad_1
-	beq.b	.kb1
+	beq	.kb1
 	move.l	joystick_port_1_value(pc),d0
 	cmp.w	#OPTION_TWO_JOYSTICKS,d2
-	bne.b	.no_2joy1
+	bne	.no_2joy1
 	move.l	d0,d3		; save joy 1
 	move.l	joystick_port_0_value(pc),d0
 	bsr		convert_joystick_moves_to_buttons
 	or.l	d3,d0
-	bra.b	.sk1
+	bra	.sk1
 .no_2joy1
 	cmp.w	#OPTION_WINUAE_JOYPAD,d2
-	bne.b	.sk1
+	bne	.sk1
 	bsr	correct_joystick_buttons
-	bra.b	.sk1
+	bra	.sk1
 .kb1
 	bsr		read_keyboard
 .sk1
@@ -3970,48 +3970,48 @@ level3_interrupt:
     move.l  d0,joystick_state(a4)
  
     btst    #JPB_BTN_PLAY,d0
-    beq.b   .no_second
+    beq   .no_second
     move.l  previous_joystick_state(a4),d2
     btst    #JPB_BTN_PLAY,d2
-    bne.b   .no_second
+    bne   .no_second
 
     ; no pause if not in game
     cmp.w   #STATE_PLAYING,current_state
-    bne.b   .no_second
+    bne   .no_second
     tst.b   demo_mode
-    bne.b   .no_second
+    bne   .no_second
     
     bsr		toggle_pause
 .no_second
 	; player 2
 	lea		player_2(pc),a4
 	tst.b	is_cpu(a4)
-	bne.b	.cpu
+	bne	.cpu
 	moveq.l	#0,d0
 	
 	cmp.w	#OPTION_KEYBOARD,player_2_controls_option
-	beq.b	.kb2
+	beq	.kb2
 	tst.b	controller_joypad_0
-	beq.b	.kb2
+	beq	.kb2
 	move.l	joystick_port_0_value,d0
 	cmp.w	#OPTION_WINUAE_JOYPAD,player_2_controls_option
-	bne.b	.sk2
+	bne	.sk2
 	bsr	correct_joystick_buttons
-	bra.b	.sk2
+	bra	.sk2
 .kb2
 	bsr		read_keyboard
 .sk2	
     btst    #JPB_BTN_PLAY,d0
-    beq.b   .store_p2_controls
+    beq   .store_p2_controls
     move.l  joystick_state(a4),d2
     btst    #JPB_BTN_PLAY,d2
-    bne.b   .store_p2_controls
+    bne   .store_p2_controls
 
     ; no pause if not in game
     cmp.w   #STATE_PLAYING,current_state
-    bne.b   .store_p2_controls
+    bne   .store_p2_controls
     tst.b   demo_mode
-    bne.b   .store_p2_controls
+    bne   .store_p2_controls
     
     bsr		toggle_pause
 
@@ -4033,48 +4033,48 @@ read_keyboard
 	; keyboard for player 2
     lea keyboard_table(pc),a0
     tst.b   ($40,a0)    ; up key
-    beq.b   .no_fire
+    beq   .no_fire
     bset    #JPB_BTN_RED,d0
 .no_fire 
     tst.b   ($4C,a0)    ; up key
-    beq.b   .no_up
+    beq   .no_up
     bset    #JPB_BTN_AUP,d0
-    bra.b   .no_down
+    bra   .no_down
 .no_up    
     tst.b   ($4D,a0)    ; down key
-    beq.b   .no_down
+    beq   .no_down
 	; set DOWN
     bset    #JPB_BTN_ADOWN,d0
 .no_down    
     tst.b   ($4F,a0)    ; left key
-    beq.b   .no_left
+    beq   .no_left
 	; set LEFT
     bset    #JPB_BTN_ALEFT,d0
-    bra.b   .no_right   
+    bra   .no_right   
 .no_left
     tst.b   ($4E,a0)    ; right key
-    beq.b   .no_right
+    beq   .no_right
 	; set RIGHT
     bset    #JPB_BTN_ARIGHT,d0
 .no_right    
     tst.b   ($3E,a0)    ; "8" key
-    beq.b   .no_up_2
+    beq   .no_up_2
     bset    #JPB_BTN_UP,d0
-    bra.b   .no_down_2
+    bra   .no_down_2
 .no_up_2
     tst.b   ($1E,a0)    ; "2" key
-    beq.b   .no_down_2
+    beq   .no_down_2
 	; set DOWN
     bset    #JPB_BTN_DOWN,d0
 .no_down_2
     tst.b   ($2D,a0)    ; "4" key
-    beq.b   .no_left_2
+    beq   .no_left_2
 	; set LEFT
     bset    #JPB_BTN_LEFT,d0
-    bra.b   .no_right_2
+    bra   .no_right_2
 .no_left_2
     tst.b   ($2F,a0)    ; "6" key
-    beq.b   .no_right_2
+    beq   .no_right_2
 	; set RIGHT
     bset    #JPB_BTN_RIGHT,d0
 .no_right_2   
@@ -4103,12 +4103,12 @@ init_all
 	
 .intro_screen		; !init
 	cmp.b	#1,intro_step
-	beq.b	.intro_step_1
+	beq	.intro_step_1
 	; init both AI players fighting
 	move.l	state_timer(pc),d0
     addq.l	#1,d0
 	cmp.l	#TICKS_PER_SEC_DRAW*6,d0
-	beq.b	.intro_step_1
+	beq	.intro_step_1
 	move.l	d0,state_timer
 	
 	rts
@@ -4164,39 +4164,39 @@ update_all
 	move.l	#JPF_BTN_ALL,d2
 	move.l	joystick_port_1_value,d0
 	and.l	d2,d0
-	beq.b	.no_1p
+	beq	.no_1p
 	move.l	joystick_port_1_previous_value,d1
 	and.l	d2,d1
 	cmp.l	d0,d1
-	beq.b	.no_1p
+	beq	.no_1p
 	; start game, 1 player only
 	move.w	#$0001,d0
 	cmp.w	#OPTIONS_1P_WHITE,human_1p_player
-	beq.b	.set_config
+	beq	.set_config
 	move.w	#$0100,d0
 .set_config
 	move.w	d0,player_configuration
-	bra.b	.play
+	bra	.play
 .no_1p
 	move.l	#JPF_BTN_ALL,d2
 	move.l	joystick_port_0_value,d0
 	and.l	d2,d0
-	beq.b	.no_2p
+	beq	.no_2p
 	move.l	joystick_port_0_previous_value,d1
 	and.l	d2,d1
 	cmp.l	d0,d1
-	beq.b	.no_2p
+	beq	.no_2p
 	; start game, 2 players
 	move.w	#$0000,player_configuration
-	bra.b	.play
+	bra	.play
 .no_2p
 
 	; special controls in game options sub-screen
 	tst.w	options_select
-	bne.b	.game_options
+	bne	.game_options
 	move.l	joystick_port_1_value,d0
 	btst	#JPB_BTN_DOWN,d0
-	beq.b	.no_options
+	beq	.no_options
 	move.w	#1,options_select
 	clr.w	option_index
 	clr.l	state_timer
@@ -4212,22 +4212,22 @@ update_all
 	cmp.l	#2,d0
 	; wait a few frames to be able to
 	; get a reliable previous joystick state	
-	bcs.b	.out
+	bcs	.out
 	move.l	joystick_port_1_value,d0
 	cmp.l	joystick_port_1_previous_value,d0
-	beq.b	.out		; same inputs: skip
+	beq	.out		; same inputs: skip
 	btst	#JPB_BTN_UP,d0
-	beq.b	.no_up
+	beq	.no_up
 	subq.w	#1,option_index
-	bpl.b	.okup
+	bpl	.okup
 	move.w	#1,option_index
 .okup
 .no_up
 	btst	#JPB_BTN_DOWN,d0
-	beq.b	.no_down
+	beq	.no_down
 	addq.w	#1,option_index
 	cmp.w	#3,option_index
-	bne.b	.okdown
+	bne	.okdown
 	move.w	#0,option_index
 .no_down
 .okdown
@@ -4240,22 +4240,22 @@ update_all
 	move.l	(4,a1,d2.w),a2		; possible values
 	move.w	(a0),d2
 	btst	#JPB_BTN_LEFT,d0
-	beq.b	.no_left
+	beq	.no_left
 	subq.w	#4,d2
-	bpl.b	.okstore
+	bpl	.okstore
 	; get latest valid value index
 	moveq	#0,d2
 .find_last_loop
 	tst		(4,a2,d2.w)
-	bmi.b	.okstore
+	bmi	.okstore
 	addq.w	#4,d2
-	bra.b	.find_last_loop
+	bra	.find_last_loop
 .no_left
 	btst	#JPB_BTN_RIGHT,d0
-	beq.b	.no_right
+	beq	.no_right
 	addq.w	#4,d2
 	tst.l	(a2,d2.w)
-	bpl.b	.okstore
+	bpl	.okstore
 	moveq	#0,d2
 .okstore
 	move.w	d2,(a0)
@@ -4301,16 +4301,16 @@ update_normal:
 	; with joy, so some things are moving
 	
 	move.b	time_countdown_flag(pc),d0
-	beq.b	.no_countdown
+	beq	.no_countdown
 	cmp.b	#1,d0
-	beq.b	.countdown_phase_one
+	beq	.countdown_phase_one
 	;cmp.b	#2,d0	; phase 2: count seconds	
 
 	sub.w	#TICKS_PER_SEC_UPDATE/5,time_ticks
-	bpl.b	.no_timer_dec
+	bpl	.no_timer_dec
 	tst.b	win_by_timeout_flag
-	beq.b	.still_time
-	bra.b	.countdown_over
+	beq	.still_time
+	bra	.countdown_over
 .still_time
 
 	move.w	#TICKS_PER_SEC_UPDATE,time_ticks
@@ -4321,20 +4321,20 @@ update_normal:
 	lea		second_sound,a0
 	bsr		play_fx
 	subq.w	#1,time_left
-	beq.b	.countdown_over
+	beq	.countdown_over
 .no_timer_dec
-	bra.b	.no_sec2
+	bra	.no_sec2
 .countdown_phase_one	; playing music during x seconds
 	subq.w	#1,time_ticks
-	bne.b	.no_sec2
+	bne	.no_sec2
 	
 	bsr		stop_sounds
 	bsr		get_winner
 	tst.b	is_cpu(a0)
-	bne.b	.countdown_over	; no countdown when cpu wins
+	bne	.countdown_over	; no countdown when cpu wins
 	; phase two: count seconds as bonus if human player won the game
 	move.b	#2,time_countdown_flag
-	bra.b	.no_sec2
+	bra	.no_sec2
 	
 .countdown_over
 	clr.b	time_countdown_flag
@@ -4345,71 +4345,71 @@ update_normal:
 .no_countdown
 	; check if pause timer is running
 	move.w	pause_round_timer(pc),d0
-	beq.b	.normal
+	beq	.normal
 
 	; pause running, which type of pause?
 	cmp.w	#RP_START_LEVEL,pause_round_type
-	bne.b	.no_start_level_pause
+	bne	.no_start_level_pause
 	; level start
 	tst.w	girl_frame_index
-	bmi.b	.no_girl_change	; negative: don't draw
+	bmi	.no_girl_change	; negative: don't draw
 	; start level
 	; update girl
 	sub.w	#1,girl_frame_timer
-	bne.b	.no_girl_change
+	bne	.no_girl_change
 	move.w	#GIRL_ANIM_NB_TICKS,girl_frame_timer
 	bsr		mirror_halo
 	addq.w	#2,girl_frame_index
 	cmp.w	#4*4,girl_frame_index
-	bne.b	.no_gf_reset
+	bne	.no_gf_reset
 	clr.w	girl_frame_index
 .no_gf_reset
 
 .no_girl_change
 
 	cmp.w	#START_LEVEL_NB_TICKS,d0
-	bne.b	.no_start_music
+	bne	.no_start_music
 	move.l	d0,-(a7)
 	moveq	#START_FIGHT_MUSIC,d0
 	bsr		play_music
 	move.l	(a7)+,d0
 .no_start_music
 	cmp.w	#START_ROUND_NB_TICKS,d0
-	bne.b	.no_start_level_pause
+	bne	.no_start_level_pause
 .erase_girl
 	bsr		.do_erase_girl
 .no_start_level_pause
 	; pause countdown
 	subq.w	#1,d0
 	move.w	d0,pause_round_timer
-	beq.b	.pause_round_timeout
+	beq	.pause_round_timeout
 	; timer running, but sometimes we do stuff
 	; depending on the pause type at some given times
 	; this is becoming fairly complex I hope I don't have
 	; to add more logic or this is going to be (more) horrible
 	move.w	pause_round_type(pc),d1
 	cmp.w	#RP_END_FIGHT,d1
-	beq.b	.pout
+	beq	.pout
 	cmp.w	#RP_LAST_BLOW_SPEECH,d1
-	beq.b	.pout
+	beq	.pout
 	cmp.w	#RP_START_FIGHT_OR_ROUND,d1
-	beq.b	.srto
+	beq	.srto
 	cmp.w	#RP_START_LEVEL,d1
-	bne.b	.pout
+	bne	.pout
 .srto
 	cmp.w	#START_ROUND_NB_TICKS-50,d0
-	beq.b	.send_display_begin_message
+	beq	.send_display_begin_message
 	cmp.w	#START_LEVEL_NB_TICKS-TICKS_PER_SEC_UPDATE,d0
-	bcc.b	.pout
+	bcc	.pout
 	; check if fire is pressed after 1 second playing music
 	; if pressed, skip sequence
 	tst.w	girl_frame_index
-	bmi.b	.pout		; already erased
+	bmi	.pout		; already erased
 	move.l	player_1+joystick_state(pc),d2
 	and.l	#JPF_BTN_ALL,d2
-	beq.b	.pout
+	beq	.pout
 	; fire pressed: erase girl, start fight
-	bsr.b	.do_erase_girl
+	bsr	.do_erase_girl
 	bsr		.start_round_start_sequence
 	rts
 .pout
@@ -4427,16 +4427,16 @@ update_normal:
 .pause_round_timeout
 	move.w	pause_round_type(pc),d1
 	cmp.w	#RP_2P_SHOW_SCORE,d1
-	beq.b	.start_round_start_sequence	; change pause type
+	beq	.start_round_start_sequence	; change pause type
 	cmp.w	#RP_END_ROUND,d1
-	beq.b	.round_ended
+	beq	.round_ended
 	cmp.w	#RP_LAST_BLOW_SPEECH,d1
 	beq		judge_decision
 	
 	cmp.w	#RP_START_FIGHT_OR_ROUND,d1
-	beq.b	.start_round
+	beq	.start_round
 	cmp.w	#RP_START_LEVEL,d1
-	beq.b	.start_round
+	beq	.start_round
 	; timeout but which one???
 	nop
 	blitz
@@ -4447,15 +4447,15 @@ update_normal:
 	move.w	#REFEREE_LEFT_LEG_DOWN,frame(a4)
 .normal
 	tst.b	controls_blocked_flag
-	bne.b	.no_sec
+	bne	.no_sec
 	tst.w	time_left
-	beq.b	.no_sec		; zero: no more timer update
+	beq	.no_sec		; zero: no more timer update
 	subq.w	#1,time_ticks
-	bne.b	.no_sec
+	bne	.no_sec
 	move.w	#TICKS_PER_SEC_UPDATE,time_ticks
 	st.b	score_update_message
 	subq.w	#1,time_left
-	bne.b	.no_sec
+	bne	.no_sec
 	; out of time
 	lea	referee(pc),a4
 	move.w	#REFEREE_LEGS_DOWN,frame(a4)
@@ -4481,13 +4481,13 @@ update_normal:
 	; if CPU has won the game, then game over
 	bsr		get_winner
 	tst.b	is_cpu(a0)
-	bne.b	.game_over
+	bne	.game_over
 	; a human won the game, check rounds
 	move.l	opponent(a0),a1
 	move.w	nb_rounds_won(a0),d0
 	addq.w	#1,d0
 	cmp.w	#2,d0
-	bcc.b	.level_won
+	bcc	.level_won
 	move.w	d0,nb_rounds_won(a0)
 	; if round won but already 1 round won, then
 	; level won
@@ -4498,7 +4498,7 @@ update_normal:
 .level_won
 	move.w	#GM_WINNER,level_type
 	tst.b	is_cpu(a1)
-	bne.b	.next
+	bne	.next
 	; if opponent is human, show "lose" screen
 	move.w	#GM_LOSER,level_type
 .next
@@ -4516,13 +4516,13 @@ update_normal:
 .send_display_begin_message
 	bsr		is_one_player_mode
 	tst		d0
-	bne.b	.1p
+	bne	.1p
 	; flashing score pause
 	cmp.w	#RP_2P_SHOW_SCORE,pause_round_type
-	beq.b	.1p		; already_shown
+	beq	.1p		; already_shown
 	move.w	scored_points+player_1,d0
 	or.w	scored_points+player_2,d0
-	bne.b	.1p		; not the start of the round, don't flash
+	bne	.1p		; not the start of the round, don't flash
 	move.w	#RP_2P_SHOW_SCORE,pause_round_type
 	move.w	#(TICKS_PER_SEC_UPDATE*5)/2,pause_round_timer
 	rts
@@ -4540,9 +4540,9 @@ update_normal:
 
 update_bull_phase
 	move.w	after_bonus_phase_timer(pc),d0
-	beq.b	.running
+	beq	.running
 	subq.w	#1,d0
-	beq.b	.done
+	beq	.done
 	move.w	d0,after_bonus_phase_timer
 	rts
 .running
@@ -4558,7 +4558,7 @@ update_bull_phase
 
 update_loser
 	cmp.l	#$E0,state_timer	; length of lose music
-	beq.b	.end
+	beq	.end
 	bsr		get_loser
 	move.l	a0,a4
 	bsr		update_player
@@ -4567,7 +4567,7 @@ update_loser
 	bsr	stop_sounds
 	bsr	get_winner
 	tst.b	is_cpu(a0)
-	bne.b	.really_game_over
+	bne	.really_game_over
 	bsr	get_loser
 	st.b	is_cpu(a0)		; cpu is now the opponent
 	; now show winner sequence
@@ -4586,14 +4586,14 @@ update_loser
 	
 update_winner
 	cmp.l	#$154,state_timer		; length of music
-	beq.b	.end
+	beq	.end
 	bsr		get_winner
 	move.l	a0,a4
 	bsr		update_player
 	
 	; move girl closer to winner
 	subq.w	#1,misc_timer
-	bne.b	.no_tr
+	bne	.no_tr
 	lea		girl(pc),a0
 
 	eor.w	#1,bonus_phase_index
@@ -4601,7 +4601,7 @@ update_winner
 	move.w	xpos(a0),d0
 	sub.w	xpos(a4),d0
 	cmp.w	#MIN_GIRL_PLAYER_DISTANCE,d0
-	beq.b	.big_head
+	beq	.big_head
 
 	; from second moving frame girl eyes are in looooove
 	bsr		get_level_params
@@ -4617,7 +4617,7 @@ update_winner
 .big_head
 	; player stops wiping his head, now big head
 	st.b	manual_animation(a4)
-	bra.b	.no_move
+	bra	.no_move
 
 .end
 	bsr	stop_sounds
@@ -4632,10 +4632,10 @@ NB_EVADE_OBJECTS = 5  ; can't be higher than that (evade tables contain 5 parame
 
 update_evade
 	move.w	pause_round_timer(pc),d0
-	beq.b	.update
+	beq	.update
 	subq.w	#1,d0
 	move.w	d0,pause_round_timer
-	beq.b	.timeout
+	beq	.timeout
 	rts
 .timeout
 	; win or lose, same behaviour: go to next level
@@ -4648,12 +4648,12 @@ update_evade
 	; update & check collision with object
 	bsr		update_active_player
 	tst.w	misc_timer
-	beq.b	.move_object
+	beq	.move_object
 	subq.w	#1,misc_timer
-	bne.b	.no_new_object
+	bne	.no_new_object
 	; timeout, but maybe because player has been hit
 	cmp.l	#BLOW_NONE,hit_by_blow(a4)
-	beq.b	.next_object
+	beq	.next_object
 	; next level please
 	move.w	#STATE_NEXT_LEVEL,current_state
 	move.w	#GM_NORMAL,level_type
@@ -4661,7 +4661,7 @@ update_evade
 .next_object
 	move.w	generic_element_index,d0
 	cmp.w	#NB_EVADE_OBJECTS*4,d0
-	beq.b	.done		; all objects have passed
+	beq	.done		; all objects have passed
 	
 	; introduce next object in playfield
 	lea		evade_sound,a0
@@ -4683,15 +4683,15 @@ update_evade
 	
 	move.w	#RIGHT,d3
 	tst.b	evade_mirror
-	beq.b	.no_mirror
+	beq	.no_mirror
 	move.w	#LEFT,d3
 .no_mirror
 	cmp.w	d3,d2
-	beq.b	.from_left
+	beq	.from_left
 	; from right
 .from_right
 	move.w	#SCREEN_WIDTH,xpos(a4)
-	bra.b	.cont
+	bra	.cont
 .from_left
 	move.w	#RIGHT,direction(a4)
 	move.w	#-16,xpos(a4)
@@ -4703,13 +4703,13 @@ update_evade
 	move.w	#BLOW_BACK,current_back_blow_type(a4)	
 
 	cmp.w	#HEIGHT_MEDIUM,d1
-	beq.b	.med
+	beq	.med
 	cmp.w	#HEIGHT_LOW,d1
-	bne.b	.cont2
+	bne	.cont2
 	move.w	#BLOW_LOW,current_blow_type(a4)	
 	move.w	#BLOW_LOW,current_back_blow_type(a4)	
 	add.w	#36,d2
-	bra.b	.cont2
+	bra	.cont2
 .med
 	move.w	#BLOW_STOMACH,current_blow_type(a4)
 	add.w	#16,d2
@@ -4731,26 +4731,26 @@ update_evade
 	; has object hit the player
 	move.l	opponent(a4),a0
 	cmp.w	#BLOW_NONE,hit_by_blow(a0)
-	beq.b	.player_not_hit
+	beq	.player_not_hit
 	; block during 3 seconds
 	move.w	#TICKS_PER_SEC_UPDATE*3,misc_timer
 	rts	
 .player_not_hit
 	; is object hit?
 	cmp.w	#BLOW_NONE,hit_by_blow(a4)
-	beq.b	.alive
+	beq	.alive
 	; animate object explosion
 	move.w	frame(a4),d0
-	bmi.b	.alive		; invisible
+	bmi	.alive		; invisible
 
 	move.w	current_frame_countdown(a4),d1
 	add.w	#1,d1
 	cmp.w	#8,d1
-	bne.b	.no_change
+	bne	.no_change
 	; change frame
 	add.w	#ObjectFrame_SIZEOF,d0
 	cmp.w	#3*ObjectFrame_SIZEOF,d0
-	bne.b	.not_over
+	bne	.not_over
 	exg.l	a0,a4
 	; give 200 points to the player
 	bsr		award_200_points
@@ -4758,7 +4758,7 @@ update_evade
 	; catch up move, object keeps moving even if not visible
 	move.w	#EVADE_SPEED*2*8,d2
 	move.w	#-1,frame(a4)
-	bra.b	.do_move
+	bra	.do_move
 .not_over
 	move.w	d0,frame(a4)
 	moveq	#0,d1
@@ -4770,15 +4770,15 @@ update_evade
 	move.w	direction(a4),d0
 	move.w	xpos(a4),d1
 	cmp.w	#RIGHT,d0
-	beq.b	.right
+	beq	.right
 	sub.w	d2,d1
 	cmp.w	#-8,d1
-	blt.b	.out_of_screen
-	bra.b	.storex
+	blt	.out_of_screen
+	bra	.storex
 .right
 	add.w	d2,d1
 	cmp.w	#SCREEN_WIDTH+8,d1
-	bgt.b	.out_of_screen
+	bgt	.out_of_screen
 .storex
 	move.w	d1,xpos(a4)
 	rts
@@ -4799,22 +4799,22 @@ MAX_X_BREAK = $66
 
 update_break
 	move.w	after_bonus_phase_timer(pc),d0
-	beq.b	.still_running
+	beq	.still_running
 	subq.w	#1,d0
-	beq.b	.timeout
+	beq	.timeout
 	move.w	d0,after_bonus_phase_timer
 .still_running
 	bsr		update_active_player
 	tst.b	controls_blocked_flag
-	beq.b	.keep_checking_input
+	beq	.keep_checking_input
 	move.w	planks_that_will_break(pc),d0
 	cmp.w	planks_broken(pc),d0
-	beq.b	.award_bonus
+	beq	.award_bonus
 	move.w	planks_broken(pc),d1
-	bmi.b	.out		; already awarded
+	bmi	.out		; already awarded
 	move.w	bonus_phase_index(pc),d0
 	subq.w	#1,d0
-	bne.b	.no_update_planks
+	bne	.no_update_planks
 	add.w	d1,d1
 	add.w	d1,d1
 	lea		plank_draw_table,a0
@@ -4829,10 +4829,10 @@ update_break
 	rts
 .award_bonus
 	move.w	planks_that_will_break(pc),d2
-	beq.b	.no_award
+	beq	.no_award
 	
 	cmp.w	#10,d2
-	bne.b	.not_max
+	bne	.not_max
 	; referee: very good: double score
 	add.w	d2,d2
 	bsr		referee_says_very_good
@@ -4846,12 +4846,12 @@ update_break
 
 	; show sprite
 	cmp.w	#20,d2
-	bne.b	.no_2000
+	bne	.no_2000
 	; 2 or 3 thousand. 2000 or 3000 is too wide for 16 bits
 	; we're using 2 sprites of the same palette 0 and 1
 	lea		score_2_white,a0
 	cmp.l	#player_1,a4
-	beq.b	.ok_white
+	beq	.ok_white
 	lea		score_2_red,a0
 .ok_white
 	move.l	d0,-(a7)
@@ -4890,16 +4890,16 @@ update_break
 .keep_checking_input:
 	; stop after 10 seconds
 	cmp.l	#TICKS_PER_SEC_DRAW*10,state_timer
-	beq.b	.timeout
+	beq	.timeout
 
 	; debug: uncomment those 3 lines to
 	; test max points (-2: 900, -4: 800...)
 ;;	move.w	xpos(a4),d0
 ;;	cmp.w	#MAX_X_BREAK,d0
-;;	beq.b	.max_points
+;;	beq	.max_points
 	
 	move.l	joystick_state(a4),d0
-	beq.b	.keep_going
+	beq	.keep_going
 .max_points
 	bsr		stop_sounds
 	lea		kiai_2_sound,a0
@@ -4916,7 +4916,7 @@ update_break
 	; TODO find proper table with videos
 	move.w	xpos(a4),d0
 	sub.w	#MAX_X_BREAK-20,d0	; 10 -> 1 step 2
-	bpl.b	.pos
+	bpl	.pos
 	clr.w	d0	; 0: nothing broken
 .pos
 	lsr.w	#1,d0
@@ -4931,27 +4931,27 @@ update_break
 	move.w	direction(a4),d2
 	move.l	generic_table_pointer(pc),a0
 	move.l	(a0),d0
-	bne.b	.no_rev
+	bne	.no_rev
 	; toggle direction
 	
 	cmp.w	#RIGHT,d2
-	beq.b	.was_right
+	beq	.was_right
 	move.w	#RIGHT,d2
 	clr.w	frame(a4)
-	bra.b	.dirchange
+	bra	.dirchange
 .was_right
 	move.w	#PlayerFrame_SIZEOF,frame(a4)
 	move.w	#LEFT,d2	
 .dirchange
 	move.w	d2,direction(a4)
-	bsr.b	.next
+	bsr	.next
 	move.l	(a0),d0
 .no_rev
 	move.w	d0,d1	; D1.W: y
 	swap	d0		; D0.W: x
-	bsr.b	.next
+	bsr	.next
 	cmp.w	#RIGHT,d2
-	beq.b	.no_opp
+	beq	.no_opp
 	neg.w	d0
 	neg.w	d1		; reverse
 .no_opp
@@ -4963,7 +4963,7 @@ update_break
 	rts
 .next
 	cmp.w	#RIGHT,d2
-	beq.b	.fwd
+	beq	.fwd
 	lea	(-4,a0),a0
 	rts
 .fwd
@@ -4981,23 +4981,23 @@ update_referee:
 	lea	referee(pc),a4
 	; check bubble & timer
 	move.w	bubble_timer(a4),d0
-	beq.b	.no_bubble
+	beq	.no_bubble
 	subq	#1,d0
 	move.w	d0,bubble_timer(a4)
-	beq.b	referee_bubble_timeout
+	beq	referee_bubble_timeout
 	rts
 
 .no_bubble
 	tst.b	controls_blocked_flag
-	bne.b	.out		; no left/right move when fight is stopped
+	bne	.out		; no left/right move when fight is stopped
 	; move referee
 	move.w	max_xpos(a4),d0
 	cmp.w	min_xpos(a4),d0
-	beq.b	.out		; min=max: no move
+	beq	.out		; min=max: no move
 	move.w	walk_timer(a4),d0
 	addq.w	#1,d0
 	cmp.w	#TICKS_PER_SEC_DRAW/3,d0
-	bne.b	.no_wto
+	bne	.no_wto
 	move.w	xpos(a4),d1
 	; toggle legs
 	move.w	frame(a4),d0
@@ -5007,20 +5007,20 @@ update_referee:
 	
 	move.w	#8,d0
 	cmp.w	#RIGHT,direction(a4)
-	beq.b	.wr
+	beq	.wr
 	; walk left
 	cmp.w	min_xpos(a4),d1
-	bcc.b	.not_min
+	bcc	.not_min
 	; min: turn back
 	move.w	#RIGHT,direction(a4)
 	neg.w	d0
 .not_min
 	sub.w	d0,d1
 	move.w	d1,xpos(a4)
-	bra.b	.wdone
+	bra	.wdone
 .wr
 	cmp.w	max_xpos(a4),d1
-	bcs.b	.not_max
+	bcs	.not_max
 	; max: turn back
 	move.w	#LEFT,direction(a4)
 	neg.w	d0
@@ -5081,7 +5081,7 @@ bubble_timeout_table
 	; judge bubble display ended: now erase it using no bubble
 	move.w	#TICKS_PER_SEC_DRAW,bubble_timer(a4)
 	move.w	#BUBBLE_NONE,bubble_type(a4)
-	bra.b	.erase
+	bra	.erase
 
 .erase
 	st.b	erase_referee_bubble_message
@@ -5096,8 +5096,8 @@ judge_decision:
 	st.b	score_update_message
 	move.w	scored_points(a2),d0
 	cmp.w	scored_points(a3),d0
-	beq.b	.tie
-	bcc.b	.p1_wins
+	beq	.tie
+	bcc	.p1_wins
 	; p2 wins
 .p2_wins
 	st.b	round_winner(a3)
@@ -5108,12 +5108,12 @@ judge_decision:
 	lea		do_win(pc),a0
 	move.l	a0,current_move_callback(a3)
 	tst.w	time_left
-	bne.b	.round_ended
+	bne	.round_ended
 	; no time: opponent is sad
 	lea		do_lose(pc),a0
 	st.b	manual_animation(a2)
 	move.l	a0,current_move_callback(a2)
-	bra.b	.round_ended
+	bra	.round_ended
 .p1_wins
 	st.b	round_winner(a2)
 	; referee white flag
@@ -5123,25 +5123,25 @@ judge_decision:
 	lea		do_win(pc),a0
 	move.l	a0,current_move_callback(a2)
 	tst.w	time_left
-	bne.b	.round_ended
+	bne	.round_ended
 	; win by judge decision on timeout
 	lea		do_lose(pc),a0
 	st.b	manual_animation(a3)
 	move.l	a0,current_move_callback(a3)
-	bra.b	.round_ended
+	bra	.round_ended
 .tie
 	; if CPU is playing, CPU wins
 	tst.b	is_cpu(a2)
-	bne.b	.p1_wins
+	bne	.p1_wins
 	tst.b	is_cpu(a3)
-	bne.b	.p2_wins
+	bne	.p2_wins
 	; both human players: random
 	; (well, we could do better, by counting the technique scores
 	; during the current round, but what the hell)
 	bsr		random
 	btst	#0,d0
-	beq.b	.p1_wins
-	bra.b	.p2_wins
+	beq	.p1_wins
+	bra	.p2_wins
 .round_ended:
 	; winner of the round has been designated
 	; clear scored points here (simpler)
@@ -5155,13 +5155,13 @@ judge_decision:
 	; did a human win?
 	move.b	round_winner(a2),d0
 	and.b	is_cpu(a2),d0
-	bne.b	.cpu_won
+	bne	.cpu_won
 	move.b	round_winner(a3),d0
 	and.b	is_cpu(a3),d0
-	bne.b	.cpu_won
+	bne	.cpu_won
 	; 2 seconds with music playing before starting countdown
 	move.w	#TICKS_PER_SEC_UPDATE*2,d1
-	bra.b	.out
+	bra	.out
 .cpu_won
 	; game over for the human player
 	tst.b	is_cpu(a2)
@@ -5184,7 +5184,7 @@ update_practice
 	bsr		update_referee
 	move.l	state_timer(pc),d0
 	cmp.l	#PRACTICE_SKIP_MESSAGE_LEN,d0
-	bcs.b	.nothing
+	bcs	.nothing
 	bsr		update_practice_moves
     lea     player_1(pc),a4
     bsr update_player
@@ -5196,10 +5196,10 @@ update_practice
 	move.l	joystick_state(a4),d0
 	; check if FIRE is pressed
 	and.l	#JPF_BTN_ALL,d0
-	beq.b	.no_skip
+	beq	.no_skip
 	move.l	previous_joystick_state(a4),d0
 	and.l	#JPF_BTN_ALL,d0
-	bne.b	.no_skip
+	bne	.no_skip
 	addq.w	#1,background_number
 	move.w	#GM_NORMAL,level_type
 	move.w	#STATE_NEXT_LEVEL,current_state
@@ -5221,24 +5221,24 @@ start_music_countdown
 get_active_player
 	lea	player_1(pc),a4
 	tst.b	is_cpu(a4)
-	beq.b	.upd
+	beq	.upd
 	lea	player_2(pc),a4
 .upd
 	rts
 
 erase_active_player
-	bsr.b	get_active_player
+	bsr	get_active_player
 	bra	erase_player
 
 draw_active_player
-	bsr.b	get_active_player
+	bsr	get_active_player
 	bra	draw_player
 	
 ; know which player is still alive after a fight phase
 ; at this point only one player is still playing
 
 update_active_player
-	bsr.b	get_active_player
+	bsr	get_active_player
 	bra	update_player
 	
 update_level_type_table
@@ -5275,7 +5275,7 @@ init_loser:
 
 	; if player 2, we have to shift it to the left slightly
 	tst.b	character_id(a0)
-	beq.b	.posok
+	beq	.posok
 	sub.w	#32,xpos(a0)
 .posok
 	st.b	controls_blocked_flag
@@ -5311,7 +5311,7 @@ init_winner:
 	sub.w	#8,ypos(a0)		; correct y pos
 	; if player 2, we have to shift it to the left slightly
 	tst.b	character_id(a0)
-	beq.b	.posok
+	beq	.posok
 	sub.w	#32,xpos(a0)
 .posok
 	st.b	controls_blocked_flag
@@ -5382,7 +5382,7 @@ init_bull_phase
 	
 init_bull
 	cmp.w	#12,bonus_phase_index
-	bne.b	.ok
+	bne	.ok
 	; end, enable countdown for next level, display "very good"
 	bsr		referee_says_very_good
 	move.w	#TICKS_PER_SEC_DRAW*3,after_bonus_phase_timer
@@ -5464,7 +5464,7 @@ update_intro_screen
 	move.l	state_timer(pc),d0
     addq.l	#1,d0
 	cmp.b	#1,intro_step
-	beq.b	.update_step_1
+	beq	.update_step_1
 	; step 2
 	move.l	d0,state_timer
 	
@@ -5472,7 +5472,7 @@ update_intro_screen
 	
 .update_step_1
 	cmp.l	#TICKS_PER_SEC_DRAW*6,d0
-	beq.b	.intro_step_2
+	beq	.intro_step_2
 	move.l	d0,state_timer
 	
 	; all characters bounce
@@ -5480,7 +5480,7 @@ update_intro_screen
 	move.w	current_frame_countdown(a4),d0
 	addq.w	#1,d0
 	cmp.w	#5,d0
-	bne.b	.no_move
+	bne	.no_move
 	eor.w	#4,frame(a4)
 	moveq	#0,d0
 .no_move
@@ -5514,14 +5514,14 @@ BOUNCE_Y_MAX = 48
 	move.w	ypos(a4),d1
 	add.w	d0,d1
 	cmp.w	#BOUNCE_Y_MAX,d1	; wrong
-	bcc.b	.bounce_up
+	bcc	.bounce_up
 .out
 	move.w	d0,y_speed(a4)
 	move.w	d1,ypos(a4)
 	move.w	xpos(a4),d0
 	subq.w	#3,d0
 	cmp.w	#-32,d0
-	bgt.b	.ok
+	bgt	.ok
 	move.w	#SCREEN_WIDTH-16,d0
 .ok
 	move.w	d0,xpos(a4)
@@ -5529,11 +5529,11 @@ BOUNCE_Y_MAX = 48
 .bounce_up
 	neg.w	d0
 	move.w	#BOUNCE_Y_MAX-1,d1
-	bra.b	.out
+	bra	.out
 	
 play_loop_fx
     tst.b   demo_mode
-    bne.b   .nosfx
+    bne   .nosfx
     lea _custom,a6
     bra _mt_loopfx
 .nosfx
@@ -5550,7 +5550,7 @@ play_loop_fx
 get_back_x_position:
 	move.w	direction(a4),d0
 	cmp.w	#RIGHT,d0
-	beq.b	.just_x
+	beq	.just_x
 	move.w	xpos(a4),d0
 	add.w	#$20,d0
 	rts
@@ -5576,7 +5576,7 @@ get_players_raw_distance:
 	exg		d0,d1
 	sub.w	d1,d0
 	smi		d1
-	bpl.b	.pos
+	bpl	.pos
 	neg.w	d0
 .pos
 	rts
@@ -5598,25 +5598,25 @@ update_fine_distance
 	; that will select a different values table
 	moveq	#0,d4
 	cmp.w	#RIGHT,d2
-	beq.b	.opponent_right
+	beq	.opponent_right
 	; opponent left
 	; is player facing left?
 	cmp.w	#LEFT,d3
-	bne.b	.fr0
+	bne	.fr0
 	bset	#7,d4	; not facing opponent: set bit
 .fr0
 	lea		opponent_facing_distance_table(pc),a3
 	tst		d1
-	bne.b	.opponent_done	; on the left, facing right
+	bne	.opponent_done	; on the left, facing right
 .opponent_right
 	; is player facing right?
 	cmp.w	#RIGHT,d3
-	bne.b	.fr1
+	bne	.fr1
 	bset	#7,d4	; not facing opponent: set bit
 .fr1
 	lea		opponent_facing_distance_table(pc),a3
 	tst		d1
-	beq.b	.opponent_done	; on the right, facing right
+	beq	.opponent_done	; on the right, facing right
 .opponent_turns_its_back
 	lea		opponent_turning_back_distance_table(pc),a3
 .opponent_done
@@ -5642,30 +5642,30 @@ update_rough_distance:
 	moveq	#0,d1
 	bsr		get_players_raw_distance
 	cmp.w	#$70,d0
-	bcc.b	.done		; far: ok
+	bcc	.done		; far: ok
 	
 	cmp.w	#$40,d0
-	bcc.b	.intermediate
+	bcc	.intermediate
 	; close
 	move.w	#RDIST_CLOSE_FACING_OTHER,d2
-	bra.b	.resolve_facing
+	bra	.resolve_facing
 .intermediate
 	move.w	#RDIST_INTERMEDIATE_FACING_OTHER,d2
 .resolve_facing
 	; facing other player or not?
 	move.w	direction(a4),d3
 	tst		d1
-	beq.b	.player_on_the_right
+	beq	.player_on_the_right
 ; player to the left
 	; to face other, player must face right
 	cmp.w	#RIGHT,d3
-	beq.b	.done
+	beq	.done
 	addq.w	#2,d2
-	bra.b	.done
+	bra	.done
 .player_on_the_right:
 	; to face other, player must face left
 	cmp.w	#LEFT,d3
-	beq.b	.done
+	beq	.done
 	addq.w	#2,d2
 	
 .done
@@ -5679,7 +5679,7 @@ update_player:
 	bsr		update_fine_distance
 	move.w	hit_by_blow(a4),d0
 	cmp.w	#BLOW_NONE,d0
-	beq.b	.alive
+	beq	.alive
 	; player is hit, just handle falling animation
 	lea		blow_table(pc),a0
 	move.w	hit_by_blow(a4),d0
@@ -5687,10 +5687,10 @@ update_player:
 	jsr		(a0)
 	; check if reached last frame
 	tst.w	current_frame_countdown(a4)
-	bpl.b	.not_done
+	bpl	.not_done
 	; check if just starting count before point award
 	move.w	point_award_countdown(a4),d0
-	bne.b	.running
+	bne	.running
 	; initiate countdown
 	move.w	#TICKS_PER_SEC_DRAW,point_award_countdown(a4)
 	; last frame: play fall sound
@@ -5702,7 +5702,7 @@ update_player:
 .running
 	subq.w	#1,d0
 	move.w	d0,point_award_countdown(a4)
-	bne.b	.no_timeout
+	bne	.no_timeout
 	; time for the referee to announce the point
 	; and the winner (which is the other player)
 	; reset timeout to a very long period, no need
@@ -5712,17 +5712,17 @@ update_player:
 	; referee designates the winner (if human opponent, not bull or evade)
 	
 	cmp.w	#GM_NORMAL,level_type
-	bne.b	.fight_over
+	bne	.fight_over
 	
 	lea		referee(pc),a2
 	move.w	#REFEREE_LEGS_DOWN,frame(a2)
 	move.w	#TICKS_PER_SEC_DRAW*2,bubble_timer(a2)
 	tst.b	character_id(a4)
-	beq.b	.white_lost
+	beq	.white_lost
 	; red lost
 	move.w	#BUBBLE_WHITE,bubble_type(a2)
 	move.b	#1,hand_white_flag(a2)
-	bra.b	.cont2
+	bra	.cont2
 .white_lost
 	move.w	#BUBBLE_RED,bubble_type(a2)
 	move.b	#1,hand_red_or_japan_flag(a2)
@@ -5732,7 +5732,7 @@ update_player:
 	move.l	opponent(a4),a1
 	moveq	#2,d0	; default: 2 points
 	tst.b	half_points(a1)
-	beq.b	.ps
+	beq	.ps
 	; award half point (1 point)
 	moveq	#1,d0
 	lea	half_point_sound,a0
@@ -5745,7 +5745,7 @@ update_player:
 	lea		move_name_table_right(pc),a0
 	move.w	direction(a4),d1
 	cmp.w	#RIGHT,d1
-	beq.b	.dr
+	beq	.dr
 	lea		move_name_table_left(pc),a0
 .dr
 
@@ -5754,7 +5754,7 @@ update_player:
 
 	move.w	scored_points(a4),d0
 	cmp.w	#4,d0
-	bcc.b	.fight_over
+	bcc	.fight_over
 
 .no_timeout
 	rts
@@ -5766,24 +5766,24 @@ update_player:
 	
 .alive
 	tst.b	controls_blocked_flag
-	beq.b	.no_blocked
+	beq	.no_blocked
 .blocked
 	moveq.l	#0,d0
 	move.w	frozen_controls_timer(a4),d0
-	beq.b	.no_demo
+	beq	.no_demo
 	; controls are frozen
 	subq.w	#1,d0
 	move.w	d0,frozen_controls_timer(a4)
 	; joystick/buttons state at the time
 	; controls were frozen
 	move.l	frozen_joystick_state(a4),d0
-	bra.b	.no_demo
+	bra	.no_demo
 .no_blocked
 
     tst.b	is_cpu(a4)
-	beq.b	.human_player
+	beq	.human_player
 	jsr		handle_ai
-	bra.b	.no_demo
+	bra	.no_demo
 .human_player
 
     move.l  joystick_state(a4),d0
@@ -5791,10 +5791,10 @@ update_player:
     bsr     record_input
     ENDC
     tst.b   demo_mode
-    beq.b   .no_demo
+    beq   .no_demo
     ; if fire is pressed, end demo, goto start screen
 	and.l	#JPF_BTN_ALL,d0
-    beq.b   .no_demo_end
+    beq   .no_demo_end
     clr.b   demo_mode
     move.w  #STATE_GAME_START_SCREEN,current_state
     rts
@@ -5804,42 +5804,42 @@ update_player:
     ; read next timestamp
     move.l  record_data_pointer(pc),a0
     cmp.l   record_data_end(pc),a0
-    bcc.b   .no_demo        ; no more input
+    bcc   .no_demo        ; no more input
     move.b  (a0),d2
     lsl.w   #8,d2
     move.b  (1,a0),d2
     ;;add.b   #3,d2   ; correction???
     cmp.w  record_input_clock(pc),d2
-    bne.b   .repeat        ; don't do anything now
+    bne   .repeat        ; don't do anything now
     ; new event
     move.b  (2,a0),d2
     addq.w  #3,a0
     move.l  a0,record_data_pointer
 	move.b	d2,previous_move
-	bra.b	.cont
+	bra	.cont
 .repeat
 	move.b	previous_move(pc),d2
 .cont
     btst    #LEFT>>2,d2
-    beq.b   .no_auto_left
+    beq   .no_auto_left
     bset    #JPB_BTN_LEFT,d0
-    bra.b   .no_auto_right
+    bra   .no_auto_right
 .no_auto_left
     btst    #RIGHT>>2,d2
-    beq.b   .no_auto_right
+    beq   .no_auto_right
     bset    #JPB_BTN_RIGHT,d0
 .no_auto_right
 ;    btst    #2,d2
-;    beq.b   .no_auto_up
+;    beq   .no_auto_up
 ;    bset    #JPB_BTN_UP,d0
-;    bra.b   .no_auto_down
+;    bra   .no_auto_down
 ;.no_auto_up
 ;    btst    #3,d2
-;    beq.b   .no_auto_down
+;    beq   .no_auto_down
 ;    bset    #JPB_BTN_DOWN,d0
 ;.no_auto_down
 ;    btst    #FIRE,d2
-;    beq.b   .no_auto_fire
+;    beq   .no_auto_fire
 ;    bset    #JPB_BTN_RED,d0
 ;.no_auto_fire
     
@@ -5851,7 +5851,7 @@ update_player:
 	clr.w	d1
 
     tst.l   d0
-    beq.b   .out1        ; nothing is currently pressed: optimize
+    beq   .out1        ; nothing is currently pressed: optimize
 	; attacks
 	CONTROL_TEST	DOWN,DOWN,.out1
 	CONTROL_TEST	UP,UP,.out1
@@ -5867,7 +5867,7 @@ update_player:
 	move.b	attack_controls(a4),d2		; previous value
 	clr.w	d1
     tst.l   d0
-    beq.b   .out2        ; nothing is currently pressed: optimize
+    beq   .out2        ; nothing is currently pressed: optimize
 	CONTROL_TEST	ADOWN,DOWN,.out2
 	CONTROL_TEST	AUP,UP,.out2
 	CONTROL_TEST	ARIGHT,RIGHT,.out2
@@ -5899,24 +5899,24 @@ update_player:
 	; or when ground technique has completed for ground moves)
 	
 	tst.b	rollback_lock(a4)
-	bne.b	.not_reached_blocking_move	; keep on playing animation
+	bne	.not_reached_blocking_move	; keep on playing animation
 	move.b	d6,rollback(a4)
-	beq.b	.perform
+	beq	.perform
 	; can we really rollback? or is it too late/not possible?
 	tst.w	current_frame_countdown(a4)
-	bpl.b	.not_reached_blocking_move
+	bpl	.not_reached_blocking_move
 	st.b	rollback_lock(a4)		; prevent further rollbacks on that move
 	clr.b	rollback(a4)		; cancel rollback, continue move
 	move.w	#1,current_frame_countdown(a4)
 .not_reached_blocking_move
 	; rollback or keep playing: use previous move if exists
 	move.l	current_move_callback(a4),d0
-	bne.b	.move_routine
+	bne	.move_routine
 .perform
 	tst.w	d7
-	beq.b	.out	; no controls
+	beq	.out	; no controls
 ;	cmp.b	#144,d1
-;	bcc.b	.out		; not possible
+;	bcc	.out		; not possible
 .animate
 	; select proper direction
 	lea		moves_table(pc),a0
@@ -5927,22 +5927,22 @@ update_player:
 	lsl.w	#4,d7
 	move.l	(a0,d7.w),d0
 	tst.l	(4,a0,d7.w)		; is jump argument
-	bne.b	.do_move		; jumping move is responsible for handing interruptions by other jumps
+	bne	.do_move		; jumping move is responsible for handing interruptions by other jumps
 	; not a jumping move. Are we jumping ?
 	tst.b	is_jumping(a4)
-	bne.b	.skip		; can't interrupt a jumping move	
+	bne	.skip		; can't interrupt a jumping move	
 .do_move
 	; play sound
 ;	tst.b	is_cpu(a4)
-;	bne.b	.no_sound2
+;	bne	.no_sound2
 	tst.b	sound_playing(a4)
-	bne.b	.no_sound2
+	bne	.no_sound2
 	move.l	d0,-(a7)
 	bsr	random
 	and.w	#3,d0
-	beq.b	.no_sound
+	beq	.no_sound
 	move.l	(8,a0,d7.w),d0
-	beq.b	.no_sound
+	beq	.no_sound
 	move.l	d0,a0
 	st.b	sound_playing(a4)
 	bsr		play_fx
@@ -5967,11 +5967,11 @@ update_player:
 ; > d3: bit 0 set if current is != 0, bit 1 set if previous is != 0
 .get_controls_truth_table
 	tst.b	d1
-	beq.b	.z1
+	beq	.z1
 	bset	#0,d3
 .z1
 	tst.b	d2
-	beq.b	.z2
+	beq	.z2
 	bset	#1,d3
 .z2
 	rts
@@ -6057,9 +6057,9 @@ show_awarded_score:
 	move.w	xpos(a4),d0
 	move.w	direction(a4),d1
 	cmp.w	#LEFT,d1
-	beq.b	.left
+	beq	.left
 	add.w	#48,d0
-	bra.b	.cont
+	bra	.cont
 .left
 	move.l	a0,-(a7)
 	move.l	frame_set(a4),a0
@@ -6101,13 +6101,13 @@ show_score_sprite
 ; < D0: delta x (negative: left, positive: right)
 add_x_player:
 	cmp.w	#STATE_INTRO_SCREEN,current_state
-	beq.b	.simple
+	beq	.simple
 	movem.l	a0/d1-d3,-(a7)
 	move.w	#X_MIN,d2
 	move.w	#X_MAX,d3
 	move.w	direction(a4),d1
 	cmp.w	#RIGHT,d1
-	beq.b	.minmax_correct
+	beq	.minmax_correct
 	; facing left needs x correction (symmetry)
 	; TODO optimize this by pre-calculating
 	; left_x_offset in python script
@@ -6126,16 +6126,16 @@ add_x_player:
 	add.w	d0,d1
 	tst		d0
 	; correct x afterwards
-	bmi.b	.to_left
+	bmi	.to_left
 	; to right: check max only
 	cmp.w	d1,d3
-	bcc.b	.store
+	bcc	.store
 	move.w	d3,d1
-	bra.b	.store
+	bra	.store
 	; to left: check min only
 .to_left
 	cmp.w	d2,d1
-	bgt.b	.store
+	bgt	.store
 	move.w	d2,d1
 .store
 	move.w	d1,xpos(a4)
@@ -6152,7 +6152,7 @@ load_animation_flags
 	btst	#ANIM_LOOP_BIT,d0
 	sne		animation_loops(a4)
 	btst	#ANIM_MANUAL_BIT,d0
-	beq.b	.no_manual
+	beq	.no_manual
 	st		manual_animation(a4)
 	; no countdown (manual). Set to 0 to animate
 	move.w	#-1,current_frame_countdown(a4)
@@ -6169,7 +6169,7 @@ move_player:
 	move.l	a0,current_move_header(a4)
 	; update animation loop flag if required
 	
-	bsr.b	load_animation_flags
+	bsr	load_animation_flags
 
 	move.w	direction(a4),d0
 	move.l	(a0,d0.w),a0	; proper frame list according to direction
@@ -6177,7 +6177,7 @@ move_player:
 	move.l	frame_set(a4),a1
 	; is frame set different from last time?
 	cmp.l	a0,a1
-	beq.b	.no_frame_set_change
+	beq	.no_frame_set_change
 	; change frame set
 	move.l	a0,frame_set(a4)
 	; re-set blow type & hit height so next hit is active again
@@ -6191,36 +6191,36 @@ move_player:
 	clr.w	current_frame_countdown(a4)
 	; don't reset current frame if connecting move
 	tst.b	skip_frame_reset(a4)
-	bne.b	.no_frame_set_change
+	bne	.no_frame_set_change
 	clr.w	frame(a4)
 .no_frame_set_change
 	clr.b	skip_frame_reset(a4)
 	tst.b	manual_animation(a4)
-	bne.b	.no_change
+	bne	.no_change
 	move.w	current_frame_countdown(a4),d3
-	bmi.b	.no_change		; negative: wait for player move change
-	beq.b	.change
+	bmi	.no_change		; negative: wait for player move change
+	beq	.change
 	subq.w	#1,d3
-	bra.b	.no_change
+	bra	.no_change
 .change
 	; countdown at zero
 	; advance/next frame / move
 	move.w	frame(a4),d0
 	tst.b	rollback(a4)
-	beq.b	.forward
+	beq	.forward
 	; backwards (rollbacking)
 	tst		d0
-	beq.b	.animation_ended
+	beq	.animation_ended
 	sub.w	#PlayerFrame_SIZEOF,d0		; frame long+2 words of x/y/nbframes
-	bra.b	.fup
+	bra	.fup
 .forward
 	add.w	#PlayerFrame_SIZEOF,d0		; frame long+2 words of x/y/nbframes
 	; load frame type
 	
 	tst.l	(bob_data,a1,d0.w)
-	bne.b	.fup
+	bne	.fup
 	tst.b	animation_loops(a4)
-	beq.b	.animation_ended
+	beq	.animation_ended
 	clr.w	d0		; starts over again (looping animations, basically walks)
 .fup
 	move.w	d0,frame(a4)
@@ -6228,16 +6228,16 @@ move_player:
 
 	add.w	d0,a1
 	tst.b	rollback(a4)
-	bne.b	.revert_deltas
+	bne	.revert_deltas
 
 	
 	move.w	(delta_x,a1),d2	
-	beq.b	.nox
+	beq	.nox
 	move.w	d2,d0
 	bsr		add_x_player
 .nox
 	move.w	(delta_y,a1),d2
-	beq.b	.noy
+	beq	.noy
 	add.w	d2,ypos(a4)
 .noy
 	; check if there are some hit points
@@ -6250,7 +6250,7 @@ move_player:
 	; but cancel rollback lock if infinite time
 	; (hit frame, but on ground)
 	move.w	(staying_frames,a1),d3	; load frame countdown
-	bpl.b	.no_change
+	bpl	.no_change
 	clr.b	rollback_lock(a4)
 .no_change
 	move.w	d3,current_frame_countdown(a4)
@@ -6258,14 +6258,14 @@ move_player:
 
 .revert_deltas
 	move.w	(delta_x,a1),d2	
-	beq.b	.nox2
+	beq	.nox2
 	move.w	d2,d0
 	bsr		add_x_player
 .nox2
 	move.w	(delta_y,a1),d2
-	beq.b	.noy
+	beq	.noy
 	sub.w	d2,ypos(a4)
-	bra.b	.noy
+	bra	.noy
 	
 ; animation complete, back to walk/default, unless hit
 ; (karate break wood animation also falls into the "hit"
@@ -6273,21 +6273,21 @@ move_player:
 ; same goes for intro with the characters bouncing
 .animation_ended
 	cmp.w	#STATE_INTRO_SCREEN,current_state
-	beq.b	.out
+	beq	.out
 	cmp.w	#GM_BREAK,level_type
-	beq.b	.out
+	beq	.out
 	; animation end: cancel current hit height
 	; (else opponents keeps on blocking)
 	;;clr.w	current_hit_height(a4)
 	move.w	hit_by_blow(a4),d0
 	cmp.w	#BLOW_NONE,d0
-	beq.b	.alive
+	beq	.alive
 	; dead, stay dead
 .out
 	rts
 .alive
 	tst.b	turn_back_flag(a4)
-	beq.b	.no_turn_back
+	beq	.no_turn_back
 	; set turn back as soon as rollback lock
 	clr.b	turn_back_flag(a4)
 	bsr		turn_back
@@ -6302,20 +6302,20 @@ move_player:
 check_hit
 	move.w	current_blow_type(a4),d0
 	cmp.w	#BLOW_NONE,d0
-	beq.b	.no_hit
+	beq	.no_hit
 	cmp.w	#GM_EVADE,level_type
-	bne.b	.collision
+	bne	.collision
 	lea		evade_object,a1
 	cmp.w	#BLOW_NONE,hit_by_blow(a1)
 	; if object is already broken, don't check
-	bne.b	.no_hit
+	bne	.no_hit
 .collision
 	move.l	frame_set(a4),a1
 	add.w	frame(a4),a1	
 	move.l	(full_hit_data,a1),a0		; hit list
 
 	tst.w	(a0)
-	bmi.b	.no_hit	; optim if no hit points
+	bmi	.no_hit	; optim if no hit points
 	
 	; first frame of the hit frame of the technique
 	; there's some heavy processing to be done here
@@ -6333,14 +6333,14 @@ check_hit
 	jsr		(a1)
 
 	cmp.w	#GM_PRACTICE,level_type
-	beq.b	.no_collision
+	beq	.no_collision
 	
 
 	; now check this zone with hit points
 	moveq.l	#1,d0		; full list
 	bsr		check_collisions
 	tst		d0
-	bne.b	.is_hit
+	bne	.is_hit
 	; not hit with perfect connecting blow, try
 	; half-point blow
 	; D0 is 0 already (small time optim...)
@@ -6393,7 +6393,7 @@ fill_opponent_evade
 	rts		; temp
 	
 	tst.w	misc_timer
-	beq.b	.object_on_screen
+	beq	.object_on_screen
 	; object not on screen: no collision
 	rts
 	
@@ -6443,7 +6443,7 @@ fill_opponent_evade_bull_shared
 	add.w	d0,a0	; add X
 .xloop
 	tst.b	(a0)
-	bne.b	.hitting_player
+	bne	.hitting_player
 	move.b	#1,(a0)+
 	dbf		d7,.xloop
 .xloop_end
@@ -6458,7 +6458,7 @@ fill_opponent_evade_bull_shared
 	move.w	direction(a4),d1
 	move.w	current_blow_type(a5),d0
 	cmp.w	direction(a5),d1
-	bne.b	.opposed
+	bne	.opposed
 	move.w	current_back_blow_type(a5),d0
 .opposed
 	move.w	d0,hit_by_blow(a4)		; opponent (player) is hit
@@ -6489,15 +6489,15 @@ fill_opponent_normal
 	; fails boundary conditions of the matrix as there's a display
 	; offset of 32 when lying and that isn't checked)
 	cmp.w	#BLOW_NONE,hit_by_blow(a5)
-	bne.b	.out		; no need for collisions, opponent is already hit
+	bne	.out		; no need for collisions, opponent is already hit
 	move.w	ypos(a5),d1
 	sub.w	level_players_y_min(pc),d1	; can't be negative
 	; sanity check
-	bpl.b	.ok
+	bpl	.ok
 	illegal
 .ok
 	cmp.w	#(COLLISION_NB_ROWS*2)-48,d1
-	bcs.b	.ok2
+	bcs	.ok2
 	illegal
 .ok2
 	lsr.w	#1,d1
@@ -6510,7 +6510,7 @@ fill_opponent_normal
 	add.w	frame(a5),a1
 	; draw mask if defence in mask
 	move.l	(target_data,a1),d6
-	beq.b	.out		; no target data (blow frame), discard
+	beq	.out		; no target data (blow frame), discard
 	move.l	d6,a2
 	move.w	bob_height(a1),d6
 	lsr.w	#1,d6
@@ -6527,7 +6527,7 @@ fill_opponent_normal
 	move.w	d7,d5		; store half bob width
 	subq.w	#1,d7
 	cmp.w	#RIGHT,direction(a5)
-	bne.b	.case_left
+	bne	.case_left
 	add.w	d0,a0	; add X
 .xloop
 	move.b	(a2)+,(a0)+
@@ -6541,10 +6541,10 @@ fill_opponent_normal
 .case_left
 	move.w	bob_nb_bytes_per_row(a1),d3
 	sub.w	#6,d3	; minus 48 to center character
-	beq.b	.zap	; optim
+	beq	.zap	; optim
 	lsl.w	#2,d3	; times 4 (not 8)
 	sub.w	d3,d0	; subtract if facing left
-	bpl.b	.zap
+	bpl	.zap
 	moveq	#0,d0	; negative: clip to 0
 .zap
 	; the symmetry is easier to perform with a matrix
@@ -6555,31 +6555,31 @@ fill_opponent_normal
 	move.b	(a2,d7.w),(a0)+
 	dbf		d7,.xloop_left
 	add.w	d5,a2			; next source row
-	bra.b	.xloop_end
+	bra	.xloop_end
 	
 ; there aren't any opponent, just take advantage of that
 ; specific call just when the blow lands so we can compare
 ; the technique with the shown technique
 fill_opponent_practice
 	tst.b	is_cpu(a4)		; only human
-	bne.b	.not_same
+	bne	.not_same
 	; compare current technique to the dictated one, score points
 	; if it's the same (doesn't work)
 	move.l	joystick_state(a4),d0
 	; special cases down+down is also foot sweep (front)
 	cmp.l	#JPF_BTN_ADOWN|JPF_BTN_DOWN,d0
-	bne.b	.no_down_down
+	bne	.no_down_down
 	move.l	#JPF_BTN_ADOWN|JPF_BTN_RIGHT,d0
 	cmp.w	#RIGHT,direction(a4)
-	beq.b	.no_down_down
+	beq	.no_down_down
 	move.l	#JPF_BTN_ADOWN|JPF_BTN_LEFT,d0
 .no_down_down
 	move.l	current_move_key_last_jump(pc),d1
-	bne.b	.test_last
+	bne	.test_last
 	move.l	current_move_key(pc),d1
 .test_last
 	cmp.l	d0,d1
-	bne.b	.not_same
+	bne	.not_same
 	; same move: award points
 	bsr		award_200_points
 .not_same
@@ -6613,11 +6613,11 @@ check_collisions:
 	add.w	frame(a4),a1
 	move.l	(full_hit_data,a1),a2		; hit list
 	move	d0,d7	; save full/half in d7
-	bne.b	.full
+	bne	.full
 	move.l	(half_hit_data,a1),a2		; hit list
 .full
 	tst.w	(a2)
-	bmi.b	.done	; optim: no hit data
+	bmi	.done	; optim: no hit data
 
 	move.w	xpos(a4),d3
 	move.w	ypos(a4),d4
@@ -6626,7 +6626,7 @@ check_collisions:
 	; if facing left, we have to perform a symmetry
 	cmp.w	#RIGHT,direction(a4)
 	sne		d5
-	beq.b	.do_check
+	beq	.do_check
 	; facing left
 	move.w	bob_nb_bytes_per_row(a1),d6
 	sub.w	#6,d6	; minus 48 to center character
@@ -6641,14 +6641,14 @@ check_collisions:
 	lea		mulCOLLISION_NB_COLS_table(pc),a5
 .do_check_loop:
 	move.w	(a2)+,d0
-	bmi.b	.done
+	bmi	.done
 	move.w	(a2)+,d1
 	tst.b	d5
-	beq.b	.pos
+	beq	.pos
 	neg.w	d0
 .pos
 	add.w	d3,d0
-	bmi.b	.do_check_loop	; x negative: disregard
+	bmi	.do_check_loop	; x negative: disregard
 	add.w	d4,d1
 	; divide X and Y by 2 now
 	lsr.w	#1,d0
@@ -6659,27 +6659,27 @@ check_collisions:
 	add.w	d0,a0
 	IFD	DEBUG_COLLISIONS
 	tst.b	(a0)
-	beq.b	.no_hit
+	beq	.no_hit
 	move.w	#$F00,$DFF180
 .no_hit
 	move.b	#2,(a0)		; debug: mark map
 	ELSE
 	tst.b	(a0)
-	bne.b	.blow_landed
+	bne	.blow_landed
 	ENDC
-	bra.b	.do_check_loop
+	bra	.do_check_loop
 .done
 	moveq.l	#0,d0
 	rts	
 .blow_landed
 	cmp.w	#GM_NORMAL,level_type
-	beq.b	.normal
+	beq	.normal
 	cmp.w	#GM_EVADE,level_type
-	bne.b	.out
+	bne	.out
 	; break current object
 	lea		evade_object(pc),a4
 	move.w	#BLOW_STOMACH,hit_by_blow(a4)	; anything != BLOW_NONE will do
-	bra.b	.out
+	bra	.out
 .normal
 	; note down the move
 	move.l	joystick_state(a4),connecting_move_bits(a4)
@@ -6692,11 +6692,11 @@ check_collisions:
 	
 	move.l	current_move_header(a4),a0
 	tst.b	is_cpu(a4)
-	bne.b	.no_scoring		; cpu doesn't score points 	
+	bne	.no_scoring		; cpu doesn't score points 	
 	move.w	(hit_score,a0),d0
 
 	tst		d7
-	bne.b	.full_point
+	bne	.full_point
 	lsr.w	#1,d0	; technique isn't perfect
 .full_point
 	cmp.w	#6,d0	; below 600
@@ -6715,7 +6715,7 @@ check_collisions:
 	move.w	direction(a0),d1
 	move.w	current_blow_type(a4),d0
 	cmp.w	direction(a4),d1
-	bne.b	.opposed
+	bne	.opposed
 	move.w	current_back_blow_type(a4),d0
 .opposed
 	move.w	d0,hit_by_blow(a0)		; opponent is hit
@@ -6737,12 +6737,12 @@ check_collisions:
 erase_referee:
 	lea	referee(pc),a4
 	move.w	previous_xpos(a4),d0
-	beq.b	.out		; 0: not possible: first draw
+	beq	.out		; 0: not possible: first draw
 	move.w	ypos(a4),d1
 	sub.w	#16,d0	; add 16 from both sides
 	move.w	#64,d2	; width (no shifting)
 	move.w	#48,d3	; height
-	bra.b		restore_background
+	bra		restore_background
 
 .out
 	rts
@@ -6753,13 +6753,13 @@ erase_player:
 	; compute dest address
 	
 	move.w	previous_ypos(a4),d1
-	beq.b	.out		; 0: not possible: first draw
+	beq	.out		; 0: not possible: first draw
 	move.w	previous_xpos(a4),d0
 	
 	move.w	previous_nb_bytes_per_row(a4),d2	; width 
 	lsl.w	#3,d2
 	move.w	previous_height(a4),d3	; height
-	bra.b		restore_background
+	bra		restore_background
 .out
 	rts
 	
@@ -6774,24 +6774,24 @@ restore_background:
 	lea		screen_data,a1
 	and.w	#$FFF0,d0		; round & multiple of 16
 	move.w	d0,d4
-	bpl.b	.positive
+	bpl	.positive
 	add.w	d0,d2	; reduce width (clip x)
-	bmi.b	.out	; width is negative: do nothing
+	bmi	.out	; width is negative: do nothing
 	moveq	#0,d0
-	bra.b	.not_maxed
+	bra	.not_maxed
 .positive
 	add.w	d2,d4
 	sub.w	#SCREEN_WIDTH,d4
-	bcs.b	.not_maxed
+	bcs	.not_maxed
 	; D4: extra width
 	sub.w	d4,d2		; reduce width (clip x)
-	bmi.b	.out		; negative width: do nothing
+	bmi	.out		; negative width: do nothing
 .not_maxed
 	; we're not clipping height as it's not really useful
 	lsr.w	#3,d2	; pixels => bytes
-	beq.b	.out		; width 0 => out
+	beq	.out		; width 0 => out
 	btst	#0,d2
-	beq.b	.even
+	beq	.even
 	addq.w	#1,d2	; one more
 .even	
 	move.l	d1,-(a7)
@@ -6883,9 +6883,9 @@ draw_referee:
 	and.w	d4,d5
 	lea	referee_body_1,a0		; both arms up
 	cmp.w	d4,d5
-	beq.b	.both_arms_up
+	beq	.both_arms_up
 	tst		d5
-	bne.b	.no_normal_body		; one arm down, one up, will be drawn later
+	bne	.no_normal_body		; one arm down, one up, will be drawn later
 	lea	referee_body_0,a0		; hands tucked in vest
 .both_arms_up
 	bsr	blit_4_planes_cookie_cut
@@ -6898,16 +6898,16 @@ draw_referee:
 	bsr	blit_4_planes_cookie_cut
 	
 	move.b	hand_red_or_japan_flag(a4),d6
-	beq.b	.no_red_flag
+	beq	.no_red_flag
 	sub.w	#8,d1
 	cmp.w	#$101,d5
-	beq.b	.skip_arm_1
+	beq	.skip_arm_1
 	lea		referee_right_arm_down,a0
 	bsr	blit_4_planes_cookie_cut
 .skip_arm_1
 	lea		red_fan_arm,a0
 	cmp.b	#1,d6
-	beq.b	.rf
+	beq	.rf
 	lea		japan_fan_arm,a0
 .rf
 	move.w	#16,d3
@@ -6918,10 +6918,10 @@ draw_referee:
 .no_red_flag
 
 	move.b	hand_white_flag(a4),d6
-	beq.b	.no_white_flag
+	beq	.no_white_flag
 
 	cmp.w	#$101,d5
-	beq.b	.skip_arm_2
+	beq	.skip_arm_2
 	move.w	xpos(a4),d0
 	move.w	ypos(a4),d1
 	add.w	#16,d1
@@ -6937,10 +6937,10 @@ draw_referee:
 	bsr		blit_4_planes_cookie_cut
 .no_white_flag	
 	tst.b	erase_referee_bubble_message
-	bne.b	.erase_bubble
+	bne	.erase_bubble
 	; handle bubbles
 	move.w	bubble_type(a4),d0
-	beq.b	.no_bubble
+	beq	.no_bubble
 	lea		bubble_table(pc),a0
 	move.l	(a0,d0.w),a0
 	jsr	(a0)
@@ -6974,12 +6974,12 @@ draw_player:
 	; plane 1: clothes data as white
 	move.w	xpos(a4),D0	
 	cmp.w	#RIGHT,direction(a4)
-	beq.b	.no_offset
+	beq	.no_offset
 	move.w	d2,d3
 	sub.w	#6,d3	; minus 48 to center character
 	lsl.w	#3,d3	; times 8
 	sub.w	d3,d0	; subtract if facing left
-	bpl.b	.no_offset
+	bpl	.no_offset
 	moveq.l	#0,d0
 .no_offset
 
@@ -7005,7 +7005,7 @@ draw_player:
 	move.l	a2,a1
 
 	tst.b	character_id(a4)
-	beq.b	.white
+	beq	.white
 	
 	; red: another layer of clothes plane that activate color 9
 	; (color 9 is fixed as red)
@@ -7018,24 +7018,24 @@ draw_player:
     bsr blit_plane_any_internal_cookie_cut
 	
 	tst.b	draw_hit_zones_flag
-	beq.b	.out
+	beq	.out
 	bsr		wait_blit
 	; debug only: draw hit/vulnerable/invisible zones
 
 	move.l	frame_set(a4),a0
 	add.w	frame(a4),a0
 	move.l	(full_hit_data,a0),d3
-	beq.b	.done
+	beq	.done
 	move.l	d3,a1
 	tst.w	(a1)
-	bmi.b	.done	; optim: no hit data
+	bmi	.done	; optim: no hit data
 	move.w	xpos(a4),d3
 	move.w	ypos(a4),d4
 	move.w	#$F00,d2
 	; if facing left, we have to perform a symmetry
 	cmp.w	#RIGHT,direction(a4)
 	sne		d5
-	beq.b	.hit_draw
+	beq	.hit_draw
 	; facing left
 	move.w	bob_nb_bytes_per_row(a0),d3
 	sub.w	#6,d3	; minus 48 to center character
@@ -7048,20 +7048,20 @@ draw_player:
 	add.w	(hit_left_shift,a2),d3
 .hit_draw:
 	move.w	(a1)+,d0
-	bmi.b	.done
+	bmi	.done
 	move.w	(a1)+,d1
 	tst.b	d5
-	beq.b	.pos
+	beq	.pos
 	neg.w	d0
 .pos
 	add.w	d3,d0
 	add.w	d4,d1
 	bsr		write_2x2_box
-	bra.b	.hit_draw
+	bra	.hit_draw
 .done
 	; draw mask if defence in mask
 	move.l	(target_data,a0),d6
-	beq.b	.out	; no mask happens (player hit)
+	beq	.out	; no mask happens (player hit)
 	move.l	d6,a1
 	move.w	bob_height(a0),d6
 	lsr.w	#1,d6
@@ -7074,10 +7074,10 @@ draw_player:
 	subq.w	#1,d7
 	move.w	xpos(a4),d0	; X
 	cmp.w	#RIGHT,direction(a4)
-	bne.b	.case_left	
+	bne	.case_left	
 .xloop
 	tst.b	(a1)+
-	beq.b	.no_block
+	beq	.no_block
 	move.w	#$FFF,d2
 	bsr		write_2x2_box
 .no_block
@@ -7096,7 +7096,7 @@ draw_player:
 	; xy list above
 .xloop_left
 	tst.b	(a1,d7.w)
-	beq.b	.no_block_left
+	beq	.no_block_left
 	move.w	#$FFF,d2
 	bsr		write_2x2_box
 .no_block_left
@@ -7120,9 +7120,9 @@ referee_says_very_good:
 	
 update_practice_moves
 	tst.l	current_practice_move_timer
-	beq.b	.not_performing_move
+	beq	.not_performing_move
 	subq.l	#1,current_practice_move_timer
-	bne.b	.not_zero
+	bne	.not_zero
 	; erase message
 	st		current_move_key_message
 	clr.l	current_move_key
@@ -7130,16 +7130,16 @@ update_practice_moves
 .not_zero
 	; training is over
 	tst.b	level_completed_flag
-	beq.b	.out
+	beq	.out
 	;move.w	#GM_BULL,level_type	; ends at demo
 	
 	addq.w	#1,background_number
 	move.w	#GM_NORMAL,level_type
 	move.w	#STATE_NEXT_LEVEL,current_state
-	bra.b	.out
+	bra	.out
 .not_performing_move
 	subq.l	#1,next_practice_move_timer
-	beq.b	.next_move
+	beq	.next_move
 .out	
 	rts
 .next_move
@@ -7148,11 +7148,11 @@ update_practice_moves
 	move.l	d0,current_practice_move_timer
 	move.l	picked_practice_table(pc),a0
 	move.w	practice_move_index(pc),d0
-	bne.b	.no_last_move
+	bne	.no_last_move
 	bsr		referee_says_very_good
 .no_last_move
 	tst.w	d0
-	bmi.b	.no_more_moves
+	bmi	.no_more_moves
 	move.b	(a0,d0.w),d0
 	move.w	#RIGHT,d1
 	bsr		convert_move_enum_to_joy_controls
@@ -7161,7 +7161,7 @@ update_practice_moves
 	move.b	#1,current_move_key_message	; display move message
 
 	cmp.l	#JPF_BTN_UP|JPF_BTN_ALEFT,d0	; jumping side kick, ends some sequences
-	bne.b	.no_jsk
+	bne	.no_jsk
 	; longer wait after last move
 	move.l	d0,current_move_key_last_jump	; to compare to player moves
 	move.l	#PRACTICE_WAIT_BEFORE_NEXT_MOVE*2,next_practice_move_timer
@@ -7272,12 +7272,12 @@ blit_plane_any_internal:
     clr.w   d1
     swap    d1
     add.w   d1,d1
-    beq.b   .d1_zero    ; optim
+    beq   .d1_zero    ; optim
     move.w  (a2,d1.w),d1
 .d1_zero
     move.l  #$09f00000,d5    ;A->D copy, ascending mode
     move    d0,d6
-    beq.b   .d0_zero
+    beq   .d0_zero
     and.w   #$F,d6
     asr.w   #3,d0
 	bclr	#0,d0
@@ -7316,7 +7316,7 @@ blit_plane_any_internal_cookie_cut_28
     ; change to 28 bytes per line (to draw into backbuffer)
     move.l #mulNB_BYTES_PER_BACKBUFFER_LINE_table,blit_mul_table
 	move.w	#NB_BYTES_PER_BACKBUFFER_LINE,blit_nb_bytes_per_row
-	bsr.b	blit_plane_any_internal_cookie_cut
+	bsr	blit_plane_any_internal_cookie_cut
 	; restore to 40 bytes per line (screen)
 	move.l #mulNB_BYTES_PER_LINE_table,blit_mul_table
 	move.w	#NB_BYTES_PER_LINE,blit_nb_bytes_per_row
@@ -7348,18 +7348,18 @@ blit_plane_any_internal_cookie_cut:
     clr.w   d1
     swap    d1
     add.w   d1,d1
-    beq.b   .d1_zero    ; optim
+    beq   .d1_zero    ; optim
     move.w  (a4,d1.w),d1	; y times 40
 	add.w	d1,a2			; Y plane position for background
 .d1_zero
     move.l  #$0fca0000,d5    ;B+C-A->D cookie cut   
 
     move    d0,d6
-    beq.b   .d0_zero
+    beq   .d0_zero
     asr.w   #3,d0
 	bclr	#0,d0
     and.w   #$F,d6
-	beq.b	.no_shifting
+	beq	.no_shifting
 
     lsl.l   #8,d6
     lsl.l   #4,d6
@@ -7500,7 +7500,7 @@ write_hexadecimal_number
 
     movem.l A0/D2-d5,-(a7)
     cmp.w   #7,d3
-    bcs.b   .padok
+    bcs   .padok
     move.w  #7,d3
 .padok
     bsr     .write_num
@@ -7515,20 +7515,20 @@ write_hexadecimal_number
     move.b  d2,d5
     and.b   #$F,d5
     cmp.b   #10,d5
-    bcc.b   .letter
+    bcc   .letter
     add.b   #'0',d5
-    bra.b   .ok
+    bra   .ok
 .letter
     add.b   #'A'-10,d5
 .ok
     move.b  d5,-(a0)
     lsr.l   #4,d2
-    beq.b   .write
-    bra.b   .loop
+    beq   .write
+    bra   .loop
 .write
     tst.b   d3
-    beq.b   .w
-    bmi.b   .w
+    beq   .w
+    bmi   .w
     subq    #1,d3
 .pad
     move.b  #' ',-(a0)
@@ -7552,11 +7552,11 @@ write_hexadecimal_number
 write_decimal_number
     movem.l A0/D2-d5,-(a7)
     cmp.w   #18,d3
-    bcs.b   .padok
+    bcs   .padok
     move.w  #18,d3
 .padok
     cmp.l   #655361,d2
-    bcs.b   .one
+    bcs   .one
     sub.l   #4,d3
     move.w  d0,d5
     ; first write high part    
@@ -7583,13 +7583,13 @@ write_decimal_number
 write_color_decimal_number
     movem.l A0-A1/D2-d6,-(a7)
     lea     write_color_string(pc),a1
-    bsr.b     write_color_decimal_number_internal
+    bsr     write_color_decimal_number_internal
     movem.l (a7)+,A0-A1/D2-d6
     rts
 write_blanked_color_decimal_number
     movem.l A0-A1/D2-d6,-(a7)
     lea     write_blanked_color_string(pc),a1
-    bsr.b     write_color_decimal_number_internal
+    bsr     write_color_decimal_number_internal
     movem.l (a7)+,A0-A1/D2-d6
     rts
 ; what: writes an decimal number with a given color
@@ -7603,11 +7603,11 @@ write_blanked_color_decimal_number
     
 write_color_decimal_number_internal
     cmp.w   #18,d3
-    bcs.b   .padok
+    bcs   .padok
     move.w  #18,d3
 .padok
     cmp.l   #655361,d2
-    bcs.b   .one
+    bcs   .one
     sub.l   #4,d3
     move.w  d0,d5
     ; first write high part    
@@ -7637,7 +7637,7 @@ write_color_decimal_number_internal
 convert_number
     lea .buf+20(pc),a0
     tst.w   d2
-    beq.b   .zero
+    beq   .zero
 .loop
     divu    #10,d2
     swap    d2
@@ -7647,15 +7647,15 @@ convert_number
     clr.w   d2
     swap    d2
     tst.w   d2
-    beq.b   .write
-    bra.b   .loop
+    beq   .write
+    bra   .loop
 .zero
     subq    #1,d3
     move.b  #'0',-(a0)
 .write
     tst.b   d3
-    beq.b   .w
-    bmi.b   .w
+    beq   .w
+    bmi   .w
     subq    #1,d3
 .pad
     move.b  #' ',-(a0)
@@ -7686,14 +7686,14 @@ write_blanked_color_string:
     clr.w   d6
 .strlen
     tst.b   (a0,d6.w)
-    beq.b   .outstrlen
+    beq   .outstrlen
     addq.w  #1,d6
-    bra.b   .strlen
+    bra   .strlen
 .outstrlen
 	bsr		color_lookup
-	bpl.b	.color_found
+	bpl	.color_found
     moveq   #0,d0   ; nothing written
-    bra.b   .out
+    bra   .out
 .color_found
     ; d5: color index
     lea screen_data,a1
@@ -7707,9 +7707,9 @@ write_blanked_color_string:
 ; > D0: number of characters written
     move.w  d4,d0
     btst    #0,d5
-    beq.b   .clear_plane
+    beq   .clear_plane
     bsr overwrite_string
-    bra.b   .next_plane
+    bra   .next_plane
 .clear_plane
     movem.l d0-d6/a1/a5,-(a7)
     move.w  d6,d2   ; width in bytes = string length
@@ -7770,7 +7770,7 @@ color_lookup
 .search
     move.w  (a1)+,d4
     cmp.w   d4,d2
-    beq.b   .color_found
+    beq   .color_found
     addq.w  #1,d5
     dbf d3,.search
 	moveq	#-1,d5
@@ -7790,7 +7790,7 @@ color_lookup
 write_2x2_box:
     movem.l D0-D5/A1-A2,-(a7)    
 	bsr		color_lookup
-	bmi.b	.out	
+	bmi	.out	
     lea	screen_data,a1
 	move.w	d5,d4
 	; save d0 3 first bits in d2
@@ -7803,10 +7803,10 @@ write_2x2_box:
     moveq   #3,d3
 .plane_loop
     btst    #0,d5
-    beq.b   .clr
+    beq   .clr
 	bset.b	d2,(a1)
 	bset.b	d2,(NB_BYTES_PER_LINE,a1)
-	bra.b	.next
+	bra	.next
 .clr
 	bclr.b	d2,(a1)
 	bclr.b	d2,(NB_BYTES_PER_LINE,a1)
@@ -7819,18 +7819,18 @@ write_2x2_box:
     moveq   #3,d3
 	move.w	d4,d5
 	tst.b	d2
-	bne.b	.same_byte
+	bne	.same_byte
 	move.w	#7,d2
 	addq.w	#1,a1
-	bra.b	.plane_loop2
+	bra	.plane_loop2
 .same_byte
 	subq.l	#1,d2
 .plane_loop2
     btst    #0,d5
-    beq.b   .clr2
+    beq   .clr2
 	bset.b	d2,(a1)
 	bset.b	d2,(NB_BYTES_PER_LINE,a1)
-	bra.b	.next2
+	bra	.next2
 .clr2
 	bclr.b	d2,(a1)
 	bclr.b	d2,(NB_BYTES_PER_LINE,a1)
@@ -7853,7 +7853,7 @@ write_2x2_box:
 write_pixel:
     movem.l D0-D5/A1-A2,-(a7)    
 	bsr		color_lookup
-	bmi.b	.out	
+	bmi	.out	
     lea	screen_data,a1
 	; save d0 3 first bits in d2
 	move.b	d0,d2
@@ -7865,9 +7865,9 @@ write_pixel:
     moveq   #3,d3
 .plane_loop
     btst    #0,d5
-    beq.b   .clr
+    beq   .clr
 	bset.b	d2,(a1)
-	bra.b	.next
+	bra	.next
 .clr
 	bclr.b	d2,(a1)
 .next
@@ -7890,17 +7890,17 @@ write_pixel:
 
 write_color_string:
     movem.l D1-D5/A1,-(a7)
-	bsr.b		color_lookup
-	bmi.b	.out	
+	bsr		color_lookup
+	bmi	.out	
     ; d5: color index
     lea screen_data,a1
     moveq   #3,d3
     move.w  d0,d4
 	tst.w	d5
-	beq.b	.erase_loop
+	beq	.erase_loop
 .plane_loop
     btst    #0,d5
-    beq.b   .skip_plane
+    beq   .skip_plane
     move.w  d4,d0
     bsr write_string
 .skip_plane
@@ -7923,7 +7923,7 @@ write_color_string:
     lsr.w   #1,d5
     lea   (SCREEN_PLANE_SIZE,a1),a1
     dbf d3,.erase_loop
-    bra.b	.out
+    bra	.out
 ; what: writes a text in a single plane
 ; args:
 ; < A0: c string
@@ -7959,125 +7959,125 @@ write_string_internal:
     moveq.l #0,d0
 .loop
     move.b  (a0)+,d2
-    beq.b   .end
+    beq   .end
     addq.l  #1,d0
 
     cmp.b   #'0',d2
-    bcs.b   .special
+    bcs   .special
     cmp.b   #'9'+1,d2
-    bcc.b   .try_letters
+    bcc   .try_letters
     ; digits
     lea digits(pc),a2
     sub.b   #'0',d2
-    bra.b   .wl
+    bra   .wl
     
 .try_letters: 
     cmp.b   #'A',d2
-    bcs.b   .special
+    bcs   .special
     cmp.b   #'Z'+1,d2
-    bcc.b   .special
+    bcc   .special
     lea letters(pc),a2
     sub.b   #'A',d2
 .wl
     lsl.w   #3,d2   ; *8
     add.w   d2,a2
 	tst.w	d3
-	beq.b	.carve
+	beq	.carve
 	cmp.w	#1,d3
-	beq.b	.orit
+	beq	.orit
 	; overwrite
 	REPT	8
 	move.b	(a2)+,(NB_BYTES_PER_LINE*REPTN,a1)
 	ENDR
-    bra.b   .next
+    bra   .next
 	
 .orit
 	REPT	8
 	move.b	(a2)+,d4
     or.b  d4,(NB_BYTES_PER_LINE*REPTN,a1)
 	ENDR
-    bra.b   .next
+    bra   .next
 .carve
 	REPT	8
 	move.b	(a2)+,d4
 	not.b	d4
     and.b  d4,(NB_BYTES_PER_LINE*REPTN,a1)
 	ENDR
-    bra.b   .next
+    bra   .next
 
 .special
     cmp.b   #' ',d2
-    bne.b   .nospace
+    bne   .nospace
     lea space(pc),a2
     moveq.l #0,d2
-    bra.b   .wl
+    bra   .wl
 .nospace    
     cmp.b   #'o',d2
-    bne.b   .noellipse
+    bne   .noellipse
     lea ellipse(pc),a2
     moveq.l #0,d2
-    bra.b   .wl
+    bra   .wl
 .noellipse
     cmp.b   #'[',d2
-    bne.b   .nosq1
+    bne   .nosq1
     lea rect1(pc),a2
     moveq.l #0,d2
-    bra.b   .wl
+    bra   .wl
 .nosq1
     cmp.b   #']',d2
-    bne.b   .nosq2
+    bne   .nosq2
     lea rect2(pc),a2
     moveq.l #0,d2
-    bra.b   .wl
+    bra   .wl
 .nosq2
     cmp.b   #'-',d2
-    bne.b   .nodash
+    bne   .nodash
     lea dash(pc),a2
     moveq.l #0,d2
-    bra.b   .wl
+    bra   .wl
 .nodash
     cmp.b   #'.',d2
-    bne.b   .nodot
+    bne   .nodot
     lea dot(pc),a2
     moveq.l #0,d2
-    bra.b   .wl
+    bra   .wl
 .nodot
     cmp.b   #',',d2
-    bne.b   .nocomma
+    bne   .nocomma
     lea comma(pc),a2
     moveq.l #0,d2
-    bra.b   .wl
+    bra   .wl
 .nocomma
     cmp.b   #':',d2
-    bne.b   .nocolon
+    bne   .nocolon
     lea colon(pc),a2
     moveq.l #0,d2
-    bra.b   .wl
+    bra   .wl
 .nocolon
     cmp.b   #'/',d2
-    bne.b   .nosq
+    bne   .nosq
     lea square(pc),a2
     moveq.l #0,d2
-    bra.b   .wl
+    bra   .wl
 .nosq
     cmp.b   #'h',d2
-    bne.b   .noheart
+    bne   .noheart
     lea heart(pc),a2
     moveq.l #0,d2
-    bra.b   .wl
+    bra   .wl
 .noheart
     cmp.b   #'c',d2
-    bne.b   .nocopy
+    bne   .nocopy
     lea copyright(pc),a2
     moveq.l #0,d2
-    bra.b   .wl
+    bra   .wl
 .nocopy
 
 
 
 .next   
     addq.l  #1,a1
-    bra.b   .loop
+    bra   .loop
 .end
     movem.l (a7)+,A0-A2/d1-D2/d4
     rts
@@ -8091,25 +8091,25 @@ save_highscores
 load_highscores
     lea scores_name(pc),a0
     move.l  _resload(pc),d0
-    beq.b   .standard
+    beq   .standard
     move.l  d0,a2
     jsr (resload_GetFileSize,a2)
     tst.l   d0
-    beq.b   .no_file
+    beq   .no_file
     ; file is present, read it
     lea scores_name(pc),a0    
     lea hiscore_table(pc),a1
     move.l #HISCORE_FILE_SIZE,d0   ; size
     moveq.l #0,d1   ; offset
     jsr  (resload_LoadFileOffset,a2)
-    bra.b	.update_highest
+    bra	.update_highest
 .standard
     move.l  _dosbase(pc),a6
     move.l  a0,d1
     move.l  #MODE_OLDFILE,d2
     jsr     (_LVOOpen,a6)
     move.l  d0,d1
-    beq.b   .no_file
+    beq   .no_file
     move.l  d1,d4
     move.l  #HISCORE_FILE_SIZE,d3
     move.l  #hiscore_table,d2
@@ -8125,7 +8125,7 @@ load_highscores
 ; < D0: command to send to cdtv 
 send_cdtv_command:
 	tst.l	_resload
-	beq.b	.go
+	beq	.go
 	rts		; not needed within whdload (and will fail)
 .go
 	movem.l	d0-a6,-(a7)
@@ -8154,7 +8154,7 @@ send_cdtv_command:
 
     ; wait a while if CMD_STOP
     cmp.l   #CMD_STOP,d5
-    bne.b   .nowait
+    bne   .nowait
 	move.l	_dosbase(pc),A6
 	move.l	#20,D1
 	JSR	_LVODelay(a6)		; wait 2/5 second before launching
@@ -8201,12 +8201,12 @@ send_cdtv_command:
 	
 save_highscores
     tst.w   cheat_keys
-    bne.b   .out
+    bne   .out
     tst.b   highscore_needs_saving
-    beq.b   .out
+    beq   .out
     lea scores_name(pc),a0
     move.l  _resload(pc),d0
-    beq.b   .standard
+    beq   .standard
     move.l  d0,a2
     lea scores_name(pc),a0    
     lea hiscore_table(pc),a1
@@ -8218,7 +8218,7 @@ save_highscores
     move.l  #MODE_NEWFILE,d2
     jsr     (_LVOOpen,a6)
     move.l  d0,d1
-    beq.b   .out
+    beq   .out
     move.l  d1,d4
     move.l  #HISCORE_FILE_SIZE,d3
     move.l  #hiscore_table,d2
@@ -8249,7 +8249,7 @@ save_highscores
 ; < D0: track start number
 play_music
 	tst.b	demo_mode
-	bne.b	.out
+	bne	.out
     movem.l d0-a6,-(a7)
     lea _custom,a6
     lea music,a0
@@ -8270,7 +8270,7 @@ play_music
 ; < A0: sound struct
 play_fx
     tst.b   demo_mode
-    bne.b   .no_sound
+    bne   .no_sound
     lea _custom,a6
     bra _mt_playfx
 .no_sound
@@ -8287,24 +8287,24 @@ convert_move_enum_to_joy_controls:
 	lea		enum_to_controls_table(pc),a0
 	move.l	(a0,d0.w),d0
 	cmp.w	#RIGHT,d1
-	beq.b	.out
+	beq	.out
 	; if left:
 	; change lateral move/action directions
 	moveq.l	#0,d1
 	bclr	#JPB_BTN_LEFT,d0
-	beq.b	.no_left1
+	beq	.no_left1
 	bset	#JPB_BTN_RIGHT,d1
 .no_left1
 	bclr	#JPB_BTN_RIGHT,d0
-	beq.b	.no_right1
+	beq	.no_right1
 	bset	#JPB_BTN_LEFT,d1
 .no_right1
 	bclr	#JPB_BTN_ARIGHT,d0
-	beq.b	.no_right2
+	beq	.no_right2
 	bset	#JPB_BTN_ALEFT,d1
 .no_right2
 	bclr	#JPB_BTN_ALEFT,d0
-	beq.b	.no_left2
+	beq	.no_left2
 	bset	#JPB_BTN_ARIGHT,d1
 .no_left2
 	or.l	d1,d0
@@ -8316,19 +8316,19 @@ convert_move_enum_to_joy_controls:
 convert_joystick_moves_to_buttons
 	moveq	#0,d1
 	bclr	#JPB_BTN_DOWN,d0
-	beq.b	.no_down
+	beq	.no_down
 	bset	#JPB_BTN_ADOWN,d1
 .no_down
 	bclr	#JPB_BTN_LEFT,d0
-	beq.b	.no_left
+	beq	.no_left
 	bset	#JPB_BTN_ALEFT,d1
 .no_left
 	bclr	#JPB_BTN_RIGHT,d0
-	beq.b	.no_right
+	beq	.no_right
 	bset	#JPB_BTN_ARIGHT,d1
 .no_right
 	bclr	#JPB_BTN_UP,d0
-	beq.b	.no_up
+	beq	.no_up
 	bset	#JPB_BTN_AUP,d1
 .no_up
 	or.l	d1,d0
@@ -8340,19 +8340,19 @@ convert_joystick_moves_to_buttons
 correct_joystick_buttons
 	moveq	#0,d1
 	bclr	#JPB_BTN_GRN,d0
-	beq.b	.no_down
+	beq	.no_down
 	bset	#JPB_BTN_ADOWN,d1
 .no_down
 	bclr	#JPB_BTN_RED,d0
-	beq.b	.no_left
+	beq	.no_left
 	bset	#JPB_BTN_ALEFT,d1
 .no_left
 	bclr	#JPB_BTN_YEL,d0
-	beq.b	.no_right
+	beq	.no_right
 	bset	#JPB_BTN_ARIGHT,d1
 .no_right
 	bclr	#JPB_BTN_BLU,d0
-	beq.b	.no_up
+	beq	.no_up
 	bset	#JPB_BTN_AUP,d1
 .no_up
 	or.l	d1,d0
@@ -8360,13 +8360,13 @@ correct_joystick_buttons
 
 get_player_distance
 	cmp.w	#GM_NORMAL,level_type
-	beq.b	.compute
+	beq	.compute
 	move.w	#-1,d0	; huge distance
 	rts
 .compute
 	move.w	player+xpos(pc),d0
 	sub.w	player+Player_SIZEOF+xpos(pc),d0
-	bpl.b	.pos
+	bpl	.pos
 	neg.w	d0
 .pos
 	rts
@@ -8379,27 +8379,27 @@ do_\1:
 BLOCK_CALLBACK:MACRO
 	; no block cancel
 	MOVE_CALLBACK	\1_block
-	bra.b	move_player
+	bra	move_player
 	ENDM
 BLOW_CALLBACK:MACRO
 	MOVE_CALLBACK	\1_blow
 	; no rollback
 	clr.b	rollback(a4)
 	st.b	rollback_lock(a4)
-	bra.b	move_player
+	bra	move_player
 	ENDM
 OTHER_CALLBACK:MACRO
 	MOVE_CALLBACK	\1
 	; no rollback
 	clr.b	rollback(a4)
 	st.b	rollback_lock(a4)
-	bra.b		move_player
+	bra		move_player
 	ENDM
 	
 SIMPLE_MOVE_CALLBACK:MACRO
 	MOVE_CALLBACK	\1
 	clr.w	block_lock(a4)		; no block
-	bra.b	move_player
+	bra	move_player
 	ENDM
 	
 ; each "do_xxx" function has the following input params
@@ -8440,11 +8440,11 @@ SIMPLE_MOVE_CALLBACK:MACRO
 	
 do_reverse_punch_800
 	lea	reverse_punch_800_frames(pc),a0
-	bra.b	do_foot_sweep_common
+	bra	do_foot_sweep_common
 
 do_foot_sweep_back
 	lea	foot_sweep_back_frames(pc),a0
-	bra.b	do_foot_sweep_common
+	bra	do_foot_sweep_common
 	
 do_foot_sweep_front
 	lea	foot_sweep_front_frames(pc),a0
@@ -8453,25 +8453,25 @@ do_foot_sweep_common
 	; are we crouching?
 	lea		crouch_frames(pc),a1
 	cmp.l	current_move_header(a4),a1
-	bne.b	move_player
+	bne	move_player
 	; connect from crouch to move
 	move.w	#PlayerFrame_SIZEOF*3,frame(a4)
 	st.b	skip_frame_reset(a4)
-	bra.b	move_player
+	bra	move_player
 	
 do_jumping_back_kick:
 	clr.w	block_lock(a4)		; no block
 	lea	jumping_back_kick_frames(pc),a0
 	move.l	current_move_header(a4),a1
 	cmp.l	a0,a1
-	bne.b	move_player
+	bne	move_player
 	; already jumping back kick, check if last frame
 	; in which case reverse position when landing
 	tst.b	rollback_lock(a4)
-	beq.b	.no_turn_back
+	beq	.no_turn_back
 	st.b	turn_back_flag(a4)
 .no_turn_back
-	bra.b	move_player
+	bra	move_player
 	
 do_front_kick:
 	clr.w	block_lock(a4)		; no block
@@ -8483,27 +8483,27 @@ do_front_kick:
 	bsr	get_player_distance
 	move.l	current_move_header(a4),a1
 	cmp.w	#MIN_FRONT_KICK_DISTANCE,d0
-	bcc.b	.kick
+	bcc	.kick
 	lea	front_kick_frames(pc),a2
 	cmp.l	a2,a1
-	beq.b	.force_kick	; already kick, keep kick
+	beq	.force_kick	; already kick, keep kick
 .force_punch
 	lea	weak_reverse_punch_frames,a0
-	bra.b	move_player
+	bra	move_player
 .kick
 	lea	weak_reverse_punch_frames,a2
 	cmp.l	a2,a1
-	beq.b	.force_punch
+	beq	.force_punch
 .force_kick
 	lea	front_kick_frames(pc),a0
-	bra.b	move_player
+	bra	move_player
 
 	
 do_back_round_kick_right:
 	clr.w	block_lock(a4)		; no block
 	move.w	direction(a4),d0
 	cmp.w	#RIGHT,d0
-	beq.b	.no_turn
+	beq	.no_turn
 	; turns back and performs kick, but only
 	; 1) if not fighting (evade, bull)
 	; 2) if would not be turning back to the opponent
@@ -8513,50 +8513,50 @@ do_back_round_kick_right:
 	; now player is facing left.
 	move.w	level_type,d0
 	cmp.w	#GM_NORMAL,d0
-	beq.b	.must_test
+	beq	.must_test
 	cmp.w	#GM_PRACTICE,d0
-	beq.b	.turn
+	beq	.turn
 .must_test
 	move.l	opponent(a4),a0
 	move.w	xpos(a0),d0
 	cmp.w	xpos(a4),d0
-	bcs.b	do_back_kick
+	bcs	do_back_kick
 .turn
 	move.w	#RIGHT,direction(a4)	
 .no_turn
 	lea	back_round_kick_frames(pc),a0
-	bra.b	move_player
+	bra	move_player
 
 do_jump:
 	clr.w	block_lock(a4)		; no block
 	lea	jump_frames(pc),a0
 	
-	bra.b	move_player
+	bra	move_player
 	
 do_back_round_kick_left:
 	clr.w	block_lock(a4)		; no block
 	move.w	direction(a4),d0
 	cmp.w	#LEFT,d0
-	beq.b	.no_turn
+	beq	.no_turn
 	; turns back, but only
 	; 1) if not fighting (evade, bull)
 	; 2) if would not be turning back to the opponent
 	;    when turn is completed
 	move.w	level_type,d0
 	cmp.w	#GM_NORMAL,d0
-	beq.b	.must_test
+	beq	.must_test
 	cmp.w	#GM_PRACTICE,d0
-	beq.b	.turn
+	beq	.turn
 .must_test
 	move.l	opponent(a4),a0
 	move.w	xpos(a0),d0
 	cmp.w	xpos(a4),d0
-	bcc.b	do_back_kick
+	bcc	do_back_kick
 .turn
 	move.w	#LEFT,direction(a4)
 .no_turn
 	lea	back_round_kick_frames(pc),a0
-	bra.b	move_player
+	bra	move_player
 
 
 do_move_forward:
@@ -8567,19 +8567,19 @@ do_move_forward:
 	clr.l	current_move_callback(a4)
 	bsr		get_player_distance
 	cmp.w	#GUARD_X_DISTANCE,d0		; approx...
-	bcc.b	move_player
+	bcc	move_player
 	lea		forward_frames(pc),a0
-	bra.b	move_player
+	bra	move_player
 
 do_move_back:
 	tst.b	is_cpu(a4)
-	bne.b	normal_backing_away	; CPU chooses if must block
+	bne	normal_backing_away	; CPU chooses if must block
 
 	move.w	block_lock(a4),d1
-	bne.b	.locked
+	bne	.locked
 	bsr		get_player_distance
 	cmp.w	#BLOCK_X_DISTANCE,d0
-	bcc.b	normal_backing_away
+	bcc	normal_backing_away
 	
 	; moving back at close range triggers block, no matter
 	; the facing configuration or the blow (back/front)
@@ -8599,10 +8599,10 @@ normal_backing_away
 	clr.l	current_move_callback(a4)
 	bsr		get_player_distance
 	cmp.w	#GUARD_X_DISTANCE,d0		; approx...
-	bcc.b	move_player
+	bcc	move_player
 	lea		backwards_frames(pc),a0
 
-	bra.b	move_player
+	bra	move_player
 
 turn_back
 	move.w	direction(a4),d0
@@ -8618,24 +8618,24 @@ turn_back
 check_if_facing_each_other:
 	movem.l	d1/A0,-(a7)
 	cmp.w	#GM_NORMAL,level_type
-	bne.b	.not_facing		; not applicable in practice
+	bne	.not_facing		; not applicable in practice
 
 	
 	move.l	opponent(a4),a0
 	move.w	direction(a4),d0
 	cmp.w	direction(a0),d0
-	beq.b	.not_facing
+	beq	.not_facing
 	; opposite direction, now we have to test xpos
 	move.w	xpos(a4),d1
 	cmp.w	xpos(a0),d1
-	bcc.b	.other_is_on_the_left
+	bcc	.other_is_on_the_left
 	; other is on the right
 	cmp.w	#RIGHT,d0
-	bne.b	.facing
-	bra.b	.not_facing
+	bne	.facing
+	bra	.not_facing
 .other_is_on_the_left
 	cmp.w	#RIGHT,d0
-	beq.b	.not_facing
+	beq	.not_facing
 .facing
 	moveq.l	#1,d0
 	movem.l	(a7)+,D1/A0
@@ -10145,7 +10145,7 @@ collision_matrix_buffer_end
 handle_ai
 	moveq.l	#0,d0
 	cmp.w	#GM_PRACTICE,level_type
-	bne.b	.normal
+	bne	.normal
 	move.l	current_move_key,d0
 	rts
 	

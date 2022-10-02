@@ -13,7 +13,10 @@ handle_cpu_opponent:
 	
 	subq.w	#1,d0
 	move.w	d0,computer_next_attack_timer(a4)
-	bne		out_without_moving
+	beq		.attack
+	move.w	#$0F0,$DFF180
+	bra		out_without_moving
+.attack
 	move.w	computer_next_attack(a4),d7
 	bra		cpu_move_done_A410
 	
@@ -214,7 +217,7 @@ remain_frames_table
 
 ; trashes D1,A1
 let_opponent_react_depending_on_skill_level_ACCE:
-	move.w	opponent(a4),a1
+	move.l	opponent(a4),a1
 	move.w	rank(a1),d1
 	cmp.w	#16,d1
 	bcc.b	.immediately	; no wait, attack immediately
