@@ -186,7 +186,7 @@ DIRECT_GAME_START_2P_IS_CPU = 1
 ; repeat a long time just to test moves
 ;REPEAT_PRACTICE = 10
 ; change default round time
-ROUND_TIME = 90
+ROUND_TIME = 30
 
 
 ;HIGHSCORES_TEST
@@ -4652,7 +4652,7 @@ update_evade
 	subq.w	#1,misc_timer
 	bne	.no_new_object
 	; timeout, but maybe because player has been hit
-	cmp.l	#BLOW_NONE,hit_by_blow(a4)
+	cmp.w	#BLOW_NONE,hit_by_blow(a4)
 	beq	.next_object
 	; next level please
 	move.w	#STATE_NEXT_LEVEL,current_state
@@ -5767,7 +5767,6 @@ update_player:
 .alive
 	tst.b	controls_blocked_flag
 	beq	.no_blocked
-.blocked
 	moveq.l	#0,d0
 	move.w	frozen_controls_timer(a4),d0
 	beq	.no_demo
@@ -6691,8 +6690,6 @@ check_collisions:
 	; wait until referee/points show
 	
 	move.l	current_move_header(a4),a0
-	tst.b	is_cpu(a4)
-	bne	.no_scoring		; cpu doesn't score points 	
 	move.w	(hit_score,a0),d0
 
 	tst		d7
@@ -6701,8 +6698,12 @@ check_collisions:
 .full_point
 	cmp.w	#6,d0	; below 600
 	scs.b	half_points(a4)
-	move.w	d0,d1		; save score in d1
+
+
+	tst.b	is_cpu(a4)
+	bne	.no_scoring		; cpu doesn't score points 	
 	
+	move.w	d0,d1		; save score in d1	
 	bsr		show_awarded_score
 	moveq.l	#0,d0
 	move.w	d1,d0

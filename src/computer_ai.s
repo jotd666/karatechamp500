@@ -8,13 +8,14 @@ DECIDE_MOVE:MACRO
 ; < A4: computer player structure
 
 handle_cpu_opponent:
+	; is the computer letting opponent attack before attacking itself?
 	move.w	computer_next_attack_timer(a4),d0
 	beq.b	.main_ai
-	
+	; yes, decrease timer
 	subq.w	#1,d0
 	move.w	d0,computer_next_attack_timer(a4)
+	; timer is 0 => perform the attack that has been decided earlier
 	beq		.attack
-	move.w	#$0F0,$DFF180
 	bra		out_without_moving
 .attack
 	move.w	computer_next_attack(a4),d7
@@ -44,7 +45,7 @@ handle_cpu_opponent:
 ;; if walking/stands guard, computer can attack the player
 ;A3AD: C2 9B A5    jp   nz,maybe_attack_opponent_A53B
 .main_ai
-	
+
 	move.l	a4,a0
 	bsr		is_walking_move
 	tst		d0
@@ -52,6 +53,7 @@ handle_cpu_opponent:
 
 	; not walking, check if currently jumping to avoid a blow
 	; not necessary since controls are frozen during a jump
+	; or maybe it is???
 	
 ;A3B0: DD 21 47 AA ld   ix,jump_frames_list_AA4D
 ;A3B4: E5          push hl
@@ -78,6 +80,13 @@ handle_cpu_opponent:
 	beq.b	full_blown_hit_ABE3
 	cmp.l	#jumping_side_kick_7_left,a1
 	beq.b	full_blown_hit_ABE3
+	
+	; we have tested all attacking points where we should (maybe)
+	; make a pause
+	; we also have tested walk frames
+	; the rest of the case is: in-move & sommersault & block
+	; we have to sustain the move else it's likely to be aborted
+	move.w	computer_next_attack(a4),d7
 	
 ;A3BD: DD 21 C7 AA ld   ix,hitting_frame_list_AA6D
 ;A3C1: E5          push hl
@@ -251,7 +260,6 @@ maybe_attack_opponent_A53B
 ;A54B: DD 66 01    ld   h,(ix+$01)
 ;A54E: E9          jp   (hl)
 ;
-	move.w	#$F00,$DFF180		; TEMP
 	lea		opponent_distance_jump_table_A54F(pc),a0
 	move.w	fine_distance(a4),d0
 	bclr	#7,d0
@@ -1516,15 +1524,25 @@ perform_foot_sweep_back_ABBB:
 ;; computer just tried to hit player but failed
 ;; now wait for player response (or not, if skill level is high enough)
 full_blown_hit_ABE3:
-	DECIDE_MOVE	GUARD		; temporary
-	bra		cpu_move_done_A410	; temp
+	; hack current frame countdown: either it's infinite (negative)
+	; for human player, or it's short (attack jumps) when in low
+	; skill levels, the game freezes cpu attack even on jumps
+	; to give a chance to the player to counter attack
+	lea		counter_attack_time_table_ADEF(pc),a0
+	bsr	let_opponent_react_depending_on_skill_level_ACCE
 	
-	blitz
-	illegal		; TOCODE
-; TODO: change current_frame_countdown according to the player reaction time
-; computed from "let_opponent_react_depending_on_skill_level_ACCE"
-; set frozen_controls_timer at the same exact value
-
+	; lousy check to see if the value has already been set in
+	; the previous call
+	; it can happen in jump attacks when full blown hit doesn't
+	; have -1 as frame countdown value
+	cmp.w	current_frame_countdown(a4),d0
+	beq.b	.no_reload	
+	addq.w	#1,d0		; add 1 as 0 would be a problem
+	move.w	d0,current_frame_countdown(a4)
+.no_reload
+	move.w	computer_next_attack(a4),d7
+	bra		cpu_move_done_A410
+	
 ;ABE3: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 ;; tell CPU to stop moving / stand guard
 ;ABE6: 36 00       ld   (hl),$00
@@ -1665,6 +1683,7 @@ counter_attack_time_table_ADEF:
 	dc.l	counter_attack_timers_ADF7
 
 
+; 16x2 values
 counter_attack_timers_ADF7:
 	dc.b	$20,$20,$18,$18,$18,$18,$10,$10,$08,$08,$07,$07,$06,$06,$04,$03
 	dc.b	$02,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
@@ -1678,7 +1697,9 @@ counter_attack_time_table_AE17:
 counter_attack_timers_AE1F:
 	dc.b	$20,$20,$20,$20,$18,$18,$10,$10
 	dc.b	$08,$08,$07,$07,$06,$06,$05,$05,$04,$04,$03,$03,$02,$02,$01,$01
-	dc.b	$01,$01,$01,$01,$01,$01,$01,$01,$00,$00,$00,$00,$00,$00,$00,$00
+	dc.b	$01,$01,$01,$01,$01,$01,$01,$01
+	; below probably not reached
+	dc.b	$00,$00,$00,$00,$00,$00,$00,$00
 
 	even
 
@@ -1736,7 +1757,7 @@ table_linear_search_B00F
 ;AB56: 77          ld   (hl),a
 ;AB57: C9          ret
 
-select_cpu_attack_AB2E
+select_cpu_attack_AB2E:
 	move.w	rough_distance(a4),d0
 	add.w	d0,d0
 	add.w	d0,d0
@@ -1745,6 +1766,7 @@ select_cpu_attack_AB2E
 	moveq.l	#0,d0
 	move.b	(a0)+,d0
 	bsr		randrange
+	moveq	#0,d7
 	move.b	(a0,d0.w),d7	; cpu attack move
 	rts
 

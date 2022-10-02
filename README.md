@@ -31,28 +31,24 @@ sequence: 3x mid front, 2x high rear!!!
 multiple evade objects: can be displayed at the same time
 
 
-
 - table at A529 dump it
-* recode A.I. from fight_mainloop_A390 entrypoint
 
-- OR: provide a table of frozen controls (nb frames) for each move, this will
-  add to the possible wait for player reaction after the move
-
-- to code: full blown hit, how much cpu holds block
+- to code: how much cpu holds block
 - check cpu move speed from videos with varying skill level: no need: frame speed up
   has been reversed, now have to code it
-- skill level in options  
+- skill level in options: test it  
+- define debug variable so CPU only performs jump attacks
+- define debug variable so CPU always jumps to avoid low kicks
 
 bugs:
 
-- player can react just before attack: flash green screen to debug, finish coding of the timer
-- player can react: attack countdown attribute
-
-- hold computer movements until attack is complete
-- remain stuck when full fledged move, depending on skill level
-  use the hit_type of the frame not the -1 of the frame advance
-  (code it in the animation part, not the A.I. part)
-- hold computer block movements until opponent attack is complete
+- computer should not move past player either (implement player x boundary
+  when not jumping): should be able to perform weak reverse punch and hit
+- computer score doesn't show all the time
+- tests jumps as it seems to fail... cpu tries to jump several times
+  before performing a ground attack
+- jumping side kick cpu stays stuck (jumping back seems ok)
+- when hit in the air, player should fall down
 - movement lock of player when opponent is hit doesn't seem to work
 - jump: too short, maybe duplicate frame sequence
 - evade collisions: front ok, back move ko (and trashes game)
