@@ -5,7 +5,6 @@ todo:
 if crouch when end of foot sweep (back or front) 
 then connect to crouch
 crouch connects to reverse punch: implemented? check
-implement "TOCODE" tags in computer_ai.s
 
 if py<(py_start-32) (not jumping)
 if going left and 0<px-px_other<threshold, don't move left
@@ -33,21 +32,26 @@ multiple evade objects: can be displayed at the same time
 
 - table at A529 dump it
 
-- to code: how much cpu holds block
+- how much cpu holds block 
+- fake fight in title screen
+- demo in level 4 cpu vs cpu
 - check cpu move speed from videos with varying skill level: no need: frame speed up
   has been reversed, now have to code it
-- skill level in options: test it  
 - define debug variable so CPU only performs jump attacks
 - define debug variable so CPU always jumps to avoid low kicks
+- define debug variable where cpu blocks
 
 bugs:
 
 - computer should not move past player either (implement player x boundary
-  when not jumping): should be able to perform weak reverse punch and hit
+  when not jumping): should be able to perform weak reverse punch and hit:
+  leave the computer come close without moving to test
 - computer score doesn't show all the time
-- tests jumps as it seems to fail... cpu tries to jump several times
+- when hit, player falls too fast: freeze frames
+- tests jumps as it seems to fail... cpu tries to jump (?) several times
   before performing a ground attack
 - jumping side kick cpu stays stuck (jumping back seems ok)
+- hardest difficulty level seems to bug less...
 - when hit in the air, player should fall down
 - movement lock of player when opponent is hit doesn't seem to work
 - jump: too short, maybe duplicate frame sequence
@@ -55,8 +59,6 @@ bugs:
 - evade: player moves: trashes object update
 - evade: sometimes random end to practice with start music... then crash...
 - 2P game over player message: doesn't stay long enough
-- test fight against cpu: win & lose
-- when hit, player falls too fast
 - demo/plank level scoring is complete bogus
 - intro karateka wrong move (sometimes stuck x=0 on left) + pb erase
 - break planks sometimes breaks planks while away

@@ -176,9 +176,9 @@ Execbase  = 4
 ; ---------------debug/adjustable variables
 
 ; if set skips intro, game starts immediately
-DIRECT_GAME_START
+;DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
-DIRECT_GAME_START_2P_IS_CPU = 1
+;DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
 ;PLAYERS_START_CLOSE
 ; practice has only 1 move
@@ -3102,7 +3102,7 @@ draw_options_values
 	moveq.l	#0,d0
 	move.w	#80,d1
 	move.w	#40,d2
-	move.w	#40,d3
+	move.w	#56,d3
 	bsr		erase_4_planes
 	bsr		wait_blit
 	
@@ -4226,7 +4226,7 @@ update_all
 	btst	#JPB_BTN_DOWN,d0
 	beq	.no_down
 	addq.w	#1,option_index
-	cmp.w	#3,option_index
+	cmp.w	#4,option_index
 	bne	.okdown
 	move.w	#0,option_index
 .no_down
@@ -9040,6 +9040,8 @@ options_message_list
 	dc.w	8,80+16
 	dc.l	controls_2p_message
 	dc.w	8,80+32
+	dc.l	skill_level_message
+	dc.w	8,80+48
 	dc.l	human_1p_player_message
 	dc.w	-1
 	
@@ -9058,6 +9060,8 @@ options_values_strings_list
 	dc.w	24+80,80+16
 	dc.l	0
 	dc.w	24+80,80+32
+	dc.l	0
+	dc.w	24+80,80+48
 	dc.l	0
 	dc.w	-1
 	
@@ -9085,6 +9089,7 @@ option_name_table_skill_level
 	dc.l	option_medium
 	dc.l	option_hard
 	dc.l	option_hardest
+	dc.l	-1
 	
 practice_message_list
 	dc.w	56,112
@@ -9773,6 +9778,8 @@ controls_2p_message
 	dc.b	"P2 CONTROLS",0
 human_1p_player_message
 	dc.b	"HUMAN 1P",0
+skill_level_message
+	dc.b	"DIFFICULTY",0
 credits_1_message
 	dc.b	"AMIGA VERSION 2022",0
 credits_2_message
