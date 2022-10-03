@@ -43,11 +43,14 @@ multiple evade objects: can be displayed at the same time
 
 bugs:
 
+- when hit, player falls too fast/first blow frame is skipped:
+  done for round blow, process other blow frames
+- girl animation at start: cloudy stuff above the girl isn't updated anymore
 - computer should not move past player either (implement player x boundary
   when not jumping): should be able to perform weak reverse punch and hit:
   leave the computer come close without moving to test
 - computer score doesn't show all the time
-- when hit, player falls too fast: freeze frames
+
 - tests jumps as it seems to fail... cpu tries to jump (?) several times
   before performing a ground attack
 - jumping side kick cpu stays stuck (jumping back seems ok)

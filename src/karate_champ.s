@@ -176,11 +176,11 @@ Execbase  = 4
 ; ---------------debug/adjustable variables
 
 ; if set skips intro, game starts immediately
-;DIRECT_GAME_START
+DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
 ;DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
-;PLAYERS_START_CLOSE
+PLAYERS_START_CLOSE
 ; practice has only 1 move
 ;SHORT_PRACTICE
 ; repeat a long time just to test moves
@@ -395,6 +395,7 @@ START_LEVEL_TYPE = GM_PRACTICE
 NULL = 0
 
 ; in 1/60 seconds aka frames
+
 PRACTICE_SKIP_MESSAGE_LEN = 210
 PRACTICE_WAIT_BEFORE_NEXT_MOVE = 45
 PRACTICE_MOVE_DURATION = PRACTICE_WAIT_BEFORE_NEXT_MOVE*2
@@ -4474,7 +4475,7 @@ update_normal:
     bsr update_player
     lea     player_2(pc),a4
     bsr update_player
-.wait
+
     rts
 	
 .round_ended
@@ -6460,8 +6461,7 @@ fill_opponent_evade_bull_shared
 	bne	.opposed
 	move.w	current_back_blow_type(a5),d0
 .opposed
-	move.w	d0,hit_by_blow(a4)		; opponent (player) is hit
-
+	bsr		set_hit_by_blow		; opponent (player) is hit
 	rts
 	
 fill_opponent_break
@@ -6598,6 +6598,13 @@ award_200_points
 	move.l	(a7)+,d0
 	rts
 	
+; < D0: blow type
+; < A4: player structure
+set_hit_by_blow
+	move.w	d0,hit_by_blow(a4)
+	; players can't be controlled anymore
+	st.b	controls_blocked_flag
+	rts
 	
 	
 ; what: scans player attacking coords (fist, foot)
@@ -6677,7 +6684,8 @@ check_collisions:
 	bne	.out
 	; break current object
 	lea		evade_object(pc),a4
-	move.w	#BLOW_STOMACH,hit_by_blow(a4)	; anything != BLOW_NONE will do
+	move.w	#BLOW_STOMACH,d0
+	bsr		set_hit_by_blow	; anything != BLOW_NONE will do
 	bra	.out
 .normal
 	; note down the move
@@ -6719,11 +6727,11 @@ check_collisions:
 	bne	.opposed
 	move.w	current_back_blow_type(a4),d0
 .opposed
-	move.w	d0,hit_by_blow(a0)		; opponent is hit
+	exg		a0,a4
+	bsr		set_hit_by_blow
+	exg		a0,a4		; opponent is hit
 	clr.w	frame(a0)
-	; players can't be controlled anymore
-	st.b	controls_blocked_flag
-	; but maintain last technique a few frames
+	; but maintain last attacker technique a few frames
 	move.l	joystick_state(a4),frozen_joystick_state(a4)
 	move.w	#TICKS_PER_SEC_DRAW/2,frozen_controls_timer(a4)
 .out
@@ -8682,6 +8690,9 @@ joystick_port_0_value:
 	dc.l	0
 joystick_port_0_previous_value
 	dc.l	0
+	
+hit_freeze_ticks_timer
+	dc.w	0
 	
 generic_table_pointer
 	dc.l	0
