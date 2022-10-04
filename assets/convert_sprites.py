@@ -280,7 +280,15 @@ def process_player_tiles():
     walking_anims = ["walk_forward","forward","walk_backwards","backwards"]
     moves_list.difference_update(walking_anims)
 
-    moves_list = walking_anims+sorted(moves_list)
+    # blow frames in the end, so if they're shared with normal frames
+    # the blow mask (which doesn't exist) won't be the one referenced
+
+    blow_list = []
+    other_list = []
+    for m in moves_list:
+        (blow_list if "blow" in m else other_list).append(m)
+
+    moves_list = walking_anims+sorted(other_list)+sorted(blow_list)
 
     hit_dict = dict()
 
