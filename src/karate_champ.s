@@ -176,11 +176,11 @@ Execbase  = 4
 ; ---------------debug/adjustable variables
 
 ; if set skips intro, game starts immediately
-DIRECT_GAME_START
+;DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
 ;DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
-PLAYERS_START_CLOSE
+;PLAYERS_START_CLOSE
 ; practice has only 1 move
 ;SHORT_PRACTICE
 ; repeat a long time just to test moves
@@ -2007,30 +2007,7 @@ draw_first_all
 	bsr	draw_background_pic
 	rts
 	
-.draw_player_vs_player:
-	move.w	#32,D0
-	move.w	#224,d1
-	move.w	#$000,D2
-	lea		.player_vs_blank_string(pc),a0
-	bsr		write_blanked_color_string
-	move.w	#40,D0
-	move.w	#$FFF,d2
-	lea		.player_vs_string(pc),a0
-	bsr		write_color_string
-	move.w	#120,d0
-	move.w	#$F00,d2
-	lea		.player_string(pc),a0
-	bsr		write_color_string
-	
-	rts
 
-.player_vs_string
-	dc.b	"PLAYER VS ",0
-.player_string
-	dc.b	"PLAYER ",0
-.player_vs_blank_string
-	dc.b	"//////////////////",0
-	even
 .init1	
     bsr hide_sprites
 	bsr	draw_background_pic
@@ -3266,7 +3243,6 @@ draw_bull:
 ; < d0: width (bytes) counting 2 last bytes shifting
 ; < d1: height
 mirror:
-	rts
 	movem.l	d0-d7/a0-a1,-(a7)
 	lea	byte_mirror_table(pc),a1
 	subq.l	#1,d1
@@ -3315,7 +3291,38 @@ draw_intro_screen
 	bsr		draw_player
 	lea		player_2(pc),a4
 	bsr		draw_player
+	
+	bsr		.draw_player_vs_player
+	
 	rts
+
+.draw_player_vs_player:
+	move.w	#32,D0
+	move.w	#224,d1
+	move.w	#$000,D2
+	lea		.player_vs_blank_string(pc),a0
+	bsr		write_blanked_color_string
+	move.l	state_timer(pc),d0
+	btst	#6,d0
+	beq.b	.out
+	move.w	#40,D0
+	move.w	#$FFF,d2
+	lea		.player_vs_string(pc),a0
+	bsr		write_color_string
+	move.w	#120,d0
+	move.w	#$F00,d2
+	lea		.player_string(pc),a0
+	bsr		write_color_string
+.out
+	rts
+
+.player_vs_string
+	dc.b	"PLAYER VS ",0
+.player_string
+	dc.b	"PLAYER ",0
+.player_vs_blank_string
+	dc.b	"//////////////////",0
+	even
 	
 .draw_step_1
 	; too annoying to handle clipping/wrapping on
@@ -5468,7 +5475,10 @@ update_intro_screen
 	beq	.update_step_1
 	; step 2
 	move.l	d0,state_timer
-	
+    lea     player_1(pc),a4
+    bsr update_player
+    lea     player_2(pc),a4
+    bsr update_player
 	rts
 	
 .update_step_1
@@ -5499,8 +5509,14 @@ update_intro_screen
 	move.w	#$81,background_number	; bicolor simple screen
 	clr.l	state_timer
 	move.b	#2,intro_step
+	move.w	#2,players_reinit_flag	; init everything
 	bsr		init_players_and_referee
-	
+
+    lea     player_1(pc),a4
+    st.b	is_cpu(a4)
+    lea     player_2(pc),a4
+    st.b	is_cpu(a4)
+
 	rts
 
 	
@@ -5521,8 +5537,7 @@ BOUNCE_Y_MAX = 48
 	move.w	d1,ypos(a4)
 	move.w	xpos(a4),d0
 	subq.w	#3,d0
-	cmp.w	#-32,d0
-	bgt	.ok
+	bpl	.ok
 	move.w	#SCREEN_WIDTH-16,d0
 .ok
 	move.w	d0,xpos(a4)
@@ -6615,6 +6630,9 @@ set_hit_by_blow
 ; > D0: 1 if hit, 0 otherwise
 ; trashes: A1,A2,D1-D7
 check_collisions:
+	btst	#7,background_number+1	; $81: blue kchamp screen: no hits
+	bne.b	.done
+
 	move.l	frame_set(a4),a1
 	add.w	frame(a4),a1
 	move.l	(full_hit_data,a1),a2		; hit list
