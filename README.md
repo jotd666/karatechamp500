@@ -39,8 +39,7 @@ multiple evade objects: can be displayed at the same time
 bugs:
 
 - fake fight in title screen: not working
-- computer should not move past player either (implement player x boundary
-  when not jumping): should be able to perform weak reverse punch and hit:
+- computer should not move past player either: should be able to perform weak reverse punch and hit:
   leave the computer come close without moving to test
 - points (not score) doesn't show all the time (cpu or human)
 - after winning a round by timeout, opponent doesn't move anymore (cpu)
@@ -53,7 +52,6 @@ bugs:
 - evade collisions: front ok, back move ko (and trashes game)
 - evade: player moves: trashes object update
 - evade: sometimes random end to practice with start music... then crash...
-- 2P game over player message: doesn't stay long enough
 - demo/plank level scoring is complete bogus
 - intro karateka wrong move (sometimes stuck x=0 on left) + pb erase
 - break planks sometimes breaks planks while away
@@ -62,6 +60,7 @@ bugs:
 
 minor:
 
+- 2P game over player message: doesn't stay long enough
 - check/fix consistency in options
 - movement lock of player when opponent is hit doesn't seem to work
 - optimization: do not check hits if player distance is too high

@@ -135,6 +135,7 @@ hand_both_flags = hand_red_or_japan_flag
 	APTR	awarded_score_sprite
 	APTR	awarded_score_sprite_2
 	UWORD	awarded_score_display_timer	
+	UWORD	ypos_init
 	UWORD	block_lock
 	UWORD	nb_rounds_won
 	UWORD	rough_distance
@@ -176,11 +177,11 @@ Execbase  = 4
 ; ---------------debug/adjustable variables
 
 ; if set skips intro, game starts immediately
-;DIRECT_GAME_START
+DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
 ;DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
-;PLAYERS_START_CLOSE
+PLAYERS_START_CLOSE
 ; practice has only 1 move
 ;SHORT_PRACTICE
 ; repeat a long time just to test moves
@@ -1795,6 +1796,7 @@ init_players_and_referee:
     move.w	p1_init_ypos(a1),d6		; save for p2 y
 	
 	move.w	d6,ypos(a4)
+	move.w	d6,ypos_init(a4)
  	lea		walk_forward_frames,a0
 	bsr		load_walk_frame 
 
@@ -1809,6 +1811,7 @@ init_players_and_referee:
     move.w	p2_init_ypos(a1),ypos(a4)
 	bne	.no_zero_y
 	move.w	d6,ypos(a4)		; 0 means same y as p1
+	move.w	d6,ypos_init(a4)
 .no_zero_y
 	sub.w	#50,d6	; margin y where players can't go
 	move.w	d6,level_players_y_min
@@ -6117,7 +6120,7 @@ show_score_sprite
 add_x_player:
 	cmp.w	#STATE_INTRO_SCREEN,current_state
 	beq	.simple
-	movem.l	a0/d1-d3,-(a7)
+	movem.l	a0/d1-d4,-(a7)
 	move.w	#X_MIN,d2
 	move.w	#X_MAX,d3
 	move.w	direction(a4),d1
@@ -6137,6 +6140,35 @@ add_x_player:
 	add.w	d1,d2
 	add.w	d1,d3
 .minmax_correct
+	; min & max are computed for the scenery, but
+	; in fight mode, if both players are on ground, we
+	; must avoid that players get too close from each other
+	cmp.w	#GM_NORMAL,current_state
+	bne	.go
+	move.w	ypos_init(a4),d1
+	cmp.w	ypos(a4),d1
+	bne	.go
+	move.l	opponent(a4),a3
+	cmp.w	ypos(a3),d1
+	bne	.go
+	; both players are on the ground
+	move.w	xpos(a4),d1		; pre-load x in d1
+	move.w	xpos(a3),d4		; pre-load opponent x in d4
+	tst.w	d0
+	bpl.b	.moving_right
+	; moving left, change min x only if opponent is on the left
+	cmp.w	d4,d1
+	bcs	.go		; skip because opponent is on the right
+	move.w	d4,d2
+	add.w	#16,d2	; new min limit
+	bra		.go
+.moving_right
+	; moving right, change max x only if opponent is on the right
+	cmp.w	d4,d1
+	bcc	.go
+	move.w	d4,d3
+	sub.w	#16,d3	; new max limit
+.go
 	move.w	xpos(a4),d1
 	add.w	d0,d1
 	tst		d0
@@ -6154,7 +6186,7 @@ add_x_player:
 	move.w	d2,d1
 .store
 	move.w	d1,xpos(a4)
-	movem.l	(a7)+,a0/d1-d3
+	movem.l	(a7)+,a0/d1-d4
 	rts
 .simple
 	; no check, no boundary checking
