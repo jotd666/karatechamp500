@@ -37,15 +37,23 @@ multiple evade objects: can be displayed at the same time
 - define debug variable where cpu blocks
 
 bugs:
-
+- if (non-AI) distance is too close, cancel/convert some moves (like
+  if forward direction wasn't set)
+  lunge punch medium => front kick
+  lunge punch forward => round kick
+- distance: maybe add a small bias because computer seems to attack from too close
+  with for instance lunge forward and thus miss.
+- if too many misses, add extra half point pixels outside foot/fist
 - fake fight in title screen: not working
-- computer should not move past player either: should be able to perform weak reverse punch and hit:
-  leave the computer come close without moving to test
+- back kick when facing: sometimes hits opponent!, 
+  same for back round kick at a distance
+- technique name displayed 8 pix X too to the right
 - points (not score) doesn't show all the time (cpu or human)
+- timeout: players can still fight & win. stop all moves when "stop" ?
 - after winning a round by timeout, opponent doesn't move anymore (cpu)
 - tests jumps as it seems to fail... cpu tries to jump (?) several times
   before performing a ground attack
-- jumping side kick cpu stays stuck (jumping back seems ok)
+- cpu jumping back/side kick cpu stays stuck
 - hardest difficulty level seems to bug less...
 - when hit in the air, player should fall down
 - jump: too short, maybe duplicate frame sequence

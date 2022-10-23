@@ -176,12 +176,13 @@ Execbase  = 4
 
 ; ---------------debug/adjustable variables
 
+;;BRANCH_COVERAGE
 ; if set skips intro, game starts immediately
 DIRECT_GAME_START
 ;DIRECT_GAME_START_1P_IS_CPU = 1
-;DIRECT_GAME_START_2P_IS_CPU = 1
+DIRECT_GAME_START_2P_IS_CPU = 1
 ; if set, players are very close at start (test mode)
-PLAYERS_START_CLOSE
+;PLAYERS_START_CLOSE
 ; practice has only 1 move
 ;SHORT_PRACTICE
 ; repeat a long time just to test moves
@@ -560,6 +561,9 @@ ADD_XY_TO_A1_28:MACRO
 
     
 Start:
+	IFD	BRANCH_COVERAGE
+	jsr		cov_init
+	ENDC
         ; if D0 contains "WHDL"
         ; A0 contains resload
         
@@ -6739,7 +6743,12 @@ check_collisions:
 	bra	.out
 .normal
 	; note down the move
-	move.l	joystick_state(a4),connecting_move_bits(a4)
+	move.l	joystick_state(a4),D0
+	tst.b	is_cpu(a4)
+	beq.b	.human
+	move.l	frozen_joystick_state(a4),d0
+.human:
+	move.l	d0,connecting_move_bits(a4)
 	
 	; show & award score
 	; don't show/award points yet. There's some
@@ -10218,8 +10227,12 @@ handle_ai
 	move.l	current_move_key,d0
 	rts
 	
-.normal	
+.normal
+	IFD		BRANCH_COVERAGE
+	include	../computer_ai.s
+	ELSE
 	include	computer_ai.s
+	ENDC
 	
     include ptplayer.s
 

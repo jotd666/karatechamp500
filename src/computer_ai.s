@@ -8,6 +8,7 @@ DECIDE_MOVE:MACRO
 ; < A4: computer player structure
 
 handle_cpu_opponent:
+	LOGPC	100
 	; is the computer letting opponent attack before attacking itself?
 	move.w	computer_next_attack_timer(a4),d0
 	beq.b	.main_ai
