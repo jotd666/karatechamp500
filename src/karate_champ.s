@@ -970,7 +970,7 @@ intro:
     ;;move.w #$8060,dmacon(a5)        ; réinitialisation du canal DMA
 
     move.l  _gfxbase,a6
-    move.l gb_ActiView(a6),a1
+    move.l gfxbase_actiview,a1
     jsr (_LVOLoadView,a6)
     
     move.l  4.W,A6
