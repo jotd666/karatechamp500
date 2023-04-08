@@ -830,7 +830,7 @@ with open("palette.json","w") as f:
 # pad to 16
 padded_palette = palette + [(0,0,0)]*(16-len(palette))
 
-bitplanelib.palette_dump(padded_palette,os.path.join(source_dir,"palette.s"),as_copperlist=False)
+bitplanelib.palette_dump(padded_palette,os.path.join(source_dir,"palette.s"))
 
 with open(os.path.join(source_dir,"background_palette.s"),"w") as f:
     f.write("""    STRUCTURE   SpecificPalette,0

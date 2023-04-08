@@ -167,7 +167,6 @@ hand_both_flags = hand_red_or_japan_flag
 
 ;graphics base
 
-StartList = 38
 
 Execbase  = 4
 
@@ -622,7 +621,8 @@ Start:
     tst.l   _resload
     bne   .no_forbid
     move.l  _gfxbase(pc),a4
-    move.l StartList(a4),gfxbase_copperlist
+    move.l gb_copinit(a4),gfxbase_copperlist
+    move.l gb_ActiView(a4),gfxbase_actiview
 
     move.l  4,a6
     jsr _LVOForbid(a6)
@@ -632,14 +632,16 @@ Start:
 	move.l	D0,A0
 	move.l	#-1,pr_WindowPtr(A0)	; no more system requesters (insert volume, write protected...)
 
+    sub.l   a1,a1
+    move.l  a4,a6
+    jsr (_LVOLoadView,a6)
+    jsr (_LVOWaitTOF,a6)
+    jsr (_LVOWaitTOF,a6)
+	
+
     
 .no_forbid
     
-;    sub.l   a1,a1
-;    move.l  a4,a6
-;    jsr (_LVOLoadView,a6)
-;    jsr (_LVOWaitTOF,a6)
-;    jsr (_LVOWaitTOF,a6)
 
 	IFD		DIRECT_GAME_START
     move.w  #STATE_GAME_START_SCREEN,current_state
@@ -963,10 +965,13 @@ intro:
 
     lea _custom,a5
     move.l  _gfxbase,a1
-    move.l  gfxbase_copperlist,StartList(a1) ; adresse du début de la liste
     move.l  gfxbase_copperlist,cop1lc(a5) ; adresse du début de la liste
     clr.w  copjmp1(a5)
     ;;move.w #$8060,dmacon(a5)        ; réinitialisation du canal DMA
+
+    move.l  _gfxbase,a6
+    move.l gb_ActiView(a6),a1
+    jsr (_LVOLoadView,a6)
     
     move.l  4.W,A6
     move.l  _gfxbase,a1
@@ -974,7 +979,7 @@ intro:
     move.l  _dosbase,a1
     jsr _LVOCloseLibrary(a6)
     
-    jsr _LVOPermit(a6)                  ; Task Switching autorisé
+    jsr _LVOPermit(a6)                  ; Task Switching allowed
     moveq.l #0,d0
     rts
 
@@ -3501,14 +3506,14 @@ clear_plane_any_blitter:
 clear_plane_any_blitter_internal:
     ; pre-compute the maximum of shit here
     lea mulNB_BYTES_PER_LINE_table(pc),a2
-    add.w   d1,d1
-    beq   .d1_zero    ; optim
-    move.w  (a2,d1.w),d1
     swap    d1
     clr.w   d1
     swap    d1
+    beq.b   .d1_zero    ; optim
+    add.w   d1,d1
+    move.w  (a2,d1.w),d1
 .d1_zero
-    move.l  #$030A0000,d5   ; minterm useC useD & rect clear (0xA) 
+    move.l  #$01000000,d5   ; minterm useD
     move    d0,d6
     beq   .d0_zero
     and.w   #$F,d6
@@ -3539,8 +3544,6 @@ clear_plane_any_blitter_internal:
     move.l  d3,bltafwm(a5)
 	move.l d5,bltcon0(a5)	
     move.w  d0,bltdmod(a5)	;D modulo
-	move.w  #-1,bltadat(a5)	;source graphic top left corner
-	move.l a1,bltcpt(a5)	;destination top left corner
 	move.l a1,bltdpt(a5)	;destination top left corner
 	move.w  d4,bltsize(a5)	;rectangle size, starts blit
     rts
@@ -3548,12 +3551,35 @@ clear_plane_any_blitter_internal:
     
 init_sound
     ; init phx ptplayer, needs a6 as custom, a0 as vbr (which is zero)
-    sub.l   a0,a0
+    bsr	get_vbr
     moveq.l #1,d0
     lea _custom,a6
     jsr _mt_install_cia
     rts
     
+; return system VBR
+; or 0 if whdload mode
+get_vbr:
+	sub.l	a0,a0
+	movem.l	d0/a5/a6,-(a7)
+	tst.l	_resload
+	bne.b	.out
+	move.l	4.w,a6
+	move.b	AttnFlags+1(A6),D0
+	btst	#AFB_68010,D0
+	beq.b	.out
+	lea		.sup(pc),a5
+	jsr		_LVOSupervisor(a6)
+	movem.l	(a7)+,d0/a5/a6
+.out:
+	rts
+
+.sup:
+	mc68010
+	movec	vbr,a0
+	mc68000
+	rte
+	
 init_interrupts
     lea _custom,a6
     sub.l   a0,a0
@@ -3561,8 +3587,8 @@ init_interrupts
     move.w  (dmaconr,a6),saved_dmacon
     move.w  (intenar,a6),saved_intena
 
-    sub.l   a0,a0
-    ; assuming VBR at 0
+	bsr		get_vbr
+	
     lea saved_vectors(pc),a1
     move.l  ($8,a0),(a1)+
     move.l  ($c,a0),(a1)+
@@ -3580,7 +3606,7 @@ init_interrupts
     move.l  a1,($28,a0)
     lea   exc2f(pc),a1
     move.l  a1,($2c,a0)
-    
+ 
     lea level2_interrupt(pc),a1
     move.l  a1,($68,a0)
     
@@ -3653,16 +3679,14 @@ lockup
 	
 finalize_sound
     bsr stop_sounds
-    ; assuming VBR at 0
-    sub.l   a0,a0
+    bsr	get_vbr
     lea _custom,a6
     jsr _mt_remove_cia
     move.w  #$F,dmacon(a6)   ; stop sound
     rts
     
 restore_interrupts:
-    ; assuming VBR at 0
-    sub.l   a0,a0
+    bsr		get_vbr
     
     lea saved_vectors(pc),a1
     move.l  (a1)+,($8,a0)
@@ -3684,15 +3708,6 @@ restore_interrupts:
 
     rts
     
-saved_vectors
-        dc.l    0,0,0   ; some exceptions
-        dc.l    0   ; keyboard
-        dc.l    0   ; vblank
-        dc.l    0   ; cia b
-saved_dmacon
-    dc.w    0
-saved_intena
-    dc.w    0
 
 ; what: level 2 interrupt (keyboard)
 ; args: none
@@ -7479,10 +7494,6 @@ blit_plane_any_internal_cookie_cut:
     movem.l (a7)+,d0-d6/a2/a4
     rts
 
-blit_mul_table
-	dc.l	mulNB_BYTES_PER_LINE_table
-blit_nb_bytes_per_row
-	dc.w	NB_BYTES_PER_LINE
 ; what: blits data on 4 planes (no cookie cut)
 ; shifted, full mask, W/H generic
 ; args:
@@ -7548,7 +7559,7 @@ blit_4_planes_cookie_cut:
     movem.l (a7)+,d0-d6/a0-a3/a5
     rts
 
-wait_blit
+wait_blit:
 	TST.B	$BFE001
 .wait
 	BTST	#6,dmaconr+$DFF000
@@ -8320,8 +8331,8 @@ play_music
 	bne	.out
     movem.l d0-a6,-(a7)
     lea _custom,a6
+    sub.l	a1,a1	; no samples
     lea music,a0
-    sub.l   a1,a1
     bsr _mt_init
     ; set master volume a little less loud
     ; supposed to be max at 64 but actually 20 is already
@@ -8713,6 +8724,13 @@ check_if_facing_each_other:
 	movem.l	(a7)+,D1/A0
 	rts
 	
+
+    include ReadJoyPad.s
+    include	RNC_1C.s
+	
+	; buffer to avoid fake prefetch errors with winuae
+	ds.l	64
+
 _dosbase
     dc.l    0
 _gfxbase
@@ -8732,13 +8750,27 @@ cdtvname:
 graphicsname:   dc.b "graphics.library",0
 dosname
         dc.b    "dos.library",0
-            even
-
-    include ReadJoyPad.s
-    include	RNC_1C.s
-	
+            even	
     ; main variables
-gfxbase_copperlist
+
+saved_vectors
+	dc.l    0,0,0   ; some exceptions
+	dc.l    0   ; keyboard
+	dc.l    0   ; vblank
+	dc.l    0   ; cia b
+saved_dmacon
+    dc.w    0
+saved_intena
+    dc.w    0
+	
+blit_mul_table
+	dc.l	mulNB_BYTES_PER_LINE_table
+blit_nb_bytes_per_row
+	dc.w	NB_BYTES_PER_LINE
+
+gfxbase_copperlist:
+    dc.l    0
+gfxbase_actiview:
     dc.l    0
 joystick_port_1_value:
 	dc.l	0
