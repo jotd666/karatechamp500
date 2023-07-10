@@ -26,6 +26,7 @@ with open("../src/karate_champ_z80.asm","rb") as f:
             if inst_toks:
                 inst_dict[offset] = {"tokens":inst_toks,"comment":comment}
 
+nb_tables = 0
 for offset,data in inst_dict.items():
     inst_toks = data["tokens"]
     if "immediate" in data["comment"]:
@@ -44,4 +45,6 @@ for offset,data in inst_dict.items():
                 pass
             else:
                 print(f"{offset:04x}: load {value:04x}, {inst_toks}")
+                nb_tables+=1
 
+print(f"Unlabelled tables {nb_tables}")
