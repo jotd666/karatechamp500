@@ -2,6 +2,8 @@ This is a 1:1 attempt of a remake of Karate Champ VS on the Amiga 500
 
 todo:
 
+create an event system to replace all buggy timers, start by round timer
+
 if crouch when end of foot sweep (back or front) 
 then connect to crouch
 crouch connects to reverse punch: implemented? check

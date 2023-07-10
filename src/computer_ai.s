@@ -8,7 +8,7 @@ DECIDE_MOVE:MACRO
 ; < A4: computer player structure
 
 handle_cpu_opponent:
-	LOGPC	100
+	;;LOGPC	100
 	; is the computer letting opponent attack before attacking itself?
 	move.w	computer_next_attack_timer(a4),d0
 	beq.b	.main_ai
@@ -265,7 +265,7 @@ maybe_attack_opponent_A53B
 	move.w	fine_distance(a4),d0
 	bclr	#7,d0
 	
-	move.w	d0,$110		; TEMP
+	;;move.w	d0,$110		; TEMP
 	
 	add.w	d0,d0
 	add.w	d0,d0
@@ -273,7 +273,7 @@ maybe_attack_opponent_A53B
 
 
 	bsr		classify_opponent_move_start_A665
-	move.w	d0,$112		; TEMP
+	;;move.w	d0,$112		; TEMP
 	add.w	d0,d0
 	add.w	d0,d0
 	move.l	(a2,d0.w),a0

@@ -1,5 +1,0 @@
-{"name": "win", "hit_mask":false,
-"symmetrical":true,
-"loops":true,
-"rollback_frame":-1,
-"deltas": [[0,0,4], [16, 0, 0], [16, 0, 0]]}

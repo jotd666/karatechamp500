@@ -444,11 +444,6 @@ mt_TimerBInt:
 	nop
 	rte
 
-mt_dmaon:
-	dc.w	$8000
-TB_toggle:
-	dc.b	0
-	even
 
 
 ;---------------------------------------------------------------------------
@@ -3181,6 +3176,12 @@ MasterVolTab64:
 	even
 	endc	; !MINIMAL
 
+
+mt_dmaon:
+	dc.w	$8000
+TB_toggle:
+	dc.b	0
+	even
 
 	ifd	SDATA
 
