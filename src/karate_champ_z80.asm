@@ -10747,7 +10747,7 @@ E3AF: A0          and  b
 E3B0: 10 A0       djnz $E352
 E3B2: 0E A0       ld   c,$A0
 E3B4: FF          rst  $38
-%%DCL
+%%DCB
 E44F: CD 64 F7    call $FDC4
 E452: FD 21 90 6D ld   iy,$C730
 E456: 21 25 C2    ld   hl,$6885
@@ -12393,7 +12393,7 @@ FDE0: C9          ret
 table_FDE1:
 %%DCB
 table_FE14:
-%%DCB:
+%%DCB
 table_FE45:
 %%DCB
 table_FE76:
