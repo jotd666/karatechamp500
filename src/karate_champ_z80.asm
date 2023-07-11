@@ -5228,22 +5228,10 @@ practice_table_end_6361:
 6ACE: FD 23       inc  iy
 6AD0: FD 23       inc  iy
 6AD2: C3 BD CA    jp   $6AB7
-6AD5: ED 44       neg
-6AD7: E2 44 E3    jp   po,$E944
-6ADA: 44          ld   b,h
-6ADB: 00          nop
-6ADC: 45          ld   b,l
-6ADD: 00          nop
-6ADE: 45          ld   b,l
-6ADF: FF          rst  $38
-6AE0: FF          rst  $38
-
-
-referee_start_position_table_6AE1
-6AE1  C0 48 78 70 78 58 78 70 78 70 78 70 78 70 78 70   ÀHxpxXxpxpxpxpxp
-6AF1  78 70 91 70 78 70 88 58 78 70 78 70 78 70 78 70   xp.pxp.Xxpxpxpxp
-6B01  78 58
-
+table_6AD5:
+%%DCB
+referee_start_position_table_6AE1:
+%%DCB
 6B03: DD 21 00 6D ld   ix,referee_x_pos_C700
 6B07: 11 04 00    ld   de,$0004
 6B0A: 06 05       ld   b,$05
@@ -5268,6 +5256,7 @@ referee_start_position_table_6AE1
 6B37: 3E 00       ld   a,$00
 6B39: 32 E3 61    ld   (referee_walk_direction_C1E9),a
 6B3C: C9          ret
+
 6B3D: 21 0C 08    ld   hl,$0206
 6B40: 11 64 CB    ld   de,$6BC4
 6B43: 3A 1A 63    ld   a,(player_1_points_C91A)
@@ -5374,63 +5363,8 @@ clear_text_6C2C:
 6C31: CD 93 B0    call display_text_B039
 6C34: C9          ret
 
-6C35: 05          dec  b
-6C36: 05          dec  b
-6C37: 92          sub  d
-6C38: 96          sub  (hl)
-6C39: 96          sub  (hl)
-6C3A: 96          sub  (hl)
-6C3B: 96          sub  (hl)
-6C3C: 96          sub  (hl)
-6C3D: 96          sub  (hl)
-6C3E: 96          sub  (hl)
-6C3F: 96          sub  (hl)
-6C40: FE 05       cp   $05
-6C42: 0C          inc  c
-6C43: 92          sub  d
-6C44: 96          sub  (hl)
-6C45: 96          sub  (hl)
-6C46: 96          sub  (hl)
-6C47: 96          sub  (hl)
-6C48: 96          sub  (hl)
-6C49: 96          sub  (hl)
-6C4A: 96          sub  (hl)
-6C4B: 96          sub  (hl)
-6C4C: FE 05       cp   $05
-6C4E: 0D          dec  c
-6C4F: 93          sub  e
-6C50: 9A          sbc  a,d
-6C51: 9A          sbc  a,d
-6C52: 9A          sbc  a,d
-6C53: 9A          sbc  a,d
-6C54: 9A          sbc  a,d
-6C55: 9A          sbc  a,d
-6C56: 9A          sbc  a,d
-6C57: 9A          sbc  a,d
-6C58: FF          rst  $38
-6C59: 05          dec  b
-6C5A: 05          dec  b
-6C5B: E0          ret  po
-6C5C: E1          pop  hl
-6C5D: 77          ld   (hl),a
-6C5E: 77          ld   (hl),a
-6C5F: 77          ld   (hl),a
-6C60: 77          ld   (hl),a
-6C61: 77          ld   (hl),a
-6C62: E8          ret  pe
-6C63: E9          jp   (hl)
-6C64: FE 05       cp   $05
-6C66: 0C          inc  c
-6C67: 67          ld   h,a
-6C68: FE 07       cp   $0D
-6C6A: 0C          inc  c
-6C6B: 70          ld   (hl),b
-6C6C: FE 05       cp   $05
-6C6E: 0D          dec  c
-6C6F: EC ED E2    call pe,$E8E7
-6C72: E2 E2 E2    jp   po,$E8E8
-6C75: E2 E3 EA    jp   po,$EAE9
-6C78: FF          rst  $38
+table_6C35:
+%%DCB
 6C79: 01 0B 08    ld   bc,$020B
 6C7C: FD 21 E0 61 ld   iy,$C1E0
 6C80: FD 7E 0A    ld   a,(iy+$0a)
@@ -7231,7 +7165,7 @@ evade_object_period_table_79D9:
 7A85: 0C          inc  c
 7A86: 10 EC       djnz $7A6E
 7A88: C9          ret
-7A89: DD 21 18 DB ld   ix,$7B12
+7A89: DD 21 18 DB ld   ix,table_7B12
 7A8D: 3A 11 63    ld   a,(background_and_state_bits_C911)
 7A90: CB BF       res  7,a
 7A92: FE 50       cp   $50
@@ -7242,7 +7176,7 @@ evade_object_period_table_79D9:
 7A9B: 87          add  a,a
 7A9C: 4F          ld   c,a
 7A9D: 06 00       ld   b,$00
-7A9F: DD 21 18 DB ld   ix,$7B12
+7A9F: DD 21 18 DB ld   ix,table_7B12
 7AA3: DD 09       add  ix,bc
 7AA5: DD 7E 00    ld   a,(ix+$00)
 7AA8: DD A6 01    and  (ix+$01)
@@ -7283,7 +7217,7 @@ evade_object_period_table_79D9:
 7AEC: A7          and  a
 7AED: C8          ret  z
 7AEE: 01 0C 14    ld   bc,$1406
-7AF1: 21 08 DB    ld   hl,$7B02
+7AF1: 21 08 DB    ld   hl,table_7B02
 7AF4: C5          push bc
 7AF5: CD 96 B0    call $B03C
 7AF8: C1          pop  bc
@@ -7291,117 +7225,10 @@ evade_object_period_table_79D9:
 7AFC: 16 32       ld   d,$98
 7AFE: CD 9F B0    call $B03F
 7B01: C9          ret
-7B02: 14          inc  d
-7B03: 05          dec  b
-7B04: 08          ex   af,af'
-7B05: 32 1E 32    ld   ($981E),a
-7B08: 13          inc  de
-7B09: 32 FE 12    ld   ($18FE),a
-7B0C: 0C          inc  c
-7B0D: 00          nop
-7B0E: 32 00 32    ld   ($9800),a
-7B11: FF          rst  $38
-7B12: 9F          sbc  a,a
-7B13: 30 4A       jr   nc,$7B5F
-7B15: DB 97       in   a,($3D)
-7B17: A0          and  b
-7B18: 50          ld   d,b
-7B19: DB 91       in   a,($31)
-7B1B: A4          and  h
-7B1C: 5C          ld   e,h
-7B1D: DB 96       in   a,($3C)
-7B1F: F2 56 DB    jp   p,$7B5C
-7B22: 96          sub  (hl)
-7B23: F2 20 DB    jp   p,$7B80
-7B26: 9F          sbc  a,a
-7B27: 72          ld   (hl),d
-7B28: C8          ret  z
-7B29: DB 97       in   a,($3D)
-7B2B: 32 C2 DB    ld   ($7B68),a
-7B2E: 9E          sbc  a,(hl)
-7B2F: F2 CE DB    jp   p,$7B6E
-7B32: 96          sub  (hl)
-7B33: F2 D4 DB    jp   p,$7B74
-7B36: 9E          sbc  a,(hl)
-7B37: F2 DA DB    jp   p,$7B7A
-7B3A: 97          sub  a
-7B3B: 6C          ld   l,h
-7B3C: 2C          inc  l
-7B3D: DB 97       in   a,($3D)
-7B3F: F0          ret  p
-7B40: 26 DB       ld   h,$7B
-7B42: FF          rst  $38
-7B43: FF          rst  $38
-7B44: FF          rst  $38
-7B45: FF          rst  $38
-7B46: FF          rst  $38
-7B47: FF          rst  $38
-7B48: FF          rst  $38
-7B49: FF          rst  $38
-7B4A: 1C          inc  e
-7B4B: 21 9C D7    ld   hl,$7D36
-7B4E: FF          rst  $38
-7B4F: FF          rst  $38
-7B50: AE          xor  (hl)
-7B51: DE 9C       sbc  a,$36
-7B53: D7          rst  $10
-7B54: FF          rst  $38
-7B55: FF          rst  $38
-7B56: E3          ex   (sp),hl
-7B57: 29          add  hl,hl
-7B58: 9C          sbc  a,h
-7B59: D7          rst  $10
-7B5A: FF          rst  $38
-7B5B: FF          rst  $38
-7B5C: 4A          ld   c,d
-7B5D: 2D          dec  l
-7B5E: 9C          sbc  a,h
-7B5F: D7          rst  $10
-7B60: FF          rst  $38
-7B61: FF          rst  $38
-7B62: F0          ret  p
-7B63: 23          inc  hl
-7B64: 9C          sbc  a,h
-7B65: D7          rst  $10
-7B66: FF          rst  $38
-7B67: FF          rst  $38
-7B68: D2 26 9C    jp   nc,$368C
-7B6B: D7          rst  $10
-7B6C: FF          rst  $38
-7B6D: FF          rst  $38
-7B6E: 43          ld   b,e
-7B6F: 2E 9C       ld   l,$36
-7B71: D7          rst  $10
-7B72: FF          rst  $38
-7B73: FF          rst  $38
-7B74: 21 31 9C    ld   hl,$3691
-7B77: D7          rst  $10
-7B78: FF          rst  $38
-7B79: FF          rst  $38
-7B7A: 4B          ld   c,e
-7B7B: 34          inc  (hl)
-7B7C: 9C          sbc  a,h
-7B7D: D7          rst  $10
-7B7E: FF          rst  $38
-7B7F: FF          rst  $38
-7B80: 1A          ld   a,(de)
-7B81: 3D          dec  a
-7B82: 9C          sbc  a,h
-7B83: D7          rst  $10
-7B84: FF          rst  $38
-7B85: FF          rst  $38
-7B86: 3F          ccf
-7B87: 33          inc  sp
-7B88: 9C          sbc  a,h
-7B89: D7          rst  $10
-7B8A: FF          rst  $38
-7B8B: FF          rst  $38
-7B8C: B2          or   d
-7B8D: 36 9C       ld   (hl),$36
-7B8F: D7          rst  $10
-7B90: FF          rst  $38
-7B91: FF          rst  $38
-
+table_7B02:
+%%DCB
+table_7B12:
+%%DCB
 7B92: 3A 84 60    ld   a,(nb_credits_minus_one_C024)
 7B95: 21 AC DB    ld   hl,$7BA6
 7B98: FE 00       cp   $00
@@ -7729,7 +7556,7 @@ A425: C3 DB A9    jp   fight_mainloop_A37B
 
 
 update_players_struct_C2xx_A428:
-A428: CD B7 B0    call $B0BD		; calls write_0_in_port_1_BBE2 ???
+A428: CD B7 B0    call $B0BD		; calls disable_interrupts_BBE2 ???
 A42B: ED 5B 4D 68 ld   de,($C247)		; load animation/position of player 1
 A42F: 2A 43 68    ld   hl,($C249)		; load xy for player 1
 A432: D9          exx  ; EXX exchanges BC, DE, and HL with shadow registers with BC', DE', and HL'.
@@ -8031,155 +7858,8 @@ computer_ai_jump_table_all_turn_back_A651
 	dc.w	cpu_turn_back_AA33
 	dc.w	cpu_turn_back_AA33
 
-A5B1: D5          push de
-A5B2: B0          or   b
-A5B3: 74          ld   (hl),h
-A5B4: AC          xor  h
-A5B5: 74          ld   (hl),h
-A5B6: AC          xor  h
-A5B7: 74          ld   (hl),h
-A5B8: AC          xor  h
-A5B9: 74          ld   (hl),h
-A5BA: AC          xor  h
-A5BB: 74          ld   (hl),h
-A5BC: AC          xor  h
-A5BD: 74          ld   (hl),h
-A5BE: AC          xor  h
-A5BF: 74          ld   (hl),h
-A5C0: AC          xor  h
-A5C1: 74          ld   (hl),h
-A5C2: AC          xor  h
-A5C3: 74          ld   (hl),h
-A5C4: AC          xor  h
-A5C5: D5          push de
-A5C6: B0          or   b
-A5C7: ED          db   $ed
-A5C8: AC          xor  h
-A5C9: EF          rst  $28
-A5CA: AC          xor  h
-A5CB: 00          nop
-A5CC: AD          xor  l
-A5CD: 11 AD 14    ld   de,$14A7
-A5D0: AD          xor  l
-A5D1: 1D          dec  e
-A5D2: AD          xor  l
-A5D3: 1A          ld   a,(de)
-A5D4: AD          xor  l
-A5D5: 17          rla
-A5D6: AD          xor  l
-A5D7: 17          rla
-A5D8: AD          xor  l
-A5D9: D5          push de
-A5DA: B0          or   b
-A5DB: 85          add  a,l
-A5DC: AD          xor  l
-A5DD: 9F          sbc  a,a
-A5DE: AD          xor  l
-A5DF: 2C          inc  l
-A5E0: AD          xor  l
-A5E1: 65          ld   h,l
-A5E2: AD          xor  l
-A5E3: 67          ld   h,a
-A5E4: AD          xor  l
-A5E5: 75          ld   (hl),l
-A5E6: AD          xor  l
-A5E7: EC AD FD    call pe,$F7A7
-A5EA: AD          xor  l
-A5EB: FA AD D5    jp   m,$75A7
-A5EE: B0          or   b
-A5EF: 08          ex   af,af'
-A5F0: A2          and  d
-A5F1: 06 A2       ld   b,$A8
-A5F3: 5B          ld   e,e
-A5F4: A2          and  d
-A5F5: 39          add  hl,sp
-A5F6: A2          and  d
-A5F7: A2          and  d
-A5F8: A2          and  d
-A5F9: AB          xor  e
-A5FA: A2          and  d
-A5FB: E2 A2 11    jp   po,$11A8
-A5FE: A3          and  e
-A5FF: 14          inc  d
-A600: A3          and  e
-A601: D5          push de
-A602: B0          or   b
-A603: 1D          dec  e
-A604: A3          and  e
-A605: 8F          adc  a,a
-A606: A3          and  e
-A607: 98          sbc  a,b
-A608: A3          and  e
-A609: 95          sub  l
-A60A: A3          and  e
-A60B: 97          sub  a
-A60C: A3          and  e
-A60D: 40          ld   b,b
-A60E: A3          and  e
-A60F: 49          ld   c,c
-A610: A3          and  e
-A611: 4C          ld   c,h
-A612: A3          and  e
-A613: 4E          ld   c,(hl)
-A614: A3          and  e
-A615: D5          push de
-A616: B0          or   b
-A617: CC A3 CC    call z,$66A9
-A61A: A3          and  e
-A61B: CC A3 CC    call z,$66A9
-A61E: A3          and  e
-A61F: CC A3 CC    call z,$66A9
-A622: A3          and  e
-A623: CC A3 CC    call z,$66A9
-A626: A3          and  e
-A627: CC A3 D5    call z,$75A9
-A62A: B0          or   b
-A62B: CC A3 CC    call z,$66A9
-A62E: A3          and  e
-A62F: CC A3 CC    call z,$66A9
-A632: A3          and  e
-A633: CC A3 CC    call z,$66A9
-A636: A3          and  e
-A637: CC A3 CC    call z,$66A9
-A63A: A3          and  e
-A63B: CC A3 D5    call z,$75A9
-A63E: B0          or   b
-A63F: CE A3       adc  a,$A9
-A641: 20 A3       jr   nz,$A5EC
-A643: 7C          ld   a,h
-A644: A3          and  e
-A645: 10 AA       djnz $A5F1
-A647: 88          adc  a,b
-A648: AA          xor  d
-A649: 85          add  a,l
-A64A: AA          xor  d
-A64B: 85          add  a,l
-A64C: AA          xor  d
-A64D: 87          add  a,a
-A64E: AA          xor  d
-A64F: 90          sub  b
-A650: AA          xor  d
-A651: D5          push de
-A652: B0          or   b
-A653: 99          sbc  a,c
-A654: AA          xor  d
-A655: 99          sbc  a,c
-A656: AA          xor  d
-A657: 99          sbc  a,c
-A658: AA          xor  d
-A659: 99          sbc  a,c
-A65A: AA          xor  d
-A65B: 99          sbc  a,c
-A65C: AA          xor  d
-A65D: 99          sbc  a,c
-A65E: AA          xor  d
-A65F: 99          sbc  a,c
-A660: AA          xor  d
-A661: 99          sbc  a,c
-A662: AA          xor  d
-A663: 99          sbc  a,c
-A664: AA          xor  d
-
+A5B1:
+%%DCB
 ; given opponent moves (not distance), return a value between 1 and 9
 ; to be used in a per-distance/facing configuration jump table
 ; iy: points on C220 (the A.I. structure)
@@ -9311,7 +8991,7 @@ B015: C3 D1 B1    jp   $B171
 B018: C3 AB B1    jp   $B1AB
 B01B: C3 2E B8    jp   $B28E
 B01E: C3 B8 B8    jp   $B2B2
-B021: C3 B7 B8    jp   $B2BD
+B021: C3 B7 B8    jp   clear_zone_B2BD
 B024: C3 6A B8    jp   $B2CA
 B027: C3 73 B8    jp   $B2D9
 B02A: C3 EC B8    jp   $B2E6
@@ -9319,7 +8999,8 @@ B02D: C3 FC B8    jp   $B2F6
 B030: C3 1C B9    jp   $B316
 B033: C3 91 B9    jp   $B331
 B036: C3 49 B9    jp   $B343
-display_text_B039: C3 5D B9    jp   display_text_B357
+display_text_B039:
+B039: C3 5D B9    jp   display_text_B357
 B03C: C3 31 B9    jp   $B391
 B03F: C3 6E B9    jp   $B3CE
 B042: C3 40 B4    jp   $B440
@@ -9361,13 +9042,13 @@ B0A2: C3 57 FD    jp   $F75D
 B0A5: C3 00 00    jp   $0000
 B0A8: C3 00 E0    jp   $E000
 B0AB: C3 00 E0    jp   $E000
-B0AE: C3 7F BB    jp   $BBDF
+B0AE: C3 7F BB    jp   stop_sound_BBDF
 B0B1: C3 DE B8    jp   $B27E
 B0B4: C3 44 F7    jp   $FD44
 B0B7: C3 A2 BB    jp   read_port_0_BBA8
 B0BA: C3 A7 BB    jp   $BBAD
-B0BD: C3 E8 BB    jp   write_0_in_port_1_BBE2
-B0C0: C3 E2 BB    jp   write_1_in_port_1_BBE8
+B0BD: C3 E8 BB    jp   disable_interrupts_BBE2
+B0C0: C3 E2 BB    jp   enable_interrupts_BBE2
 B0C3: 21 00 00    ld   hl,$0000
 B0C6: 06 00       ld   b,$00
 B0C8: 4A          ld   c,d
@@ -9503,7 +9184,7 @@ B185: C9          ret
 
 display_error_text_B186
 B186: DD E1       pop  ix
-B188: CD E8 BB    call write_0_in_port_1_BBE2
+B188: CD E8 BB    call disable_interrupts_BBE2
 B18B: F5          push af
 B18C: C5          push bc
 B18D: D5          push de
@@ -9654,14 +9335,19 @@ B2B3: 21 00 6D    ld   hl,referee_x_pos_C700
 B2B6: 01 FB 6D    ld   bc,$C7FB
 B2B9: CD 6A B8    call $B2CA
 B2BC: C9          ret
-B2BD: DD E1       pop  ix
-B2BF: 36 00       ld   (hl),$00
-B2C1: 23          inc  hl
-B2C2: 0B          dec  bc
-B2C3: 78          ld   a,b
+
+; < HL: pointer on zone to clear
+; < BC: size
+clear_zone_B2BD:
+B2BD: DD E1       pop  ix			; return address in ix
+B2BF: 36 00       ld   (hl),$00		; set to 0
+B2C1: 23          inc  hl			; increment hl
+B2C2: 0B          dec  bc			; decrement bc counter²
+B2C3: 78          ld   a,b			; test b=c=0
 B2C4: B1          or   c
-B2C5: C2 BF B8    jp   nz,$B2BF
-B2C8: DD E9       jp   (ix)
+B2C5: C2 BF B8    jp   nz,$B2BF		; not 0, keep looping
+B2C8: DD E9       jp   (ix)			; return to caller (what's wrong with ret?)
+
 B2CA: 03          inc  bc
 B2CB: 57          ld   d,a
 B2CC: 72          ld   (hl),d
@@ -9915,18 +9601,19 @@ startup_B469:
 B469: 3E 48       ld   a,$42
 B46B: 32 81 67    ld   ($CD21),a
 B46E: 31 00 6F    ld   sp,$CF00			; set stack
-B471: CD E8 BB    call write_0_in_port_1_BBE2
-B474: ED 56       im   1
+B471: CD E8 BB    call disable_interrupts_BBE2
+B474: ED 56       im   1				; set interrupt mode
 B476: 31 00 6F    ld   sp,$CF00			; set stack again
+; clear part of RAM
 B479: 21 00 60    ld   hl,$C000
-B47C: 01 20 00    ld   bc,$0080
-B47F: CD B7 B8    call $B2BD
-B482: CD 41 BB    call $BB41
+B47C: 01 20 00    ld   bc,$0080			; immediate value
+B47F: CD B7 B8    call clear_zone_B2BD
+B482: CD 41 BB    call init_ram_BB41
 B485: 3E FF       ld   a,$FF
 B487: 32 86 60    ld   ($C02C),a
-B48A: CD E2 BB    call write_1_in_port_1_BBE8
+B48A: CD E2 BB    call enable_interrupts_BBE2
 B48D: 31 00 6F    ld   sp,$CF00
-B490: CD E2 BB    call write_1_in_port_1_BBE8
+B490: CD E2 BB    call enable_interrupts_BBE2
 B493: 21 0C 60    ld   hl,$C006
 B496: 3A 83 60    ld   a,($C029)
 B499: A7          and  a
@@ -9957,7 +9644,7 @@ B4C4: 4E          ld   c,(hl)
 B4C5: A7          and  a
 B4C6: CB 11       rl   c
 B4C8: CB 10       rl   b
-B4CA: DD 21 D7 B2 ld   ix,$B87D
+B4CA: DD 21 D7 B2 ld   ix,table_B87D
 B4CE: DD 09       add  ix,bc
 B4D0: DD 46 00    ld   b,(ix+$00)
 B4D3: DD 7E 01    ld   a,(ix+$01)
@@ -9969,7 +9656,7 @@ B4DC: AE          xor  (hl)
 B4DD: 77          ld   (hl),a
 B4DE: CB 03       rlc  e
 B4E0: 16 00       ld   d,$00
-B4E2: FD 21 85 B2 ld   iy,$B825
+B4E2: FD 21 85 B2 ld   iy,address_table_B825
 B4E6: FD 19       add  iy,de
 B4E8: FD 6E 00    ld   l,(iy+$00)
 B4EB: FD 66 01    ld   h,(iy+$01)
@@ -9980,9 +9667,9 @@ B4F3: FD 21 80 00 ld   iy,$0020
 B4F7: FD 19       add  iy,de
 B4F9: FD 6E 00    ld   l,(iy+$00)
 B4FC: FD 66 01    ld   h,(iy+$01)
-B4FF: CD E2 BB    call write_1_in_port_1_BBE8
+B4FF: CD E2 BB    call enable_interrupts_BBE2
 B502: E9          jp   (hl)
-B503: CD E8 BB    call write_0_in_port_1_BBE2
+B503: CD E8 BB    call disable_interrupts_BBE2
 B506: 21 06 60    ld   hl,$C00C
 B509: FD 21 06 60 ld   iy,$C00C
 B50D: FD 7E 00    ld   a,(iy+$00)
@@ -10012,7 +9699,7 @@ B538: 06 00       ld   b,$00
 B53A: 4E          ld   c,(hl)
 B53B: CB 11       rl   c
 B53D: CB 10       rl   b
-B53F: DD 21 D7 B2 ld   ix,$B87D
+B53F: DD 21 D7 B2 ld   ix,table_B87D
 B543: DD 09       add  ix,bc
 B545: DD 46 00    ld   b,(ix+$00)
 B548: DD 7E 01    ld   a,(ix+$01)
@@ -10043,7 +9730,7 @@ B56A: 23          inc  hl
 B56B: 7E          ld   a,(hl)
 B56C: 21 8A 60    ld   hl,$C02A
 B56F: 35          dec  (hl)
-B570: CD E2 BB    call write_1_in_port_1_BBE8
+B570: CD E2 BB    call enable_interrupts_BBE2
 B573: C9          ret
 
 ; load iy with player structure
@@ -10074,7 +9761,8 @@ B59E: CB 18       rr   b
 B5A0: CB 19       rr   c
 B5A2: FD 09       add  iy,bc
 B5A4: C9          ret
-B5A5: CD E8 BB    call write_0_in_port_1_BBE2
+
+B5A5: CD E8 BB    call disable_interrupts_BBE2
 B5A8: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B5AB: 21 00 60    ld   hl,$C000
 B5AE: 4F          ld   c,a
@@ -10096,7 +9784,7 @@ B5C8: AE          xor  (hl)
 B5C9: 77          ld   (hl),a
 B5CA: C3 27 B4    jp   $B48D
 
-B5CD: CD E8 BB    call write_0_in_port_1_BBE2
+B5CD: CD E8 BB    call disable_interrupts_BBE2
 B5D0: 21 00 60    ld   hl,$C000
 B5D3: 4F          ld   c,a
 B5D4: 06 00       ld   b,$00
@@ -10129,7 +9817,7 @@ B5FD: AE          xor  (hl)
 B5FE: 77          ld   (hl),a
 B5FF: 21 83 60    ld   hl,$C029
 B602: 35          dec  (hl)
-B603: CD E2 BB    call write_1_in_port_1_BBE8
+B603: CD E2 BB    call enable_interrupts_BBE2
 B606: C9          ret
 
 B607: 19          add  hl,de
@@ -10141,16 +9829,17 @@ B60E: AE          xor  (hl)
 B60F: 77          ld   (hl),a
 B610: 21 8A 60    ld   hl,$C02A
 B613: 35          dec  (hl)
-B614: CD E2 BB    call write_1_in_port_1_BBE8
+B614: CD E2 BB    call enable_interrupts_BBE2
 B617: C9          ret
 
 B618: 19          add  hl,de
 B619: 78          ld   a,b
 B61A: AE          xor  (hl)
 B61B: 77          ld   (hl),a
-B61C: CD E2 BB    call write_1_in_port_1_BBE8
+B61C: CD E2 BB    call enable_interrupts_BBE2
 B61F: C9          ret
-B620: CD E8 BB    call write_0_in_port_1_BBE2
+
+B620: CD E8 BB    call disable_interrupts_BBE2
 B623: 21 00 60    ld   hl,$C000
 B626: 4F          ld   c,a
 B627: 06 00       ld   b,$00
@@ -10181,16 +9870,16 @@ B64E: 77          ld   (hl),a
 B64F: 21 83 60    ld   hl,$C029
 B652: 34          inc  (hl)
 B653: AF          xor  a
-B654: CD E2 BB    call write_1_in_port_1_BBE8
+B654: CD E2 BB    call enable_interrupts_BBE2
 B657: C9          ret
 B658: 3E FF       ld   a,$FF
-B65A: CD E2 BB    call write_1_in_port_1_BBE8
+B65A: CD E2 BB    call enable_interrupts_BBE2
 B65D: C9          ret
 
 ; < a: probably? number of frames to wait until next frame
 ; this can be slower or faster if a computer is playing
 ; depending on the difficulty level
-B65E: CD E8 BB    call write_0_in_port_1_BBE2
+B65E: CD E8 BB    call disable_interrupts_BBE2
 B661: F5          push af
 B662: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B665: 21 18 60    ld   hl,$C012
@@ -10232,7 +9921,7 @@ B6A5: FD 75 00    ld   (iy+$00),l
 B6A8: FD 74 01    ld   (iy+$01),h
 B6AB: C3 27 B4    jp   $B48D
 
-B6AE: CD E8 BB    call write_0_in_port_1_BBE2
+B6AE: CD E8 BB    call disable_interrupts_BBE2
 B6B1: C5          push bc
 B6B2: F5          push af
 B6B3: 21 00 60    ld   hl,$C000
@@ -10297,14 +9986,14 @@ B71A: FD 70 0C    ld   (iy+$06),b
 B71D: 21 8A 60    ld   hl,$C02A
 B720: 34          inc  (hl)
 B721: AF          xor  a
-B722: CD E2 BB    call write_1_in_port_1_BBE8
+B722: CD E2 BB    call enable_interrupts_BBE2
 B725: C9          ret
 
 B726: E1          pop  hl
 B727: F1          pop  af
 B728: C1          pop  bc
 B729: 3E FF       ld   a,$FF
-B72B: CD E2 BB    call write_1_in_port_1_BBE8
+B72B: CD E2 BB    call enable_interrupts_BBE2
 B72E: C9          ret
 
 ; main interrupt (vblank) routine, called every 1/60s
@@ -10313,7 +10002,7 @@ B72F: 08          ex   af,af'
 B730: D9          exx
 B731: DD E5       push ix
 B733: FD E5       push iy
-B735: CD E8 BB    call write_0_in_port_1_BBE2
+B735: CD E8 BB    call disable_interrupts_BBE2
 ; copy some data from C700 to D800 (254 bytes)
 B738: 21 00 6D    ld   hl,referee_x_pos_C700
 B73B: 11 00 72    ld   de,$D800
@@ -10343,7 +10032,7 @@ B772: FD E1       pop  iy
 B774: DD E1       pop  ix
 B776: D9          exx
 B777: 08          ex   af,af'
-B778: CD E2 BB    call write_1_in_port_1_BBE8
+B778: CD E2 BB    call enable_interrupts_BBE2
 B77B: ED 45       retn
 
 B77D: 7E          ld   a,(hl)
@@ -10408,386 +10097,15 @@ B7E0: F1          pop  af
 B7E1: 1C          inc  e
 B7E2: C3 2C BD    jp   $B786
 
-
-
-B7E5: 00          nop
-B7E6: 61          ld   h,c
-B7E7: 80          add  a,b
-B7E8: 61          ld   h,c
-B7E9: 40          ld   b,b
-B7EA: 61          ld   h,c
-B7EB: C0          ret  nz
-B7EC: 61          ld   h,c
-B7ED: 20 61       jr   nz,$B7B0
-B7EF: A0          and  b
-B7F0: 61          ld   h,c
-B7F1: 60          ld   h,b
-B7F2: 61          ld   h,c
-B7F3: E0          ret  po
-B7F4: 61          ld   h,c
-B7F5: 00          nop
-B7F6: 68          ld   l,b
-B7F7: 80          add  a,b
-B7F8: 68          ld   l,b
-B7F9: 40          ld   b,b
-B7FA: 68          ld   l,b
-B7FB: C0          ret  nz
-B7FC: 68          ld   l,b
-B7FD: 20 68       jr   nz,$B7C1
-B7FF: A0          and  b
-B800: 68          ld   l,b
-B801: 60          ld   h,b
-B802: 68          ld   l,b
-B803: E0          ret  po
-B804: 68          ld   l,b
-B805: 00          nop
-B806: 69          ld   l,c
-B807: 80          add  a,b
-B808: 69          ld   l,c
-B809: 40          ld   b,b
-B80A: 69          ld   l,c
-B80B: C0          ret  nz
-B80C: 69          ld   l,c
-B80D: 20 69       jr   nz,$B7D2
-B80F: A0          and  b
-B810: 69          ld   l,c
-B811: 60          ld   h,b
-B812: 69          ld   l,c
-B813: E0          ret  po
-B814: 69          ld   l,c
-B815: 00          nop
-B816: 64          ld   h,h
-B817: 80          add  a,b
-B818: 64          ld   h,h
-B819: 40          ld   b,b
-B81A: 64          ld   h,h
-B81B: C0          ret  nz
-B81C: 64          ld   h,h
-B81D: 20 64       jr   nz,$B7E3
-B81F: A0          and  b
-B820: 64          ld   h,h
-B821: 60          ld   h,b
-B822: 64          ld   h,h
-B823: E0          ret  po
-B824: 64          ld   h,h
-B825: 80          add  a,b
-B826: 64          ld   h,h
-B827: 40          ld   b,b
-B828: 64          ld   h,h
-B829: C0          ret  nz
-B82A: 64          ld   h,h
-B82B: 20 64       jr   nz,$B7F1
-B82D: A0          and  b
-B82E: 64          ld   h,h
-B82F: 60          ld   h,b
-B830: 64          ld   h,h
-B831: E0          ret  po
-B832: 64          ld   h,h
-B833: 00          nop
-B834: 65          ld   h,l
-B835: 80          add  a,b
-B836: 65          ld   h,l
-B837: 40          ld   b,b
-B838: 65          ld   h,l
-B839: C0          ret  nz
-B83A: 65          ld   h,l
-B83B: 20 65       jr   nz,$B802
-B83D: A0          and  b
-B83E: 65          ld   h,l
-B83F: 60          ld   h,b
-B840: 65          ld   h,l
-B841: E0          ret  po
-B842: 65          ld   h,l
-B843: 00          nop
-B844: 6C          ld   l,h
-B845: 80          add  a,b
-B846: 6C          ld   l,h
-B847: 40          ld   b,b
-B848: 6C          ld   l,h
-B849: C0          ret  nz
-B84A: 6C          ld   l,h
-B84B: 20 6C       jr   nz,$B813
-B84D: A0          and  b
-B84E: 6C          ld   l,h
-B84F: 60          ld   h,b
-B850: 6C          ld   l,h
-B851: E0          ret  po
-B852: 6C          ld   l,h
-B853: 00          nop
-B854: 6D          ld   l,l
-B855: 80          add  a,b
-B856: 6D          ld   l,l
-B857: 40          ld   b,b
-B858: 6D          ld   l,l
-B859: C0          ret  nz
-B85A: 6D          ld   l,l
-B85B: 20 6D       jr   nz,$B824
-B85D: A0          and  b
-B85E: 6D          ld   l,l
-B85F: 60          ld   h,b
-B860: 6D          ld   l,l
-B861: E0          ret  po
-B862: 6D          ld   l,l
-B863: 00          nop
-B864: 62          ld   h,d
-B865: 00          nop
-B866: 60          ld   h,b
-B867: 02          ld   (bc),a
-B868: 60          ld   h,b
-B869: 10 60       djnz $B82B
-B86B: 12          ld   (de),a
-B86C: 60          ld   h,b
-B86D: 80          add  a,b
-B86E: 60          ld   h,b
-B86F: 82          add  a,d
-B870: 60          ld   h,b
-B871: 90          sub  b
-B872: 60          ld   h,b
-B873: 92          sub  d
-B874: 60          ld   h,b
+table_B7E5:
+%%DCB
+address_table_B825:
+%%DCW
+table_B87D:
+%%DCB
 ; looks very much like joystick combination tables to check player moves
-B875: 
-     B875  01 02 04 08 10 20 40 80 
-	 B87D  00 00 01 00 02 01 01 00   ..... @.........
-     B885  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     B895  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
-     B8A5  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     B8B5  04 02 01 00 02 01 01 00 20 05 01 00 02 01 01 00   ........ .......
-     B8C5  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     B8D5  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
-     B8E5  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     B8F5  04 02 01 00 02 01 01 00 40 06 01 00 02 01 01 00   ........@.......
-     B905  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     B915  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
-     B925  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     B935  04 02 01 00 02 01 01 00 20 05 01 00 02 01 01 00   ........ .......
-     B945  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     B955  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
-     B965  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     B975  04 02 01 00 02 01 01 00 80 07 01 00 02 01 01 00   ................
-     B985  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     B995  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
-     B9A5  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     B9B5  04 02 01 00 02 01 01 00 20 05 01 00 02 01 01 00   ........ .......
-     B9C5  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     B9D5  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
-     B9E5  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     B9F5  04 02 01 00 02 01 01 00 40 06 01 00 02 01 01 00   ........@.......
-     BA05  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     BA15  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
-     BA25  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     BA35  04 02 01 00 02 01 01 00 20 05 01 00 02 01 01 00   ........ .......
-     BA45  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     BA55  04 02 01 00 02 01 01 00 10 04 01 00 02 01 01 00   ................
-     BA65  04 02 01 00 02 01 01 00 08 03 01 00 02 01 01 00   ................
-     BA75  04 02 01 00 02 01 01 00 
-
-
-B8D5: 04          inc  b
-B8D6: 08          ex   af,af'
-B8D7: 01 00 08    ld   bc,$0200
-B8DA: 01 01 00    ld   bc,$0001
-B8DD: 10 04       djnz $B8E3
-B8DF: 01 00 08    ld   bc,$0200
-B8E2: 01 01 00    ld   bc,$0001
-B8E5: 04          inc  b
-B8E6: 08          ex   af,af'
-B8E7: 01 00 08    ld   bc,$0200
-B8EA: 01 01 00    ld   bc,$0001
-B8ED: 02          ld   (bc),a
-B8EE: 09          add  hl,bc
-B8EF: 01 00 08    ld   bc,$0200
-B8F2: 01 01 00    ld   bc,$0001
-B8F5: 04          inc  b
-B8F6: 08          ex   af,af'
-B8F7: 01 00 08    ld   bc,$0200
-B8FA: 01 01 00    ld   bc,$0001
-B8FD: 40          ld   b,b
-B8FE: 0C          inc  c
-B8FF: 01 00 08    ld   bc,$0200
-B902: 01 01 00    ld   bc,$0001
-B905: 04          inc  b
-B906: 08          ex   af,af'
-B907: 01 00 08    ld   bc,$0200
-B90A: 01 01 00    ld   bc,$0001
-B90D: 02          ld   (bc),a
-B90E: 09          add  hl,bc
-B90F: 01 00 08    ld   bc,$0200
-B912: 01 01 00    ld   bc,$0001
-B915: 04          inc  b
-B916: 08          ex   af,af'
-B917: 01 00 08    ld   bc,$0200
-B91A: 01 01 00    ld   bc,$0001
-B91D: 10 04       djnz $B923
-B91F: 01 00 08    ld   bc,$0200
-B922: 01 01 00    ld   bc,$0001
-B925: 04          inc  b
-B926: 08          ex   af,af'
-B927: 01 00 08    ld   bc,$0200
-B92A: 01 01 00    ld   bc,$0001
-B92D: 02          ld   (bc),a
-B92E: 09          add  hl,bc
-B92F: 01 00 08    ld   bc,$0200
-B932: 01 01 00    ld   bc,$0001
-B935: 04          inc  b
-B936: 08          ex   af,af'
-B937: 01 00 08    ld   bc,$0200
-B93A: 01 01 00    ld   bc,$0001
-B93D: 80          add  a,b
-B93E: 05          dec  b
-B93F: 01 00 08    ld   bc,$0200
-B942: 01 01 00    ld   bc,$0001
-B945: 04          inc  b
-B946: 08          ex   af,af'
-B947: 01 00 08    ld   bc,$0200
-B94A: 01 01 00    ld   bc,$0001
-B94D: 02          ld   (bc),a
-B94E: 09          add  hl,bc
-B94F: 01 00 08    ld   bc,$0200
-B952: 01 01 00    ld   bc,$0001
-B955: 04          inc  b
-B956: 08          ex   af,af'
-B957: 01 00 08    ld   bc,$0200
-B95A: 01 01 00    ld   bc,$0001
-B95D: 10 04       djnz $B963
-B95F: 01 00 08    ld   bc,$0200
-B962: 01 01 00    ld   bc,$0001
-B965: 04          inc  b
-B966: 08          ex   af,af'
-B967: 01 00 08    ld   bc,$0200
-B96A: 01 01 00    ld   bc,$0001
-B96D: 02          ld   (bc),a
-B96E: 09          add  hl,bc
-B96F: 01 00 08    ld   bc,$0200
-B972: 01 01 00    ld   bc,$0001
-B975: 04          inc  b
-B976: 08          ex   af,af'
-B977: 01 00 08    ld   bc,$0200
-B97A: 01 01 00    ld   bc,$0001
-B97D: 20 0D       jr   nz,$B986
-B97F: 01 00 08    ld   bc,$0200
-B982: 01 01 00    ld   bc,$0001
-B985: 04          inc  b
-B986: 08          ex   af,af'
-B987: 01 00 08    ld   bc,$0200
-B98A: 01 01 00    ld   bc,$0001
-B98D: 02          ld   (bc),a
-B98E: 09          add  hl,bc
-B98F: 01 00 08    ld   bc,$0200
-B992: 01 01 00    ld   bc,$0001
-B995: 04          inc  b
-B996: 08          ex   af,af'
-B997: 01 00 08    ld   bc,$0200
-B99A: 01 01 00    ld   bc,$0001
-B99D: 10 04       djnz $B9A3
-B99F: 01 00 08    ld   bc,$0200
-B9A2: 01 01 00    ld   bc,$0001
-B9A5: 04          inc  b
-B9A6: 08          ex   af,af'
-B9A7: 01 00 08    ld   bc,$0200
-B9AA: 01 01 00    ld   bc,$0001
-B9AD: 02          ld   (bc),a
-B9AE: 09          add  hl,bc
-B9AF: 01 00 08    ld   bc,$0200
-B9B2: 01 01 00    ld   bc,$0001
-B9B5: 04          inc  b
-B9B6: 08          ex   af,af'
-B9B7: 01 00 08    ld   bc,$0200
-B9BA: 01 01 00    ld   bc,$0001
-B9BD: 80          add  a,b
-B9BE: 05          dec  b
-B9BF: 01 00 08    ld   bc,$0200
-B9C2: 01 01 00    ld   bc,$0001
-B9C5: 04          inc  b
-B9C6: 08          ex   af,af'
-B9C7: 01 00 08    ld   bc,$0200
-B9CA: 01 01 00    ld   bc,$0001
-B9CD: 02          ld   (bc),a
-B9CE: 09          add  hl,bc
-B9CF: 01 00 08    ld   bc,$0200
-B9D2: 01 01 00    ld   bc,$0001
-B9D5: 04          inc  b
-B9D6: 08          ex   af,af'
-B9D7: 01 00 08    ld   bc,$0200
-B9DA: 01 01 00    ld   bc,$0001
-B9DD: 10 04       djnz $B9E3
-B9DF: 01 00 08    ld   bc,$0200
-B9E2: 01 01 00    ld   bc,$0001
-B9E5: 04          inc  b
-B9E6: 08          ex   af,af'
-B9E7: 01 00 08    ld   bc,$0200
-B9EA: 01 01 00    ld   bc,$0001
-B9ED: 02          ld   (bc),a
-B9EE: 09          add  hl,bc
-B9EF: 01 00 08    ld   bc,$0200
-B9F2: 01 01 00    ld   bc,$0001
-B9F5: 04          inc  b
-B9F6: 08          ex   af,af'
-B9F7: 01 00 08    ld   bc,$0200
-B9FA: 01 01 00    ld   bc,$0001
-B9FD: 40          ld   b,b
-B9FE: 0C          inc  c
-B9FF: 01 00 08    ld   bc,$0200
-BA02: 01 01 00    ld   bc,$0001
-BA05: 04          inc  b
-BA06: 08          ex   af,af'
-BA07: 01 00 08    ld   bc,$0200
-BA0A: 01 01 00    ld   bc,$0001
-BA0D: 02          ld   (bc),a
-BA0E: 09          add  hl,bc
-BA0F: 01 00 08    ld   bc,$0200
-BA12: 01 01 00    ld   bc,$0001
-BA15: 04          inc  b
-BA16: 08          ex   af,af'
-BA17: 01 00 08    ld   bc,$0200
-BA1A: 01 01 00    ld   bc,$0001
-BA1D: 10 04       djnz $BA23
-BA1F: 01 00 08    ld   bc,$0200
-BA22: 01 01 00    ld   bc,$0001
-BA25: 04          inc  b
-BA26: 08          ex   af,af'
-BA27: 01 00 08    ld   bc,$0200
-BA2A: 01 01 00    ld   bc,$0001
-BA2D: 02          ld   (bc),a
-BA2E: 09          add  hl,bc
-BA2F: 01 00 08    ld   bc,$0200
-BA32: 01 01 00    ld   bc,$0001
-BA35: 04          inc  b
-BA36: 08          ex   af,af'
-BA37: 01 00 08    ld   bc,$0200
-BA3A: 01 01 00    ld   bc,$0001
-BA3D: 80          add  a,b
-BA3E: 05          dec  b
-BA3F: 01 00 08    ld   bc,$0200
-BA42: 01 01 00    ld   bc,$0001
-BA45: 04          inc  b
-BA46: 08          ex   af,af'
-BA47: 01 00 08    ld   bc,$0200
-BA4A: 01 01 00    ld   bc,$0001
-BA4D: 02          ld   (bc),a
-BA4E: 09          add  hl,bc
-BA4F: 01 00 08    ld   bc,$0200
-BA52: 01 01 00    ld   bc,$0001
-BA55: 04          inc  b
-BA56: 08          ex   af,af'
-BA57: 01 00 08    ld   bc,$0200
-BA5A: 01 01 00    ld   bc,$0001
-BA5D: 10 04       djnz $BA63
-BA5F: 01 00 08    ld   bc,$0200
-BA62: 01 01 00    ld   bc,$0001
-BA65: 04          inc  b
-BA66: 08          ex   af,af'
-BA67: 01 00 08    ld   bc,$0200
-BA6A: 01 01 00    ld   bc,$0001
-BA6D: 02          ld   (bc),a
-BA6E: 09          add  hl,bc
-BA6F: 01 00 08    ld   bc,$0200
-BA72: 01 01 00    ld   bc,$0001
-BA75: 04          inc  b
-BA76: 08          ex   af,af'
-BA77: 01 00 08    ld   bc,$0200
-BA7A: 01 01 00    ld   bc,$0001
-
+table_B875: 
+%%DCB
 manage_coin_inserted_BA7D
 BA7D: DD 21 84 60 ld   ix,nb_credits_minus_one_C024
 BA81: CD 28 BB    call check_coin_ports_BB82
@@ -10800,7 +10118,7 @@ BA8F: DD CB 09 DE bit  7,(ix+$03)
 BA93: C2 A3 BA    jp   nz,$BAA9
 BA96: DD 34 01    inc  (ix+$01)
 BA99: 3E 80       ld   a,$20
-BA9B: CD 7F BB    call $BBDF
+BA9B: CD 7F BB    call stop_sound_BBDF
 BA9E: 3A 90 60    ld   a,(dip_switches_copy_C030)
 BAA1: E6 09       and  $03
 BAA3: 21 85 60    ld   hl,$C025
@@ -10812,7 +10130,7 @@ BAAF: DD CB 09 DC bit  6,(ix+$03)
 BAB3: C2 67 BA    jp   nz,$BACD
 BAB6: DD 34 08    inc  (ix+$02)
 BAB9: 3E 80       ld   a,$20
-BABB: CD 7F BB    call $BBDF
+BABB: CD 7F BB    call stop_sound_BBDF
 BABE: 3A 90 60    ld   a,(dip_switches_copy_C030)
 BAC1: CB 3F       srl  a
 BAC3: CB 3F       srl  a
@@ -10874,16 +10192,20 @@ BB3C: 35          dec  (hl)
 BB3D: C4 2C B1    call nz,display_error_text_B186
 BB40: C9          ret
 
+init_ram_BB41:
 BB41: ED 56       im   1
 BB43: D1          pop  de
+; clear video ram
 BB44: 21 00 70    ld   hl,$D000
-BB47: 01 00 10    ld   bc,$1000
-BB4A: CD B7 B8    call $B2BD
+BB47: 01 00 10    ld   bc,$1000			; immediate value
+BB4A: CD B7 B8    call clear_zone_B2BD
+; clear ram
 BB4D: 21 00 60    ld   hl,$C000
-BB50: 01 00 10    ld   bc,$1000
-BB53: CD B7 B8    call $B2BD
+BB50: 01 00 10    ld   bc,$1000			; immediate value
+BB53: CD B7 B8    call clear_zone_B2BD
 BB56: D5          push de
-BB57: CD E5 FC    call $F6E5
+; init ram with some startup values
+BB57: CD E5 FC    call init_C040_F6E5
 BB5A: 3E 08       ld   a,$02
 BB5C: 32 60 60    ld   ($C0C0),a
 BB5F: CD 38 BB    call get_dip_switches_BB92
@@ -10891,7 +10213,7 @@ BB62: 32 90 60    ld   (dip_switches_copy_C030),a
 BB65: AF          xor  a
 BB66: CD 80 BC    call $B620
 BB69: 3E 20       ld   a,$80
-BB6B: CD 7F BB    call $BBDF
+BB6B: CD 7F BB    call stop_sound_BBDF
 BB6E: C9          ret
 
 write_a_in_port_0_BB6F:
@@ -10991,21 +10313,22 @@ BBD3: D3 08       out  ($02),a
 BBD5: C3 77 BB    jp   $BBDD
 BBD8: F1          pop  af
 BBD9: F5          push af
-BBDA: CD 7F BB    call $BBDF
+BBDA: CD 7F BB    call stop_sound_BBDF
 BBDD: F1          pop  af
 BBDE: C9          ret
 
+stop_sound_BBDF:
 BBDF: D3 40       out  ($40),a
 BBE1: C9          ret
 
-write_0_in_port_1_BBE2
+disable_interrupts_BBE2:
 BBE2: F5          push af
 BBE3: AF          xor  a
 BBE4: D3 01       out  ($01),a
 BBE6: F1          pop  af
 BBE7: C9          ret
 
-write_1_in_port_1_BBE8
+enable_interrupts_BBE2:
 BBE8: F5          push af
 BBE9: 3E 01       ld   a,$01
 BBEB: D3 01       out  ($01),a
@@ -11062,7 +10385,7 @@ E057: F1          pop  af
 E058: 47          ld   b,a
 E059: 3E 1D       ld   a,$17
 E05B: CD AE BC    call $B6AE
-E05E: CD D4 B5    call $B574
+E05E: CD D4 B5    call load_iy_with_player_structure_B574
 E061: E1          pop  hl
 E062: FD 36 17 00 ld   (iy+$1d),$00
 E066: 7E          ld   a,(hl)
@@ -11073,7 +10396,7 @@ E06C: FD 77 1F    ld   (iy+$1f),a
 E06F: 23          inc  hl
 E070: FD 75 1B    ld   (iy+$1b),l
 E073: FD 74 16    ld   (iy+$1c),h
-E076: CD D4 B5    call $B574
+E076: CD D4 B5    call load_iy_with_player_structure_B574
 E079: FD 6E 1B    ld   l,(iy+$1b)
 E07C: FD 66 16    ld   h,(iy+$1c)
 E07F: E5          push hl
@@ -11232,7 +10555,7 @@ E1EB: DD 09       add  ix,bc
 E1ED: DD 6E 00    ld   l,(ix+$00)
 E1F0: DD 66 01    ld   h,(ix+$01)
 E1F3: E5          push hl
-E1F4: CD D4 B5    call $B574
+E1F4: CD D4 B5    call load_iy_with_player_structure_B574
 E1F7: E1          pop  hl
 E1F8: C3 C8 E0    jp   $E062
 E1FB: AF          xor  a
@@ -11240,7 +10563,7 @@ E1FC: CD 5E BC    call $B65E
 E1FF: 06 00       ld   b,$00
 E201: 4F          ld   c,a
 E202: CB 21       sla  c
-E204: DD 21 82 E8 ld   ix,$E228
+E204: DD 21 82 E8 ld   ix,address_table_E228
 E208: DD 09       add  ix,bc
 E20A: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 E20D: 01 00 00    ld   bc,$0000
@@ -11255,69 +10578,8 @@ E221: A4          and  h
 E222: FE FF       cp   $FF
 E224: CC A5 B5    call z,$B5A5
 E227: E9          jp   (hl)
-E228: 8B          adc  a,e
-E229: E9          jp   (hl)
-E22A: 2C          inc  l
-E22B: B1          or   c
-E22C: 2C          inc  l
-E22D: B1          or   c
-E22E: 4F          ld   c,a
-E22F: E4 D9 F1    call po,$F173
-E232: 2C          inc  l
-E233: B1          or   c
-E234: 23          inc  hl
-E235: E6 2A       and  $8A
-E237: EC 12 ED    call pe,$E718
-E23A: 90          sub  b
-E23B: E3          ex   (sp),hl
-E23C: 2C          inc  l
-E23D: B1          or   c
-E23E: 2C          inc  l
-E23F: B1          or   c
-E240: 8B          adc  a,e
-E241: E9          jp   (hl)
-E242: FF          rst  $38
-E243: FF          rst  $38
-E244: 2C          inc  l
-E245: B1          or   c
-E246: 23          inc  hl
-E247: E6 8B       and  $2B
-E249: E9          jp   (hl)
-E24A: 8B          adc  a,e
-E24B: E9          jp   (hl)
-E24C: 5E          ld   e,(hl)
-E24D: E8          ret  pe
-E24E: 2C          inc  l
-E24F: B1          or   c
-E250: 2C          inc  l
-E251: B1          or   c
-E252: C1          pop  bc
-E253: E8          ret  pe
-E254: C4 E8 2C    call nz,$86E2
-E257: B1          or   c
-E258: CD E8 C7    call $6DE2
-E25B: E8          ret  pe
-E25C: D0          ret  nc
-E25D: E8          ret  pe
-E25E: 00          nop
-E25F: 00          nop
-E260: FF          rst  $38
-E261: 00          nop
-E262: 00          nop
-E263: FF          rst  $38
-E264: 00          nop
-E265: 00          nop
-E266: FF          rst  $38
-E267: 00          nop
-E268: 00          nop
-E269: FA A2 E6    jp   m,$ECA8
-E26C: FF          rst  $38
-E26D: 00          nop
-E26E: 00          nop
-E26F: FF          rst  $38
-E270: 00          nop
-E271: 00          nop
-E272: FF          rst  $38
+address_table_E228:
+%%DCW
 E273: 3E 1C       ld   a,$16
 E275: CD B5 BB    call $BBB5
 E278: C9          ret
@@ -11395,17 +10657,7 @@ E313: F1          pop  af
 E314: CD 57 FD    call $F75D
 E317: FD E1       pop  iy
 E319: C9          ret
-E31A: 00          nop
-E31B: 00          nop
-E31C: FA CE E5    jp   m,$E56E
-E31F: FF          rst  $38
-E320: 00          nop
-E321: 00          nop
-E322: FA 91 FC    jp   m,$F631
-E325: FF          rst  $38
-E326: 00          nop
-E327: 00          nop
-E328: F2 52 E7    jp   p,$ED58
+%%DCB
 E32B: 06 80       ld   b,$20
 E32D: C5          push bc
 E32E: 21 D9 E9    ld   hl,$E373
@@ -11434,6 +10686,7 @@ E369: 3E 01       ld   a,$01
 E36B: 06 01       ld   b,$01
 E36D: CD AE BC    call $B6AE
 E370: CD A5 B5    call $B5A5
+; is this point reached??
 E373: 02          ld   (bc),a
 E374: 17          rla
 E375: 06 A0       ld   b,$A0
@@ -11481,114 +10734,7 @@ E3AF: A0          and  b
 E3B0: 10 A0       djnz $E352
 E3B2: 0E A0       ld   c,$A0
 E3B4: FF          rst  $38
-E3B5: 02          ld   (bc),a
-E3B6: 17          rla
-E3B7: 96          sub  (hl)
-E3B8: A0          and  b
-E3B9: 96          sub  (hl)
-E3BA: A0          and  b
-E3BB: 96          sub  (hl)
-E3BC: A0          and  b
-E3BD: 96          sub  (hl)
-E3BE: A0          and  b
-E3BF: 96          sub  (hl)
-E3C0: A0          and  b
-E3C1: 96          sub  (hl)
-E3C2: A0          and  b
-E3C3: 96          sub  (hl)
-E3C4: A0          and  b
-E3C5: 96          sub  (hl)
-E3C6: A0          and  b
-E3C7: 96          sub  (hl)
-E3C8: A0          and  b
-E3C9: 96          sub  (hl)
-E3CA: A0          and  b
-E3CB: 96          sub  (hl)
-E3CC: A0          and  b
-E3CD: 96          sub  (hl)
-E3CE: A0          and  b
-E3CF: 96          sub  (hl)
-E3D0: A0          and  b
-E3D1: 96          sub  (hl)
-E3D2: A0          and  b
-E3D3: 96          sub  (hl)
-E3D4: A0          and  b
-E3D5: FF          rst  $38
-E3D6: 02          ld   (bc),a
-E3D7: 11 96 A0    ld   de,$A03C
-E3DA: 96          sub  (hl)
-E3DB: A0          and  b
-E3DC: 96          sub  (hl)
-E3DD: A0          and  b
-E3DE: 96          sub  (hl)
-E3DF: A0          and  b
-E3E0: 96          sub  (hl)
-E3E1: A0          and  b
-E3E2: 96          sub  (hl)
-E3E3: A0          and  b
-E3E4: 96          sub  (hl)
-E3E5: A0          and  b
-E3E6: 96          sub  (hl)
-E3E7: A0          and  b
-E3E8: 96          sub  (hl)
-E3E9: A0          and  b
-E3EA: 96          sub  (hl)
-E3EB: A0          and  b
-E3EC: 96          sub  (hl)
-E3ED: A0          and  b
-E3EE: 96          sub  (hl)
-E3EF: A0          and  b
-E3F0: 96          sub  (hl)
-E3F1: A0          and  b
-E3F2: 96          sub  (hl)
-E3F3: A0          and  b
-E3F4: 96          sub  (hl)
-E3F5: A0          and  b
-E3F6: FF          rst  $38
-E3F7: 1D          dec  e
-E3F8: 10 96       djnz $E436
-E3FA: 22 96 22    ld   ($883C),hl
-E3FD: 96          sub  (hl)
-E3FE: 22 96 22    ld   ($883C),hl
-E401: FE 1D       cp   $17
-E403: 11 96 22    ld   de,$883C
-E406: AF          xor  a
-E407: 22 B0 22    ld   ($88B0),hl
-E40A: 96          sub  (hl)
-E40B: 22 FE 1D    ld   ($17FE),hl
-E40E: 18 96       jr   $E44C
-E410: 22 B9 22    ld   ($88B3),hl
-E413: B4          or   h
-E414: 22 96 22    ld   ($883C),hl
-E417: FE 1D       cp   $17
-E419: 19          add  hl,de
-E41A: 96          sub  (hl)
-E41B: 22 96 22    ld   ($883C),hl
-E41E: 96          sub  (hl)
-E41F: 22 96 22    ld   ($883C),hl
-E422: FF          rst  $38
-E423: 1D          dec  e
-E424: 10 96       djnz $E462
-E426: 22 A6 22    ld   ($88AC),hl
-E429: A7          and  a
-E42A: 22 96 22    ld   ($883C),hl
-E42D: FE 1D       cp   $17
-E42F: 11 AE 22    ld   de,$88AE
-E432: AF          xor  a
-E433: 22 B0 22    ld   ($88B0),hl
-E436: B1          or   c
-E437: 22 FE 1D    ld   ($17FE),hl
-E43A: 18 B8       jr   $E3EE
-E43C: 22 B9 22    ld   ($88B3),hl
-E43F: B4          or   h
-E440: 22 B5 22    ld   ($88B5),hl
-E443: FE 1D       cp   $17
-E445: 19          add  hl,de
-E446: 96          sub  (hl)
-E447: 22 BC 22    ld   ($88B6),hl
-E44A: BD          cp   l
-E44B: 22 96 22    ld   ($883C),hl
-E44E: FF          rst  $38
+%%DCL
 E44F: CD 64 F7    call $FDC4
 E452: FD 21 90 6D ld   iy,$C730
 E456: 21 25 C2    ld   hl,$6885
@@ -11723,7 +10869,7 @@ E56E: 3E 01       ld   a,$01
 E570: D3 A2       out  ($A8),a
 E572: 3E 0C       ld   a,$06
 E574: CD 80 BC    call $B620
-E577: CD D4 B5    call $B574
+E577: CD D4 B5    call load_iy_with_player_structure_B574
 E57A: 3E 1C       ld   a,$16
 E57C: CD 80 BC    call $B620
 E57F: 3E 04       ld   a,$04
@@ -11943,7 +11089,7 @@ E711: F1          pop  af
 E712: CD AB B1    call $B1AB
 E715: C3 F5 E4    jp   $E4F5
 E718: FD 21 90 6D ld   iy,$C730
-E71C: 21 D6 52    ld   hl,$587C
+E71C: 21 D6 52    ld   hl,$587C		; immediate value
 E71F: 06 0A       ld   b,$0A
 E721: E5          push hl
 E722: FD 36 01 A0 ld   (iy+$01),$A0
@@ -12028,7 +11174,7 @@ E7E7: 06 00       ld   b,$00
 E7E9: 4F          ld   c,a
 E7EA: 09          add  hl,bc
 E7EB: E5          push hl
-E7EC: CD D4 B5    call $B574
+E7EC: CD D4 B5    call load_iy_with_player_structure_B574
 E7EF: E1          pop  hl
 E7F0: 7E          ld   a,(hl)
 E7F1: FD 77 0D    ld   (iy+$07),a
@@ -12040,7 +11186,7 @@ E7FB: FD 66 0D    ld   h,(iy+$07)
 E7FE: FD 6E 02    ld   l,(iy+$08)
 E801: DD 21 40 6D ld   ix,$C740
 E805: CD FF EB    call $EBFF
-E808: CD D4 B5    call $B574
+E808: CD D4 B5    call load_iy_with_player_structure_B574
 E80B: FD 7E 0D    ld   a,(iy+$07)
 E80E: C6 D0       add  a,$70
 E810: 67          ld   h,a
@@ -12090,7 +11236,7 @@ E85E: 24          inc  h
 E85F: 24          inc  h
 E860: 24          inc  h
 E861: 10 E5       djnz $E848
-E863: CD D4 B5    call $B574
+E863: CD D4 B5    call load_iy_with_player_structure_B574
 E866: FD 66 0D    ld   h,(iy+$07)
 E869: FD 6E 02    ld   l,(iy+$08)
 E86C: FD 21 0C EA ld   iy,$EA06
@@ -12141,7 +11287,7 @@ E8CB: FD E1       pop  iy
 E8CD: E1          pop  hl
 E8CE: FD E5       push iy
 E8D0: E5          push hl
-E8D1: CD D4 B5    call $B574
+E8D1: CD D4 B5    call load_iy_with_player_structure_B574
 E8D4: FD 7E 02    ld   a,(iy+$08)
 E8D7: E1          pop  hl
 E8D8: FD E1       pop  iy
@@ -12241,6 +11387,10 @@ E9A8: 78          ld   a,b
 E9A9: FE 0B       cp   $0B
 E9AB: C2 B0 E3    jp   nz,$E9B0
 %%DCB
+table_E92E:
+%%DCB
+table_EA06:
+%%DCB
 EBFF: FD 21 E8 E3 ld   iy,$E9E2
 EC03: 11 00 00    ld   de,$0000
 EC06: 47          ld   b,a
@@ -12327,7 +11477,7 @@ ECAA: CD B5 BB    call $BBB5
 ECAD: 01 96 D0    ld   bc,$703C
 ECB0: CD 1C B9    call $B316
 ECB3: CD AE F1    call $F1AE
-ECB6: 21 DC FE    ld   hl,$FE76
+ECB6: 21 DC FE    ld   hl,table_FE76
 ECB9: 16 30       ld   d,$90
 ECBB: CD 5D B9    call display_text_B357
 ECBE: 06 0B       ld   b,$0B
@@ -12437,6 +11587,10 @@ EDA5: FD 7E 00    ld   a,(iy+$00)
 EDA8: 85          add  a,l
 EDA9: 6F          ld   l,a
 EDAA: C3 E5 E6    jp   $ECE5
+%%DCB
+table_EDD1:
+%%DCB
+table_F131:
 %%DCB
 F174: CD 5E BC    call $B65E
 F177: CB 27       sla  a
@@ -12651,7 +11805,7 @@ F3A3: D6 0D       sub  $07
 F3A5: 57          ld   d,a
 F3A6: 1E 0B       ld   e,$0B
 F3A8: CD 69 B0    call $B0C3
-F3AB: DD 21 91 F1 ld   ix,$F131
+F3AB: DD 21 91 F1 ld   ix,table_F131
 F3AF: DD 19       add  ix,de
 F3B1: 3A 00 6F    ld   a,($CF00)
 F3B4: D6 05       sub  $05
@@ -12684,7 +11838,7 @@ F3E5: C9          ret
 F3E6: 3A 01 6F    ld   a,($CF01)
 F3E9: FE 0B       cp   $0B
 F3EB: C0          ret  nz
-F3EC: 11 E0 FF    ld   de,$FFE0
+F3EC: 11 E0 FF    ld   de,$FFE0		; immediate -32
 F3EF: 19          add  hl,de
 F3F0: 70          ld   (hl),b
 F3F1: C9          ret
@@ -12859,7 +12013,7 @@ F567: 3A 00 6F    ld   a,($CF00)
 F56A: D6 05       sub  $05
 F56C: 6F          ld   l,a
 F56D: 19          add  hl,de
-F56E: 11 91 F1    ld   de,$F131
+F56E: 11 91 F1    ld   de,table_F131
 F571: 19          add  hl,de
 F572: E5          push hl
 F573: 26 0E       ld   h,$0E
@@ -12962,7 +12116,7 @@ F650: DD 23       inc  ix
 F652: DD 23       inc  ix
 F654: DD 23       inc  ix
 F656: 10 F8       djnz $F64A
-F658: 21 71 E7    ld   hl,$EDD1
+F658: 21 71 E7    ld   hl,table_EDD1
 F65B: CD 31 B9    call $B391
 F65E: CD AE F1    call $F1AE
 F661: DD 21 02 6F ld   ix,$CF08
@@ -13009,6 +12163,8 @@ F6DB: 3E 01       ld   a,$01
 F6DD: 06 01       ld   b,$01
 F6DF: CD AE BC    call $B6AE
 F6E2: CD A5 B5    call $B5A5
+; copy contents of ROM in $C040
+init_C040_F6E5:
 F6E5: 01 C6 00    ld   bc,$006C
 F6E8: 21 F1 FC    ld   hl,table_F6F1
 F6EB: 11 40 60    ld   de,$C040
@@ -13197,7 +12353,7 @@ FD85: 87          add  a,a
 FD86: 81          add  a,c
 FD87: 4F          ld   c,a
 FD88: 06 00       ld   b,$00
-FD8A: 21 A9 F7    ld   hl,$FDA3
+FD8A: 21 A9 F7    ld   hl,table_FDA3
 FD8D: 09          add  hl,bc
 FD8E: 11 0A 6F    ld   de,$CF0A
 FD91: ED A0       ldi
@@ -13208,8 +12364,9 @@ FD9B: 21 02 6F    ld   hl,$CF08
 FD9E: D1          pop  de
 FD9F: CD 5D B9    call display_text_B357
 FDA2: C9          ret
+table_FDA3:
 %%DCB
-FDC4: 21 E1 F7    ld   hl,$FDE1
+FDC4: 21 E1 F7    ld   hl,table_FDE1
 FDC7: C3 77 F7    jp   $FDDD
 FDCA: 3A 11 63    ld   a,(background_and_state_bits_C911)
 FDCD: CB 7F       bit  7,a
@@ -13220,10 +12377,14 @@ FDD7: CA 77 F7    jp   z,$FDDD
 FDDA: 21 45 FE    ld   hl,table_FE45
 FDDD: CD 31 B9    call $B391
 FDE0: C9          ret
+table_FDE1:
 %%DCB
 table_FE14:
 %%DCB:
 table_FE45:
+%%DCB
+table_FE76:
+%%DCB
 FE9F: C9          ret
 ; copy of code from $5E9F probably not useful or called, removing it
 
