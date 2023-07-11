@@ -1,14 +1,15 @@
 import os
 import asm_file
 
+import config
 
-with open("../kchampv2_dump.bin","rb") as f:
+with open(config.binary_file,"rb") as f:
     dump = f.read()
 
 inst_dict = {}
 table_set = set()
 
-af = asm_file.read("../src/karate_champ_z80.asm")
+af = asm_file.read(config.asm_file)
 
 inst_dict = af["instructions"]
 

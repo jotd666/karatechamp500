@@ -183,15 +183,7 @@
 
 0000: C3 45 B0    jp   startup_B045
 0003: C3 59 41    jp   $4153
-
-0006  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00   ................
-0016  00 00 00 00 00 00 00 00 00 00 50 52 D2 53 4F 54   ..........PRÒSOT
-0026  91 64 29 65 5D 7C 89 6F 22 66 5B 75 57 76 9C 3A   .d)e]|.o"f[uWv.:
-0036  9C 3A 50 00 50 00 50 00 5E 6D D6 47 D6 47 D6 47   .:P.P.P.^mÖGÖGÖG
-0046  D6 47 F2 50 99 B0 9C B0 9F B0 67 75 B0 3A AC 1E   ÖGòP.°.°.°gu°:¬.
-0056  EE 53 3D CC 09 7B B8 4C 60 00 03 DD 02 40 61 26   îS=Ì {¸L`..Ý.@a&
-
-
+%%DCB
 ; periodic interrupt
 0066: C3 42 B0    jp   periodic_interrupt_B048
 
@@ -521,10 +513,12 @@ init_player_data_3D00:
 3D16: C9          ret
 ; start stance, x,y for player 1
 table_3D17:
-  89 0A 40 D0 89 0A 88 88 89 0A 88 88 89 0A 40 C8
-table_3D27:  89 8A C0 D0 89 8A 88 88 89 8A 88 88 89 0A 88 90
+%%DCB
+;  89 0A 40 D0 89 0A 88 88 89 0A 88 88 89 0A 40 C8
+table_3D27:
+%%DCB
 ; normal table
-table_3D37;
+table_3D37:
   89 0A 30 C0 89 0A 30 E0 89 0A 30 C0 89 0A 30 E0   
 3D47  89 0A 30 E0 89 0A 30 E0 89 0A 30 E0 89 0A 30 E0
 3D57  89 0A 30 E0 89 0A 30 E0 89 0A 30 E0 89 0A 30 C0
@@ -2195,10 +2189,8 @@ table_4D14:
 4D6E: CD 5A B0    call $B05A
 4D71: FD E1       pop  iy
 4D73: C9          ret
-
-     4D74  53 38 65 38 77 38 9B 38 B6 38 D1 38 EC 38 80 3A   S8e8w8.8¶8Ñ8ì8.:
-
-
+table_4D74:
+%%DCB
 4D7E: 71          ld   (hl),c
 4D7F: 92          sub  d
 4D80: E6 92       and  $38
@@ -7427,7 +7419,8 @@ table_7B12:
 7D01: DD E1       pop  ix
 7D03: C3 A1 D6    jp   $7CA1
 %%DCB
-move_human_player_A34D: 3A 11 63    ld   a,(background_and_state_bits_C911)
+move_human_player_A34D:
+A34D: 3A 11 63    ld   a,(background_and_state_bits_C911)
 A350: CB 7F       bit  7,a
 A352: 3E 00       ld   a,$00
 A354: C2 DA A9    jp   nz,$A37A		; special screens, don't move human player
@@ -7451,7 +7444,8 @@ A37A: C9          ret
 
 ; roughly called every 60th frames, sometimes 2 times in the frame
 ; probably not or loosely synchronized with 60Hz interrupt
-fight_mainloop_A37B: CD 4B B0    call load_iy_with_player_structure_B04B
+fight_mainloop_A37B: 
+A37B: CD 4B B0    call load_iy_with_player_structure_B04B
 A37E: FD 36 10 00 ld   (iy+$10),$00
 A382: AF          xor  a
 A383: CD 5A B0    call $B05A
@@ -7667,7 +7661,9 @@ A523: D2 82 A5    jp   nc,$A528
 A526: 3E FF       ld   a,$FF
 A528: C9          ret
 
-table_A529:	dc.b  58 17 40 17 28 17 00 27 A0 17 B8 17 D0 17 E8 17 00 FF 
+table_A529:
+%%DCB
+;dc.b  58 17 40 17 28 17 00 27 A0 17 B8 17 D0 17 E8 17 00 FF 
 
 ; jump table depending on the value of iy+0xF
 ; this jumps to another jump table selector (which is not very performant
@@ -8072,11 +8068,13 @@ A7BD: 36 01       ld   (hl),$01
 A7BF: C3 10 A4    jp   cpu_move_done_A410
 A7C2: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
-just_walk_A7C5: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
+just_walk_A7C5: 
+A7C5: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 A7C8: 36 08       ld   (hl),$02
 A7CA: C3 10 A4    jp   cpu_move_done_A410
 
-just_walk_A7CD: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
+just_walk_A7CD:
+A7CD: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
 A7D0: 36 08       ld   (hl),$02
 A7D2: C3 10 A4    jp   cpu_move_done_A410
 
@@ -8108,7 +8106,8 @@ A7FD: 36 08       ld   (hl),$02
 A7FF: C3 10 A4    jp   cpu_move_done_A410
 
 ; pick an attack
-pick_cpu_attack_A802: CD 8E AB    call select_cpu_attack_AB2E
+pick_cpu_attack_A802:
+A802: CD 8E AB    call select_cpu_attack_AB2E
 A805: A7          and  a
 A806: CC D5 B0    call z,display_error_text_B075	; never called a != 0 always!
 A809: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
@@ -8374,7 +8373,8 @@ A9D0: C3 10 A4    jp   cpu_move_done_A410
 A9D3: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
 
-cpu_complex_reaction_to_rear_attack_A9D6: FD CB 0F DE bit  7,(iy+$0f)
+cpu_complex_reaction_to_rear_attack_A9D6:
+A9D6: FD CB 0F DE bit  7,(iy+$0f)
 A9DA: CA FE A3    jp   z,pick_cpu_attack_A9FE
 A9DD: CD F7 AA    call opponent_starting_low_attack_AAFD
 A9E0: A7          and  a
@@ -8403,7 +8403,8 @@ AA08: 36 0D       ld   (hl),$07
 AA0A: C3 10 A4    jp   cpu_move_done_A410
 AA0D: C3 E4 A9    jp   cpu_move_done_opponent_can_react_A3E4
 
-foot_sweep_back_AA10: CD BB AB    call perform_foot_sweep_back_ABBB
+foot_sweep_back_AA10:
+AA10: CD BB AB    call perform_foot_sweep_back_ABBB
 ;;AA13: A7          and  a
 ;;AA14: C2 1F AA    jp   nz,$AA1F	; always true
 ;;AA17: 2A 04 6F    ld   hl,(address_of_current_player_move_byte_CF04)
@@ -8674,8 +8675,8 @@ ABCA: 77          ld   (hl),a
 ABCB: C9          ret
 
 ; computer is jumping
-handle_cpu_land_from_jump_ABCC: FD 6E 0D
-ABCC:	ld   l,(iy+$07)
+handle_cpu_land_from_jump_ABCC:
+ABCC: FD 6E 0D    ld   l,(iy+$07)
 ABCF: FD 66 02    ld   h,(iy+$08)
 ABD2: 11 D9 0B    ld   de,$0B73    ; jump frame
 ABD5: A7          and  a
@@ -8775,29 +8776,35 @@ AC7D: C4 D5 B0    call nz,display_error_text_B075
 AC80: C3 10 A4    jp   cpu_move_done_A410
 
 
-block_key_table_AC83
+block_key_table_AC83:
 	dc.w	$1A88,$AC91	; high block
 	dc.w	$1AD0,$AC9D	; medium block
 	dc.w	$1B18,$ACA3	; low block
 	dc.w	$FFFF 
 ; hitting points of high techniques
 	                  brkick (and next frame)    jskick (and landing)
-AC91  dc.b	50 0D     24 0F                           17 10           
-          lpunch 600      lpunch 1000
+table_AC91:
+  dc.b	50 0D     24 0F                           17 10           
+    ;      lpunch 600      lpunch 1000
       dc.b  76 11            EB 11 FF FF 
 ; hitting points of medium techniques
-AC9D  dc.b	B8 0E 99 0F FF FF
+table_AC9D:
+  dc.b	B8 0E 99 0F FF FF
 ; hitting points of low techniques
-ACA3  dc.b	C9 0C DB 0C 55 0E DE 12 FF FF 
+table_ACA3:
+  dc.b	C9 0C DB 0C 55 0E DE 12 FF FF 
 
-block_key_table_ACAD
+block_key_table_ACAD:
 	dc.w	$1A88,high_attacks_ACBB	; high block
 	dc.w	$1AD0,medium_attacks_ACC1	; medium block
 	dc.w	$1B18,low_attacks_ACC4	; low block
 	dc.w	$FFFF 
-high_attacks_ACBB dc.b	82 86 88 8B 8C FF ; jskick brkick jbkick lp600 lp1000
-medium_attacks_ACC1 dc.b	85 87 FF ; weak reverse, lunge punch 400
-low_attacks_ACC4 dc.b	81 84 8D FF  ; back kick, front kick, revpunch 800 
+high_attacks_ACBB:
+ dc.b	82 86 88 8B 8C FF ; jskick brkick jbkick lp600 lp1000
+medium_attacks_ACC1:
+	dc.b	85 87 FF ; weak reverse, lunge punch 400
+low_attacks_ACC4:
+	dc.b	81 84 8D FF  ; back kick, front kick, revpunch 800 
 
 
 
@@ -8982,10 +8989,13 @@ AE47:
 
 B000: C3 69 B0    jp   $B0C3
 B003: C3 7B B0    jp   $B0DB
-random_B006: C3 EE B0    jp   $B0EE
+random_B006:
+B006: C3 EE B0    jp   $B0EE
 B009: C3 FF B0    jp   check_hl_in_ix_list_B0FF
-key_value_linear_search_B00C: C3 84 B1    jp   key_value_linear_search_B124
-table_linear_search_B00F: C3 42 B1    jp   table_linear_search_B148
+key_value_linear_search_B00C: 
+B00C: C3 84 B1    jp   key_value_linear_search_B124
+table_linear_search_B00F: 
+B00F: C3 42 B1    jp   table_linear_search_B148
 B012: C3 56 B1    jp   $B15C
 B015: C3 D1 B1    jp   $B171
 B018: C3 AB B1    jp   $B1AB
@@ -9125,7 +9135,8 @@ B123: C9          ret
 ; > if found loads hl with the word after 
 ; the value of de found in ix list
 
-key_value_linear_search_B124: 01 04 00    ld   bc,$0004
+key_value_linear_search_B124:
+B124: 01 04 00    ld   bc,$0004
 B127: DD 6E 00    ld   l,(ix+$00)
 B12A: DD 66 01    ld   h,(ix+$01)
 B12D: 7D          ld   a,l
@@ -9182,7 +9193,7 @@ B180: C2 D2 B1    jp   nz,$B178
 B183: FD E1       pop  iy
 B185: C9          ret
 
-display_error_text_B186
+display_error_text_B186:
 B186: DD E1       pop  ix
 B188: CD E8 BB    call disable_interrupts_BBE2
 B18B: F5          push af
@@ -10271,7 +10282,8 @@ BB91: C9          ret
 	;PORT_DIPNAME( 0x80, 0x80, DEF_STR( Free_Play ) )
 	;PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
 	;PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-get_dip_switches_BB92: DB 60       in   a,($C0)
+get_dip_switches_BB92:
+BB92: DB 60       in   a,($C0)
 BB94: 2F          cpl	; invert bits (active low logic)
 BB95: C9          ret
 
@@ -10284,7 +10296,8 @@ BBA1: C3 AD BB    jp   $BBA7
 BBA4: CD A2 BB    call read_port_0_BBA8
 BBA7: C9          ret
 
-read_port_0_BBA8: DB 00       in   a,($00)
+read_port_0_BBA8: 
+BBA8: DB 00       in   a,($00)
 BBAA: C3 AF BB    jp   $BBAF
 
 BBAD: DB 40       in   a,($40)
