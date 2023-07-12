@@ -20,7 +20,7 @@ for offset,data in inst_dict.items():
         continue
     if inst_toks[0]=="ld":
         ld_params = inst_toks[1].split(",")
-        if (ld_params[0] in ["ix","iy","hl","de","bc"] and
+        if (ld_params[0] in ["ix","iy","hl","de"] and
         "(" not in ld_params[1] and "$" in ld_params[1]):
             try:
                 value = int(ld_params[1][1:],16)

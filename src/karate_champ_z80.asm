@@ -585,14 +585,14 @@ table_3DF8:
 	dc.b	0x15,0x16,0x18,0x16,0x15,0x48,0x17,0x17 | 0x3e38
 	dc.b	0x88,0x18,0x18 | 0x3e40
 
-3E43: DD 21 3D 9E ld   ix,$3E97
+3E43: DD 21 3D 9E ld   ix,table_3E97
 3E47: FD 6E 0D    ld   l,(iy+$07)
 3E4A: FD 66 02    ld   h,(iy+$08)
 3E4D: CB BC       res  7,h
 3E4F: CD 03 B0    call check_hl_in_ix_list_B009
 3E52: A7          and  a
 3E53: CA D7 9E    jp   z,$3E7D
-3E56: DD 21 9D 97 ld   ix,$3D37
+3E56: DD 21 9D 97 ld   ix,table_3D37
 3E5A: 3A 11 63    ld   a,(background_and_state_bits_C911)
 3E5D: E6 DF       and  $7F
 3E5F: FE 80       cp   $20
@@ -643,7 +643,7 @@ table_3E97:
 3ED0: 19          add  hl,de
 3ED1: C3 6C 9E    jp   $3EC6
 3ED4: E5          push hl
-3ED5: DD 21 9B AA ld   ix,$walk_frames_list_AA3B
+3ED5: DD 21 9B AA ld   ix,walk_frames_list_AA3B
 3ED9: FD 6E 0D    ld   l,(iy+$07)
 3EDC: FD 66 02    ld   h,(iy+$08)
 3EDF: CB BC       res  7,h
@@ -1656,7 +1656,7 @@ get_current_frame_contents_478D:
 47BF: 87          add  a,a
 47C0: 4F          ld   c,a
 47C1: 06 00       ld   b,$00
-47C3: 21 9D 97    ld   hl,$3D37
+47C3: 21 9D 97    ld   hl,table_3D37
 47C6: 09          add  hl,bc
 47C7: 23          inc  hl
 47C8: 23          inc  hl
@@ -1783,7 +1783,7 @@ get_current_frame_contents_478D:
 48E7: 06 00       ld   b,$00
 48E9: 4F          ld   c,a
 48EA: 09          add  hl,bc
-48EB: DD 21 9D 97 ld   ix,$3D37
+48EB: DD 21 9D 97 ld   ix,table_3D37
 48EF: 3A 11 63    ld   a,(background_and_state_bits_C911)
 48F2: 87          add  a,a
 48F3: 87          add  a,a
@@ -2170,7 +2170,7 @@ table_4CBD:
 
 4CC5: FD E5       push iy
 4CC7: DD 21 00 6F ld   ix,$CF00
-4CCB: 21 14 47    ld   hl,$4D14
+4CCB: 21 14 47    ld   hl,table_4D14
 4CCE: FD 4E 06    ld   c,(iy+$0c)
 4CD1: 06 00       ld   b,$00
 4CD3: 09          add  hl,bc
@@ -2214,7 +2214,7 @@ table_4D14:
  10 10
  10 10
 
-4D1C: DD 21 D4 47 ld   ix,$4D74
+4D1C: DD 21 D4 47 ld   ix,table_4D74
 4D20: FD 4E 06    ld   c,(iy+$0c)
 4D23: 06 00       ld   b,$00
 4D25: DD 09       add  ix,bc
@@ -3489,7 +3489,7 @@ jump_table_547B:
 5A3F: C3 43 5A    jp   $5A49
 5A42: DD 21 00 63 ld   ix,$C900
 5A46: CD A1 5B    call $5BA1
-5A49: 21 6C 59    ld   hl,$53C6
+5A49: 21 6C 59    ld   hl,table_53C6
 5A4C: C1          pop  bc
 5A4D: DD 21 02 63 ld   ix,$C908
 5A51: DD 70 05    ld   (ix+$05),b
@@ -3521,7 +3521,7 @@ jump_table_547B:
 5A96: C3 A0 5A    jp   $5AA0
 5A99: DD 21 02 63 ld   ix,$C908
 5A9D: CD A1 5B    call $5BA1
-5AA0: 21 6C 59    ld   hl,$53C6
+5AA0: 21 6C 59    ld   hl,table_53C6
 5AA3: C1          pop  bc
 5AA4: DD 21 00 63 ld   ix,$C900
 5AA8: DD 70 05    ld   (ix+$05),b
@@ -3612,7 +3612,7 @@ jump_table_547B:
 5B89: DD 21 00 63 ld   ix,$C900
 5B8D: DD 46 01    ld   b,(ix+$01)
 5B90: DD 70 05    ld   (ix+$05),b
-5B93: 21 6C 59    ld   hl,$53C6
+5B93: 21 6C 59    ld   hl,table_53C6
 5B96: 7E          ld   a,(hl)
 5B97: DD 77 01    ld   (ix+$01),a
 5B9A: DD 75 08    ld   (ix+$02),l
@@ -3919,7 +3919,7 @@ jump_table_547B:
 5F45: CD 7C DA    call $7AD6
 5F48: 3E 00       ld   a,$00
 5F4A: CD 12 B0    call $B018
-5F4D: 21 06 C0    ld   hl,$600C
+5F4D: 21 06 C0    ld   hl,table_600C
 5F50: CD 96 B0    call $B03C
 5F53: 21 8E C0    ld   hl,$602E
 5F56: 16 A2       ld   d,$A8
@@ -5255,7 +5255,7 @@ practice_table_end_6361:
 6A78: DD 09       add  ix,bc
 6A7A: DD 66 00    ld   h,(ix+$00)
 6A7D: DD 6E 01    ld   l,(ix+$01)
-6A80: DD 21 75 CA ld   ix,$6AD5
+6A80: DD 21 75 CA ld   ix,table_6AD5
 6A84: FD 21 00 6D ld   iy,referee_x_pos_C700
 6A88: FD 74 00    ld   (iy+$00),h
 6A8B: FD 74 04    ld   (iy+$04),h
@@ -5424,7 +5424,7 @@ referee_start_position_table_6AE1:
 6C2B: C9          ret
 ; empty text to erase previous values
 clear_text_6C2C:
-6C2C: 21 95 C6    ld   hl,$6C35
+6C2C: 21 95 C6    ld   hl,table_6C35
 6C2F: 16 30       ld   d,$90
 6C31: CD 93 B0    call display_text_B039
 6C34: C9          ret
@@ -9220,7 +9220,7 @@ classify_opponent_move_start_A665:
 A665: FD 6E 0B    ld   l,(iy+$0b)
 A668: FD 66 06    ld   h,(iy+$0c)		; hl <= opponent frame
 A66B: CB BC       res  7,h		; remove last bit (facing direction)
-A66D: DD 21 9B AA ld   ix,$walk_frames_list_AA3B
+A66D: DD 21 9B AA ld   ix,walk_frames_list_AA3B
 A671: E5          push hl
 A672: CD 03 B0    call check_hl_in_ix_list_B009
 A675: E1          pop  hl
@@ -10140,9 +10140,9 @@ AC80: C3 10 A4    jp   cpu_move_done_A410
 
 
 block_key_table_AC83:
-	dc.w	0x1A88,$AC91	; high block
-	dc.w	0x1AD0,$AC9D	; medium block
-	dc.w	0x1B18,$ACA3	; low block
+	dc.w	0x1A88,table_AC91	; high block
+	dc.w	0x1AD0,table_AC9D	; medium block
+	dc.w	0x1B18,table_ACA3	; low block
 	dc.w	0xFFFF
 ; hitting points of high techniques
 	                  brkick (and next frame)    jskick (and landing)
@@ -10466,6 +10466,7 @@ B069: C3 28 BB    jp   check_coin_ports_BB82
 B06C: C3 38 BB    jp   get_dip_switches_BB92
 B06F: C3 3C BB    jp   $BB96
 B072: C3 B5 BB    jp   $BBB5
+display_error_text_B075:
 B075: C3 2C B1    jp   display_error_text_B186
 B078: C3 07 E0    jp   $E00D
 B07B: C3 83 E0    jp   $E029
@@ -10637,7 +10638,7 @@ B18C: C5          push bc
 B18D: D5          push de
 B18E: E5          push hl
 B18F: FD E5       push iy
-B191: 21 A9 B1    ld   hl,$B1A3	; ERROR
+B191: 21 A9 B1    ld   hl,table_B1A3	; ERROR
 B194: 16 32       ld   d,$98
 B196: CD 5D B9    call display_text_B357
 B199: FD E1       pop  iy
@@ -11163,7 +11164,7 @@ B551: AE          xor  (hl)
 B552: 77          ld   (hl),a
 B553: CB 03       rlc  e
 B555: 16 00       ld   d,$00
-B557: 21 E5 BD    ld   hl,$B7E5
+B557: 21 E5 BD    ld   hl,table_B7E5
 B55A: 19          add  hl,de
 B55B: 5E          ld   e,(hl)
 B55C: 23          inc  hl
@@ -12865,7 +12866,7 @@ E861: 10 E5       djnz $E848
 E863: CD D4 B5    call load_iy_with_player_structure_B574
 E866: FD 66 0D    ld   h,(iy+$07)
 E869: FD 6E 02    ld   l,(iy+$08)
-E86C: FD 21 0C EA ld   iy,$EA06
+E86C: FD 21 0C EA ld   iy,table_EA06
 E870: 3E 04       ld   a,$04
 E872: DD 21 40 6D ld   ix,$C740
 E876: E5          push hl
@@ -12889,7 +12890,7 @@ E896: FD 23       inc  iy
 E898: FD 7E 00    ld   a,(iy+$00)
 E89B: FE F7       cp   $FD
 E89D: C2 A4 E2    jp   nz,$E8A4
-E8A0: FD 21 0C EA ld   iy,$EA06
+E8A0: FD 21 0C EA ld   iy,table_EA06
 E8A4: FD 7E 01    ld   a,(iy+$01)
 E8A7: 84          add  a,h
 E8A8: 67          ld   h,a
