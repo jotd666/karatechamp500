@@ -9,6 +9,11 @@ def get_line_offset(line):
     if line.endswith(":"):
         label = line.rstrip(":")
         label_offset = af["labels"].get(label)
+        if label_offset is None and len(label)==4:
+            try:
+                label_offset = int(label,16)
+            except ValueError:
+                pass
     else:
         toks = line.split(":")
         if len(toks)>1:
@@ -36,6 +41,8 @@ for i,line in enumerate(af["raw"]):
         pos = 0
         max_items_per_row = {"b":8,"w":1}[size]
         size_in_bytes = {"b":1,"w":2}[size]
+        line_offset = label_offset
+        offset_comment_format = " | 0x{:04x}\n"
 
         for j in range(0,length,size_in_bytes):
             if pos==0:
@@ -52,10 +59,11 @@ for i,line in enumerate(af["raw"]):
             pos += 1
             if pos == max_items_per_row:
                 pos = 0
-                data.append("\n")
+                data.append(offset_comment_format.format(line_offset))
+                line_offset += max_items_per_row*size_in_bytes
         if data:
-            if data[-1] != "\n":
-                data.append("\n")
+            if not data[-1].endswith("\n"):
+                data.append(offset_comment_format.format(line_offset))
             af["raw"][i] = "".join(data)
         else:
             print(f"{i+1}: wrong %DCx")
@@ -64,4 +72,4 @@ for i,line in enumerate(af["raw"]):
         if lof is not None:
             label_offset = lof
 
-asm_file.write("out.asm",af["raw"])
+asm_file.write(config.asm_file,af["raw"])
