@@ -42,7 +42,7 @@ for i,line in enumerate(af["raw"]):
         max_items_per_row = {"b":8,"w":1}[size]
         size_in_bytes = {"b":1,"w":2}[size]
         line_offset = label_offset
-        offset_comment_format = " | 0x{:04x}\n"
+        offset_comment_format = " ; ${:04x}\n"
 
         for j in range(0,length,size_in_bytes):
             if pos==0:
