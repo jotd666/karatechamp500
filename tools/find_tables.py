@@ -37,6 +37,16 @@ for offset,data in inst_dict.items():
 
                 nb_tables+=1
 
+# unlabelled tables
 for x,y,z in sorted(lst):
     print(f"{x} loaded at {y}: {z}")
 print(f"Unlabelled tables {nb_tables}")
+
+# frequently called unlabelled entrypoints:
+important_routine_threshold = 5
+for k,v in af["entrypoints"].items():
+    if k.startswith("$") and v >= important_routine_threshold:
+        print(f"{k} called {v} times")
+
+
+

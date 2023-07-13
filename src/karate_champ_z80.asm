@@ -1257,7 +1257,7 @@ address_table_0020:
 3ADD: 3E 02       ld   a,$08
 3ADF: CA E4 9A    jp   z,$3AE4
 3AE2: 3E 03       ld   a,$09
-3AE4: CD 57 B0    call $B05D
+3AE4: CD 57 B0    call bitfield_manipulation_B05D
 3AE7: A7          and  a
 3AE8: C4 D5 B0    call nz,display_error_text_B075
 3AEB: AF          xor  a
@@ -1291,7 +1291,7 @@ address_table_0020:
 3B30: F5          push af
 3B31: 3E 09       ld   a,$03
 3B33: 06 03       ld   b,$09
-3B35: CD 57 B0    call $B05D
+3B35: CD 57 B0    call bitfield_manipulation_B05D
 3B38: A7          and  a
 3B39: C4 D5 B0    call nz,display_error_text_B075
 3B3C: F1          pop  af
@@ -1306,17 +1306,17 @@ address_table_0020:
 3B4D: E5          push hl
 3B4E: C5          push bc
 3B4F: FD E5       push iy
-3B51: CD 57 B0    call $B05D
+3B51: CD 57 B0    call bitfield_manipulation_B05D
 3B54: A7          and  a
 3B55: C4 D5 B0    call nz,display_error_text_B075
 3B58: 3E 02       ld   a,$08
 3B5A: 06 03       ld   b,$09
-3B5C: CD 57 B0    call $B05D
+3B5C: CD 57 B0    call bitfield_manipulation_B05D
 3B5F: A7          and  a
 3B60: C4 D5 B0    call nz,display_error_text_B075
 3B63: 3E 03       ld   a,$09
 3B65: 06 03       ld   b,$09
-3B67: CD 57 B0    call $B05D
+3B67: CD 57 B0    call bitfield_manipulation_B05D
 3B6A: A7          and  a
 3B6B: C4 D5 B0    call nz,display_error_text_B075
 3B6E: FD E1       pop  iy
@@ -1328,7 +1328,7 @@ address_table_0020:
 3B7F: C1          pop  bc
 3B80: 3E 0D       ld   a,$07
 3B82: FD E5       push iy
-3B84: CD 57 B0    call $B05D
+3B84: CD 57 B0    call bitfield_manipulation_B05D
 3B87: A7          and  a
 3B88: C4 D5 B0    call nz,display_error_text_B075
 3B8B: FD E1       pop  iy
@@ -1348,7 +1348,7 @@ address_table_0020:
 3BB1: 3E 04       ld   a,$04
 3BB3: C5          push bc
 3BB4: FD E5       push iy
-3BB6: CD 57 B0    call $B05D
+3BB6: CD 57 B0    call bitfield_manipulation_B05D
 3BB9: A7          and  a
 3BBA: C4 D5 B0    call nz,display_error_text_B075
 3BBD: FD E1       pop  iy
@@ -1379,12 +1379,12 @@ address_table_0020:
 3BFB: FD E5       push iy
 3BFD: 3E 03       ld   a,$09
 3BFF: 06 03       ld   b,$09
-3C01: CD 57 B0    call $B05D
+3C01: CD 57 B0    call bitfield_manipulation_B05D
 3C04: A7          and  a
 3C05: C4 D5 B0    call nz,display_error_text_B075
 3C08: 3E 02       ld   a,$08
 3C0A: 06 03       ld   b,$09
-3C0C: CD 57 B0    call $B05D
+3C0C: CD 57 B0    call bitfield_manipulation_B05D
 3C0F: A7          and  a
 3C10: C4 D5 B0    call nz,display_error_text_B075
 3C13: FD E1       pop  iy
@@ -1468,7 +1468,7 @@ table_3CA8:
 3CCA: 3A 11 63    ld   a,(background_and_state_bits_C911)
 3CCD: E6 DF       and  $7F
 3CCF: D6 50       sub  $50
-3CD1: CD 00 97    call $init_player_data_3D00
+3CD1: CD 00 97    call init_player_data_3D00
 3CD4: C3 F7 96    jp   $3CFD
 ; normal init
 3CD7: 21 9D 97    ld   hl,table_3D37
@@ -1816,6 +1816,7 @@ table_4019:
 40AC: CA B8 40    jp   z,$40B2
 40AF: CD D8 B0    call play_sound_B072
 40B2: C9          ret
+
 40B3: 3A 11 63    ld   a,(background_and_state_bits_C911)
 40B6: CB BF       res  7,a
 40B8: FE 50       cp   $50
@@ -1879,6 +1880,7 @@ table_4019:
 414D: CA 58 41    jp   z,$4152
 4150: 0E 08       ld   c,$02
 4152: C9          ret
+
 4153: CD 27 4D    call get_current_frame_contents_478D
 4156: E5          push hl
 4157: 11 00 08    ld   de,$0200
@@ -2105,7 +2107,7 @@ table_4019:
 4343: FD E1       pop  iy
 4345: E1          pop  hl
 4346: D1          pop  de
-4347: CD 48 B0    call $B042
+4347: CD 48 B0    call is_point_in_rectangle_B042
 434A: A7          and  a
 434B: CA 56 49    jp   z,$435C
 434E: 06 04       ld   b,$04
@@ -2117,7 +2119,7 @@ table_4019:
 4359: C3 C6 49    jp   $436C
 435C: 01 04 00    ld   bc,$0004
 435F: DD 09       add  ix,bc
-4361: CD 48 B0    call $B042
+4361: CD 48 B0    call is_point_in_rectangle_B042
 4364: A7          and  a
 4365: CA C6 49    jp   z,$436C
 4368: 3E 05       ld   a,$05
@@ -2658,12 +2660,12 @@ get_current_frame_contents_478D:
 4826: C2 8B 42    jp   nz,$482B
 4829: 3E 0B       ld   a,$0B
 482B: 06 09       ld   b,$03
-482D: CD 57 B0    call $B05D
+482D: CD 57 B0    call bitfield_manipulation_B05D
 4830: A7          and  a
 4831: C4 D5 B0    call nz,display_error_text_B075
 4834: 3E 08       ld   a,$02
 4836: 06 09       ld   b,$03
-4838: CD 57 B0    call $B05D
+4838: CD 57 B0    call bitfield_manipulation_B05D
 483B: A7          and  a
 483C: C4 D5 B0    call nz,display_error_text_B075
 483F: FD E1       pop  iy
@@ -2701,7 +2703,7 @@ get_current_frame_contents_478D:
 4890: 3E 04       ld   a,$04
 4892: 06 08       ld   b,$02
 4894: FD E5       push iy
-4896: CD 57 B0    call $B05D
+4896: CD 57 B0    call bitfield_manipulation_B05D
 4899: FD E1       pop  iy
 489B: A7          and  a
 489C: C2 D5 B0    jp   nz,display_error_text_B075
@@ -2927,7 +2929,7 @@ table_4960:
 4AA5: DD 21 74 4A ld   ix,table_4AD4
 4AA9: FD 56 03    ld   d,(iy+$09)
 4AAC: FD 5E 0A    ld   e,(iy+$0a)
-4AAF: CD 48 B0    call $B042
+4AAF: CD 48 B0    call is_point_in_rectangle_B042
 4AB2: A7          and  a
 4AB3: C2 71 4A    jp   nz,$4AD1
 4AB6: CD C2 43    call $4968
@@ -2983,7 +2985,7 @@ table_4AD4:
 4B67: DD 21 D3 4B ld   ix,table_4B79
 4B6B: FD 56 03    ld   d,(iy+$09)
 4B6E: FD 5E 0A    ld   e,(iy+$0a)
-4B71: CD 48 B0    call $B042
+4B71: CD 48 B0    call is_point_in_rectangle_B042
 4B74: C9          ret
 
 table_4B75:
@@ -3001,7 +3003,7 @@ table_4B79:
 4B8D: A7          and  a
 4B8E: C2 A0 4B    jp   nz,$4BA0
 4B91: CD D7 46    call $4C7D
-4B94: CD 48 B0    call $B042
+4B94: CD 48 B0    call is_point_in_rectangle_B042
 4B97: A7          and  a
 4B98: CA A0 4B    jp   z,$4BA0
 4B9B: 3E 08       ld   a,$02
@@ -3019,7 +3021,7 @@ table_4B79:
 4BBA: FD 7E 0A    ld   a,(iy+$0a)
 4BBD: D6 10       sub  $10
 4BBF: 5F          ld   e,a
-4BC0: CD 48 B0    call $B042
+4BC0: CD 48 B0    call is_point_in_rectangle_B042
 4BC3: A7          and  a
 4BC4: C2 F3 4B    jp   nz,$4BF9
 4BC7: FD 7E 03    ld   a,(iy+$09)
@@ -3029,7 +3031,7 @@ table_4B79:
 4BD3: D6 80       sub  $20
 4BD5: 57          ld   d,a
 4BD6: FD 5E 0A    ld   e,(iy+$0a)
-4BD9: CD 48 B0    call $B042
+4BD9: CD 48 B0    call is_point_in_rectangle_B042
 4BDC: A7          and  a
 4BDD: C2 F3 4B    jp   nz,$4BF9
 4BE0: FD 56 03    ld   d,(iy+$09)
@@ -3039,7 +3041,7 @@ table_4B79:
 4BE9: C3 F8 4B    jp   $4BF2
 4BEC: FD 56 03    ld   d,(iy+$09)
 4BEF: FD 5E 0A    ld   e,(iy+$0a)
-4BF2: CD 48 B0    call $B042
+4BF2: CD 48 B0    call is_point_in_rectangle_B042
 4BF5: A7          and  a
 4BF6: CA FB 4B    jp   z,$4BFB
 4BF9: 3E 01       ld   a,$01
@@ -3253,7 +3255,7 @@ table_4D74:
 4DD2: C4 D5 B0    call nz,display_error_text_B075
 4DD5: 3E 0F       ld   a,$0F
 4DD7: 06 80       ld   b,$20
-4DD9: CD 57 B0    call $B05D
+4DD9: CD 57 B0    call bitfield_manipulation_B05D
 4DDC: A7          and  a
 4DDD: C4 D5 B0    call nz,display_error_text_B075
 4DE0: FD E1       pop  iy
@@ -3265,7 +3267,7 @@ table_4D74:
 4DED: FD E1       pop  iy
 4DEF: 3E 01       ld   a,$01
 4DF1: 06 01       ld   b,$01
-4DF3: CD 57 B0    call $B05D
+4DF3: CD 57 B0    call bitfield_manipulation_B05D
 4DF6: A7          and  a
 4DF7: C4 D5 B0    call nz,display_error_text_B075
 4DFA: CD 51 B0    call warm_reboot_B051
@@ -3524,12 +3526,12 @@ table_5040:
 518D: C2 31 51    jp   nz,$5191
 5190: 3C          inc  a
 5191: 06 10       ld   b,$10
-5193: CD 57 B0    call $B05D
+5193: CD 57 B0    call bitfield_manipulation_B05D
 5196: A7          and  a
 5197: C4 D5 B0    call nz,display_error_text_B075
 519A: 3E 08       ld   a,$02
 519C: 06 10       ld   b,$10
-519E: CD 57 B0    call $B05D
+519E: CD 57 B0    call bitfield_manipulation_B05D
 51A1: A7          and  a
 51A2: C4 D5 B0    call nz,display_error_text_B075
 51A5: FD E1       pop  iy
@@ -3561,7 +3563,7 @@ table_5040:
 51EA: FD 96 19    sub  (iy+$13)
 51ED: 47          ld   b,a
 51EE: 3E 04       ld   a,$04
-51F0: CD 57 B0    call $B05D
+51F0: CD 57 B0    call bitfield_manipulation_B05D
 51F3: FD E1       pop  iy
 51F5: 3E 04       ld   a,$04
 51F7: FD 96 19    sub  (iy+$13)
@@ -3580,14 +3582,14 @@ table_5040:
 5215: C2 F6 50    jp   nz,$50FC
 5218: 3E 08       ld   a,$02
 521A: 06 01       ld   b,$01
-521C: CD 57 B0    call $B05D
+521C: CD 57 B0    call bitfield_manipulation_B05D
 521F: 3E 0A       ld   a,$0A
 5221: 06 11       ld   b,$11
 5223: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
 5226: CB 56       bit  2,(hl)
 5228: C2 86 58    jp   nz,$522C
 522B: 3C          inc  a
-522C: CD 57 B0    call $B05D
+522C: CD 57 B0    call bitfield_manipulation_B05D
 522F: A7          and  a
 5230: C4 D5 B0    call nz,display_error_text_B075
 5233: C3 48 58    jp   $5242
@@ -3775,11 +3777,11 @@ table_53CC:
 5443: CA E4 59    jp   z,$53E4
 5446: 3E 00       ld   a,$00
 5448: 47          ld   b,a
-5449: CD 57 B0    call $B05D
+5449: CD 57 B0    call bitfield_manipulation_B05D
 544C: CD 51 B0    call warm_reboot_B051
 544F: CD 23 DA    call $7A89
 5452: CD 7C DA    call $7AD6
-5455: CD B1 B0    call $B0B1
+5455: CD B1 B0    call is_title_screen_demo_mode_B0B1
 5458: A7          and  a
 5459: CA C4 54    jp   z,$5464
 545C: CD B4 B0    call $B0B4
@@ -3918,19 +3920,19 @@ jump_table_547B:
 556F: C2 36 55    jp   nz,$559C
 5572: 3E 0A       ld   a,$0A
 5574: 06 02       ld   b,$08
-5576: CD 57 B0    call $B05D
+5576: CD 57 B0    call bitfield_manipulation_B05D
 5579: 3E 0B       ld   a,$0B
 557B: 06 02       ld   b,$08
-557D: CD 57 B0    call $B05D
+557D: CD 57 B0    call bitfield_manipulation_B05D
 5580: 3E 02       ld   a,$08
 5582: 06 03       ld   b,$09
-5584: CD 57 B0    call $B05D
+5584: CD 57 B0    call bitfield_manipulation_B05D
 5587: 3E 03       ld   a,$09
 5589: 06 03       ld   b,$09
-558B: CD 57 B0    call $B05D
+558B: CD 57 B0    call bitfield_manipulation_B05D
 558E: 3E 0D       ld   a,$07
 5590: 06 02       ld   b,$08
-5592: CD 57 B0    call $B05D
+5592: CD 57 B0    call bitfield_manipulation_B05D
 5595: A7          and  a
 5596: C4 D5 B0    call nz,display_error_text_B075
 5599: C3 C2 55    jp   $5568
@@ -3942,13 +3944,13 @@ jump_table_547B:
 55A9: 3E 20       ld   a,$80
 55AB: CD D8 B0    call play_sound_B072
 55AE: 3E 0D       ld   a,$07
-55B0: CD 54 B0    call $B054
+55B0: CD 54 B0    call bitfield_clear_B054
 55B3: 3E 02       ld   a,$08
-55B5: CD 54 B0    call $B054
+55B5: CD 54 B0    call bitfield_clear_B054
 55B8: 3E 03       ld   a,$09
-55BA: CD 54 B0    call $B054
+55BA: CD 54 B0    call bitfield_clear_B054
 55BD: 3E 0B       ld   a,$0B
-55BF: CD 54 B0    call $B054
+55BF: CD 54 B0    call bitfield_clear_B054
 55C2: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 55C5: CB 57       bit  2,a
 55C7: CA 14 5C    jp   z,$5614
@@ -3983,9 +3985,9 @@ jump_table_547B:
 560F: 3E 96       ld   a,$3C
 5611: CD 5A B0    call wait_a_few_frames_B05A
 5614: 3E 0D       ld   a,$07
-5616: CD 54 B0    call $B054
+5616: CD 54 B0    call bitfield_clear_B054
 5619: 3E 0A       ld   a,$0A
-561B: CD 54 B0    call $B054
+561B: CD 54 B0    call bitfield_clear_B054
 561E: 3A 11 63    ld   a,(background_and_state_bits_C911)
 5621: CB 7F       bit  7,a
 5623: C2 49 5C    jp   nz,$5643
@@ -4003,20 +4005,20 @@ jump_table_547B:
 5640: CD 5A B0    call wait_a_few_frames_B05A
 5643: 3E 01       ld   a,$01
 5645: 47          ld   b,a
-5646: CD 57 B0    call $B05D
+5646: CD 57 B0    call bitfield_manipulation_B05D
 5649: A7          and  a
 564A: C4 D5 B0    call nz,display_error_text_B075
 564D: CD 51 B0    call warm_reboot_B051
 5650: 3E 20       ld   a,$80
 5652: CD D8 B0    call play_sound_B072
 5655: 3E 0D       ld   a,$07
-5657: CD 54 B0    call $B054
+5657: CD 54 B0    call bitfield_clear_B054
 565A: 3E 02       ld   a,$08
-565C: CD 54 B0    call $B054
+565C: CD 54 B0    call bitfield_clear_B054
 565F: 3E 03       ld   a,$09
-5661: CD 54 B0    call $B054
+5661: CD 54 B0    call bitfield_clear_B054
 5664: 3E 0A       ld   a,$0A
-5666: CD 54 B0    call $B054
+5666: CD 54 B0    call bitfield_clear_B054
 5669: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 566C: CB 5F       bit  3,a
 566E: CA BB 5C    jp   z,$56BB
@@ -4051,9 +4053,9 @@ jump_table_547B:
 56B6: 3E 96       ld   a,$3C
 56B8: CD 5A B0    call wait_a_few_frames_B05A
 56BB: 3E 0D       ld   a,$07
-56BD: CD 54 B0    call $B054
+56BD: CD 54 B0    call bitfield_clear_B054
 56C0: 3E 0B       ld   a,$0B
-56C2: CD 54 B0    call $B054
+56C2: CD 54 B0    call bitfield_clear_B054
 56C5: 3A 11 63    ld   a,(background_and_state_bits_C911)
 56C8: CB 7F       bit  7,a
 56CA: C2 EA 5C    jp   nz,$56EA
@@ -4071,12 +4073,13 @@ jump_table_547B:
 56E7: CD 5A B0    call wait_a_few_frames_B05A
 56EA: 3E 01       ld   a,$01
 56EC: 06 08       ld   b,$02
-56EE: CD 57 B0    call $B05D
+56EE: CD 57 B0    call bitfield_manipulation_B05D
 56F1: A7          and  a
 56F2: C4 D5 B0    call nz,display_error_text_B075
 56F5: CD 51 B0    call warm_reboot_B051
+
 56F8: 21 E9 DD    ld   hl,table_77e3
-56FB: CD 96 B0    call $B03C
+56FB: CD 96 B0    call display_multicolor_text_B03C
 56FE: 3E 0A       ld   a,$0A
 5700: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
 5703: CB 56       bit  2,(hl)
@@ -4203,7 +4206,7 @@ jump_table_547B:
 57DC: C4 D5 B0    call nz,display_error_text_B075
 57DF: 3E 01       ld   a,$01
 57E1: 47          ld   b,a
-57E2: CD 57 B0    call $B05D
+57E2: CD 57 B0    call bitfield_manipulation_B05D
 57E5: A7          and  a
 57E6: C4 D5 B0    call nz,display_error_text_B075
 57E9: CD 51 B0    call warm_reboot_B051
@@ -4226,7 +4229,7 @@ jump_table_547B:
 5812: C4 D5 B0    call nz,display_error_text_B075
 5815: 3E 0F       ld   a,$0F
 5817: 06 80       ld   b,$20
-5819: CD 57 B0    call $B05D
+5819: CD 57 B0    call bitfield_manipulation_B05D
 581C: A7          and  a
 581D: C4 D5 B0    call nz,display_error_text_B075
 5820: 3E 28       ld   a,$82
@@ -4235,7 +4238,7 @@ jump_table_547B:
 5826: C4 D5 B0    call nz,display_error_text_B075
 5829: 3E 01       ld   a,$01
 582B: 47          ld   b,a
-582C: CD 57 B0    call $B05D
+582C: CD 57 B0    call bitfield_manipulation_B05D
 582F: A7          and  a
 5830: C4 D5 B0    call nz,display_error_text_B075
 5833: CD 51 B0    call warm_reboot_B051
@@ -4300,7 +4303,7 @@ jump_table_547B:
 58B7: CB DE       set  3,(hl)
 58B9: 3E 01       ld   a,$01
 58BB: 06 01       ld   b,$01
-58BD: CD 57 B0    call $B05D
+58BD: CD 57 B0    call bitfield_manipulation_B05D
 58C0: A7          and  a
 58C1: C4 D5 B0    call nz,display_error_text_B075
 58C4: CD 51 B0    call warm_reboot_B051
@@ -4326,7 +4329,7 @@ jump_table_547B:
 58F0: 10 F9       djnz $58E5
 58F2: 3E 01       ld   a,$01
 58F4: 47          ld   b,a
-58F5: CD 57 B0    call $B05D
+58F5: CD 57 B0    call bitfield_manipulation_B05D
 58F8: A7          and  a
 58F9: C4 D5 B0    call nz,display_error_text_B075
 58FC: CD 51 B0    call warm_reboot_B051
@@ -4344,7 +4347,7 @@ jump_table_547B:
 5916: 10 F9       djnz $590B
 5918: 3E 01       ld   a,$01
 591A: 47          ld   b,a
-591B: CD 57 B0    call $B05D
+591B: CD 57 B0    call bitfield_manipulation_B05D
 591E: A7          and  a
 591F: C4 D5 B0    call nz,display_error_text_B075
 5922: CD 51 B0    call warm_reboot_B051
@@ -4378,7 +4381,7 @@ jump_table_547B:
 5964: C4 D5 B0    call nz,display_error_text_B075
 5967: 3E 01       ld   a,$01
 5969: 47          ld   b,a
-596A: CD 57 B0    call $B05D
+596A: CD 57 B0    call bitfield_manipulation_B05D
 596D: A7          and  a
 596E: C4 D5 B0    call nz,display_error_text_B075
 5971: CD 51 B0    call warm_reboot_B051
@@ -4436,9 +4439,9 @@ jump_table_547B:
 59ED: DD 77 01    ld   (ix+$01),a
 59F0: DD 75 08    ld   (ix+$02),l
 59F3: DD 74 09    ld   (ix+$03),h
-59F6: C3 DA 5B    jp   $5B7A
+59F6: C3 DA 5B    jp   return_zero_in_A_5B7A
 59F9: CD D7 5B    call $5B7D
-59FC: C3 DA 5B    jp   $5B7A
+59FC: C3 DA 5B    jp   return_zero_in_A_5B7A
 59FF: 3A 11 63    ld   a,(background_and_state_bits_C911)
 5A02: CB BF       res  7,a
 5A04: FE 10       cp   $10
@@ -4475,7 +4478,7 @@ jump_table_547B:
 5A55: DD 77 01    ld   (ix+$01),a
 5A58: DD 75 08    ld   (ix+$02),l
 5A5B: DD 74 09    ld   (ix+$03),h
-5A5E: C3 DA 5B    jp   $5B7A
+5A5E: C3 DA 5B    jp   return_zero_in_A_5B7A
 5A61: FE 08       cp   $02
 5A63: C4 D5 B0    call nz,display_error_text_B075
 5A66: 21 76 60    ld   hl,level_number_C0DC
@@ -4507,7 +4510,7 @@ jump_table_547B:
 5AAC: DD 77 01    ld   (ix+$01),a
 5AAF: DD 75 08    ld   (ix+$02),l
 5AB2: DD 74 09    ld   (ix+$03),h
-5AB5: C3 DA 5B    jp   $5B7A
+5AB5: C3 DA 5B    jp   return_zero_in_A_5B7A
 5AB8: 3A 11 63    ld   a,(background_and_state_bits_C911)
 5ABB: CB BF       res  7,a
 5ABD: FE 51       cp   $51
@@ -4518,7 +4521,7 @@ jump_table_547B:
 5ACA: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5ACD: EE 06       xor  $0C
 5ACF: 32 87 60    ld   (players_type_human_or_cpu_flags_C02D),a
-5AD2: C3 DA 5B    jp   $5B7A
+5AD2: C3 DA 5B    jp   return_zero_in_A_5B7A
 5AD5: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5AD8: CB 57       bit  2,a
 5ADA: CA E3 5A    jp   z,$5AE9
@@ -4526,14 +4529,14 @@ jump_table_547B:
 5ADF: CB 97       res  2,a
 5AE1: CB DF       set  3,a
 5AE3: 32 87 60    ld   (players_type_human_or_cpu_flags_C02D),a
-5AE6: C3 DA 5B    jp   $5B7A
+5AE6: C3 DA 5B    jp   return_zero_in_A_5B7A
 5AE9: CB 5F       bit  3,a
 5AEB: CC D5 B0    call z,display_error_text_B075
 5AEE: CB 8F       res  1,a
 5AF0: CB 9F       res  3,a
 5AF2: CB D7       set  2,a
 5AF4: 32 87 60    ld   (players_type_human_or_cpu_flags_C02D),a
-5AF7: C3 DA 5B    jp   $5B7A
+5AF7: C3 DA 5B    jp   return_zero_in_A_5B7A
 5AFA: FE 55       cp   $55
 5AFC: C2 56 5B    jp   nz,$5B5C
 5AFF: DD 21 00 63 ld   ix,map_index_C900
@@ -4553,19 +4556,19 @@ jump_table_547B:
 5B27: 11 01 63    ld   de,$C901
 5B2A: 01 09 00    ld   bc,$0003
 5B2D: ED B0       ldir
-5B2F: C3 DA 5B    jp   $5B7A
+5B2F: C3 DA 5B    jp   return_zero_in_A_5B7A
 5B32: 21 01 63    ld   hl,$C901
 5B35: 11 03 63    ld   de,$C909
 5B38: 01 09 00    ld   bc,$0003
 5B3B: ED B0       ldir
-5B3D: C3 DA 5B    jp   $5B7A
+5B3D: C3 DA 5B    jp   return_zero_in_A_5B7A
 5B40: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
 5B43: FE 0B       cp   $0B
 5B45: C2 47 5B    jp   nz,$5B4D
 5B48: CB 86       res  0,(hl)
-5B4A: C3 DA 5B    jp   $5B7A
+5B4A: C3 DA 5B    jp   return_zero_in_A_5B7A
 5B4D: CB 8E       res  1,(hl)
-5B4F: C3 DA 5B    jp   $5B7A
+5B4F: C3 DA 5B    jp   return_zero_in_A_5B7A
 5B52: 21 62 60    ld   hl,$C0C8
 5B55: 06 10       ld   b,$10
 5B57: 36 00       ld   (hl),$00
@@ -4578,11 +4581,13 @@ jump_table_547B:
 5B68: CD A1 5B    call $5BA1
 5B6B: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5B6E: CB 5F       bit  3,a
-5B70: CA DA 5B    jp   z,$5B7A
+5B70: CA DA 5B    jp   z,return_zero_in_A_5B7A
 5B73: DD 21 02 63 ld   ix,$C908
 5B77: CD A1 5B    call $5BA1
+return_zero_in_A_5B7A:
 5B7A: 3E 00       ld   a,$00
 5B7C: C9          ret
+
 5B7D: DD 21 02 63 ld   ix,$C908
 5B81: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5B84: CB 57       bit  2,a
@@ -4647,12 +4652,12 @@ jump_table_547B:
 5C02: C2 0F 56    jp   nz,$5C0F
 5C05: 3E 01       ld   a,$01
 5C07: 06 01       ld   b,$01
-5C09: CD 57 B0    call $B05D
+5C09: CD 57 B0    call bitfield_manipulation_B05D
 5C0C: CD 51 B0    call warm_reboot_B051
 5C0F: 01 9E A0    ld   bc,$A03E
 5C12: CD 90 B0    call $B030
 5C15: 21 9C D7    ld   hl,table_7D36
-5C18: CD 96 B0    call $B03C
+5C18: CD 96 B0    call display_multicolor_text_B03C
 5C1B: CD 7C DA    call $7AD6
 5C1E: CD B4 B0    call $B0B4
 5C21: 3E 00       ld   a,$00
@@ -4686,7 +4691,7 @@ jump_table_547B:
 5C6A: DD 21 FD 57 ld   ix,table_5DF7
 5C6E: CD 8D 5E    call $5E27
 5C71: 21 FA 56    ld   hl,table_5CFA
-5C74: CD 96 B0    call $B03C
+5C74: CD 96 B0    call display_multicolor_text_B03C
 5C77: 3E 00       ld   a,$00
 5C79: 32 4A 61    ld   ($C14A),a
 5C7C: 32 CD 61    ld   (match_timer_C167),a
@@ -4742,7 +4747,7 @@ jump_table_547B:
 5CED: C4 D5 B0    call nz,display_error_text_B075
 5CF0: 3E 01       ld   a,$01
 5CF2: 06 01       ld   b,$01
-5CF4: CD 57 B0    call $B05D
+5CF4: CD 57 B0    call bitfield_manipulation_B05D
 5CF7: CD 51 B0    call warm_reboot_B051
 table_5CFA:
 	dc.b	0x07,0x13,0x05,0x98,0x00,0x98,0x00,0x98 ; $5cfa
@@ -4907,17 +4912,17 @@ table_5F00:
 5F2A: 01 91 A4    ld   bc,$A431
 5F2D: CD 90 B0    call $B030
 5F30: 21 E3 29    ld   hl,table_83e9
-5F33: CD 96 B0    call $B03C
+5F33: CD 96 B0    call display_multicolor_text_B03C
 5F36: 21 C0 A8    ld   hl,table_a260
-5F39: CD 96 B0    call $B03C
+5F39: CD 96 B0    call display_multicolor_text_B03C
 5F3C: 21 9C D7    ld   hl,table_7D36
-5F3F: CD 96 B0    call $B03C
+5F3F: CD 96 B0    call display_multicolor_text_B03C
 5F42: CD B4 B0    call $B0B4
 5F45: CD 7C DA    call $7AD6
 5F48: 3E 00       ld   a,$00
 5F4A: CD 12 B0    call $B018
 5F4D: 21 06 C0    ld   hl,table_600C
-5F50: CD 96 B0    call $B03C
+5F50: CD 96 B0    call display_multicolor_text_B03C
 5F53: 21 8E C0    ld   hl,table_602E
 5F56: 16 A2       ld   d,$A8
 5F58: CD 93 B0    call display_text_B039
@@ -4976,7 +4981,7 @@ table_5F00:
 5FD3: CD 5A B0    call wait_a_few_frames_B05A
 5FD6: 3E 0F       ld   a,$0F
 5FD8: 06 80       ld   b,$20
-5FDA: CD 57 B0    call $B05D
+5FDA: CD 57 B0    call bitfield_manipulation_B05D
 5FDD: A7          and  a
 5FDE: C4 D5 B0    call nz,display_error_text_B075
 5FE1: 3E D2       ld   a,$78
@@ -4985,7 +4990,7 @@ table_5F00:
 5FE7: C4 D5 B0    call nz,display_error_text_B075
 5FEA: 3E 01       ld   a,$01
 5FEC: 06 01       ld   b,$01
-5FEE: CD 57 B0    call $B05D
+5FEE: CD 57 B0    call bitfield_manipulation_B05D
 5FF1: A7          and  a
 5FF2: C4 D5 B0    call nz,display_error_text_B075
 5FF5: CD 51 B0    call warm_reboot_B051
@@ -5127,7 +5132,7 @@ table_602E:
 6144: FD 34 0B    inc  (iy+$0b)
 6147: 3E 04       ld   a,$04
 6149: 06 08       ld   b,$02
-614B: CD 57 B0    call $B05D
+614B: CD 57 B0    call bitfield_manipulation_B05D
 614E: 3E 08       ld   a,$02
 6150: CD 12 B0    call $B018
 6153: 3E 00       ld   a,$00
@@ -5139,16 +5144,16 @@ table_602E:
 6163: CA D4 C1    jp   z,$6174
 6166: 3E 0B       ld   a,$0B
 6168: 06 07       ld   b,$0D
-616A: CD 57 B0    call $B05D
+616A: CD 57 B0    call bitfield_manipulation_B05D
 616D: A7          and  a
 616E: C4 D5 B0    call nz,display_error_text_B075
 6171: C3 3C C0    jp   $6096
 6174: 3E 0B       ld   a,$0B
 6176: 06 07       ld   b,$0D
-6178: CD 57 B0    call $B05D
+6178: CD 57 B0    call bitfield_manipulation_B05D
 617B: 3E 08       ld   a,$02
 617D: 06 0F       ld   b,$0F
-617F: CD 57 B0    call $B05D
+617F: CD 57 B0    call bitfield_manipulation_B05D
 6182: A7          and  a
 6183: C4 D5 B0    call nz,display_error_text_B075
 6186: C3 3C C0    jp   $6096
@@ -5166,7 +5171,7 @@ table_602E:
 61A3: 32 C6 68    ld   ($C26C),a
 61A6: 3E 0B       ld   a,$0B
 61A8: 06 07       ld   b,$0D
-61AA: CD 57 B0    call $B05D
+61AA: CD 57 B0    call bitfield_manipulation_B05D
 61AD: A7          and  a
 61AE: C4 D5 B0    call nz,display_error_text_B075
 61B1: C3 23 C1    jp   $6189
@@ -5190,7 +5195,7 @@ table_602E:
 61DF: C3 23 C1    jp   $6189
 61E2: 3E 08       ld   a,$02
 61E4: 06 0F       ld   b,$0F
-61E6: CD 57 B0    call $B05D
+61E6: CD 57 B0    call bitfield_manipulation_B05D
 61E9: C3 23 C1    jp   $6189
 
 
@@ -5239,14 +5244,14 @@ display_practice_technique_name_61EC:
 6236: 01 86 00    ld   bc,$002C
 6239: ED B0       ldir
 623B: 21 00 6F    ld   hl,$CF00
-623E: CD 96 B0    call $B03C
+623E: CD 96 B0    call display_multicolor_text_B03C
 6241: 3E 11       ld   a,$11
 6243: 32 00 6F    ld   ($CF00),a
 6246: 32 0B 6F    ld   ($CF0B),a
 6249: 32 1C 6F    ld   ($CF16),a
 624C: 32 81 6F    ld   ($CF21),a
 624F: 21 00 6F    ld   hl,$CF00
-6252: CD 96 B0    call $B03C
+6252: CD 96 B0    call display_multicolor_text_B03C
 6255: 21 D9 C4    ld   hl,table_6473
 6258: 16 32       ld   d,$98
 625A: CD 93 B0    call display_text_B039
@@ -5297,7 +5302,7 @@ display_practice_technique_name_61EC:
 62BE: DD 09       add  ix,bc
 62C0: DD 6E 00    ld   l,(ix+$00)
 62C3: DD 66 01    ld   h,(ix+$01)
-62C6: CD 96 B0    call $B03C
+62C6: CD 96 B0    call display_multicolor_text_B03C
 62C9: C9          ret
 table_62CE:
 	dc.b	0x0e,0xcf,0x18,0xcf,0x00,0xcf,0x07,0xcf ; $62ce
@@ -5439,7 +5444,7 @@ table_6473:
 64EA: 32 CD 61    ld   (match_timer_C167),a
 64ED: 3E 08       ld   a,$02
 64EF: 06 02       ld   b,$08
-64F1: CD 57 B0    call $B05D
+64F1: CD 57 B0    call bitfield_manipulation_B05D
 64F4: A7          and  a
 64F5: C4 D5 B0    call nz,display_error_text_B075
 64F8: CD 51 B0    call warm_reboot_B051
@@ -5463,7 +5468,7 @@ table_6473:
 651E: 6F          ld   l,a
 651F: 22 08 6F    ld   ($CF02),hl
 6522: 21 00 6F    ld   hl,$CF00
-6525: CD 96 B0    call $B03C
+6525: CD 96 B0    call display_multicolor_text_B03C
 6528: C9          ret
 
 6529: AF          xor  a
@@ -5597,12 +5602,12 @@ table_65FB:
 668F: DD 21 B6 6D ld   ix,$C7BC
 6693: 26 05       ld   h,$05
 6695: CD CE DA    call $7A6E
-6698: CD 52 DA    call $7A58
+6698: CD 52 DA    call or_50_to_C7BE_7A58
 669B: 3E 85       ld   a,$25
 669D: CD D8 B0    call play_sound_B072
 66A0: 3E 09       ld   a,$03
 66A2: 06 0A       ld   b,$0A
-66A4: CD 57 B0    call $B05D
+66A4: CD 57 B0    call bitfield_manipulation_B05D
 66A7: A7          and  a
 66A8: C4 D5 B0    call nz,display_error_text_B075
 66AB: 3E 96       ld   a,$3C
@@ -5616,12 +5621,12 @@ table_65FB:
 66B8: C2 00 CD    jp   nz,$6700
 66BB: 3E 0A       ld   a,$0A
 66BD: 06 0A       ld   b,$0A
-66BF: CD 57 B0    call $B05D
+66BF: CD 57 B0    call bitfield_manipulation_B05D
 66C2: A7          and  a
 66C3: C4 D5 B0    call nz,display_error_text_B075
 66C6: 3E 0B       ld   a,$0B
 66C8: 06 0A       ld   b,$0A
-66CA: CD 57 B0    call $B05D
+66CA: CD 57 B0    call bitfield_manipulation_B05D
 66CD: A7          and  a
 66CE: C4 D5 B0    call nz,display_error_text_B075
 66D1: 3A 00 6D    ld   a,(referee_x_pos_C700)
@@ -5672,7 +5677,7 @@ table_65FB:
 6738: DD 21 B6 6D ld   ix,$C7BC
 673C: 26 05       ld   h,$05
 673E: CD CE DA    call $7A6E
-6741: CD 52 DA    call $7A58
+6741: CD 52 DA    call or_50_to_C7BE_7A58
 6744: 3E 84       ld   a,$24
 6746: CD D8 B0    call play_sound_B072
 6749: 3E D0       ld   a,$70
@@ -5703,7 +5708,7 @@ table_65FB:
 6784: DD 21 B6 6D ld   ix,$C7BC
 6788: 26 05       ld   h,$05
 678A: CD CE DA    call $7A6E
-678D: CD 52 DA    call $7A58
+678D: CD 52 DA    call or_50_to_C7BE_7A58
 6790: 3E 82       ld   a,$28
 6792: CD D8 B0    call play_sound_B072
 6795: 3E 96       ld   a,$3C
@@ -5729,15 +5734,15 @@ table_65FB:
 67C7: CD 5A B0    call wait_a_few_frames_B05A
 67CA: 3E 0B       ld   a,$0B
 67CC: 06 18       ld   b,$12
-67CE: CD 57 B0    call $B05D
+67CE: CD 57 B0    call bitfield_manipulation_B05D
 67D1: 3E 0A       ld   a,$0A
 67D3: 06 19       ld   b,$13
-67D5: CD 57 B0    call $B05D
+67D5: CD 57 B0    call bitfield_manipulation_B05D
 67D8: 3E 62       ld   a,$C8
 67DA: CD 5A B0    call wait_a_few_frames_B05A
 67DD: 3E 08       ld   a,$02
 67DF: 47          ld   b,a
-67E0: CD 57 B0    call $B05D
+67E0: CD 57 B0    call bitfield_manipulation_B05D
 67E3: A7          and  a
 67E4: C4 D5 B0    call nz,display_error_text_B075
 67E7: CD 51 B0    call warm_reboot_B051
@@ -5750,15 +5755,15 @@ table_65FB:
 67F9: CD 5A B0    call wait_a_few_frames_B05A
 67FC: 3E 0A       ld   a,$0A
 67FE: 06 18       ld   b,$12
-6800: CD 57 B0    call $B05D
+6800: CD 57 B0    call bitfield_manipulation_B05D
 6803: 3E 0B       ld   a,$0B
 6805: 06 19       ld   b,$13
-6807: CD 57 B0    call $B05D
+6807: CD 57 B0    call bitfield_manipulation_B05D
 680A: 3E 62       ld   a,$C8
 680C: CD 5A B0    call wait_a_few_frames_B05A
 680F: 3E 08       ld   a,$02
 6811: 06 01       ld   b,$01
-6813: CD 57 B0    call $B05D
+6813: CD 57 B0    call bitfield_manipulation_B05D
 6816: A7          and  a
 6817: C4 D5 B0    call nz,display_error_text_B075
 681A: CD 51 B0    call warm_reboot_B051
@@ -5770,7 +5775,7 @@ table_65FB:
 6825: C4 D5 B0    call nz,display_error_text_B075
 6828: 3E 0F       ld   a,$0F
 682A: 06 03       ld   b,$09
-682C: CD 57 B0    call $B05D
+682C: CD 57 B0    call bitfield_manipulation_B05D
 682F: C1          pop  bc
 6830: F1          pop  af
 6831: C5          push bc
@@ -5783,7 +5788,7 @@ table_65FB:
 6841: CD D8 B0    call play_sound_B072
 6844: 3E 09       ld   a,$03
 6846: 06 03       ld   b,$09
-6848: CD 57 B0    call $B05D
+6848: CD 57 B0    call bitfield_manipulation_B05D
 684B: A7          and  a
 684C: C4 D5 B0    call nz,display_error_text_B075
 684F: CD 86 C6    call clear_text_6C2C
@@ -5806,16 +5811,16 @@ table_65FB:
 687A: CD 97 CB    call $6B3D
 687D: 3E 0A       ld   a,$0A
 687F: 06 18       ld   b,$12
-6881: CD 57 B0    call $B05D
+6881: CD 57 B0    call bitfield_manipulation_B05D
 6884: 3E C4       ld   a,$64
 6886: CD 5A B0    call wait_a_few_frames_B05A
 6889: 3E 08       ld   a,$02
 688B: 06 01       ld   b,$01
-688D: CD 57 B0    call $B05D
+688D: CD 57 B0    call bitfield_manipulation_B05D
 6890: A7          and  a
 6891: C4 D5 B0    call nz,display_error_text_B075
 6894: 3E 09       ld   a,$03
-6896: CD 54 B0    call $B054
+6896: CD 54 B0    call bitfield_clear_B054
 6899: CD 51 B0    call warm_reboot_B051
 689C: 32 1A 63    ld   (player_1_points_C91A),a
 689F: C3 53 C3    jp   $6959
@@ -5834,16 +5839,16 @@ table_65FB:
 68C3: CD DD CB    call $6B77
 68C6: 3E 0B       ld   a,$0B
 68C8: 06 18       ld   b,$12
-68CA: CD 57 B0    call $B05D
+68CA: CD 57 B0    call bitfield_manipulation_B05D
 68CD: 3E 62       ld   a,$C8
 68CF: CD 5A B0    call wait_a_few_frames_B05A
 68D2: 3E 08       ld   a,$02
 68D4: 47          ld   b,a
-68D5: CD 57 B0    call $B05D
+68D5: CD 57 B0    call bitfield_manipulation_B05D
 68D8: A7          and  a
 68D9: C4 D5 B0    call nz,display_error_text_B075
 68DC: 3E 09       ld   a,$03
-68DE: CD 54 B0    call $B054
+68DE: CD 54 B0    call bitfield_clear_B054
 68E1: CD 51 B0    call warm_reboot_B051
 68E4: 32 16 63    ld   (player_2_points_C91A),a
 68E7: C3 53 C3    jp   $6959
@@ -5851,7 +5856,7 @@ table_65FB:
 68EC: CD D8 B0    call play_sound_B072
 68EF: 3E 09       ld   a,$03
 68F1: 06 03       ld   b,$09
-68F3: CD 57 B0    call $B05D
+68F3: CD 57 B0    call bitfield_manipulation_B05D
 68F6: A7          and  a
 68F7: C4 D5 B0    call nz,display_error_text_B075
 68FA: CD 86 C6    call clear_text_6C2C
@@ -5901,17 +5906,17 @@ table_65FB:
 696D: C4 D5 B0    call nz,display_error_text_B075
 6970: 3E 0A       ld   a,$0A
 6972: 06 00       ld   b,$00
-6974: CD 57 B0    call $B05D
+6974: CD 57 B0    call bitfield_manipulation_B05D
 6977: A7          and  a
 6978: C4 D5 B0    call nz,display_error_text_B075
 697B: 3E 0B       ld   a,$0B
 697D: 06 00       ld   b,$00
-697F: CD 57 B0    call $B05D
+697F: CD 57 B0    call bitfield_manipulation_B05D
 6982: A7          and  a
 6983: C4 D5 B0    call nz,display_error_text_B075
 6986: CD CB CA    call $6A6B
 6989: 21 5C CF    ld   hl,table_6f56
-698C: CD 96 B0    call $B03C
+698C: CD 96 B0    call display_multicolor_text_B03C
 698F: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 6992: E6 09       and  $03
 6994: FE 09       cp   $03
@@ -5959,14 +5964,14 @@ table_65FB:
 69E8: C2 EA CD    jp   nz,$67EA
 69EB: C3 B2 CD    jp   $67B8
 69EE: 21 5C CF    ld   hl,table_6f56
-69F1: CD 96 B0    call $B03C
+69F1: CD 96 B0    call display_multicolor_text_B03C
 69F4: C9          ret
 69F5: 21 0D CA    ld   hl,table_6A07
 69F8: 11 00 6F    ld   de,$CF00
 69FB: 01 88 00    ld   bc,$0022
 69FE: ED B0       ldir
 6A00: 21 00 6F    ld   hl,$CF00
-6A03: CD 96 B0    call $B03C
+6A03: CD 96 B0    call display_multicolor_text_B03C
 6A06: C9          ret
 table_6A07:
 	dc.b	0x06,0x02,0xd3,0x10,0xd3,0x10,0xd4,0x98 ; $6a07
@@ -6124,7 +6129,7 @@ referee_start_position_table_6AE1:
 6BB8: 01 0C 00    ld   bc,$0006
 6BBB: ED B0       ldir
 6BBD: 21 00 6F    ld   hl,$CF00
-6BC0: CD 96 B0    call $B03C
+6BC0: CD 96 B0    call display_multicolor_text_B03C
 6BC3: C9          ret
 table_6BC4:
 	dc.b	0xd3,0x10,0xff ; $6bc4
@@ -6169,7 +6174,7 @@ table_6BCA:
 6C20: 3E FF       ld   a,$FF
 6C22: 32 06 6F    ld   ($CF0C),a
 6C25: 21 00 6F    ld   hl,$CF00
-6C28: CD 96 B0    call $B03C
+6C28: CD 96 B0    call display_multicolor_text_B03C
 6C2B: C9          ret
 ; empty text to erase previous values
 clear_text_6C2C:
@@ -6209,7 +6214,7 @@ table_6C59:
 6CA0: DD 21 B6 6D ld   ix,$C7BC
 6CA4: 26 05       ld   h,$05
 6CA6: CD CE DA    call $7A6E
-6CA9: CD 52 DA    call $7A58
+6CA9: CD 52 DA    call or_50_to_C7BE_7A58
 6CAC: 3E 45       ld   a,$45
 6CAE: 32 BE 6D    ld   ($C7BE),a
 6CB1: C9          ret
@@ -6233,7 +6238,7 @@ table_6C59:
 6CD9: DD 21 B6 6D ld   ix,$C7BC
 6CDD: 26 05       ld   h,$05
 6CDF: CD CE DA    call $7A6E
-6CE2: CD 52 DA    call $7A58
+6CE2: CD 52 DA    call or_50_to_C7BE_7A58
 6CE5: C9          ret
 
 display_scoring_technique_6CE6:
@@ -6258,7 +6263,7 @@ display_scoring_technique_6CE6:
 6D11: CD D5 B0    call display_error_text_B075
 6D14: FD 6E 00    ld   l,(iy+$00)
 6D17: FD 66 01    ld   h,(iy+$01)
-6D1A: CD 96 B0    call $B03C
+6D1A: CD 96 B0    call display_multicolor_text_B03C
 6D1D: C9          ret
 table_6D1E:
 	dc.b	0xc0,0x0c,0xd2,0x0c,0x47,0x0d,0xd7,0x0d ; $6d1e
@@ -6349,7 +6354,7 @@ table_6D3E:
 6E1E: DD 21 B6 6D ld   ix,$C7BC
 6E22: 26 01       ld   h,$01
 6E24: CD CE DA    call $7A6E
-6E27: CD 52 DA    call $7A58
+6E27: CD 52 DA    call or_50_to_C7BE_7A58
 6E2A: 21 BE 6D    ld   hl,$C7BE
 6E2D: CB FE       set  7,(hl)
 6E2F: 3E 96       ld   a,$3C
@@ -6920,7 +6925,7 @@ table_754b:
 7560: 3A 11 63    ld   a,(background_and_state_bits_C911)
 7563: CB BF       res  7,a
 7565: FE 10       cp   $10
-7567: DA DB A9    jp   c,$fight_mainloop_A37B
+7567: DA DB A9    jp   c,fight_mainloop_A37B
 756A: 47          ld   b,a
 756B: E6 F0       and  $F0
 756D: FE 10       cp   $10
@@ -6984,7 +6989,7 @@ table_75C1:
 75E3: 32 46 68    ld   ($C24C),a
 75E6: 3E 0A       ld   a,$0A
 75E8: 06 07       ld   b,$0D
-75EA: CD 57 B0    call $B05D
+75EA: CD 57 B0    call bitfield_manipulation_B05D
 75ED: A7          and  a
 75EE: C4 D5 B0    call nz,display_error_text_B075
 75F1: C3 67 D5    jp   $75CD
@@ -7006,14 +7011,14 @@ table_75C1:
 7617: C5          push bc
 7618: 3E 0A       ld   a,$0A
 761A: 06 07       ld   b,$0D
-761C: CD 57 B0    call $B05D
+761C: CD 57 B0    call bitfield_manipulation_B05D
 761F: A7          and  a
 7620: C4 D5 B0    call nz,display_error_text_B075
 7623: C3 FE D5    jp   $75FE
 7626: DD E5       push ix
 7628: 3E 0A       ld   a,$0A
 762A: 06 07       ld   b,$0D
-762C: CD 57 B0    call $B05D
+762C: CD 57 B0    call bitfield_manipulation_B05D
 762F: A7          and  a
 7630: C4 D5 B0    call nz,display_error_text_B075
 7633: DD E1       pop  ix
@@ -7036,7 +7041,7 @@ table_7652:
 765C: 3A 11 63    ld   a,(background_and_state_bits_C911)
 765F: CB BF       res  7,a
 7661: FE 10       cp   $10
-7663: DA DB A9    jp   c,$fight_mainloop_A37B
+7663: DA DB A9    jp   c,fight_mainloop_A37B
 7666: 47          ld   b,a
 7667: E6 F0       and  $F0
 7669: FE 10       cp   $10
@@ -7106,14 +7111,14 @@ table_76BD:
 76EC: C5          push bc
 76ED: 3E 0B       ld   a,$0B
 76EF: 06 07       ld   b,$0D
-76F1: CD 57 B0    call $B05D
+76F1: CD 57 B0    call bitfield_manipulation_B05D
 76F4: A7          and  a
 76F5: C4 D5 B0    call nz,display_error_text_B075
 76F8: C3 79 DC    jp   $76D3
 76FB: DD E5       push ix
 76FD: 3E 0B       ld   a,$0B
 76FF: 06 07       ld   b,$0D
-7701: CD 57 B0    call $B05D
+7701: CD 57 B0    call bitfield_manipulation_B05D
 7704: A7          and  a
 7705: C4 D5 B0    call nz,display_error_text_B075
 7708: DD E1       pop  ix
@@ -7143,7 +7148,7 @@ table_7727:
 7742: 32 C6 68    ld   ($C26C),a
 7745: 3E 0B       ld   a,$0B
 7747: 06 07       ld   b,$0D
-7749: CD 57 B0    call $B05D
+7749: CD 57 B0    call bitfield_manipulation_B05D
 774C: A7          and  a
 774D: C4 D5 B0    call nz,display_error_text_B075
 7750: C3 86 DD    jp   $772C
@@ -7225,9 +7230,9 @@ table_78b7:
 78EF: 01 96 10    ld   bc,$103C
 78F2: CD 90 B0    call $B030
 78F5: 21 EA A0    ld   hl,table_a0ea
-78F8: CD 96 B0    call $B03C
+78F8: CD 96 B0    call display_multicolor_text_B03C
 78FB: 21 33 D3    ld   hl,table_7999
-78FE: CD 96 B0    call $B03C
+78FE: CD 96 B0    call display_multicolor_text_B03C
 7901: 3E 1E       ld   a,$1E
 7903: CD 5A B0    call wait_a_few_frames_B05A
 7906: A7          and  a
@@ -7243,7 +7248,7 @@ table_78b7:
 791E: 06 1E       ld   b,$1E
 7920: C5          push bc
 7921: 21 D8 D3    ld   hl,table_7972
-7924: CD 96 B0    call $B03C
+7924: CD 96 B0    call display_multicolor_text_B03C
 7927: 3E 14       ld   a,$14
 7929: CD 5A B0    call wait_a_few_frames_B05A
 792C: 21 57 D3    ld   hl,table_795D
@@ -7254,16 +7259,16 @@ table_78b7:
 7939: C1          pop  bc
 793A: 10 E4       djnz $7920
 793C: 3E 02       ld   a,$08
-793E: CD 54 B0    call $B054
+793E: CD 54 B0    call bitfield_clear_B054
 7941: 3E 03       ld   a,$09
-7943: CD 54 B0    call $B054
+7943: CD 54 B0    call bitfield_clear_B054
 7946: 3E 0A       ld   a,$0A
-7948: CD 54 B0    call $B054
+7948: CD 54 B0    call bitfield_clear_B054
 794B: 3E 0B       ld   a,$0B
-794D: CD 54 B0    call $B054
+794D: CD 54 B0    call bitfield_clear_B054
 7950: 3E 01       ld   a,$01
 7952: 47          ld   b,a
-7953: CD 57 B0    call $B05D
+7953: CD 57 B0    call bitfield_manipulation_B05D
 7956: A7          and  a
 7957: C4 D5 B0    call nz,display_error_text_B075
 795A: CD 51 B0    call warm_reboot_B051
@@ -7352,6 +7357,8 @@ evade_object_period_table_79D9:
 7A54: 23          inc  hl
 7A55: 10 FB       djnz $7A52
 7A57: C9          ret
+
+or_50_to_C7BE_7A58:
 7A58: 21 BE 6D    ld   hl,$C7BE
 7A5B: 11 04 00    ld   de,$0004
 7A5E: 06 04       ld   b,$04
@@ -7363,6 +7370,7 @@ evade_object_period_table_79D9:
 7A66: 19          add  hl,de
 7A67: 10 F3       djnz $7A62
 7A69: C9          ret
+
 7A6A: DD 21 60 6D ld   ix,$C7C0
 7A6E: DD 72 00    ld   (ix+$00),d
 7A71: DD 71 01    ld   (ix+$01),c
@@ -7378,6 +7386,7 @@ evade_object_period_table_79D9:
 7A85: 0C          inc  c
 7A86: 10 EC       djnz $7A6E
 7A88: C9          ret
+
 7A89: DD 21 18 DB ld   ix,table_7B12
 7A8D: 3A 11 63    ld   a,(background_and_state_bits_C911)
 7A90: CB BF       res  7,a
@@ -7413,7 +7422,7 @@ evade_object_period_table_79D9:
 7ACA: 23          inc  hl
 7ACB: 56          ld   d,(hl)
 7ACC: EB          ex   de,hl
-7ACD: CD 96 B0    call $B03C
+7ACD: CD 96 B0    call display_multicolor_text_B03C
 7AD0: E1          pop  hl
 7AD1: 23          inc  hl
 7AD2: 23          inc  hl
@@ -7426,13 +7435,13 @@ evade_object_period_table_79D9:
 7AE1: CA EE DA    jp   z,$7AEE
 7AE4: FE 59       cp   $53
 7AE6: CA EE DA    jp   z,$7AEE
-7AE9: CD B1 B0    call $B0B1
+7AE9: CD B1 B0    call is_title_screen_demo_mode_B0B1
 7AEC: A7          and  a
 7AED: C8          ret  z
 7AEE: 01 0C 14    ld   bc,$1406
 7AF1: 21 08 DB    ld   hl,table_7B02
 7AF4: C5          push bc
-7AF5: CD 96 B0    call $B03C
+7AF5: CD 96 B0    call display_multicolor_text_B03C
 7AF8: C1          pop  bc
 7AF9: 21 70 60    ld   hl,$C0D0
 7AFC: 16 32       ld   d,$98
@@ -7522,7 +7531,7 @@ table_7C54:
 7C6A: FE 59       cp   $53
 7C6C: 3E 08       ld   a,$02
 7C6E: CA D2 D6    jp   z,$7C78
-7C71: CD B1 B0    call $B0B1
+7C71: CD B1 B0    call is_title_screen_demo_mode_B0B1
 7C74: A7          and  a
 7C75: CC 51 B0    call z,warm_reboot_B051
 7C78: 3D          dec  a
@@ -7550,14 +7559,14 @@ table_7C54:
 7CA3: FD E5       push iy
 7CA5: DD 6E 00    ld   l,(ix+$00)
 7CA8: DD 66 01    ld   h,(ix+$01)
-7CAB: CD 96 B0    call $B03C
+7CAB: CD 96 B0    call display_multicolor_text_B03C
 7CAE: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 7CB1: E6 06       and  $0C
 7CB3: FE 06       cp   $0C
 7CB5: C2 61 D6    jp   nz,$7CC1
 7CB8: FD 6E 00    ld   l,(iy+$00)
 7CBB: FD 66 01    ld   h,(iy+$01)
-7CBE: CD 96 B0    call $B03C
+7CBE: CD 96 B0    call display_multicolor_text_B03C
 7CC1: 3E 82       ld   a,$28
 7CC3: CD 5A B0    call wait_a_few_frames_B05A
 7CC6: FD E1       pop  iy
@@ -7568,14 +7577,14 @@ table_7C54:
 7CD0: FD E5       push iy
 7CD2: DD 6E 08    ld   l,(ix+$02)
 7CD5: DD 66 09    ld   h,(ix+$03)
-7CD8: CD 96 B0    call $B03C
+7CD8: CD 96 B0    call display_multicolor_text_B03C
 7CDB: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 7CDE: E6 06       and  $0C
 7CE0: FE 06       cp   $0C
 7CE2: C2 EE D6    jp   nz,$7CEE
 7CE5: FD 6E 08    ld   l,(iy+$02)
 7CE8: FD 66 09    ld   h,(iy+$03)
-7CEB: CD 96 B0    call $B03C
+7CEB: CD 96 B0    call display_multicolor_text_B03C
 7CEE: 3E 82       ld   a,$28
 7CF0: CD 5A B0    call wait_a_few_frames_B05A
 7CF3: FD E1       pop  iy
@@ -8861,7 +8870,7 @@ A37E: FD 36 10 00 ld   (iy+$10),$00
 A382: AF          xor  a
 A383: CD 5A B0    call wait_a_few_frames_B05A
 A386: FE 03       cp   $09
-A388: CA DB A9    jp   z,$fight_mainloop_A37B
+A388: CA DB A9    jp   z,fight_mainloop_A37B
 A38B: FE 06       cp   $0C
 A38D: C4 D5 B0    call nz,display_error_text_B075
 
@@ -8907,7 +8916,7 @@ A3CE: E5          push hl
 A3CF: CD 03 B0    call check_hl_in_ix_list_B009
 A3D2: E1          pop  hl
 A3D3: A7          and  a
-A3D4: C2 FF AB    jp   nz,$computer_completed_a_blocking_move_ABFF	; computer has completed a blocking move
+A3D4: C2 FF AB    jp   nz,computer_completed_a_blocking_move_ABFF	; computer has completed a blocking move
 A3D7: E5          push hl
 A3D8: DD E1       pop  ix
 A3DA: DD 7E 02    ld   a,(ix+$08)
@@ -8934,7 +8943,7 @@ A3F8: CD 6E A6    call let_opponent_react_depending_on_skill_level_ACCE
 ; something animation related must have been set up to handle the special (why?)
 ; case of counter attack with jump. Otherwise return code doesn't matter much
 A3FB: FE 03       cp   $09
-A3FD: CA DB A9    jp   z,$fight_mainloop_A37B		; jump attack: loop back (without attacking)
+A3FD: CA DB A9    jp   z,fight_mainloop_A37B		; jump attack: loop back (without attacking)
 A400: A7          and  a
 A401: CA 03 A4    jp   z,$A409		; 0
 A404: FE FF       cp   $FF
@@ -8954,7 +8963,7 @@ A415: 3E 0B       ld   a,$0B
 A417: CA 16 A4    jp   z,$A41C
 A41A: 3E 0A       ld   a,$0A
 A41C: 06 07       ld   b,$0D
-A41E: CD 57 B0    call $B05D
+A41E: CD 57 B0    call bitfield_manipulation_B05D
 A421: A7          and  a
 A422: C4 D5 B0    call nz,display_error_text_B075
 A425: C3 DB A9    jp   fight_mainloop_A37B
@@ -9032,7 +9041,7 @@ A4CA: 23          inc  hl
 A4CB: 7E          ld   a,(hl)
 A4CC: DD 77 01    ld   (ix+$01),a
 A4CF: 23          inc  hl
-A4D0: CD 48 B0    call $B042
+A4D0: CD 48 B0    call is_point_in_rectangle_B042
 A4D3: A7          and  a
 A4D4: CA B0 A4    jp   z,$A4B0
 A4D7: 3E 03       ld   a,$09
@@ -10182,7 +10191,7 @@ AC25: 36 00       ld   (hl),$00
 AC27: 21 1D AE    ld   hl,counter_attack_time_table_AE17
 AC2A: CD 6E A6    call let_opponent_react_depending_on_skill_level_ACCE
 AC2D: FE 03       cp   $09
-AC2F: CA DB A9    jp   z,$fight_mainloop_A37B
+AC2F: CA DB A9    jp   z,fight_mainloop_A37B
 AC32: A7          and  a
 AC33: CA 20 A6    jp   z,$AC80
 AC36: FE FF       cp   $FF
@@ -10218,7 +10227,7 @@ AC6A: 36 00       ld   (hl),$00
 AC6C: 21 1D AE    ld   hl,counter_attack_time_table_AE17
 AC6F: CD 6E A6    call let_opponent_react_depending_on_skill_level_ACCE
 AC72: FE 03       cp   $09
-AC74: CA DB A9    jp   z,$fight_mainloop_A37B
+AC74: CA DB A9    jp   z,fight_mainloop_A37B
 AC77: A7          and  a
 AC78: CA 20 A6    jp   z,$AC80
 AC7B: FE FF       cp   $FF
@@ -10505,7 +10514,7 @@ AE1F:
 	dc.b	0x00 ; $afff
 ; a lot of redirected jumps
 ; doesn't help a lot when reversing...
-B000: C3 69 B0    jp   $B0C3
+B000: C3 69 B0    jp   multiply_de_B0C3
 B003: C3 7B B0    jp   $B0DB
 random_B006:
 B006: C3 EE B0    jp   random_B0EE
@@ -10531,9 +10540,11 @@ B033: C3 91 B9    jp   $B331
 B036: C3 49 B9    jp   $B343
 display_text_B039:
 B039: C3 5D B9    jp   display_text_B357
+display_multicolor_text_B03C:
 B03C: C3 31 B9    jp   display_multicolor_text_B357
 B03F: C3 6E B9    jp   display_text_color_2_B3CE
-B042: C3 40 B4    jp   $B440
+is_point_in_rectangle_B042:
+B042: C3 40 B4    jp   is_point_in_rectangle_B440
 
 startup_B045:
 B045: C3 C3 B4    jp   startup_B469
@@ -10542,11 +10553,13 @@ B048: C3 8F BD    jp   on_periodic_interrupt_B72F
 B04B: C3 D4 B5    jp   load_iy_with_player_structure_B574
 B04E: C3 2E B5    jp   $B58E
 B051: C3 A5 B5    jp   warm_reboot_B5A5
+bitfield_clear_B054:
 B054: C3 67 B5    jp   bitfield_clear_B5CD
 bitfield_set_B057:
 B057: C3 80 BC    jp   bitfield_set_B620
 wait_a_few_frames_B05A:
 B05A: C3 5E BC    jp   wait_a_few_frames_B65E
+bitfield_manipulation_B05D:
 B05D: C3 AE BC    jp   bitfield_manipulation_B6AE
 B060: C3 D8 BB    jp   $BB72
 B063: C3 DA BB    jp   $BB7A
@@ -10577,13 +10590,20 @@ B0A5: C3 00 00    jp   $0000
 B0A8: C3 00 E0    jp   $E000
 B0AB: C3 00 E0    jp   $E000
 B0AE: C3 7F BB    jp   stop_sound_BBDF
-B0B1: C3 DE B8    jp   $B27E
+is_title_screen_demo_mode_B0B1:
+B0B1: C3 DE B8    jp   is_title_screen_demo_mode_B27E
 B0B4: C3 44 F7    jp   $FD44
 B0B7: C3 A2 BB    jp   read_port_0_BBA8
 B0BA: C3 A7 BB    jp   $BBAD
 B0BD: C3 E8 BB    jp   disable_interrupts_BBE2
 B0C0: C3 E2 BB    jp   enable_interrupts_BBE2
 
+
+; > d: term 1
+; > e: term 2
+; > de: product
+
+multiply_de_B0C3:
 B0C3: 21 00 00    ld   hl,$0000
 B0C6: 06 00       ld   b,$00
 B0C8: 4A          ld   c,d
@@ -10699,7 +10719,7 @@ B15B: C9          ret
 B15C: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B15F: 57          ld   d,a
 B160: 1E 80       ld   e,$20
-B162: CD 69 B0    call $B0C3
+B162: CD 69 B0    call multiply_de_B0C3
 B165: 21 0D 61    ld   hl,$C107
 B168: 19          add  hl,de
 B169: 06 13       ld   b,$19
@@ -10793,7 +10813,7 @@ B216: FE 54       cp   $54
 B218: CA 8D B8    jp   z,$B227
 B21B: FE 59       cp   $53
 B21D: CA 8D B8    jp   z,$B227
-B220: CD DE B8    call $B27E
+B220: CD DE B8    call is_title_screen_demo_mode_B27E
 B223: A7          and  a
 B224: CA DB B8    jp   z,$B27B
 B227: 01 08 14    ld   bc,$1402
@@ -10805,7 +10825,7 @@ B235: FE 54       cp   $54
 B237: CA 42 B8    jp   z,$B248
 B23A: FE 59       cp   $53
 B23C: CA 42 B8    jp   z,$B248
-B23F: CD DE B8    call $B27E
+B23F: CD DE B8    call is_title_screen_demo_mode_B27E
 B242: 01 04 14    ld   bc,$1404
 B245: FE 08       cp   $02
 B247: C0          ret  nz
@@ -10822,7 +10842,7 @@ B260: FE 54       cp   $54
 B262: CA D9 B8    jp   z,$B273
 B265: FE 59       cp   $53
 B267: CA D9 B8    jp   z,$B273
-B26A: CD DE B8    call $B27E
+B26A: CD DE B8    call is_title_screen_demo_mode_B27E
 B26D: 01 0C 14    ld   bc,$1406
 B270: FE 08       cp   $02
 B272: C0          ret  nz
@@ -10831,9 +10851,11 @@ B276: 16 32       ld   d,$98
 B278: CD 6E B9    call display_text_color_2_B3CE
 B27B: FD E1       pop  iy
 B27D: C9          ret
+
+is_title_screen_demo_mode_B27E:
 B27E: 3A 11 63    ld   a,(background_and_state_bits_C911)
 B281: CB BF       res  7,a
-B283: FE 50       cp   $50
+B283: FE 50       cp   $50		; demo mode?
 B285: DA 2B B8    jp   c,$B28B
 B288: 3E 00       ld   a,$00
 B28A: C9          ret
@@ -11133,13 +11155,18 @@ B43B: 05          dec  b
 B43C: C2 76 B9    jp   nz,$B3DC
 B43F: C9          ret
 
+; < ix: struct containing x,width,y,height
+; < d: X
+; < e: Y
+; > a: 0 or FF
+is_point_in_rectangle_B440:
 B440: DD 7E 00    ld   a,(ix+$00)
 B443: BA          cp   d
 B444: CA 4A B4    jp   z,$B44A
 B447: D2 CD B4    jp   nc,$B467
 B44A: DD 86 01    add  a,(ix+$01)
 B44D: BA          cp   d
-B44E: DA CD B4    jp   c,$B467
+B44E: DA CD B4    jp   c,$B467		; X out of range
 B451: DD 7E 08    ld   a,(ix+$02)
 B454: BB          cp   e
 B455: CA 5B B4    jp   z,$B45B
@@ -12502,7 +12529,7 @@ E484: FD 19       add  iy,de
 E486: 10 79       djnz $E45B
 E488: 21 42 E5    ld   hl,table_E548
 E48B: E5          push hl
-E48C: CD DE B8    call $B27E
+E48C: CD DE B8    call is_title_screen_demo_mode_B27E
 E48F: E1          pop  hl
 E490: FE 01       cp   $01
 E492: CA 32 E4    jp   z,$E498
@@ -13689,7 +13716,7 @@ F3A0: 3A 01 6F    ld   a,($CF01)
 F3A3: D6 0D       sub  $07
 F3A5: 57          ld   d,a
 F3A6: 1E 0B       ld   e,$0B
-F3A8: CD 69 B0    call $B0C3
+F3A8: CD 69 B0    call multiply_de_B0C3
 F3AB: DD 21 91 F1 ld   ix,table_F131
 F3AF: DD 19       add  ix,de
 F3B1: 3A 00 6F    ld   a,($CF00)
@@ -13867,7 +13894,7 @@ F529: E5          push hl
 F52A: 3A 05 6F    ld   a,($CF05)
 F52D: 5F          ld   e,a
 F52E: 16 80       ld   d,$20
-F530: CD 69 B0    call $B0C3
+F530: CD 69 B0    call multiply_de_B0C3
 F533: E1          pop  hl
 F534: A7          and  a
 F535: ED 52       sbc  hl,de
@@ -13892,7 +13919,7 @@ F55A: 3A 01 6F    ld   a,($CF01)
 F55D: D6 0D       sub  $07
 F55F: 57          ld   d,a
 F560: 1E 0B       ld   e,$0B
-F562: CD 69 B0    call $B0C3
+F562: CD 69 B0    call multiply_de_B0C3
 F565: 26 00       ld   h,$00
 F567: 3A 00 6F    ld   a,($CF00)
 F56A: D6 05       sub  $05
@@ -13911,7 +13938,7 @@ F580: C2 24 F5    jp   nz,$F584
 F583: 3D          dec  a
 F584: 57          ld   d,a
 F585: 1E 80       ld   e,$20
-F587: CD 69 B0    call $B0C3
+F587: CD 69 B0    call multiply_de_B0C3
 F58A: E1          pop  hl
 F58B: A7          and  a
 F58C: ED 52       sbc  hl,de

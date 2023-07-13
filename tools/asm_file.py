@@ -1,4 +1,4 @@
-import os,re
+import os,re,collections
 
 prefix_len = len("01 08 14     ")
 
@@ -7,6 +7,8 @@ def read(filepath):
     inst_dict = {}
     labels = {}
     raw = []
+    entrypoints = collections.Counter()
+
     with open(filepath,"rb") as f:
         for line in f:
             line = line.decode(errors="ignore").rstrip()+"\n"
@@ -35,10 +37,14 @@ def read(filepath):
 
                 inst_toks = instruction.split()
                 if inst_toks:
+                    if inst_toks[0] in ["call","jp","jr"] and "," not in inst_toks[1]:
+                        # unconditional call: entrypoint
+                        entrypoints[inst_toks[1]] += 1
                     inst_dict[offset] = {"tokens":inst_toks,"comment":comment}
 
     label_offsets = {v:k for k,v in labels.items() if v is not None}
-    return {"raw":raw,"instructions":inst_dict,"labels":labels,"label_offsets":label_offsets}
+    return {"raw":raw,"instructions":inst_dict,"labels":labels,
+            "label_offsets":label_offsets,"entrypoints":dict(entrypoints)}
 
 def write(filepath,lines):
     with open(filepath,"w") as f:
