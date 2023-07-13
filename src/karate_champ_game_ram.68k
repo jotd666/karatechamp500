@@ -1,0 +1,248 @@
+unknown_C000:
+	ds.b	1
+unknown_C001:
+	ds.b	1
+unknown_C002:
+	ds.b	4
+unknown_C006:
+	ds.b	6
+unknown_C00C:
+	ds.b	6
+unknown_C012:
+	ds.b	18
+nb_credits_minus_one_C024:
+	ds.b	1
+unknown_C025:
+	ds.b	1
+unknown_C026:
+	ds.b	2
+player_2_attack_flags_C028:
+	ds.b	1
+counter_C029:
+	ds.b	1
+counter_C02A:
+	ds.b	1
+periodic_counter_8bit_C02B:
+	ds.b	1
+unknown_C02C:
+	ds.b	1
+players_type_human_or_cpu_flags_C02D:
+	ds.b	1
+periodic_counter_16bit_C02E:
+	ds.b	2
+dip_switches_copy_C030:
+	ds.b	1
+unknown_C031:
+	ds.b	1
+unknown_C032:
+	ds.b	14
+unknown_C040:
+	ds.b	89
+unknown_C099:
+	ds.b	18
+unknown_C0AB:
+	ds.b	21
+unknown_C0C0:
+	ds.b	8
+unknown_C0C8:
+	ds.b	8
+unknown_C0D0:
+	ds.b	8
+unknown_C0D8:
+	ds.b	2
+unknown_C0DA:
+	ds.b	2
+level_number_C0DC:
+	ds.b	1
+unknown_C0DD:
+	ds.b	1
+unknown_C0DE:
+	ds.b	1
+unknown_C0DF:
+	ds.b	1
+unknown_C0E0:
+	ds.b	1
+unknown_C0E1:
+	ds.b	1
+unknown_C0E2:
+	ds.b	1
+unknown_C0E3:
+	ds.b	1
+unknown_C0E4:
+	ds.b	1
+unknown_C0E5:
+	ds.b	27
+unknown_C100:
+	ds.b	7
+unknown_C107:
+	ds.b	57
+unknown_C140:
+	ds.b	7
+unknown_C147:
+	ds.b	1
+unknown_C148:
+	ds.b	1
+unknown_C149:
+	ds.b	1
+unknown_C14A:
+	ds.b	5
+unknown_C14F:
+	ds.b	24
+match_timer_C167:
+	ds.b	1
+unknown_C168:
+	ds.b	88
+unknown_C1C0:
+	ds.b	32
+unknown_C1E0:
+	ds.b	7
+unknown_C1E7:
+	ds.b	1
+unknown_C1E8:
+	ds.b	1
+referee_walk_direction_C1E9:
+	ds.b	1
+unknown_C1EA:
+	ds.b	1
+unknown_C1EB:
+	ds.b	1
+unknown_C1EC:
+	ds.b	1
+unknown_C1ED:
+	ds.b	51
+unknown_C220:
+	ds.b	32
+player_1_struct_C240:
+	ds.b	7
+unknown_C247:
+	ds.b	2
+unknown_C249:
+	ds.b	2
+current_move_C24B:
+	ds.b	1
+unknown_C24C:
+	ds.b	20
+player_2_struct_C260:
+	ds.b	7
+unknown_C267:
+	ds.b	2
+unknown_C269:
+	ds.b	2
+unknown_C26B:
+	ds.b	1
+unknown_C26C:
+	ds.b	276
+unknown_C380:
+	ds.b	7
+unknown_C387:
+	ds.b	889
+referee_x_pos_C700:
+	ds.b	1
+unknown_C701:
+	ds.b	1
+unknown_C702:
+	ds.b	1
+unknown_C703:
+	ds.b	1
+unknown_C704:
+	ds.b	4
+unknown_C708:
+	ds.b	1
+unknown_C709:
+	ds.b	1
+unknown_C70A:
+	ds.b	18
+unknown_C71C:
+	ds.b	12
+unknown_C728:
+	ds.b	8
+unknown_C730:
+	ds.b	4
+unknown_C734:
+	ds.b	12
+unknown_C740:
+	ds.b	12
+unknown_C74C:
+	ds.b	20
+unknown_C760:
+	ds.b	8
+unknown_C768:
+	ds.b	20
+unknown_C77C:
+	ds.b	1
+unknown_C77D:
+	ds.b	3
+unknown_C780:
+	ds.b	16
+unknown_C790:
+	ds.b	16
+unknown_C7A0:
+	ds.b	28
+unknown_C7BC:
+	ds.b	2
+unknown_C7BE:
+	ds.b	2
+unknown_C7C0:
+	ds.b	8
+unknown_C7C8:
+	ds.b	12
+unknown_C7D4:
+	ds.b	16
+unknown_C7E4:
+	ds.b	20
+unknown_C7F8:
+	ds.b	3
+unknown_C7FB:
+	ds.b	261
+map_index_C900:
+	ds.b	1
+unknown_C901:
+	ds.b	7
+unknown_C908:
+	ds.b	1
+unknown_C909:
+	ds.b	7
+computer_skill_C910:
+	ds.b	1
+background_and_state_bits_C911:
+	ds.b	3
+unknown_C914:
+	ds.b	4
+unknown_C918:
+	ds.b	1
+unknown_C919:
+	ds.b	1
+player_2_points_C91A:
+	ds.b	1
+unknown_C91B:
+	ds.b	2
+unknown_C91D:
+	ds.b	1028
+unknown_CD21:
+	ds.b	479
+unknown_CF00:
+	ds.b	1
+unknown_CF01:
+	ds.b	1
+unknown_CF02:
+	ds.b	1
+unknown_CF03:
+	ds.b	1
+address_of_current_player_move_byte_CF04:
+	ds.b	1
+unknown_CF05:
+	ds.b	1
+unknown_CF06:
+	ds.b	2
+unknown_CF08:
+	ds.b	2
+unknown_CF0A:
+	ds.b	1
+unknown_CF0B:
+	ds.b	1
+unknown_CF0C:
+	ds.b	10
+unknown_CF16:
+	ds.b	11
+unknown_CF21:
+	ds.b	223

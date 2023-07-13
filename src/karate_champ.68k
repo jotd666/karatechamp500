@@ -1,0 +1,41 @@
+
+*
+* 68k transcode by JOTD in 2023 using (https://github.com/jotd666/amiga68ktools)
+  
+* register conventions (imposed by z80268k mostly) are as follows:
+*
+* A: D0
+* B: D1
+* C: D2
+* BC: manual
+* D: D3
+* E: D4
+* DE: A1 or D3
+* H: D5
+* L: D6
+* HL: A0 or D6 (video addresses)
+* carry: manual, using D7 (push/pop af has no portable equivalent as SR is privileged on 68020+)
+*
+
+
+    .global karate_champ_irq
+    .global karate_champ_reset
+
+	.ifdef	__amiga__
+	.include "karate_champ_ram.68k"
+	.align	2
+	.endif
+
+karate_champ_reset:
+	* default: 1 update/irq call
+	* we need 60 updates / second so on amiga PAL
+	* we need to set this variable to 2 once out of 5 calls
+	move.b	#1,vb_ticks_count
+	move.l	sp,stack_top
+	
+	*jra		INITIALISE_SYSTEM
+	
+
+karate_champ_irq:
+	rts
+	
