@@ -31,9 +31,27 @@ for i,inst in af["instructions"].items():
 
 anon_offsets = {k for k,v in varlist.items() if v.startswith("$")}
 
+changed = False
+
 for i,line in enumerate(af["raw"]):
     if line.strip().startswith(";"):
         continue
     nline = re.sub("\$(C[0-9A-F]{3})",r"unknown_\1",line)
     if nline != line:
-        print(line,nline)
+        af["raw"][i] = nline
+        changed = True
+
+if changed:
+    asm_file.write(config.asm_file,af["raw"])
+
+prev_offset = 0
+with open("kc_game_ram.asm","w") as f:
+    for k,v in sorted(varlist.items()):
+        if prev_offset:
+            f.write(f"\tds.b\t{k-prev_offset}\n")
+        if v.startswith("$"):
+            v = f"unknown_{v[1:]}"
+        f.write(f"{v}:\n")
+        prev_offset = k
+    k = 0xD000
+    f.write(f"\tds.b\t{k-prev_offset}\n")

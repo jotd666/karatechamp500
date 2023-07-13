@@ -16,6 +16,187 @@
 * HL: A0 or D6 (video addresses)
 * carry: manual, using D7 (push/pop af has no portable equivalent as SR is privileged on 68020+)
 *
+*
+* Karate Champ VS 2. Reverse-engineering attempt by JOTD, focusing on 2 points:
+* - CPU A.I.
+* - animations
+*
+* CF02: time when entering highscore (BCD)
+*
+* current level info is propagated at 3 locations which mean different things:
+*
+* C0DC: number (1ST, 2ND...)
+* C900: map index (picture, girl)
+* C910: skill level (see below)
+* background_and_state_bits_C911: background+state bits
+
+* C028: attack flags (red player/red cpu), can be 08,09,0A TODO figure out when????
+
+* nb_credits_minus_one_C024: 0 when no credit, then if coin is inserted, set to 1, then
+* immediately decreased, while showing "press 1P button" screen
+
+* C910: skill level / speed of computer
+* 0: slow => 12: super fast. $10 seems a threshold
+* aggressivity is also increased
+* increasing skill level dynamically works: computer goes super ninja)
+*
+* C556-59: 4 bytes looks like counters. When move is completed all 4 values are 8
+
+* C02D
+* players_type_human_or_cpu_flags_C02D: 05 1 player vs CPU, 0F 2 players. Changing dynamically works too!
+
+* note: there are 4 structures C200, C220, C240, C260... there are copies of data for instance C229/C22A are copied
+* to C269/C26A. Not sure of everything that's written below in terms of addresses...
+* C200/C240: player 1 structures
+* C220/C260: player 1 structures
+
+
+* C220: another structure, A.I. related, probably sharing both parties characteristics
+* TODO: figure out more values from that structure, specially:
+* +07/+08: frame id/pointer on frame structure of own player, used as input of check_hl_in_ix_list_B009 by A.I
+*  so the CPU can recognize the moves
+* +09 white player x ($20 min $DF max)
+* +0A: current move index (at least during practice)
+* +0B/+0C: frame id, like 07/08 for opponent player. Note: bit 8 of C22C set: opponent facing right, maybe
+*     only important for frame display
+* +0D opponent player x
+* +0E oppnent move index
+* +0F ($C20F): player logical distance, often addressed as  bit  7,(iy+$0f)
+* distance seems to be computed from the backs of the players
+* bit 7 set => means current player is turning his back to opponent)
+* then
+* 0: back 2 back distance > 0x70
+* 1-4: opponent faces current player (which can turn its back to opponent, see bit 7)
+* 1: back 2 back distance > 0x58
+* 2: back 2 back distance > 0x40
+* 3: back 2 back distance > 0x28
+* 4: back 2 back distance > 0x10
+* 5-7: opponent turns back to current player (which can turn its back to opponent, see bit 7)
+* 5: back 2 back distance > 0x60
+* 6: back 2 back distance > 0x30
+* 7: back 2 back distance > 0x18
+* 8: smaller distance (<= 0x10/0x18) (at least one player must turn his back)
+*
+* there's a $10 (8 ?) offset depending on facing
+
+* C240: player 1 structure
+* +2: 0 when not animated, else number of ticks to stay in the current animation frame
+* +7,8: animation related. Bit 7 of C248: facing direction
+* C249 (+$9): player 1 x coord. Ranges $20 (32 top left) to $DF (223 right), starts at 0x30
+* C24A (+$A): player 1 y coord. $E0 when fighting. Practice:
+* C24B (+$B): player 1 current move: codes below
+* C24C (+$C): rough distance 0-4
+* 0: far
+* 1: intermediate, facing other player  (regardless of other player facing direction)
+* 2: very close, facing other player   ("")
+* 3: intermediate, turning back to other player  ("")
+* 4: very close, turning back to other player    ("")
+*
+*
+* C260: player 2 structure
+* C269 (+$9): x coord. starts at 0xD0
+* C26A (+$A): y coord. $E0 when fighting. Practice: $90
+* C26B: player 2 current move (see codes below). Also set during "practice"
+* C26C: player 2 rough distance to player 1 0 (same as C24C for second player)
+*
+* for instance if white is on the left (facing right) and red is on the right, close (facing right)
+* the value of
+* C24C is: 02
+* C26C is: 04
+*
+* changing C249 immediately reflects on player 1 (white) moving x wise
+* changing C269 immediately reflects on player 2 (red) moving x wise
+* players can't be exactly at the same position. At least $10 distance is required
+* (setting values too close to each other results in game correcting them, same for min/max)
+*
+
+* the codes don't match exact moves, but rather the attack type
+* there is often only one attack type (back kick) but sometimes there are
+* several: example with front kick and weak reverse punch, that only differ
+* by attack distance
+*
+* values marked with "**" trigger the relevant moves only when injecting
+* them by setting a at AB56. Injecting 07 doesn't make CPU turn around, but
+* does something else.
+*
+* also attacks can be triggered in other places
+
+* 0x00: not moving, guard
+* 0x01: moving back
+* 0x02: moving forward
+* 0x03: pre-jump (jump to avoid low blow?)
+* 0x04: crouch
+* 0x05: back kick
+* 0x06: ** back kick
+* 0x07: turn around (only CPU can do that without using an aborted back jump/round kick)
+* 0x08: jumping back kick
+* 0x09: foot sweep (back)
+* 0x0A: front kick (can also be small reverse punch at short range apparently)
+* 0x0B: back round kick
+* 0x0C: lunge punch (medium 200-400 forward+forward)
+* 0x0D: jumping side kick
+* 0x0E: ** foot sweep (front)
+* 0x0F: round kick
+* 0x10: lunge punch (high 300-600 rear+up)
+* 0x11: lunge punch (high 500-1000 forward+up)
+* 0x12: rear sommersault
+* 0x13: reverse punch (crouch 400-800)
+* 0x14: low kick
+* 0x15: ** low kick
+* 0x16: ** low kick
+* 0x17: front sommersault
+* 0x18: foot sweep (front)
+
+* difficulty level only has an effect before "CMP" level number 16
+* in CMP (champ) level and stage 16 (brige CMP if I'm not mistaken),
+* difficulty dip switches are ignored, game is just super fast
+* and super hard
+*
+*A.I: how computer maintains its moves ?
+*
+* - attack moves: once the attack went through (and failed), depending
+*   on the skill level, computer waits a while with the move frozen
+*   (including jumping moves, which looks a bit weird). In champion level
+*   from level 16, there is no wait at all.
+* - blocking moves: maintaned as long as the opponent is performing
+*   an attack move with a matching attack height
+
+* I should get more info about player_2_attack_flags_C028 what does the values mean (09,0A...)
+* probably related to animation frames not to A.I. so less interesting
+
+* VS Version Info:
+* ---------------
+* Memory Map:
+* Main CPU
+* 0000-bfff ROM (encrypted)
+* c000-cfff RAM
+* d000-d3ff char videoram
+* d400-d7ff color videoram
+* d800-d8ff sprites
+* e000-ffff ROM (encrypted)
+
+* IO Ports:
+* Main CPU
+* INPUT  00 = Player 1 Controls - ( ACTIVE LOW )
+* INPUT  40 = Player 2 Controls - ( ACTIVE LOW )
+* INPUT  80 = Coins and Start Buttons - ( ACTIVE LOW )
+* INPUT  C0 = Dip Switches - ( ACTIVE LOW )
+* OUTPUT 00 = Screen Flip
+* OUTPUT 01 = CPU Control
+*                 bit 0 = external nmi enable
+* OUTPUT 02 = Sound Reset
+* OUTPUT 40 = Sound latch write
+*
+* Sound CPU
+* INPUT  01 = Sound latch read
+* OUTPUT 00 = AY8910 #1 data write
+* OUTPUT 01 = AY8910 #1 control write
+* OUTPUT 02 = AY8910 #2 data write
+* OUTPUT 03 = AY8910 #2 control write
+* OUTPUT 04 = MSM5205 write
+* OUTPUT 05 = CPU Control
+*                 bit 0 = MSM5205 trigger
+*                 bit 1 = external nmi enable
 
 
     .global karate_champ_irq
@@ -33,9 +214,335 @@ karate_champ_reset:
 	move.b	#1,vb_ticks_count
 	move.l	sp,stack_top
 	
-	*jra		INITIALISE_SYSTEM
-	
 
 karate_champ_irq:
 	rts
 	
+	
+l_0000:
+	jra	startup_B045                       	| [jp   startup_B045]
+	
+* routines called by the main scheduler at B502
+address_table_0020:
+	.long	l_5250                           	|  $0020
+	.long	l_53d2                           	|  $0022
+	.long	l_544f                           	|  $0024
+	.long	l_6491                           	|  $0026
+	.long	l_6529                           	|  $0028
+	.long	l_7c5d                           	|  $002a
+	.long	l_6f89                           	|  $002c
+	.long	l_6622                           	|  $002e
+	.long	l_755b                           	|  $0030
+	.long	l_7657                           	|  $0032
+	.long	l_3a9c                           	|  $0034
+	.long	l_3a9c                           	|  $0036
+	.long	l_illegal
+	.long	l_illegal
+	.long	l_illegal
+	.long	l_6d5e                           	|  $003e
+	.long	l_47d6                           	|  $0040
+	.long	l_47d6                           	|  $0042
+	.long	l_47d6                           	|  $0044
+	.long	l_47d6                           	|  $0046
+	.long	l_50f2                           	|  $0048
+	.long	l_b099                           	|  $004a
+	.long	l_b09c                           	|  $004c
+	.long	l_b09f                           	|  $004e
+
+l_illegal:
+	illegal
+	nop
+	
+
+startup_B045:
+	jra	startup_B469                       	| [$b045: jp   startup_B469]
+
+
+startup_B469:
+	move.b	#0x42,d0                        	| [$b469: ld   a,$42]
+	move.b	d0,unknown_CD21                 	| [$b46b: ld   (unknown_CD21),a]
+	move.l	stack_top,sp			| ld   sp,unknown_CF00			; set stack
+	jbsr	disable_interrupts_BBE2           	| [$b471: call disable_interrupts_BBE2]
+* clear part of RAM
+	lea	unknown_C000,a0                	| [$b479: ld   hl,unknown_C000]
+	move.w	#0x0080,d1                      	| [$b47c: ld   bc,$0080] immediate value 128
+	jbsr	clear_zone_B2BD                   	| [$b47f: call clear_zone_B2BD]
+	jbsr	init_ram_BB41                     	| [$b482: call init_ram_BB41]
+	st.b	d0                                	| [$b485: ld   a,$FF]
+	move.b	d0,unknown_C02C                 	| [$b487: ld   (unknown_C02C),a]
+	jbsr	enable_interrupts_BBE2            	| [$b48a: call enable_interrupts_BBE2]
+
+* this is called by most routines that want to yield control to this mainloop
+jump_to_mainloop_B48D:
+	move.l	stack_top,sp			| ld   sp,unknown_CF00			; set stack
+	jbsr	enable_interrupts_BBE2            	| [$b490: call enable_interrupts_BBE2]
+* loop until one of the 2 timers is nonzero
+* jump at different locations
+l_b493:
+	lea	unknown_C006,a0                	| [$b493: ld   hl,unknown_C006]
+	tst.b	counter_C029                 	| [$b496: ld   a,(counter_C029)]
+											| [$b499: and  a]
+	jne	l_b4a7                             	| [$b49a: jp   nz,$B4A7]
+
+	tst.b	counter_C02A                 	| [$b49d: ld   a,(counter_C02A)]
+											| [$b4a0: and  a]
+	jne	l_b503                             	| [$b4a1: jp   nz,$B503]
+	jra	l_b493                             	| [$b4a4: jp   $B493]
+* end loop, test against zero in ram
+l_b4a7:
+	clr.b	d0                               	| [$b4a7: xor  a]
+	move.b	d0,d3                           	| [$b4a8: ld   d,a]
+* check change of bitfield state $C006-$C00B notify bitfield changes
+* looks like an event table: each routine can post events by setting
+* bits, and the events are acknowledged by bitclears.
+* depending on the bits set, we jump to different routines
+	cmp.b	(a0),d0                          	| [$b4a9: cp   (hl)]
+	jne	l_b4b8                             	| [$b4aa: jp   nz,$B4B8]
+	addq.b	#1,d6                           	| [$b4ad: inc  l]
+	cmp.b	(a0),d0                          	| [$b4ae: cp   (hl)]
+	jne	l_b4b8                             	| [$b4af: jp   nz,$B4B8]
+	addq.b	#1,d6                           	| [$b4b2: inc  l]
+	cmp.b	(a0),d0                          	| [$b4b3: cp   (hl)]
+	jne	l_b4b8                             	| [$b4b4: jp   nz,$B4B8]
+	addq.b	#1,d6                           	| [$b4b7: inc  l]
+l_b4b8:
+	move.b	d6,d0                           	| [$b4b8: ld   a,l]
+	subq.b	#0x06,d0                        	| [$b4b9: sub  $06] if first 0, then sub 06 gives 0
+	moveq	#0,d4
+	move.b	d0,d4                           	| [$b4bb: ld   e,a]
+	rol.b	#3,d4                            	| [$b4bc: rlc  e] * 3
+	clr.b	d2                               	| [$b4c2: ld   b,$00]
+	move.b	(a0),d2                         	| [$b4c4: ld   c,(hl)]
+	tst.b	d0                               	| [$b4c5: and  a]
+	lsl.w	#1,d2                           	| [$b4c6: rl   c]
+	                           	| [$b4c8: rl   b]
+	lea	table_B87D(pc),a2                  	| [$b4ca: ld   ix,table_B87D]
+	add.w	d2,a2                            	| [$b4ce: add  ix,bc]
+
+	move.b	(0x00,a2),d1                    	| [$b4d0: ld   b,(ix+$00)]
+	move.b	(0x01,a2),d0                    	| [$b4d3: ld   a,(ix+$01)]
+	add.b	d4,d0                            	| [$b4d6: add  a,e]
+	move.b	d0,d4                           	| [$b4d7: ld   e,a]
+	move.b	d0,player_2_attack_flags_C028   	| [$b4d8: ld   (player_2_attack_flags_C028),a]
+	move.b	d1,d0                           	| [$b4db: ld   a,b]
+	move.b	(a0),d7
+	eor.b	d7,d0                            	| [$b4dc: xor  (hl)]
+	move.b	d0,(a0)                         	| [$b4dd: ld   (hl),a]
+	rol.b	#1,d4                            	| [$b4de: rlc  e]
+	                               	| [$b4e0: ld   d,$00]
+	lea	ram_address_table_B825(pc),a3      	| [$b4e2: ld   iy,ram_address_table_B825]
+	add.w	d4,a3                            	| [$b4e6: add  iy,de]
+
+	move.b	(0x00,a3),d6                    	| [$b4e8: ld   l,(iy+$00)]
+	move.b	(0x01,a3),d5                    	| [$b4eb: ld   h,(iy+$01)]
+ld   sp,hl
+	lea	counter_C029,a0                	| [$b4ef: ld   hl,counter_C029]
+	subq.b	#1,(a0)                         	| [$b4f2: dec  (hl)]
+	move.w	#0x0020,a3                      	| [$b4f3: ld   iy,$0020] 32
+	add.w	d4,a3                            	| [$b4f7: add  iy,de]
+
+	move.b	(0x00,a3),d6                    	| [$b4f9: ld   l,(iy+$00)]
+	move.b	(0x01,a3),d5                    	| [$b4fc: ld   h,(iy+$01)]
+	jbsr	enable_interrupts_BBE2            	| [$b4ff: call enable_interrupts_BBE2]
+* called several times at startup
+* $5250
+* $53D2
+* $544F
+* $6491
+* $7C5D
+* $6D5E
+* $B099
+* $B09C
+* $B09F
+*
+* then called when screen changes
+	jmp	(a0)                               	| [$b502: jp   (hl)]
+
+
+l_b503:
+	jbsr	disable_interrupts_BBE2           	| [$b503: call disable_interrupts_BBE2]
+	lea	unknown_C00C(pc),a0                	| [$b506: ld   hl,unknown_C00C]
+	lea	unknown_C00C(pc),a3                	| [$b509: ld   iy,unknown_C00C]
+	move.b	(0x00,a3),d0                    	| [$b50d: ld   a,(iy+$00)]
+	or.b	(0x01,a3),d0                      	| [$b510: or   (iy+$01)]
+	or.b	(0x02,a3),d0                      	| [$b513: or   (iy+$02)]
+	or.b	(0x03,a3),d0                      	| [$b516: or   (iy+$03)]
+	jeq	jump_to_mainloop_B48D              	| [$b519: jp   z,jump_to_mainloop_B48D]
+	clr.b	d0                               	| [$b51c: xor  a]
+	move.b	d0,d3                           	| [$b51d: ld   d,a]
+	cmp.b	(a0),d0                          	| [$b51e: cp   (hl)]
+	jne	l_b52d                             	| [$b51f: jp   nz,$B52D]
+	addq.b	#1,d6                           	| [$b522: inc  l]
+	cmp.b	(a0),d0                          	| [$b523: cp   (hl)]
+	jne	l_b52d                             	| [$b524: jp   nz,$B52D]
+	addq.b	#1,d6                           	| [$b527: inc  l]
+	cmp.b	(a0),d0                          	| [$b528: cp   (hl)]
+	jne	l_b52d                             	| [$b529: jp   nz,$B52D]
+	addq.b	#1,d6                           	| [$b52c: inc  l]
+l_b52d:
+	move.b	d6,d0                           	| [$b52d: ld   a,l]
+	sub.b	#0x0C,d0                         	| [$b52e: sub  $0C]
+	move.b	d0,d4                           	| [$b530: ld   e,a]
+	rol.b	#3,d4                            	| [$b531: rlc  e] * 3
+	tst.b	d0                               	| [$b537: and  a]
+	clr.b	d1                               	| [$b538: ld   b,$00]
+	move.b	(a0),d2                         	| [$b53a: ld   c,(hl)]
+	roxl.b	#1,d2                           	| [$b53b: rl   c]
+	roxl.b	#1,d1                           	| [$b53d: rl   b]
+	lea	table_B87D(pc),a2                  	| [$b53f: ld   ix,table_B87D]
+	add.w	d1,a2                            	| [$b543: add  ix,bc]
+  ^^^^ review
+	move.b	(0x00,a2),d1                    	| [$b545: ld   b,(ix+$00)]
+	move.b	(0x01,a2),d0                    	| [$b548: ld   a,(ix+$01)]
+	add.b	d4,d0                            	| [$b54b: add  a,e]
+	move.b	d0,d4                           	| [$b54c: ld   e,a]
+	move.b	d0,player_2_attack_flags_C028   	| [$b54d: ld   (player_2_attack_flags_C028),a]
+	move.b	d1,d0                           	| [$b550: ld   a,b]
+	eor.b	(a0),d0                          	| [$b551: xor  (hl)]
+	move.b	d0,(a0)                         	| [$b552: ld   (hl),a]
+	rol.b	#1,d4                            	| [$b553: rlc  e]
+	clr.b	d3                               	| [$b555: ld   d,$00]
+	lea	table_B7E5(pc),a0                  	| [$b557: ld   hl,table_B7E5]
+	add.w	d3,a0                            	| [$b55a: add  hl,de]
+  ^^^^ review
+	move.b	(a0),d4                         	| [$b55b: ld   e,(hl)]
+	addq.w	#1,a0                           	| [$b55c: inc  hl]
+	move.b	(a0),d3                         	| [$b55d: ld   d,(hl)]
+	move.b	(a1),d0                         	| [$b55e: ld   a,(de)]
+	move.b	d0,d6                           	| [$b55f: ld   l,a]
+	addq.w	#1,a1                           	| [$b560: inc  de]
+	move.b	(a1),d0                         	| [$b561: ld   a,(de)]
+	move.b	d0,d5                           	| [$b562: ld   h,a]
+ld   sp,hl
+	exg	a1,a0                              	| [$b564: ex   de,hl]
+	move.w	#0x0004,d3                      	| [$b565: ld   de,$0004] 4
+	add.w	d3,a0                            	| [$b568: add  hl,de]
+  ^^^^ review
+	move.b	(a0),d1                         	| [$b569: ld   b,(hl)]
+	addq.w	#1,a0                           	| [$b56a: inc  hl]
+	move.b	(a0),d0                         	| [$b56b: ld   a,(hl)]
+	lea	counter_C02A(pc),a0                	| [$b56c: ld   hl,counter_C02A]
+	subq.b	#1,(a0)                         	| [$b56f: dec  (hl)]
+	jbsr	enable_interrupts_BBE2            	| [$b570: call enable_interrupts_BBE2]
+	rts                                    	| [$b573: ret]
+
+
+ram_address_table_B825:
+	.long	unknown_c420                           	|  $b825
+	.long	unknown_c440                           	|  $b827
+	.long	unknown_c460                           	|  $b829
+	.long	unknown_c480                           	|  $b82b
+	.long	unknown_c4a0                           	|  $b82d
+	.long	unknown_c4c0                           	|  $b82f
+	.long	unknown_c4e0                           	|  $b831
+	.long	unknown_c500                           	|  $b833
+	.long	unknown_c520                           	|  $b835
+	.long	unknown_c540                           	|  $b837
+	.long	unknown_c560                           	|  $b839
+	.long	unknown_c580                           	|  $b83b
+	.long	unknown_c5a0                           	|  $b83d
+	.long	unknown_c5c0                           	|  $b83f
+	.long	unknown_c5e0                           	|  $b841
+	.long	unknown_c600                           	|  $b843
+	.long	unknown_c620                           	|  $b845
+	.long	unknown_c640                           	|  $b847
+	.long	unknown_c660                           	|  $b849
+	.long	unknown_c680                           	|  $b84b
+	.long	unknown_c6a0                           	|  $b84d
+	.long	unknown_c6c0                           	|  $b84f
+	.long	unknown_c6e0                           	|  $b851
+	.long	unknown_c700                           	|  $b853
+	.long	unknown_c720                           	|  $b855
+	.long	unknown_c740                           	|  $b857
+	.long	unknown_c760                           	|  $b859
+	.long	unknown_c780                           	|  $b85b
+	.long	unknown_c7a0                           	|  $b85d
+	.long	unknown_c7c0                           	|  $b85f
+	.long	unknown_c7e0                           	|  $b861
+	.long	unknown_c800                           	|  $b863
+	.long	unknown_c000                           	|  $b865
+	.long	unknown_c008                           	|  $b867
+	.long	unknown_c010                           	|  $b869
+	.long	unknown_c018                           	|  $b86b
+	.long	unknown_c020                           	|  $b86d
+	.long	unknown_c028                           	|  $b86f
+	.long	unknown_c030                           	|  $b871
+	.long	unknown_c038                           	|  $b873
+
+
+powers_of_2_table_B875:
+	dc.b	0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80 | $b875
+table_B87D:
+	dc.b	0x00,0x00,0x01,0x00,0x02,0x01,0x01,0x00 | $b87d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b885
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b88d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b895
+	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $b89d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b8a5
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b8ad
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b8b5
+	dc.b	0x20,0x05,0x01,0x00,0x02,0x01,0x01,0x00 | $b8bd
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b8c5
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b8cd
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b8d5
+	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $b8dd
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b8e5
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b8ed
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b8f5
+	dc.b	0x40,0x06,0x01,0x00,0x02,0x01,0x01,0x00 | $b8fd
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b905
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b90d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b915
+	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $b91d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b925
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b92d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b935
+	dc.b	0x20,0x05,0x01,0x00,0x02,0x01,0x01,0x00 | $b93d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b945
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b94d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b955
+	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $b95d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b965
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b96d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b975
+	dc.b	0x80,0x07,0x01,0x00,0x02,0x01,0x01,0x00 | $b97d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b985
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b98d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b995
+	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $b99d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b9a5
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b9ad
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b9b5
+	dc.b	0x20,0x05,0x01,0x00,0x02,0x01,0x01,0x00 | $b9bd
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b9c5
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b9cd
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b9d5
+	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $b9dd
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b9e5
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b9ed
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b9f5
+	dc.b	0x40,0x06,0x01,0x00,0x02,0x01,0x01,0x00 | $b9fd
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba05
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $ba0d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba15
+	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $ba1d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba25
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $ba2d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba35
+	dc.b	0x20,0x05,0x01,0x00,0x02,0x01,0x01,0x00 | $ba3d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba45
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $ba4d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba55
+	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $ba5d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba65
+	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $ba6d
+	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba75
+
+disable_interrupts_BBE2:
+	jbsr		osd_disable_vblank
+	rts
+	
+enable_interrupts_BBE2:
+	jbsr		osd_enable_vblank
+	rts
+
