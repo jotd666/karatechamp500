@@ -223,7 +223,7 @@ l_0000:
 	jra	startup_B045                       	| [jp   startup_B045]
 	
 * routines called by the main scheduler at B502
-address_table_0020:
+task_address_table_0020:
 	.long	l_5250                           	|  $0020
 	.long	l_53d2                           	|  $0022
 	.long	l_544f                           	|  $0024
@@ -253,7 +253,38 @@ l_illegal:
 	illegal
 	nop
 	
+l_5250: 
+l_53d2:   
+l_544f:   
+l_6491:   
+l_6529:   
+l_7c5d:   
+l_6f89:   
+l_6622:   
+l_755b:   
+l_7657:   
+l_3a9c:
+l_6d5e:   
+l_47d6:   
+l_50f2:   
+l_b099:   
+l_b09c:   
+l_b09f:
+	
 
+* < HL: pointer on zone to clear
+* < BC: size
+clear_zone_B2BD:
+	move.l	(sp)+,a2                        	| [$b2bd: pop  ix] return address in ix
+l_b2bf:
+	clr.b	(a0)+                             	| [$b2bf: ld   (hl),$00] set to 0
+									| [$b2c1: inc  hl] increment hl
+	subq.w	#1,d1                           	| [$b2c2: dec  bc] decrement bc counter
+											| [$b2c3: ld   a,b] test b=c=0
+												| [$b2c4: or   c]
+	jne	l_b2bf                             	| [$b2c5: jp   nz,$B2BF] not 0, keep looping
+	jra	(a2)      
+	
 startup_B045:
 	jra	startup_B469                       	| [$b045: jp   startup_B469]
 
@@ -296,6 +327,8 @@ l_b4a7:
 * looks like an event table: each routine can post events by setting
 * bits, and the events are acknowledged by bitclears.
 * depending on the bits set, we jump to different routines
+*
+* or this is a task scheduler, with stack location change and all!!!
 	cmp.b	(a0),d0                          	| [$b4a9: cp   (hl)]
 	jne	l_b4b8                             	| [$b4aa: jp   nz,$B4B8]
 	addq.b	#1,d6                           	| [$b4ad: inc  l]
@@ -311,7 +344,7 @@ l_b4b8:
 	moveq	#0,d4
 	move.b	d0,d4                           	| [$b4bb: ld   e,a]
 	rol.b	#3,d4                            	| [$b4bc: rlc  e] * 3
-	clr.b	d2                               	| [$b4c2: ld   b,$00]
+	clr.w	d2                               	| [$b4c2: ld   b,$00]
 	move.b	(a0),d2                         	| [$b4c4: ld   c,(hl)]
 	tst.b	d0                               	| [$b4c5: and  a]
 	lsl.w	#1,d2                           	| [$b4c6: rl   c]
@@ -328,21 +361,23 @@ l_b4b8:
 	move.b	(a0),d7
 	eor.b	d7,d0                            	| [$b4dc: xor  (hl)]
 	move.b	d0,(a0)                         	| [$b4dd: ld   (hl),a]
-	rol.b	#1,d4                            	| [$b4de: rlc  e]
+	add.w	d4,d4                            	| [$b4de: rlc  e]
+	add.w	d4,d4                            	| double (long address)
 	                               	| [$b4e0: ld   d,$00]
 	lea	ram_address_table_B825(pc),a3      	| [$b4e2: ld   iy,ram_address_table_B825]
 	add.w	d4,a3                            	| [$b4e6: add  iy,de]
-
-	move.b	(0x00,a3),d6                    	| [$b4e8: ld   l,(iy+$00)]
-	move.b	(0x01,a3),d5                    	| [$b4eb: ld   h,(iy+$01)]
-ld   sp,hl
+	* switch stack pointer according to routine we jump to!!
+	* (seems that they've coded a mini-OS for this game!)
+	move.l	(a3),sp                    	| [$b4e8: ld   l,(iy+$00)]
+										| [$b4eb: ld   h,(iy+$01)]
+					
 	lea	counter_C029,a0                	| [$b4ef: ld   hl,counter_C029]
 	subq.b	#1,(a0)                         	| [$b4f2: dec  (hl)]
-	move.w	#0x0020,a3                      	| [$b4f3: ld   iy,$0020] 32
+	lea		task_address_table_0020,a3                      	| [$b4f3: ld   iy,$0020] 32
 	add.w	d4,a3                            	| [$b4f7: add  iy,de]
 
-	move.b	(0x00,a3),d6                    	| [$b4f9: ld   l,(iy+$00)]
-	move.b	(0x01,a3),d5                    	| [$b4fc: ld   h,(iy+$01)]
+	move.l	(a3),a0                    	| [$b4f9: ld   l,(iy+$00)]
+										| [$b4fc: ld   h,(iy+$01)]
 	jbsr	enable_interrupts_BBE2            	| [$b4ff: call enable_interrupts_BBE2]
 * called several times at startup
 * $5250
@@ -363,13 +398,14 @@ l_b503:
 	jbsr	disable_interrupts_BBE2           	| [$b503: call disable_interrupts_BBE2]
 	lea	unknown_C00C(pc),a0                	| [$b506: ld   hl,unknown_C00C]
 	lea	unknown_C00C(pc),a3                	| [$b509: ld   iy,unknown_C00C]
-	move.b	(0x00,a3),d0                    	| [$b50d: ld   a,(iy+$00)]
-	or.b	(0x01,a3),d0                      	| [$b510: or   (iy+$01)]
-	or.b	(0x02,a3),d0                      	| [$b513: or   (iy+$02)]
-	or.b	(0x03,a3),d0                      	| [$b516: or   (iy+$03)]
+	tst.l	(a3)                    	| [$b50d: ld   a,(iy+$00)]
+										| [$b510: or   (iy+$01)]
+										| [$b513: or   (iy+$02)]
+										| [$b516: or   (iy+$03)]
 	jeq	jump_to_mainloop_B48D              	| [$b519: jp   z,jump_to_mainloop_B48D]
+	clr.w	d4
 	clr.b	d0                               	| [$b51c: xor  a]
-	move.b	d0,d3                           	| [$b51d: ld   d,a]
+	move.b	d0,d4                           	| [$b51d: ld   d,a]
 	cmp.b	(a0),d0                          	| [$b51e: cp   (hl)]
 	jne	l_b52d                             	| [$b51f: jp   nz,$B52D]
 	addq.b	#1,d6                           	| [$b522: inc  l]
@@ -385,89 +421,162 @@ l_b52d:
 	move.b	d0,d4                           	| [$b530: ld   e,a]
 	rol.b	#3,d4                            	| [$b531: rlc  e] * 3
 	tst.b	d0                               	| [$b537: and  a]
-	clr.b	d1                               	| [$b538: ld   b,$00]
-	move.b	(a0),d2                         	| [$b53a: ld   c,(hl)]
-	roxl.b	#1,d2                           	| [$b53b: rl   c]
-	roxl.b	#1,d1                           	| [$b53d: rl   b]
+	clr.w	d1                               	| [$b538: ld   b,$00]
+	move.b	(a0),d1                         	| [$b53a: ld   c,(hl)]
+	add.w	d1,d1                           	| [$b53b: rl   c]
+												| [$b53d: rl   b]
 	lea	table_B87D(pc),a2                  	| [$b53f: ld   ix,table_B87D]
 	add.w	d1,a2                            	| [$b543: add  ix,bc]
-  ^^^^ review
 	move.b	(0x00,a2),d1                    	| [$b545: ld   b,(ix+$00)]
 	move.b	(0x01,a2),d0                    	| [$b548: ld   a,(ix+$01)]
 	add.b	d4,d0                            	| [$b54b: add  a,e]
 	move.b	d0,d4                           	| [$b54c: ld   e,a]
 	move.b	d0,player_2_attack_flags_C028   	| [$b54d: ld   (player_2_attack_flags_C028),a]
 	move.b	d1,d0                           	| [$b550: ld   a,b]
-	eor.b	(a0),d0                          	| [$b551: xor  (hl)]
+	move.b	(a0),d7
+	eor.b	d7,d0                    	      	| [$b551: xor  (hl)]
 	move.b	d0,(a0)                         	| [$b552: ld   (hl),a]
-	rol.b	#1,d4                            	| [$b553: rlc  e]
-	clr.b	d3                               	| [$b555: ld   d,$00]
-	lea	table_B7E5(pc),a0                  	| [$b557: ld   hl,table_B7E5]
-	add.w	d3,a0                            	| [$b55a: add  hl,de]
-  ^^^^ review
-	move.b	(a0),d4                         	| [$b55b: ld   e,(hl)]
-	addq.w	#1,a0                           	| [$b55c: inc  hl]
-	move.b	(a0),d3                         	| [$b55d: ld   d,(hl)]
-	move.b	(a1),d0                         	| [$b55e: ld   a,(de)]
-	move.b	d0,d6                           	| [$b55f: ld   l,a]
-	addq.w	#1,a1                           	| [$b560: inc  de]
-	move.b	(a1),d0                         	| [$b561: ld   a,(de)]
-	move.b	d0,d5                           	| [$b562: ld   h,a]
-ld   sp,hl
+	add.w	d4,d4                            	| [$b553: rlc  e]
+	add.w	d4,d4                            	| double offset (long!!)
+												| [$b555: ld   d,$00]
+	lea	ram_address_table_B7E5(pc),a0                  	| [$b557: ld   hl,table_B7E5]
+	add.w	d4,a0                            	| [$b55a: add  hl,de]
+	* WTF switches stack looks like a mini-os with a task
+	* scheduler and all!!!
+	move.l	(a0)+,a7
+
 	exg	a1,a0                              	| [$b564: ex   de,hl]
 	move.w	#0x0004,d3                      	| [$b565: ld   de,$0004] 4
 	add.w	d3,a0                            	| [$b568: add  hl,de]
-  ^^^^ review
-	move.b	(a0),d1                         	| [$b569: ld   b,(hl)]
-	addq.w	#1,a0                           	| [$b56a: inc  hl]
+ ** ^^^^ review
+	move.b	(a0)+,d1                         	| [$b569: ld   b,(hl)]
+									| [$b56a: inc  hl]
 	move.b	(a0),d0                         	| [$b56b: ld   a,(hl)]
 	lea	counter_C02A(pc),a0                	| [$b56c: ld   hl,counter_C02A]
 	subq.b	#1,(a0)                         	| [$b56f: dec  (hl)]
 	jbsr	enable_interrupts_BBE2            	| [$b570: call enable_interrupts_BBE2]
 	rts                                    	| [$b573: ret]
 
+* < A: bit to set
+* changes $C000-$C005 (bitfield 6*8 = 48 bits)
+* returns changed bits in $C006-$C00B
+* returns 0 if something changed, $FF otherwise
+bitfield_set_B620:
+	jbsr	disable_interrupts_BBE2           	| [$b620: call disable_interrupts_BBE2]
+	lea	unknown_C000(pc),a0                	| [$b623: ld   hl,unknown_C000]
+	move.b	d0,d2                           	| [$b626: ld   c,a]
+	clr.b	d1                               	| [$b627: ld   b,$00]
+	move.w	#0x0000,d3                      	| [$b629: ld   de,$0000] 0
+	and.b	#0x07,d0                         	| [$b62c: and  $07]
+	move.b	d0,d4                           	| [$b62e: ld   e,a] A & 7 in E
+	move.b	d2,d0                           	| [$b62f: ld   a,c] restore original A
+	and.b	#0xF8,d0                         	| [$b630: and  $F8] mask it to get upper part (align on 8)
+	roxr.b	#3,d0                           	| [$b632: rra] * 3
+	move.b	d0,d2                           	| [$b635: ld   c,a]
+	add.w	d1,a0                            	| [$b636: add  hl,bc]
+  ^^^^ review
+	lea	powers_of_2_table_B875(pc),a2      	| [$b637: ld   ix,powers_of_2_table_B875]
+	add.w	d3,a2                            	| [$b63b: add  ix,de]
+  ^^^^ review
+* get proper power of 2 value in A (single bit value)
+	move.b	(0x00,a2),d0                    	| [$b63d: ld   a,(ix+$00)]
+	move.b	d0,d4                           	| [$b640: ld   e,a]
+and  (hl)
+	jne	l_b658                             	| [$b642: jp   nz,$B658]
+	move.b	d4,d0                           	| [$b645: ld   a,e]
+	or.b	(a0),d0                           	| [$b646: or   (hl)]
+	move.b	d0,(a0)                         	| [$b647: ld   (hl),a]
+	move.w	#0x0006,d1                      	| [$b648: ld   bc,$0006] 6
+	add.w	d1,a0                            	| [$b64b: add  hl,bc]
+  ^^^^ review
+	move.b	d4,d0                           	| [$b64c: ld   a,e]
+	or.b	(a0),d0                           	| [$b64d: or   (hl)]
+	move.b	d0,(a0)                         	| [$b64e: ld   (hl),a]
+	lea	counter_C029(pc),a0                	| [$b64f: ld   hl,counter_C029]
+	addq.b	#1,(a0)                         	| [$b652: inc  (hl)] increment timer
+	clr.b	d0                               	| [$b653: xor  a]
+	jbsr	enable_interrupts_BBE2            	| [$b654: call enable_interrupts_BBE2]
+	rts                                    	| [$b657: ret]
+l_b658:
+	st.b	d0                                	| [$b658: ld   a,$FF]
+	jbsr	enable_interrupts_BBE2            	| [$b65a: call enable_interrupts_BBE2]
+	rts                                    	| [$b65d: ret]
 
+
+ram_address_table_B7E5:
+	.long	stack_C100                           	|  $b7e5
+	.long	stack_C120                           	|  $b7e7
+	.long	stack_C140                           	|  $b7e9
+	.long	stack_C160                           	|  $b7eb
+	.long	stack_C180                           	|  $b7ed
+	.long	stack_C1A0                           	|  $b7ef
+	.long	stack_C1C0                           	|  $b7f1
+	.long	stack_C1E0                           	|  $b7f3
+	.long	stack_C200                           	|  $b7f5
+	.long	stack_C220                           	|  $b7f7
+	.long	stack_C240                           	|  $b7f9
+	.long	stack_C260                           	|  $b7fb
+	.long	stack_C280                           	|  $b7fd
+	.long	stack_C2A0                           	|  $b7ff
+	.long	stack_C2C0                           	|  $b801
+	.long	stack_C2E0                           	|  $b803
+	.long	stack_C300                           	|  $b805
+	.long	stack_C320                           	|  $b807
+	.long	stack_C340                           	|  $b809
+	.long	stack_C360                           	|  $b80b
+	.long	stack_C380                           	|  $b80d
+	.long	stack_C3A0                           	|  $b80f
+	.long	stack_C3C0                           	|  $b811
+	.long	stack_C3E0                           	|  $b813
+	.long	stack_C400                           	|  $b815
+	.long	stack_C420                           	|  $b817
+	.long	stack_C440                           	|  $b819
+	.long	stack_C460                           	|  $b81b
+	.long	stack_C480                           	|  $b81d
+	.long	stack_C4A0                           	|  $b81f
+	.long	stack_C4C0                           	|  $b821
+	.long	stack_C4E0                           	|  $b823
 ram_address_table_B825:
-	.long	unknown_c420                           	|  $b825
-	.long	unknown_c440                           	|  $b827
-	.long	unknown_c460                           	|  $b829
-	.long	unknown_c480                           	|  $b82b
-	.long	unknown_c4a0                           	|  $b82d
-	.long	unknown_c4c0                           	|  $b82f
-	.long	unknown_c4e0                           	|  $b831
-	.long	unknown_c500                           	|  $b833
-	.long	unknown_c520                           	|  $b835
-	.long	unknown_c540                           	|  $b837
-	.long	unknown_c560                           	|  $b839
-	.long	unknown_c580                           	|  $b83b
-	.long	unknown_c5a0                           	|  $b83d
-	.long	unknown_c5c0                           	|  $b83f
-	.long	unknown_c5e0                           	|  $b841
-	.long	unknown_c600                           	|  $b843
-	.long	unknown_c620                           	|  $b845
-	.long	unknown_c640                           	|  $b847
-	.long	unknown_c660                           	|  $b849
-	.long	unknown_c680                           	|  $b84b
-	.long	unknown_c6a0                           	|  $b84d
-	.long	unknown_c6c0                           	|  $b84f
-	.long	unknown_c6e0                           	|  $b851
-	.long	unknown_c700                           	|  $b853
-	.long	unknown_c720                           	|  $b855
-	.long	unknown_c740                           	|  $b857
-	.long	unknown_c760                           	|  $b859
-	.long	unknown_c780                           	|  $b85b
-	.long	unknown_c7a0                           	|  $b85d
-	.long	unknown_c7c0                           	|  $b85f
-	.long	unknown_c7e0                           	|  $b861
-	.long	unknown_c800                           	|  $b863
-	.long	unknown_c000                           	|  $b865
-	.long	unknown_c008                           	|  $b867
-	.long	unknown_c010                           	|  $b869
-	.long	unknown_c018                           	|  $b86b
-	.long	unknown_c020                           	|  $b86d
-	.long	unknown_c028                           	|  $b86f
-	.long	unknown_c030                           	|  $b871
-	.long	unknown_c038                           	|  $b873
+	.long	stack_C420                           	|  $b825
+	.long	stack_C440                           	|  $b827
+	.long	stack_C460                           	|  $b829
+	.long	stack_C480                           	|  $b82b
+	.long	stack_C4A0                           	|  $b82d
+	.long	stack_C4C0                           	|  $b82f
+	.long	stack_C4E0                           	|  $b831
+	.long	stack_C500                           	|  $b833
+	.long	stack_C520                           	|  $b835
+	.long	stack_C540                           	|  $b837
+	.long	stack_C560                           	|  $b839
+	.long	stack_C580                           	|  $b83b
+	.long	stack_C5A0                           	|  $b83d
+	.long	stack_C5C0                           	|  $b83f
+	.long	stack_C5E0                           	|  $b841
+	.long	stack_C600                           	|  $b843
+	.long	stack_C620                           	|  $b845
+	.long	stack_C640                           	|  $b847
+	.long	stack_C660                           	|  $b849
+	.long	stack_C680                           	|  $b84b
+	.long	stack_C6A0                           	|  $b84d
+	.long	stack_C6C0                           	|  $b84f
+	.long	stack_C6E0                           	|  $b851
+	.long	stack_C700                           	|  $b853
+	.long	stack_C720                           	|  $b855
+	.long	stack_C740                           	|  $b857
+	.long	stack_C760                           	|  $b859
+	.long	stack_C780                           	|  $b85b
+	.long	stack_C7A0                           	|  $b85d
+	.long	stack_C7C0                           	|  $b85f
+	.long	stack_C7E0                           	|  $b861
+	.long	stack_C800                           	|  $b863
+	.long	unknown_C000                           	|  $b865
+	.long	unknown_C008                           	|  $b867
+	.long	unknown_C010                           	|  $b869
+	.long	unknown_C018                           	|  $b86b
+	.long	unknown_C020                           	|  $b86d
+	.long	player_2_attack_flags_C028                           	|  $b86f
+	.long	unknown_C030                           	|  $b871
+	.long	unknown_C038                           	|  $b873
 
 
 powers_of_2_table_B875:
@@ -538,11 +647,67 @@ table_B87D:
 	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $ba6d
 	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba75
 
+init_ram_BB41:
+* clear video ram
+	*lea	l_D000(pc),a0                      	| [$bb44: ld   hl,$D000]
+	*lea	l_1000(pc),a4                      	| [$bb47: ld   bc,$1000] immediate value
+	*jbsr	clear_zone_B2BD                   	| [$bb4a: call clear_zone_B2BD]
+* clear ram
+	*lea	unknown_C000(pc),a0                	| [$bb4d: ld   hl,unknown_C000]
+	*move.w	#0x1000,d1                      	| [$bb50: ld   bc,$1000] immediate value
+	*jbsr	clear_zone_B2BD                   	| [$bb53: call clear_zone_B2BD]
+* init ram with some startup values
+	jbsr	init_C040_F6E5                    	| [$bb57: call init_C040_F6E5]
+	move.b	#0x02,d0                        	| [$bb5a: ld   a,$02]
+	move.b	d0,unknown_C0C0                 	| [$bb5c: ld   (unknown_C0C0),a]
+	jbsr	get_dip_switches_BB92             	| [$bb5f: call get_dip_switches_BB92]
+	move.b	d0,dip_switches_copy_C030       	| [$bb62: ld   (dip_switches_copy_C030),a]
+	clr.b	d0                               	| [$bb65: xor  a]
+	jbsr	bitfield_set_B620                 	| [$bb66: call bitfield_set_B620]
+	move.b	#0x80,d0                        	| [$bb69: ld   a,$80]
+	jbsr	stop_sound_BBDF                   	| [$bb6b: call stop_sound_BBDF]
+	rts                                    	| [$bb6e: ret]
+
+
 disable_interrupts_BBE2:
-	jbsr		osd_disable_vblank
+	jbsr		osd_disable_vblank_interrupt
 	rts
 	
 enable_interrupts_BBE2:
-	jbsr		osd_enable_vblank
+	jbsr		osd_enable_vblank_interrupt
 	rts
 
+* copy contents of ROM in $C040
+init_C040_F6E5:
+	move.w	#0x006C,d1                      	| [$f6e5: ld   bc,$006C] 108
+	lea	table_F6F1(pc),a0                  	| [$f6e8: ld   hl,table_F6F1]
+	lea	unknown_C040(pc),a1                	| [$f6eb: ld   de,unknown_C040]
+	jbsr	ldir                              	| [$f6ee: ldir]
+	rts                                    	| [$f6f0: ret]
+table_F6F1:
+	dc.b	0x02,0x00,0x00,0x00,0x00,0x00,0x13,0xb0 | table_F6F1
+	dc.b	0x1e,0xb0,0x0c,0xb0,0x14,0xb0,0x22,0xb0 | $f6f9
+	dc.b	0x00,0x03,0x01,0x80,0x00,0x00,0x00,0x00 | $f701
+	dc.b	0x16,0xb0,0x0a,0xb0,0x1b,0xb0,0x22,0xb0 | $f709
+	dc.b	0x3c,0xb0,0x00,0x02,0x01,0x60,0x00,0x00 | $f711
+	dc.b	0x00,0x00,0x14,0xb0,0x1e,0xb0,0x17,0xb0 | $f719
+	dc.b	0x1d,0xb0,0x0a,0xb0,0x00,0x02,0x01,0x40 | $f721
+	dc.b	0x00,0x00,0x00,0x00,0x1b,0xb0,0x0e,0xb0 | $f729
+	dc.b	0x12,0xb0,0x14,0xb0,0x18,0xb0,0x00,0x01 | $f731
+	dc.b	0x01,0x20,0x00,0x00,0x00,0x00,0x13,0xb0 | $f739
+	dc.b	0x18,0xb0,0x17,0xb0,0x22,0xb0,0x3c,0xb0 | $f741
+	dc.b	0x00,0x01,0x01,0x00,0x00,0x00,0x00,0x00 | $f749
+	dc.b	0x2f,0xb0,0x2f,0xb0,0x2f,0xb0,0x2f,0xb0 | $f751
+	dc.b	0x2f,0xb0,0x00,0x01 | $f759
+	
+
+* < A0: source (HL)
+* < A1: destination (DE)
+* < D1: length (16 bit)
+ldir:
+    subq.w    #1,d1
+0:
+    move.b    (a0)+,(a1)+
+    dbf        d1,0b
+    clr.w    d1
+    rts

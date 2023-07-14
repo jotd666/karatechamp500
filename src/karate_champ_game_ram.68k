@@ -1,3 +1,179 @@
+	.global	address_of_current_player_move_byte_CF04
+	.global	background_and_state_bits_C911
+	.global	computer_skill_C910
+	.global	counter_C029
+	.global	counter_C02A
+	.global	current_move_C24B
+	.global	level_number_C0DC
+	.global	map_index_C900
+	.global	match_timer_C167
+	.global	nb_credits_minus_one_C024
+	.global	periodic_counter_16bit_C02E
+	.global	periodic_counter_8bit_C02B
+	.global	player_2_points_C91A
+	.global	players_type_human_or_cpu_flags_C02D
+	.global	referee_walk_direction_C1E9
+	.global	stack_C100
+	.global	stack_C120
+	.global	stack_C140
+	.global	stack_C160
+	.global	stack_C180
+	.global	stack_C1A0
+	.global	stack_C1C0
+	.global	stack_C1E0
+	.global	stack_C200
+	.global	stack_C220
+	.global	stack_C240
+	.global	stack_C260
+	.global	stack_C280
+	.global	stack_C2A0
+	.global	stack_C2C0
+	.global	stack_C2E0
+	.global	stack_C300
+	.global	stack_C320
+	.global	stack_C340
+	.global	stack_C360
+	.global	stack_C380
+	.global	stack_C3A0
+	.global	stack_C3C0
+	.global	stack_C3E0
+	.global	stack_C400
+	.global	stack_C420
+	.global	stack_C440
+	.global	stack_C460
+	.global	stack_C480
+	.global	stack_C4A0
+	.global	stack_C4C0
+	.global	stack_C4E0
+	.global	stack_C500
+	.global	stack_C520
+	.global	stack_C540
+	.global	stack_C560
+	.global	stack_C580
+	.global	stack_C5A0
+	.global	stack_C5C0
+	.global	stack_C5E0
+	.global	stack_C600
+	.global	stack_C620
+	.global	stack_C640
+	.global	stack_C660
+	.global	stack_C680
+	.global	stack_C6A0
+	.global	stack_C6C0
+	.global	stack_C6E0
+	.global	stack_C700
+	.global	stack_C720
+	.global	stack_C740
+	.global	stack_C760
+	.global	stack_C780
+	.global	stack_C7A0
+	.global	stack_C7C0
+	.global	stack_C7E0
+	.global	stack_C800
+	.global	unknown_C000
+	.global	unknown_C001
+	.global	unknown_C002
+	.global	unknown_C006
+	.global	unknown_C008
+	.global	unknown_C00C
+	.global	unknown_C010
+	.global	unknown_C012
+	.global	unknown_C018
+	.global	unknown_C020
+	.global	unknown_C025
+	.global	unknown_C026
+	.global	player_2_attack_flags_C028
+	.global	unknown_C02C
+	.global	unknown_C030
+	.global	unknown_C031
+	.global	unknown_C032
+	.global	unknown_C038
+	.global	unknown_C040
+	.global	unknown_C099
+	.global	unknown_C0AB
+	.global	unknown_C0C0
+	.global	unknown_C0C8
+	.global	unknown_C0D0
+	.global	unknown_C0D8
+	.global	unknown_C0DA
+	.global	unknown_C0DD
+	.global	unknown_C0DE
+	.global	unknown_C0DF
+	.global	unknown_C0E0
+	.global	unknown_C0E1
+	.global	unknown_C0E2
+	.global	unknown_C0E3
+	.global	unknown_C0E4
+	.global	unknown_C0E5
+	.global	unknown_C107
+	.global	unknown_C147
+	.global	unknown_C148
+	.global	unknown_C149
+	.global	unknown_C14A
+	.global	unknown_C14F
+	.global	unknown_C168
+	.global	unknown_C1E7
+	.global	unknown_C1E8
+	.global	unknown_C1EA
+	.global	unknown_C1EB
+	.global	unknown_C1EC
+	.global	unknown_C1ED
+	.global	unknown_C247
+	.global	unknown_C249
+	.global	unknown_C24C
+	.global	unknown_C267
+	.global	unknown_C269
+	.global	unknown_C26B
+	.global	unknown_C26C
+	.global	unknown_C387
+	.global	unknown_C701
+	.global	unknown_C702
+	.global	unknown_C703
+	.global	unknown_C704
+	.global	unknown_C708
+	.global	unknown_C709
+	.global	unknown_C70A
+	.global	unknown_C71C
+	.global	unknown_C728
+	.global	unknown_C730
+	.global	unknown_C734
+	.global	unknown_C74C
+	.global	unknown_C768
+	.global	unknown_C77C
+	.global	unknown_C77D
+	.global	unknown_C790
+	.global	unknown_C7BC
+	.global	unknown_C7BE
+	.global	unknown_C7C8
+	.global	unknown_C7D4
+	.global	unknown_C7E4
+	.global	unknown_C7F8
+	.global	unknown_C7FB
+	.global	unknown_C901
+	.global	unknown_C908
+	.global	unknown_C909
+	.global	unknown_C914
+	.global	unknown_C918
+	.global	unknown_C919
+	.global	unknown_C91B
+	.global	unknown_C91D
+	.global	unknown_CC3D
+	.global	unknown_CD21
+	.global	unknown_CF00
+	.global	unknown_CF01
+	.global	unknown_CF02
+	.global	unknown_CF03
+	.global	unknown_CF05
+	.global	unknown_CF06
+	.global	unknown_CF08
+	.global	unknown_CF0A
+	.global	unknown_CF0B
+	.global	unknown_CF0C
+	.global	unknown_CF16
+	.global	unknown_CF21
+
+STACK_RATIO = 4
+
 unknown_C000:
 	ds.b	1
 unknown_C001:
@@ -5,11 +181,19 @@ unknown_C001:
 unknown_C002:
 	ds.b	4
 unknown_C006:
-	ds.b	6
+	ds.b	2
+unknown_C008:
+	ds.b	4
 unknown_C00C:
-	ds.b	6
+	ds.b	4
+unknown_C010:
+	ds.b	2
 unknown_C012:
-	ds.b	18
+	ds.b	6
+unknown_C018:
+	ds.b	8
+unknown_C020:
+	ds.b	4
 nb_credits_minus_one_C024:
 	ds.b	1
 unknown_C025:
@@ -30,12 +214,14 @@ players_type_human_or_cpu_flags_C02D:
 	ds.b	1
 periodic_counter_16bit_C02E:
 	ds.b	2
-dip_switches_copy_C030:
+unknown_C030:
 	ds.b	1
 unknown_C031:
 	ds.b	1
 unknown_C032:
-	ds.b	14
+	ds.b	6
+unknown_C038:
+	ds.b	8
 unknown_C040:
 	ds.b	89
 unknown_C099:
@@ -72,12 +258,17 @@ unknown_C0E4:
 	ds.b	1
 unknown_C0E5:
 	ds.b	27
-unknown_C100:
-	ds.b	7
+	.align	2
+stack_C100:
+	ds.b	7*STACK_RATIO
 unknown_C107:
-	ds.b	57
-unknown_C140:
-	ds.b	7
+	ds.b	25
+	.align	2
+stack_C120:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C140:
+	ds.b	7*STACK_RATIO
 unknown_C147:
 	ds.b	1
 unknown_C148:
@@ -87,15 +278,26 @@ unknown_C149:
 unknown_C14A:
 	ds.b	5
 unknown_C14F:
-	ds.b	24
+	ds.b	17
+	.align	2
+stack_C160:
+	ds.b	7*STACK_RATIO
 match_timer_C167:
 	ds.b	1
 unknown_C168:
-	ds.b	88
-unknown_C1C0:
-	ds.b	32
-unknown_C1E0:
-	ds.b	7
+	ds.b	24
+	.align	2
+stack_C180:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C1A0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C1C0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C1E0:
+	ds.b	7*STACK_RATIO
 unknown_C1E7:
 	ds.b	1
 unknown_C1E8:
@@ -109,11 +311,16 @@ unknown_C1EB:
 unknown_C1EC:
 	ds.b	1
 unknown_C1ED:
-	ds.b	51
-unknown_C220:
-	ds.b	32
-player_1_struct_C240:
-	ds.b	7
+	ds.b	19
+	.align	2
+stack_C200:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C220:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C240:
+	ds.b	7*STACK_RATIO
 unknown_C247:
 	ds.b	2
 unknown_C249:
@@ -122,8 +329,9 @@ current_move_C24B:
 	ds.b	1
 unknown_C24C:
 	ds.b	20
-player_2_struct_C260:
-	ds.b	7
+	.align	2
+stack_C260:
+	ds.b	7*STACK_RATIO
 unknown_C267:
 	ds.b	2
 unknown_C269:
@@ -131,13 +339,120 @@ unknown_C269:
 unknown_C26B:
 	ds.b	1
 unknown_C26C:
-	ds.b	276
-unknown_C380:
-	ds.b	7
+	ds.b	20
+	.align	2
+stack_C280:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C2A0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C2C0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C2E0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C300:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C320:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C340:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C360:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C380:
+	ds.b	7*STACK_RATIO
 unknown_C387:
-	ds.b	889
-referee_x_pos_C700:
-	ds.b	1
+	ds.b	25
+	.align	2
+stack_C3A0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C3C0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C3E0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C400:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C420:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C440:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C460:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C480:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C4A0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C4C0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C4E0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C500:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C520:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C540:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C560:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C580:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C5A0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C5C0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C5E0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C600:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C620:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C640:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C660:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C680:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C6A0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C6C0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C6E0:
+	ds.b	32*STACK_RATIO
+	.align	2
+stack_C700:
+	ds.b	1*STACK_RATIO
 unknown_C701:
 	ds.b	1
 unknown_C702:
@@ -153,47 +468,61 @@ unknown_C709:
 unknown_C70A:
 	ds.b	18
 unknown_C71C:
-	ds.b	12
+	ds.b	4
+	.align	2
+stack_C720:
+	ds.b	8*STACK_RATIO
 unknown_C728:
 	ds.b	8
 unknown_C730:
 	ds.b	4
 unknown_C734:
 	ds.b	12
-unknown_C740:
-	ds.b	12
+	.align	2
+stack_C740:
+	ds.b	12*STACK_RATIO
 unknown_C74C:
 	ds.b	20
-unknown_C760:
-	ds.b	8
+	.align	2
+stack_C760:
+	ds.b	8*STACK_RATIO
 unknown_C768:
 	ds.b	20
 unknown_C77C:
 	ds.b	1
 unknown_C77D:
 	ds.b	3
-unknown_C780:
-	ds.b	16
+	.align	2
+stack_C780:
+	ds.b	16*STACK_RATIO
 unknown_C790:
 	ds.b	16
-unknown_C7A0:
-	ds.b	28
+	.align	2
+stack_C7A0:
+	ds.b	28*STACK_RATIO
 unknown_C7BC:
 	ds.b	2
 unknown_C7BE:
 	ds.b	2
-unknown_C7C0:
-	ds.b	8
+	.align	2
+stack_C7C0:
+	ds.b	8*STACK_RATIO
 unknown_C7C8:
 	ds.b	12
 unknown_C7D4:
-	ds.b	16
+	ds.b	12
+	.align	2
+stack_C7E0:
+	ds.b	4*STACK_RATIO
 unknown_C7E4:
 	ds.b	20
 unknown_C7F8:
 	ds.b	3
 unknown_C7FB:
-	ds.b	261
+	ds.b	5
+	.align	2
+stack_C800:
+	ds.b	256*STACK_RATIO
 map_index_C900:
 	ds.b	1
 unknown_C901:
@@ -217,7 +546,9 @@ player_2_points_C91A:
 unknown_C91B:
 	ds.b	2
 unknown_C91D:
-	ds.b	1028
+	ds.b	800
+unknown_CC3D:
+	ds.b	228
 unknown_CD21:
 	ds.b	479
 unknown_CF00:
