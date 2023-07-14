@@ -1257,7 +1257,7 @@ task_address_table_0020:
 3ADD: 3E 02       ld   a,$08
 3ADF: CA E4 9A    jp   z,$3AE4
 3AE2: 3E 03       ld   a,$09
-3AE4: CD 57 B0    call bitfield_manipulation_B05D
+3AE4: CD 57 B0    call task_manipulation_B05D
 3AE7: A7          and  a
 3AE8: C4 D5 B0    call nz,display_error_text_B075
 3AEB: AF          xor  a
@@ -1291,7 +1291,7 @@ task_address_table_0020:
 3B30: F5          push af
 3B31: 3E 09       ld   a,$03
 3B33: 06 03       ld   b,$09
-3B35: CD 57 B0    call bitfield_manipulation_B05D
+3B35: CD 57 B0    call task_manipulation_B05D
 3B38: A7          and  a
 3B39: C4 D5 B0    call nz,display_error_text_B075
 3B3C: F1          pop  af
@@ -1306,17 +1306,17 @@ task_address_table_0020:
 3B4D: E5          push hl
 3B4E: C5          push bc
 3B4F: FD E5       push iy
-3B51: CD 57 B0    call bitfield_manipulation_B05D
+3B51: CD 57 B0    call task_manipulation_B05D
 3B54: A7          and  a
 3B55: C4 D5 B0    call nz,display_error_text_B075
 3B58: 3E 02       ld   a,$08
 3B5A: 06 03       ld   b,$09
-3B5C: CD 57 B0    call bitfield_manipulation_B05D
+3B5C: CD 57 B0    call task_manipulation_B05D
 3B5F: A7          and  a
 3B60: C4 D5 B0    call nz,display_error_text_B075
 3B63: 3E 03       ld   a,$09
 3B65: 06 03       ld   b,$09
-3B67: CD 57 B0    call bitfield_manipulation_B05D
+3B67: CD 57 B0    call task_manipulation_B05D
 3B6A: A7          and  a
 3B6B: C4 D5 B0    call nz,display_error_text_B075
 3B6E: FD E1       pop  iy
@@ -1328,7 +1328,7 @@ task_address_table_0020:
 3B7F: C1          pop  bc
 3B80: 3E 0D       ld   a,$07
 3B82: FD E5       push iy
-3B84: CD 57 B0    call bitfield_manipulation_B05D
+3B84: CD 57 B0    call task_manipulation_B05D
 3B87: A7          and  a
 3B88: C4 D5 B0    call nz,display_error_text_B075
 3B8B: FD E1       pop  iy
@@ -1348,7 +1348,7 @@ task_address_table_0020:
 3BB1: 3E 04       ld   a,$04
 3BB3: C5          push bc
 3BB4: FD E5       push iy
-3BB6: CD 57 B0    call bitfield_manipulation_B05D
+3BB6: CD 57 B0    call task_manipulation_B05D
 3BB9: A7          and  a
 3BBA: C4 D5 B0    call nz,display_error_text_B075
 3BBD: FD E1       pop  iy
@@ -1379,12 +1379,12 @@ task_address_table_0020:
 3BFB: FD E5       push iy
 3BFD: 3E 03       ld   a,$09
 3BFF: 06 03       ld   b,$09
-3C01: CD 57 B0    call bitfield_manipulation_B05D
+3C01: CD 57 B0    call task_manipulation_B05D
 3C04: A7          and  a
 3C05: C4 D5 B0    call nz,display_error_text_B075
 3C08: 3E 02       ld   a,$08
 3C0A: 06 03       ld   b,$09
-3C0C: CD 57 B0    call bitfield_manipulation_B05D
+3C0C: CD 57 B0    call task_manipulation_B05D
 3C0F: A7          and  a
 3C10: C4 D5 B0    call nz,display_error_text_B075
 3C13: FD E1       pop  iy
@@ -2374,7 +2374,7 @@ table_43C7:
 45D0: 50          ld   d,b
 45D1: 1E 80       ld   e,$20
 45D3: CD 00 B0    call $B000
-45D6: DD 21 00 61 ld   ix,unknown_C100
+45D6: DD 21 00 61 ld   ix,task_struct_C100
 45DA: DD 19       add  ix,de
 45DC: 21 F9 45    ld   hl,table_45F3
 45DF: FD 7E 02    ld   a,(iy+$08)
@@ -2660,12 +2660,12 @@ get_current_frame_contents_478D:
 4826: C2 8B 42    jp   nz,$482B
 4829: 3E 0B       ld   a,$0B
 482B: 06 09       ld   b,$03
-482D: CD 57 B0    call bitfield_manipulation_B05D
+482D: CD 57 B0    call task_manipulation_B05D
 4830: A7          and  a
 4831: C4 D5 B0    call nz,display_error_text_B075
 4834: 3E 08       ld   a,$02
 4836: 06 09       ld   b,$03
-4838: CD 57 B0    call bitfield_manipulation_B05D
+4838: CD 57 B0    call task_manipulation_B05D
 483B: A7          and  a
 483C: C4 D5 B0    call nz,display_error_text_B075
 483F: FD E1       pop  iy
@@ -2703,7 +2703,7 @@ get_current_frame_contents_478D:
 4890: 3E 04       ld   a,$04
 4892: 06 08       ld   b,$02
 4894: FD E5       push iy
-4896: CD 57 B0    call bitfield_manipulation_B05D
+4896: CD 57 B0    call task_manipulation_B05D
 4899: FD E1       pop  iy
 489B: A7          and  a
 489C: C2 D5 B0    jp   nz,display_error_text_B075
@@ -3226,7 +3226,7 @@ table_4D74:
 4D91: CB 56       bit  2,(hl)
 4D93: C2 3D 47    jp   nz,$4D97
 4D96: 3C          inc  a
-4D97: CD 5D B0    call bitfield_set_B057
+4D97: CD 5D B0    call schedule_task_to_start_B057
 4D9A: A7          and  a
 4D9B: C4 D5 B0    call nz,display_error_text_B075
 4D9E: 3E 0A       ld   a,$0A
@@ -3234,15 +3234,15 @@ table_4D74:
 4DA3: CB 56       bit  2,(hl)
 4DA5: C2 A3 47    jp   nz,$4DA9
 4DA8: 3C          inc  a
-4DA9: CD 5D B0    call bitfield_set_B057
+4DA9: CD 5D B0    call schedule_task_to_start_B057
 4DAC: A7          and  a
 4DAD: C4 D5 B0    call nz,display_error_text_B075
 4DB0: 3E 04       ld   a,$04
-4DB2: CD 5D B0    call bitfield_set_B057
+4DB2: CD 5D B0    call schedule_task_to_start_B057
 4DB5: A7          and  a
 4DB6: C4 D5 B0    call nz,display_error_text_B075
 4DB9: 3E 14       ld   a,$14
-4DBB: CD 5D B0    call bitfield_set_B057
+4DBB: CD 5D B0    call schedule_task_to_start_B057
 4DBE: A7          and  a
 4DBF: C4 D5 B0    call nz,display_error_text_B075
 4DC2: FD E1       pop  iy
@@ -3255,7 +3255,7 @@ table_4D74:
 4DD2: C4 D5 B0    call nz,display_error_text_B075
 4DD5: 3E 0F       ld   a,$0F
 4DD7: 06 80       ld   b,$20
-4DD9: CD 57 B0    call bitfield_manipulation_B05D
+4DD9: CD 57 B0    call task_manipulation_B05D
 4DDC: A7          and  a
 4DDD: C4 D5 B0    call nz,display_error_text_B075
 4DE0: FD E1       pop  iy
@@ -3267,7 +3267,7 @@ table_4D74:
 4DED: FD E1       pop  iy
 4DEF: 3E 01       ld   a,$01
 4DF1: 06 01       ld   b,$01
-4DF3: CD 57 B0    call bitfield_manipulation_B05D
+4DF3: CD 57 B0    call task_manipulation_B05D
 4DF6: A7          and  a
 4DF7: C4 D5 B0    call nz,display_error_text_B075
 4DFA: CD 51 B0    call warm_reboot_B051
@@ -3526,12 +3526,12 @@ table_5040:
 518D: C2 31 51    jp   nz,$5191
 5190: 3C          inc  a
 5191: 06 10       ld   b,$10
-5193: CD 57 B0    call bitfield_manipulation_B05D
+5193: CD 57 B0    call task_manipulation_B05D
 5196: A7          and  a
 5197: C4 D5 B0    call nz,display_error_text_B075
 519A: 3E 08       ld   a,$02
 519C: 06 10       ld   b,$10
-519E: CD 57 B0    call bitfield_manipulation_B05D
+519E: CD 57 B0    call task_manipulation_B05D
 51A1: A7          and  a
 51A2: C4 D5 B0    call nz,display_error_text_B075
 51A5: FD E1       pop  iy
@@ -3563,7 +3563,7 @@ table_5040:
 51EA: FD 96 19    sub  (iy+$13)
 51ED: 47          ld   b,a
 51EE: 3E 04       ld   a,$04
-51F0: CD 57 B0    call bitfield_manipulation_B05D
+51F0: CD 57 B0    call task_manipulation_B05D
 51F3: FD E1       pop  iy
 51F5: 3E 04       ld   a,$04
 51F7: FD 96 19    sub  (iy+$13)
@@ -3582,14 +3582,14 @@ table_5040:
 5215: C2 F6 50    jp   nz,$50FC
 5218: 3E 08       ld   a,$02
 521A: 06 01       ld   b,$01
-521C: CD 57 B0    call bitfield_manipulation_B05D
+521C: CD 57 B0    call task_manipulation_B05D
 521F: 3E 0A       ld   a,$0A
 5221: 06 11       ld   b,$11
 5223: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
 5226: CB 56       bit  2,(hl)
 5228: C2 86 58    jp   nz,$522C
 522B: 3C          inc  a
-522C: CD 57 B0    call bitfield_manipulation_B05D
+522C: CD 57 B0    call task_manipulation_B05D
 522F: A7          and  a
 5230: C4 D5 B0    call nz,display_error_text_B075
 5233: C3 48 58    jp   $5242
@@ -3614,11 +3614,11 @@ table_5245:
 5266: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5269: 32 98 60    ld   (unknown_C032),a
 526C: 3E 01       ld   a,$01
-526E: CD 5D B0    call bitfield_set_B057
+526E: CD 5D B0    call schedule_task_to_start_B057
 5271: A7          and  a
 5272: C4 D5 B0    call nz,display_error_text_B075
 5275: 3E 20       ld   a,$80
-5277: CD AE B0    call $B0AE
+5277: CD AE B0    call stop_sound_b0ae
 527A: 3A 90 60    ld   a,(dip_switches_copy_C030)
 527D: CB 7F       bit  7,a		; free play bit
 527F: CA 2D 58    jp   z,$5287
@@ -3628,7 +3628,7 @@ table_5245:
 5289: CD 5A B0    call wait_a_few_frames_B05A
 528C: CD C0 B0    call $B060
 528F: 3E 01       ld   a,$01
-5291: CD 15 B0    call $B015
+5291: CD 15 B0    call unsuspend_tasks_b015
 5294: 3A 84 60    ld   a,(nb_credits_minus_one_C024)
 5297: A7          and  a
 ; after game over check if there are still credits
@@ -3673,23 +3673,23 @@ table_5245:
 5304: D6 01       sub  $01
 5306: 27          daa
 5307: 77          ld   (hl),a
-5308: CD 1E B0    call $B01E
+5308: CD 1E B0    call clear_C7xx_B01E
 530B: 3E 01       ld   a,$01
 530D: CD 5A B0    call wait_a_few_frames_B05A
 5310: 01 96 00    ld   bc,$003C
-5313: CD 90 B0    call $B030
+5313: CD 90 B0    call fill_video_and_attribute_memory_B030
 5316: 3E 20       ld   a,$80
 5318: CD D8 B0    call play_sound_B072
-531B: CD 60 B0    call $B0C0
+531B: CD 60 B0    call enable_interrupts_b0c0
 531E: CD 38 DB    call $7B92
 5321: CD 16 D6    call $7C1C
-5324: CD C3 B0    call $B069
+5324: CD C3 B0    call check_coin_ports_B069
 5327: CB 57       bit  2,a
 5329: C2 CC 58    jp   nz,$5266
 532C: 3A 84 60    ld   a,(nb_credits_minus_one_C024)
 532F: A7          and  a
 5330: CA 1B 59    jp   z,$531B
-5333: CD C3 B0    call $B069
+5333: CD C3 B0    call check_coin_ports_B069
 5336: CB 5F       bit  3,a
 5338: CA 1B 59    jp   z,$531B
 ; set 2 player mode
@@ -3737,14 +3737,14 @@ table_53CC:
 53E4: 3E 20       ld   a,$80
 53E6: CD D8 B0    call play_sound_B072
 53E9: 3E 08       ld   a,$02
-53EB: CD 15 B0    call $B015
-53EE: CD 1E B0    call $B01E
+53EB: CD 15 B0    call unsuspend_tasks_b015
+53EE: CD 1E B0    call clear_C7xx_B01E
 53F1: 3E 01       ld   a,$01
 53F3: CD 5A B0    call wait_a_few_frames_B05A
 53F6: A7          and  a
 53F7: C4 D5 B0    call nz,display_error_text_B075
 53FA: 01 96 00    ld   bc,$003C
-53FD: CD 90 B0    call $B030
+53FD: CD 90 B0    call fill_video_and_attribute_memory_B030
 5400: 21 02 63    ld   hl,unknown_C908
 5403: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5406: CB 57       bit  2,a
@@ -3755,19 +3755,19 @@ table_53CC:
 5411: 01 02 00    ld   bc,$0008
 5414: ED B0       ldir
 5416: 3E 09       ld   a,$03
-5418: CD 5D B0    call bitfield_set_B057
+5418: CD 5D B0    call schedule_task_to_start_B057
 541B: A7          and  a
 541C: C4 D5 B0    call nz,display_error_text_B075
 541F: 3E 08       ld   a,$02
-5421: CD 5D B0    call bitfield_set_B057
+5421: CD 5D B0    call schedule_task_to_start_B057
 5424: A7          and  a
 5425: C4 D5 B0    call nz,display_error_text_B075
 5428: 3E 05       ld   a,$05
-542A: CD 5D B0    call bitfield_set_B057
+542A: CD 5D B0    call schedule_task_to_start_B057
 542D: A7          and  a
 542E: C4 D5 B0    call nz,display_error_text_B075
 5431: 3E 0F       ld   a,$0F
-5433: CD 5D B0    call bitfield_set_B057
+5433: CD 5D B0    call schedule_task_to_start_B057
 5436: A7          and  a
 5437: C4 D5 B0    call nz,display_error_text_B075
 543A: 3E 00       ld   a,$00
@@ -3777,7 +3777,7 @@ table_53CC:
 5443: CA E4 59    jp   z,$53E4
 5446: 3E 00       ld   a,$00
 5448: 47          ld   b,a
-5449: CD 57 B0    call bitfield_manipulation_B05D
+5449: CD 57 B0    call task_manipulation_B05D
 544C: CD 51 B0    call warm_reboot_B051
 544F: CD 23 DA    call $7A89
 5452: CD 7C DA    call $7AD6
@@ -3891,27 +3891,27 @@ jump_table_547B:
 552B: 32 4D 61    ld   (unknown_C147),a
 552E: 32 42 61    ld   (unknown_C148),a
 5531: 3E 0A       ld   a,$0A
-5533: CD 5D B0    call bitfield_set_B057
+5533: CD 5D B0    call schedule_task_to_start_B057
 5536: A7          and  a
 5537: C4 D5 B0    call nz,display_error_text_B075
 553A: 3E 0B       ld   a,$0B
-553C: CD 5D B0    call bitfield_set_B057
+553C: CD 5D B0    call schedule_task_to_start_B057
 553F: A7          and  a
 5540: C4 D5 B0    call nz,display_error_text_B075
 5543: 3E 04       ld   a,$04
-5545: CD 5D B0    call bitfield_set_B057
+5545: CD 5D B0    call schedule_task_to_start_B057
 5548: 3E 09       ld   a,$03
-554A: CD 5D B0    call bitfield_set_B057
+554A: CD 5D B0    call schedule_task_to_start_B057
 554D: 3E 0D       ld   a,$07
-554F: CD 5D B0    call bitfield_set_B057
+554F: CD 5D B0    call schedule_task_to_start_B057
 5552: A7          and  a
 5553: C4 D5 B0    call nz,display_error_text_B075
 5556: 3E 02       ld   a,$08
-5558: CD 5D B0    call bitfield_set_B057
+5558: CD 5D B0    call schedule_task_to_start_B057
 555B: A7          and  a
 555C: C4 D5 B0    call nz,display_error_text_B075
 555F: 3E 03       ld   a,$09
-5561: CD 5D B0    call bitfield_set_B057
+5561: CD 5D B0    call schedule_task_to_start_B057
 5564: A7          and  a
 5565: C4 D5 B0    call nz,display_error_text_B075
 5568: 3E 00       ld   a,$00
@@ -3920,19 +3920,19 @@ jump_table_547B:
 556F: C2 36 55    jp   nz,$559C
 5572: 3E 0A       ld   a,$0A
 5574: 06 02       ld   b,$08
-5576: CD 57 B0    call bitfield_manipulation_B05D
+5576: CD 57 B0    call task_manipulation_B05D
 5579: 3E 0B       ld   a,$0B
 557B: 06 02       ld   b,$08
-557D: CD 57 B0    call bitfield_manipulation_B05D
+557D: CD 57 B0    call task_manipulation_B05D
 5580: 3E 02       ld   a,$08
 5582: 06 03       ld   b,$09
-5584: CD 57 B0    call bitfield_manipulation_B05D
+5584: CD 57 B0    call task_manipulation_B05D
 5587: 3E 03       ld   a,$09
 5589: 06 03       ld   b,$09
-558B: CD 57 B0    call bitfield_manipulation_B05D
+558B: CD 57 B0    call task_manipulation_B05D
 558E: 3E 0D       ld   a,$07
 5590: 06 02       ld   b,$08
-5592: CD 57 B0    call bitfield_manipulation_B05D
+5592: CD 57 B0    call task_manipulation_B05D
 5595: A7          and  a
 5596: C4 D5 B0    call nz,display_error_text_B075
 5599: C3 C2 55    jp   $5568
@@ -3944,13 +3944,13 @@ jump_table_547B:
 55A9: 3E 20       ld   a,$80
 55AB: CD D8 B0    call play_sound_B072
 55AE: 3E 0D       ld   a,$07
-55B0: CD 54 B0    call bitfield_clear_B054
+55B0: CD 54 B0    call unsuspend_task_B054
 55B3: 3E 02       ld   a,$08
-55B5: CD 54 B0    call bitfield_clear_B054
+55B5: CD 54 B0    call unsuspend_task_B054
 55B8: 3E 03       ld   a,$09
-55BA: CD 54 B0    call bitfield_clear_B054
+55BA: CD 54 B0    call unsuspend_task_B054
 55BD: 3E 0B       ld   a,$0B
-55BF: CD 54 B0    call bitfield_clear_B054
+55BF: CD 54 B0    call unsuspend_task_B054
 55C2: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 55C5: CB 57       bit  2,a
 55C7: CA 14 5C    jp   z,$5614
@@ -3985,9 +3985,9 @@ jump_table_547B:
 560F: 3E 96       ld   a,$3C
 5611: CD 5A B0    call wait_a_few_frames_B05A
 5614: 3E 0D       ld   a,$07
-5616: CD 54 B0    call bitfield_clear_B054
+5616: CD 54 B0    call unsuspend_task_B054
 5619: 3E 0A       ld   a,$0A
-561B: CD 54 B0    call bitfield_clear_B054
+561B: CD 54 B0    call unsuspend_task_B054
 561E: 3A 11 63    ld   a,(background_and_state_bits_C911)
 5621: CB 7F       bit  7,a
 5623: C2 49 5C    jp   nz,$5643
@@ -4005,20 +4005,20 @@ jump_table_547B:
 5640: CD 5A B0    call wait_a_few_frames_B05A
 5643: 3E 01       ld   a,$01
 5645: 47          ld   b,a
-5646: CD 57 B0    call bitfield_manipulation_B05D
+5646: CD 57 B0    call task_manipulation_B05D
 5649: A7          and  a
 564A: C4 D5 B0    call nz,display_error_text_B075
 564D: CD 51 B0    call warm_reboot_B051
 5650: 3E 20       ld   a,$80
 5652: CD D8 B0    call play_sound_B072
 5655: 3E 0D       ld   a,$07
-5657: CD 54 B0    call bitfield_clear_B054
+5657: CD 54 B0    call unsuspend_task_B054
 565A: 3E 02       ld   a,$08
-565C: CD 54 B0    call bitfield_clear_B054
+565C: CD 54 B0    call unsuspend_task_B054
 565F: 3E 03       ld   a,$09
-5661: CD 54 B0    call bitfield_clear_B054
+5661: CD 54 B0    call unsuspend_task_B054
 5664: 3E 0A       ld   a,$0A
-5666: CD 54 B0    call bitfield_clear_B054
+5666: CD 54 B0    call unsuspend_task_B054
 5669: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 566C: CB 5F       bit  3,a
 566E: CA BB 5C    jp   z,$56BB
@@ -4053,9 +4053,9 @@ jump_table_547B:
 56B6: 3E 96       ld   a,$3C
 56B8: CD 5A B0    call wait_a_few_frames_B05A
 56BB: 3E 0D       ld   a,$07
-56BD: CD 54 B0    call bitfield_clear_B054
+56BD: CD 54 B0    call unsuspend_task_B054
 56C0: 3E 0B       ld   a,$0B
-56C2: CD 54 B0    call bitfield_clear_B054
+56C2: CD 54 B0    call unsuspend_task_B054
 56C5: 3A 11 63    ld   a,(background_and_state_bits_C911)
 56C8: CB 7F       bit  7,a
 56CA: C2 EA 5C    jp   nz,$56EA
@@ -4073,7 +4073,7 @@ jump_table_547B:
 56E7: CD 5A B0    call wait_a_few_frames_B05A
 56EA: 3E 01       ld   a,$01
 56EC: 06 08       ld   b,$02
-56EE: CD 57 B0    call bitfield_manipulation_B05D
+56EE: CD 57 B0    call task_manipulation_B05D
 56F1: A7          and  a
 56F2: C4 D5 B0    call nz,display_error_text_B075
 56F5: CD 51 B0    call warm_reboot_B051
@@ -4085,7 +4085,7 @@ jump_table_547B:
 5703: CB 56       bit  2,(hl)
 5705: C2 03 5D    jp   nz,$5709
 5708: 3C          inc  a
-5709: CD 5D B0    call bitfield_set_B057
+5709: CD 5D B0    call schedule_task_to_start_B057
 570C: A7          and  a
 570D: C4 D5 B0    call nz,display_error_text_B075
 5710: 3E 02       ld   a,$08
@@ -4093,11 +4093,11 @@ jump_table_547B:
 5715: CB 56       bit  2,(hl)
 5717: C2 1B 5D    jp   nz,$571B
 571A: 3C          inc  a
-571B: CD 5D B0    call bitfield_set_B057
+571B: CD 5D B0    call schedule_task_to_start_B057
 571E: A7          and  a
 571F: C4 D5 B0    call nz,display_error_text_B075
 5722: 3E 04       ld   a,$04
-5724: CD 5D B0    call bitfield_set_B057
+5724: CD 5D B0    call schedule_task_to_start_B057
 5727: A7          and  a
 5728: C4 D5 B0    call nz,display_error_text_B075
 572B: 3E D2       ld   a,$78
@@ -4136,28 +4136,28 @@ jump_table_547B:
 576A: 1F          rra
 576B: DA DA 5D    jp   c,$577A
 576E: 3E 10       ld   a,$10
-5770: CD 5D B0    call bitfield_set_B057
+5770: CD 5D B0    call schedule_task_to_start_B057
 5773: A7          and  a
 5774: C4 D5 B0    call nz,display_error_text_B075
 5777: C3 AD 5D    jp   $57A7
 577A: 1F          rra
 577B: DA 2A 5D    jp   c,$578A
 577E: 3E 11       ld   a,$11
-5780: CD 5D B0    call bitfield_set_B057
+5780: CD 5D B0    call schedule_task_to_start_B057
 5783: A7          and  a
 5784: C4 D5 B0    call nz,display_error_text_B075
 5787: C3 AD 5D    jp   $57A7
 578A: 1F          rra
 578B: DA 3A 5D    jp   c,$579A
 578E: 3E 18       ld   a,$12
-5790: CD 5D B0    call bitfield_set_B057
+5790: CD 5D B0    call schedule_task_to_start_B057
 5793: A7          and  a
 5794: C4 D5 B0    call nz,display_error_text_B075
 5797: C3 AD 5D    jp   $57A7
 579A: 1F          rra
 579B: DA A7 5D    jp   c,$57AD
 579E: 3E 19       ld   a,$13
-57A0: CD 5D B0    call bitfield_set_B057
+57A0: CD 5D B0    call schedule_task_to_start_B057
 57A3: A7          and  a
 57A4: C4 D5 B0    call nz,display_error_text_B075
 57A7: 21 4D 61    ld   hl,unknown_C147
@@ -4199,21 +4199,21 @@ jump_table_547B:
 57CC: FE 09       cp   $03
 57CE: C4 D5 B0    call nz,display_error_text_B075
 57D1: 3E 06       ld   a,$0C
-57D3: CD 15 B0    call $B015
+57D3: CD 15 B0    call unsuspend_tasks_b015
 57D6: 3E 96       ld   a,$3C
 57D8: CD 5A B0    call wait_a_few_frames_B05A
 57DB: A7          and  a
 57DC: C4 D5 B0    call nz,display_error_text_B075
 57DF: 3E 01       ld   a,$01
 57E1: 47          ld   b,a
-57E2: CD 57 B0    call bitfield_manipulation_B05D
+57E2: CD 57 B0    call task_manipulation_B05D
 57E5: A7          and  a
 57E6: C4 D5 B0    call nz,display_error_text_B075
 57E9: CD 51 B0    call warm_reboot_B051
 57EC: 3A 4D 61    ld   a,(unknown_C147)
 57EF: A7          and  a
 57F0: C2 96 5D    jp   nz,$573C
-57F3: DD 21 00 60 ld   ix,unknown_C000
+57F3: DD 21 00 60 ld   ix,active_task_bit_table_C000
 57F7: DD 7E 01    ld   a,(ix+$01)
 57FA: E6 D0       and  $70
 57FC: 47          ld   b,a
@@ -4229,7 +4229,7 @@ jump_table_547B:
 5812: C4 D5 B0    call nz,display_error_text_B075
 5815: 3E 0F       ld   a,$0F
 5817: 06 80       ld   b,$20
-5819: CD 57 B0    call bitfield_manipulation_B05D
+5819: CD 57 B0    call task_manipulation_B05D
 581C: A7          and  a
 581D: C4 D5 B0    call nz,display_error_text_B075
 5820: 3E 28       ld   a,$82
@@ -4238,7 +4238,7 @@ jump_table_547B:
 5826: C4 D5 B0    call nz,display_error_text_B075
 5829: 3E 01       ld   a,$01
 582B: 47          ld   b,a
-582C: CD 57 B0    call bitfield_manipulation_B05D
+582C: CD 57 B0    call task_manipulation_B05D
 582F: A7          and  a
 5830: C4 D5 B0    call nz,display_error_text_B075
 5833: CD 51 B0    call warm_reboot_B051
@@ -4263,7 +4263,7 @@ jump_table_547B:
 5863: C5          push bc
 5864: 3E 01       ld   a,$01
 5866: CD 5A B0    call wait_a_few_frames_B05A
-5869: CD C3 B0    call $B069
+5869: CD C3 B0    call check_coin_ports_B069
 586C: C1          pop  bc
 586D: CB 57       bit  2,a
 586F: C2 B3 52    jp   nz,$58B9
@@ -4303,22 +4303,22 @@ jump_table_547B:
 58B7: CB DE       set  3,(hl)
 58B9: 3E 01       ld   a,$01
 58BB: 06 01       ld   b,$01
-58BD: CD 57 B0    call bitfield_manipulation_B05D
+58BD: CD 57 B0    call task_manipulation_B05D
 58C0: A7          and  a
 58C1: C4 D5 B0    call nz,display_error_text_B075
 58C4: CD 51 B0    call warm_reboot_B051
 58C7: 3E 09       ld   a,$03
 58C9: CD D8 B0    call play_sound_B072
 58CC: 3E 0A       ld   a,$0A
-58CE: CD 5D B0    call bitfield_set_B057
+58CE: CD 5D B0    call schedule_task_to_start_B057
 58D1: A7          and  a
 58D2: C4 D5 B0    call nz,display_error_text_B075
 58D5: 3E 0B       ld   a,$0B
-58D7: CD 5D B0    call bitfield_set_B057
+58D7: CD 5D B0    call schedule_task_to_start_B057
 58DA: A7          and  a
 58DB: C4 D5 B0    call nz,display_error_text_B075
 58DE: 3E 0C       ld   a,$06
-58E0: CD 5D B0    call bitfield_set_B057
+58E0: CD 5D B0    call schedule_task_to_start_B057
 58E3: 06 0D       ld   b,$07
 58E5: C5          push bc
 58E6: 3E 9F       ld   a,$3F
@@ -4329,14 +4329,14 @@ jump_table_547B:
 58F0: 10 F9       djnz $58E5
 58F2: 3E 01       ld   a,$01
 58F4: 47          ld   b,a
-58F5: CD 57 B0    call bitfield_manipulation_B05D
+58F5: CD 57 B0    call task_manipulation_B05D
 58F8: A7          and  a
 58F9: C4 D5 B0    call nz,display_error_text_B075
 58FC: CD 51 B0    call warm_reboot_B051
 58FF: 3E 04       ld   a,$04
 5901: CD D8 B0    call play_sound_B072
 5904: 3E 0C       ld   a,$06
-5906: CD 5D B0    call bitfield_set_B057
+5906: CD 5D B0    call schedule_task_to_start_B057
 5909: 06 05       ld   b,$05
 590B: C5          push bc
 590C: 3E 9F       ld   a,$3F
@@ -4347,14 +4347,14 @@ jump_table_547B:
 5916: 10 F9       djnz $590B
 5918: 3E 01       ld   a,$01
 591A: 47          ld   b,a
-591B: CD 57 B0    call bitfield_manipulation_B05D
+591B: CD 57 B0    call task_manipulation_B05D
 591E: A7          and  a
 591F: C4 D5 B0    call nz,display_error_text_B075
 5922: CD 51 B0    call warm_reboot_B051
 5925: 3E 08       ld   a,$02
 5927: CD D8 B0    call play_sound_B072
 592A: 3E 0C       ld   a,$06
-592C: CD 5D B0    call bitfield_set_B057
+592C: CD 5D B0    call schedule_task_to_start_B057
 592F: 06 08       ld   b,$02
 5931: C5          push bc
 5932: 3E 9F       ld   a,$3F
@@ -4381,7 +4381,7 @@ jump_table_547B:
 5964: C4 D5 B0    call nz,display_error_text_B075
 5967: 3E 01       ld   a,$01
 5969: 47          ld   b,a
-596A: CD 57 B0    call bitfield_manipulation_B05D
+596A: CD 57 B0    call task_manipulation_B05D
 596D: A7          and  a
 596E: C4 D5 B0    call nz,display_error_text_B075
 5971: CD 51 B0    call warm_reboot_B051
@@ -4652,10 +4652,10 @@ return_zero_in_A_5B7A:
 5C02: C2 0F 56    jp   nz,$5C0F
 5C05: 3E 01       ld   a,$01
 5C07: 06 01       ld   b,$01
-5C09: CD 57 B0    call bitfield_manipulation_B05D
+5C09: CD 57 B0    call task_manipulation_B05D
 5C0C: CD 51 B0    call warm_reboot_B051
 5C0F: 01 9E A0    ld   bc,$A03E
-5C12: CD 90 B0    call $B030
+5C12: CD 90 B0    call fill_video_and_attribute_memory_B030
 5C15: 21 9C D7    ld   hl,table_7D36
 5C18: CD 96 B0    call display_multicolor_text_B03C
 5C1B: CD 7C DA    call $7AD6
@@ -4747,7 +4747,7 @@ return_zero_in_A_5B7A:
 5CED: C4 D5 B0    call nz,display_error_text_B075
 5CF0: 3E 01       ld   a,$01
 5CF2: 06 01       ld   b,$01
-5CF4: CD 57 B0    call bitfield_manipulation_B05D
+5CF4: CD 57 B0    call task_manipulation_B05D
 5CF7: CD 51 B0    call warm_reboot_B051
 table_5CFA:
 	dc.b	0x07,0x13,0x05,0x98,0x00,0x98,0x00,0x98 ; table_5CFA
@@ -4910,7 +4910,7 @@ table_5F00:
 5F28: 77          ld   (hl),a
 5F29: C9          ret
 5F2A: 01 91 A4    ld   bc,$A431
-5F2D: CD 90 B0    call $B030
+5F2D: CD 90 B0    call fill_video_and_attribute_memory_B030
 5F30: 21 E3 29    ld   hl,table_83e9
 5F33: CD 96 B0    call display_multicolor_text_B03C
 5F36: 21 C0 A8    ld   hl,table_a260
@@ -4926,7 +4926,7 @@ table_5F00:
 5F53: 21 8E C0    ld   hl,table_602E
 5F56: 16 A2       ld   d,$A8
 5F58: CD 93 B0    call display_text_B039
-5F5B: CD C3 B0    call $B069
+5F5B: CD C3 B0    call check_coin_ports_B069
 5F5E: E6 06       and  $0C
 5F60: 32 4F 61    ld   (unknown_C14F),a
 5F63: 06 4C       ld   b,$46
@@ -4935,7 +4935,7 @@ table_5F00:
 5F68: CD 5A B0    call wait_a_few_frames_B05A
 5F6B: A7          and  a
 5F6C: C4 D5 B0    call nz,display_error_text_B075
-5F6F: CD C3 B0    call $B069
+5F6F: CD C3 B0    call check_coin_ports_B069
 5F72: E6 06       and  $0C
 5F74: C1          pop  bc
 5F75: C2 F2 5F    jp   nz,$5FF8
@@ -4946,24 +4946,24 @@ table_5F00:
 5F83: 21 0E 12    ld   hl,$180E
 5F86: CD 1B B0    call $B01B
 5F89: 3E 04       ld   a,$04
-5F8B: CD 5D B0    call bitfield_set_B057
+5F8B: CD 5D B0    call schedule_task_to_start_B057
 5F8E: 3E 0A       ld   a,$0A
-5F90: CD 5D B0    call bitfield_set_B057
+5F90: CD 5D B0    call schedule_task_to_start_B057
 5F93: A7          and  a
 5F94: C4 D5 B0    call nz,display_error_text_B075
 5F97: 3E 0B       ld   a,$0B
-5F99: CD 5D B0    call bitfield_set_B057
+5F99: CD 5D B0    call schedule_task_to_start_B057
 5F9C: A7          and  a
 5F9D: C4 D5 B0    call nz,display_error_text_B075
 5FA0: 3E 02       ld   a,$08
-5FA2: CD 5D B0    call bitfield_set_B057
+5FA2: CD 5D B0    call schedule_task_to_start_B057
 5FA5: A7          and  a
 5FA6: C4 D5 B0    call nz,display_error_text_B075
 5FA9: 3E 03       ld   a,$09
-5FAB: CD 5D B0    call bitfield_set_B057
+5FAB: CD 5D B0    call schedule_task_to_start_B057
 5FAE: A7          and  a
 5FAF: C4 D5 B0    call nz,display_error_text_B075
-5FB2: CD C3 B0    call $B069
+5FB2: CD C3 B0    call check_coin_ports_B069
 5FB5: E6 06       and  $0C
 5FB7: 32 4F 61    ld   (unknown_C14F),a
 5FBA: 3E 09       ld   a,$03
@@ -4972,7 +4972,7 @@ table_5F00:
 5FBC: CD 5A B0    call wait_a_few_frames_B05A
 5FBF: A7          and  a
 5FC0: C2 71 5F    jp   nz,$5FD1
-5FC3: CD C3 B0    call $B069
+5FC3: CD C3 B0    call check_coin_ports_B069
 5FC6: E6 06       and  $0C
 5FC8: C2 08 C0    jp   nz,$6002
 5FCB: 32 4F 61    ld   (unknown_C14F),a
@@ -4981,7 +4981,7 @@ table_5F00:
 5FD3: CD 5A B0    call wait_a_few_frames_B05A
 5FD6: 3E 0F       ld   a,$0F
 5FD8: 06 80       ld   b,$20
-5FDA: CD 57 B0    call bitfield_manipulation_B05D
+5FDA: CD 57 B0    call task_manipulation_B05D
 5FDD: A7          and  a
 5FDE: C4 D5 B0    call nz,display_error_text_B075
 5FE1: 3E D2       ld   a,$78
@@ -4990,7 +4990,7 @@ table_5F00:
 5FE7: C4 D5 B0    call nz,display_error_text_B075
 5FEA: 3E 01       ld   a,$01
 5FEC: 06 01       ld   b,$01
-5FEE: CD 57 B0    call bitfield_manipulation_B05D
+5FEE: CD 57 B0    call task_manipulation_B05D
 5FF1: A7          and  a
 5FF2: C4 D5 B0    call nz,display_error_text_B075
 5FF5: CD 51 B0    call warm_reboot_B051
@@ -5132,7 +5132,7 @@ table_602E:
 6144: FD 34 0B    inc  (iy+$0b)
 6147: 3E 04       ld   a,$04
 6149: 06 08       ld   b,$02
-614B: CD 57 B0    call bitfield_manipulation_B05D
+614B: CD 57 B0    call task_manipulation_B05D
 614E: 3E 08       ld   a,$02
 6150: CD 12 B0    call $B018
 6153: 3E 00       ld   a,$00
@@ -5144,16 +5144,16 @@ table_602E:
 6163: CA D4 C1    jp   z,$6174
 6166: 3E 0B       ld   a,$0B
 6168: 06 07       ld   b,$0D
-616A: CD 57 B0    call bitfield_manipulation_B05D
+616A: CD 57 B0    call task_manipulation_B05D
 616D: A7          and  a
 616E: C4 D5 B0    call nz,display_error_text_B075
 6171: C3 3C C0    jp   $6096
 6174: 3E 0B       ld   a,$0B
 6176: 06 07       ld   b,$0D
-6178: CD 57 B0    call bitfield_manipulation_B05D
+6178: CD 57 B0    call task_manipulation_B05D
 617B: 3E 08       ld   a,$02
 617D: 06 0F       ld   b,$0F
-617F: CD 57 B0    call bitfield_manipulation_B05D
+617F: CD 57 B0    call task_manipulation_B05D
 6182: A7          and  a
 6183: C4 D5 B0    call nz,display_error_text_B075
 6186: C3 3C C0    jp   $6096
@@ -5171,7 +5171,7 @@ table_602E:
 61A3: 32 C6 68    ld   (unknown_C26C),a
 61A6: 3E 0B       ld   a,$0B
 61A8: 06 07       ld   b,$0D
-61AA: CD 57 B0    call bitfield_manipulation_B05D
+61AA: CD 57 B0    call task_manipulation_B05D
 61AD: A7          and  a
 61AE: C4 D5 B0    call nz,display_error_text_B075
 61B1: C3 23 C1    jp   $6189
@@ -5195,7 +5195,7 @@ table_602E:
 61DF: C3 23 C1    jp   $6189
 61E2: 3E 08       ld   a,$02
 61E4: 06 0F       ld   b,$0F
-61E6: CD 57 B0    call bitfield_manipulation_B05D
+61E6: CD 57 B0    call task_manipulation_B05D
 61E9: C3 23 C1    jp   $6189
 
 
@@ -5444,7 +5444,7 @@ table_6473:
 64EA: 32 CD 61    ld   (match_timer_C167),a
 64ED: 3E 08       ld   a,$02
 64EF: 06 02       ld   b,$08
-64F1: CD 57 B0    call bitfield_manipulation_B05D
+64F1: CD 57 B0    call task_manipulation_B05D
 64F4: A7          and  a
 64F5: C4 D5 B0    call nz,display_error_text_B075
 64F8: CD 51 B0    call warm_reboot_B051
@@ -5607,7 +5607,7 @@ table_65FB:
 669D: CD D8 B0    call play_sound_B072
 66A0: 3E 09       ld   a,$03
 66A2: 06 0A       ld   b,$0A
-66A4: CD 57 B0    call bitfield_manipulation_B05D
+66A4: CD 57 B0    call task_manipulation_B05D
 66A7: A7          and  a
 66A8: C4 D5 B0    call nz,display_error_text_B075
 66AB: 3E 96       ld   a,$3C
@@ -5621,12 +5621,12 @@ table_65FB:
 66B8: C2 00 CD    jp   nz,$6700
 66BB: 3E 0A       ld   a,$0A
 66BD: 06 0A       ld   b,$0A
-66BF: CD 57 B0    call bitfield_manipulation_B05D
+66BF: CD 57 B0    call task_manipulation_B05D
 66C2: A7          and  a
 66C3: C4 D5 B0    call nz,display_error_text_B075
 66C6: 3E 0B       ld   a,$0B
 66C8: 06 0A       ld   b,$0A
-66CA: CD 57 B0    call bitfield_manipulation_B05D
+66CA: CD 57 B0    call task_manipulation_B05D
 66CD: A7          and  a
 66CE: C4 D5 B0    call nz,display_error_text_B075
 66D1: 3A 00 6D    ld   a,(referee_x_pos_C700)
@@ -5734,15 +5734,15 @@ table_65FB:
 67C7: CD 5A B0    call wait_a_few_frames_B05A
 67CA: 3E 0B       ld   a,$0B
 67CC: 06 18       ld   b,$12
-67CE: CD 57 B0    call bitfield_manipulation_B05D
+67CE: CD 57 B0    call task_manipulation_B05D
 67D1: 3E 0A       ld   a,$0A
 67D3: 06 19       ld   b,$13
-67D5: CD 57 B0    call bitfield_manipulation_B05D
+67D5: CD 57 B0    call task_manipulation_B05D
 67D8: 3E 62       ld   a,$C8
 67DA: CD 5A B0    call wait_a_few_frames_B05A
 67DD: 3E 08       ld   a,$02
 67DF: 47          ld   b,a
-67E0: CD 57 B0    call bitfield_manipulation_B05D
+67E0: CD 57 B0    call task_manipulation_B05D
 67E3: A7          and  a
 67E4: C4 D5 B0    call nz,display_error_text_B075
 67E7: CD 51 B0    call warm_reboot_B051
@@ -5755,15 +5755,15 @@ table_65FB:
 67F9: CD 5A B0    call wait_a_few_frames_B05A
 67FC: 3E 0A       ld   a,$0A
 67FE: 06 18       ld   b,$12
-6800: CD 57 B0    call bitfield_manipulation_B05D
+6800: CD 57 B0    call task_manipulation_B05D
 6803: 3E 0B       ld   a,$0B
 6805: 06 19       ld   b,$13
-6807: CD 57 B0    call bitfield_manipulation_B05D
+6807: CD 57 B0    call task_manipulation_B05D
 680A: 3E 62       ld   a,$C8
 680C: CD 5A B0    call wait_a_few_frames_B05A
 680F: 3E 08       ld   a,$02
 6811: 06 01       ld   b,$01
-6813: CD 57 B0    call bitfield_manipulation_B05D
+6813: CD 57 B0    call task_manipulation_B05D
 6816: A7          and  a
 6817: C4 D5 B0    call nz,display_error_text_B075
 681A: CD 51 B0    call warm_reboot_B051
@@ -5775,7 +5775,7 @@ table_65FB:
 6825: C4 D5 B0    call nz,display_error_text_B075
 6828: 3E 0F       ld   a,$0F
 682A: 06 03       ld   b,$09
-682C: CD 57 B0    call bitfield_manipulation_B05D
+682C: CD 57 B0    call task_manipulation_B05D
 682F: C1          pop  bc
 6830: F1          pop  af
 6831: C5          push bc
@@ -5788,7 +5788,7 @@ table_65FB:
 6841: CD D8 B0    call play_sound_B072
 6844: 3E 09       ld   a,$03
 6846: 06 03       ld   b,$09
-6848: CD 57 B0    call bitfield_manipulation_B05D
+6848: CD 57 B0    call task_manipulation_B05D
 684B: A7          and  a
 684C: C4 D5 B0    call nz,display_error_text_B075
 684F: CD 86 C6    call clear_text_6C2C
@@ -5811,16 +5811,16 @@ table_65FB:
 687A: CD 97 CB    call $6B3D
 687D: 3E 0A       ld   a,$0A
 687F: 06 18       ld   b,$12
-6881: CD 57 B0    call bitfield_manipulation_B05D
+6881: CD 57 B0    call task_manipulation_B05D
 6884: 3E C4       ld   a,$64
 6886: CD 5A B0    call wait_a_few_frames_B05A
 6889: 3E 08       ld   a,$02
 688B: 06 01       ld   b,$01
-688D: CD 57 B0    call bitfield_manipulation_B05D
+688D: CD 57 B0    call task_manipulation_B05D
 6890: A7          and  a
 6891: C4 D5 B0    call nz,display_error_text_B075
 6894: 3E 09       ld   a,$03
-6896: CD 54 B0    call bitfield_clear_B054
+6896: CD 54 B0    call unsuspend_task_B054
 6899: CD 51 B0    call warm_reboot_B051
 689C: 32 1A 63    ld   (player_1_points_C91A),a
 689F: C3 53 C3    jp   $6959
@@ -5839,16 +5839,16 @@ table_65FB:
 68C3: CD DD CB    call $6B77
 68C6: 3E 0B       ld   a,$0B
 68C8: 06 18       ld   b,$12
-68CA: CD 57 B0    call bitfield_manipulation_B05D
+68CA: CD 57 B0    call task_manipulation_B05D
 68CD: 3E 62       ld   a,$C8
 68CF: CD 5A B0    call wait_a_few_frames_B05A
 68D2: 3E 08       ld   a,$02
 68D4: 47          ld   b,a
-68D5: CD 57 B0    call bitfield_manipulation_B05D
+68D5: CD 57 B0    call task_manipulation_B05D
 68D8: A7          and  a
 68D9: C4 D5 B0    call nz,display_error_text_B075
 68DC: 3E 09       ld   a,$03
-68DE: CD 54 B0    call bitfield_clear_B054
+68DE: CD 54 B0    call unsuspend_task_B054
 68E1: CD 51 B0    call warm_reboot_B051
 68E4: 32 16 63    ld   (player_2_points_C91A),a
 68E7: C3 53 C3    jp   $6959
@@ -5856,7 +5856,7 @@ table_65FB:
 68EC: CD D8 B0    call play_sound_B072
 68EF: 3E 09       ld   a,$03
 68F1: 06 03       ld   b,$09
-68F3: CD 57 B0    call bitfield_manipulation_B05D
+68F3: CD 57 B0    call task_manipulation_B05D
 68F6: A7          and  a
 68F7: C4 D5 B0    call nz,display_error_text_B075
 68FA: CD 86 C6    call clear_text_6C2C
@@ -5906,12 +5906,12 @@ table_65FB:
 696D: C4 D5 B0    call nz,display_error_text_B075
 6970: 3E 0A       ld   a,$0A
 6972: 06 00       ld   b,$00
-6974: CD 57 B0    call bitfield_manipulation_B05D
+6974: CD 57 B0    call task_manipulation_B05D
 6977: A7          and  a
 6978: C4 D5 B0    call nz,display_error_text_B075
 697B: 3E 0B       ld   a,$0B
 697D: 06 00       ld   b,$00
-697F: CD 57 B0    call bitfield_manipulation_B05D
+697F: CD 57 B0    call task_manipulation_B05D
 6982: A7          and  a
 6983: C4 D5 B0    call nz,display_error_text_B075
 6986: CD CB CA    call $6A6B
@@ -6989,7 +6989,7 @@ table_75C1:
 75E3: 32 46 68    ld   (unknown_C24C),a
 75E6: 3E 0A       ld   a,$0A
 75E8: 06 07       ld   b,$0D
-75EA: CD 57 B0    call bitfield_manipulation_B05D
+75EA: CD 57 B0    call task_manipulation_B05D
 75ED: A7          and  a
 75EE: C4 D5 B0    call nz,display_error_text_B075
 75F1: C3 67 D5    jp   $75CD
@@ -7011,14 +7011,14 @@ table_75C1:
 7617: C5          push bc
 7618: 3E 0A       ld   a,$0A
 761A: 06 07       ld   b,$0D
-761C: CD 57 B0    call bitfield_manipulation_B05D
+761C: CD 57 B0    call task_manipulation_B05D
 761F: A7          and  a
 7620: C4 D5 B0    call nz,display_error_text_B075
 7623: C3 FE D5    jp   $75FE
 7626: DD E5       push ix
 7628: 3E 0A       ld   a,$0A
 762A: 06 07       ld   b,$0D
-762C: CD 57 B0    call bitfield_manipulation_B05D
+762C: CD 57 B0    call task_manipulation_B05D
 762F: A7          and  a
 7630: C4 D5 B0    call nz,display_error_text_B075
 7633: DD E1       pop  ix
@@ -7111,14 +7111,14 @@ table_76BD:
 76EC: C5          push bc
 76ED: 3E 0B       ld   a,$0B
 76EF: 06 07       ld   b,$0D
-76F1: CD 57 B0    call bitfield_manipulation_B05D
+76F1: CD 57 B0    call task_manipulation_B05D
 76F4: A7          and  a
 76F5: C4 D5 B0    call nz,display_error_text_B075
 76F8: C3 79 DC    jp   $76D3
 76FB: DD E5       push ix
 76FD: 3E 0B       ld   a,$0B
 76FF: 06 07       ld   b,$0D
-7701: CD 57 B0    call bitfield_manipulation_B05D
+7701: CD 57 B0    call task_manipulation_B05D
 7704: A7          and  a
 7705: C4 D5 B0    call nz,display_error_text_B075
 7708: DD E1       pop  ix
@@ -7148,7 +7148,7 @@ table_7727:
 7742: 32 C6 68    ld   (unknown_C26C),a
 7745: 3E 0B       ld   a,$0B
 7747: 06 07       ld   b,$0D
-7749: CD 57 B0    call bitfield_manipulation_B05D
+7749: CD 57 B0    call task_manipulation_B05D
 774C: A7          and  a
 774D: C4 D5 B0    call nz,display_error_text_B075
 7750: C3 86 DD    jp   $772C
@@ -7228,7 +7228,7 @@ table_78b7:
 78EA: 3E 01       ld   a,$01
 78EC: CD D8 B0    call play_sound_B072
 78EF: 01 96 10    ld   bc,$103C
-78F2: CD 90 B0    call $B030
+78F2: CD 90 B0    call fill_video_and_attribute_memory_B030
 78F5: 21 EA A0    ld   hl,table_a0ea
 78F8: CD 96 B0    call display_multicolor_text_B03C
 78FB: 21 33 D3    ld   hl,table_7999
@@ -7238,13 +7238,13 @@ table_78b7:
 7906: A7          and  a
 7907: C4 D5 B0    call nz,display_error_text_B075
 790A: 3E 02       ld   a,$08
-790C: CD 5D B0    call bitfield_set_B057
+790C: CD 5D B0    call schedule_task_to_start_B057
 790F: 3E 03       ld   a,$09
-7911: CD 5D B0    call bitfield_set_B057
+7911: CD 5D B0    call schedule_task_to_start_B057
 7914: 3E 0A       ld   a,$0A
-7916: CD 5D B0    call bitfield_set_B057
+7916: CD 5D B0    call schedule_task_to_start_B057
 7919: 3E 0B       ld   a,$0B
-791B: CD 5D B0    call bitfield_set_B057
+791B: CD 5D B0    call schedule_task_to_start_B057
 791E: 06 1E       ld   b,$1E
 7920: C5          push bc
 7921: 21 D8 D3    ld   hl,table_7972
@@ -7259,16 +7259,16 @@ table_78b7:
 7939: C1          pop  bc
 793A: 10 E4       djnz $7920
 793C: 3E 02       ld   a,$08
-793E: CD 54 B0    call bitfield_clear_B054
+793E: CD 54 B0    call unsuspend_task_B054
 7941: 3E 03       ld   a,$09
-7943: CD 54 B0    call bitfield_clear_B054
+7943: CD 54 B0    call unsuspend_task_B054
 7946: 3E 0A       ld   a,$0A
-7948: CD 54 B0    call bitfield_clear_B054
+7948: CD 54 B0    call unsuspend_task_B054
 794B: 3E 0B       ld   a,$0B
-794D: CD 54 B0    call bitfield_clear_B054
+794D: CD 54 B0    call unsuspend_task_B054
 7950: 3E 01       ld   a,$01
 7952: 47          ld   b,a
-7953: CD 57 B0    call bitfield_manipulation_B05D
+7953: CD 57 B0    call task_manipulation_B05D
 7956: A7          and  a
 7957: C4 D5 B0    call nz,display_error_text_B075
 795A: CD 51 B0    call warm_reboot_B051
@@ -7407,7 +7407,7 @@ or_50_to_C7BE_7A58:
 7AAE: DD 4E 00    ld   c,(ix+$00)
 7AB1: DD 46 01    ld   b,(ix+$01)
 7AB4: DD E5       push ix
-7AB6: CD 90 B0    call $B030
+7AB6: CD 90 B0    call fill_video_and_attribute_memory_B030
 7AB9: DD E1       pop  ix
 7ABB: DD 6E 08    ld   l,(ix+$02)
 7ABE: DD 66 09    ld   h,(ix+$03)
@@ -8963,14 +8963,14 @@ A415: 3E 0B       ld   a,$0B
 A417: CA 16 A4    jp   z,$A41C
 A41A: 3E 0A       ld   a,$0A
 A41C: 06 07       ld   b,$0D
-A41E: CD 57 B0    call bitfield_manipulation_B05D
+A41E: CD 57 B0    call task_manipulation_B05D
 A421: A7          and  a
 A422: C4 D5 B0    call nz,display_error_text_B075
 A425: C3 DB A9    jp   fight_mainloop_A37B
 
 
 update_players_struct_C2xx_A428:
-A428: CD B7 B0    call $B0BD		; calls disable_interrupts_BBE2 ???
+A428: CD B7 B0    call disable_interrupts_B0BD		; calls disable_interrupts_BBE2 ???
 A42B: ED 5B 4D 68 ld   de,(unknown_C247)		; load animation/position of player 1
 A42F: 2A 43 68    ld   hl,(unknown_C249)		; load xy for player 1
 A432: D9          exx  ; EXX exchanges BC, DE, and HL with shadow registers with BC', DE', and HL'.
@@ -8992,7 +8992,7 @@ A450: FD 73 0B    ld   (iy+$0b),e
 A453: FD 72 06    ld   (iy+$0c),d
 A456: FD 75 07    ld   (iy+$0d),l
 A459: FD 74 0E    ld   (iy+$0e),h
-A45C: CD 60 B0    call $B0C0
+A45C: CD 60 B0    call enable_interrupts_b0c0
 A45F: FD CB 02 DE bit  7,(iy+$08)
 A463: CA 20 A4    jp   z,$A480
 A466: FD CB 02 BE res  7,(iy+$08)
@@ -10524,10 +10524,12 @@ B00C: C3 84 B1    jp   key_value_linear_search_B124
 table_linear_search_B00F:
 B00F: C3 42 B1    jp   table_linear_search_B148
 B012: C3 56 B1    jp   $B15C
+unsuspend_tasks_b015:
 B015: C3 D1 B1    jp   $B171
 B018: C3 AB B1    jp   $B1AB
 B01B: C3 2E B8    jp   $B28E
-B01E: C3 B8 B8    jp   $B2B2
+clear_C7xx_B01E:
+B01E: C3 B8 B8    jp   clear_C7xx_B2B2
 clear_zone_B021:
 B021: C3 B7 B8    jp   clear_zone_B2BD
 fill_zone_with_a_B024:
@@ -10535,13 +10537,14 @@ B024: C3 6A B8    jp   fill_zone_with_a_B2CA
 B027: C3 73 B8    jp   $B2D9
 B02A: C3 EC B8    jp   $B2E6
 B02D: C3 FC B8    jp   compute_screen_address_from_XY_B2F6
-B030: C3 1C B9    jp   $B316
+fill_video_and_attribute_memory_B030: 
+B030: C3 1C B9    jp   fill_video_and_attribute_memory_B316
 B033: C3 91 B9    jp   $B331
 B036: C3 49 B9    jp   $B343
 display_text_B039:
 B039: C3 5D B9    jp   display_text_B357
 display_multicolor_text_B03C:
-B03C: C3 31 B9    jp   display_multicolor_text_B357
+B03C: C3 31 B9    jp   display_multicolor_text_B391
 B03F: C3 6E B9    jp   display_text_color_2_B3CE
 is_point_in_rectangle_B042:
 B042: C3 40 B4    jp   is_point_in_rectangle_B440
@@ -10553,17 +10556,18 @@ B048: C3 8F BD    jp   on_periodic_interrupt_B72F
 B04B: C3 D4 B5    jp   load_iy_with_player_structure_B574
 B04E: C3 2E B5    jp   $B58E
 B051: C3 A5 B5    jp   warm_reboot_B5A5
-bitfield_clear_B054:
-B054: C3 67 B5    jp   bitfield_clear_B5CD
-bitfield_set_B057:
-B057: C3 80 BC    jp   bitfield_set_B620
+unsuspend_task_B054:
+B054: C3 67 B5    jp   unsuspend_task_B5CD
+schedule_task_to_start_B057:
+B057: C3 80 BC    jp   schedule_task_to_start_B620
 wait_a_few_frames_B05A:
-B05A: C3 5E BC    jp   wait_a_few_frames_B65E
-bitfield_manipulation_B05D:
-B05D: C3 AE BC    jp   bitfield_manipulation_B6AE
-B060: C3 D8 BB    jp   $BB72
+B05A: C3 5E BC    jp   suspend_task_B65E
+task_manipulation_B05D:
+B05D: C3 AE BC    jp   task_manipulation_B6AE
+B060: C3 D8 BB    jp   set_normal_screen_bb72
 B063: C3 DA BB    jp   $BB7A
 B066: C3 28 BB    jp   check_coin_ports_BB82
+check_coin_ports_B069:
 B069: C3 28 BB    jp   check_coin_ports_BB82
 B06C: C3 38 BB    jp   get_dip_switches_BB92
 B06F: C3 3C BB    jp   $BB96
@@ -10595,7 +10599,9 @@ B0B1: C3 DE B8    jp   is_title_screen_demo_mode_B27E
 B0B4: C3 44 F7    jp   $FD44
 B0B7: C3 A2 BB    jp   read_port_0_BBA8
 B0BA: C3 A7 BB    jp   $BBAD
+disable_interrupts_B0BD:
 B0BD: C3 E8 BB    jp   disable_interrupts_BBE2
+enable_interrupts_b0c0:
 B0C0: C3 E2 BB    jp   enable_interrupts_BBE2
 
 
@@ -10728,11 +10734,12 @@ B16D: 23          inc  hl
 B16E: 10 FB       djnz $B16B
 B170: C9          ret
 
+unsuspend_tasks_b171:
 B171: FE 12       cp   $18
 B173: D4 2C B1    call nc,display_error_text_B186
 B176: FD E5       push iy
 B178: F5          push af
-B179: CD 67 B5    call bitfield_clear_B5CD
+B179: CD 67 B5    call unsuspend_task_B5CD
 B17C: F1          pop  af
 B17D: 3C          inc  a
 B17E: FE 12       cp   $18
@@ -10756,7 +10763,9 @@ B19B: E1          pop  hl
 B19C: D1          pop  de
 B19D: C1          pop  bc
 B19E: F1          pop  af
-; infinite loop
+; infinite loop, all registers are preserved, inc. call address
+; probably used by the devs as an "assert failed" routine, where they could
+; track down abnormal values before it really crashes
 B19F: 00          nop
 B1A0: C3 3F B1    jp   $B19F
 
@@ -10888,6 +10897,7 @@ B2AD: C2 2E B8    jp   nz,$B28E
 B2B0: C9          ret
 B2B1: C9          ret
 
+clear_C7xx_B2B2:
 B2B2: AF          xor  a
 B2B3: 21 00 6D    ld   hl,referee_x_pos_C700
 B2B6: 01 FB 6D    ld   bc,unknown_C7FB
@@ -10960,6 +10970,11 @@ B312: 09          add  hl,bc
 B313: ED 52       sbc  hl,de
 B315: C9          ret
 
+; fill video & attribute memory with an uniform value
+; < c: what to set in video memory
+; < b: what to set in attribute memory
+; 
+fill_video_and_attribute_memory_B316:
 B316: 21 00 70    ld   hl,$D000
 B319: DD 21 00 74 ld   ix,$D400
 B31D: 11 00 04    ld   de,$0400
@@ -11057,7 +11072,7 @@ B390: C9          ret
 ; display text with possible color change
 ; <  hl pointer on text
 ; : format x y text/attribute (not in ASCII, tile-index based), ends by $FF
-display_multicolor_text_B357:
+display_multicolor_text_B391:
 B391: FD E5       push iy
 B393: E5          push hl
 B394: FD E1       pop  iy
@@ -11187,7 +11202,7 @@ B471: CD E8 BB    call disable_interrupts_BBE2
 B474: ED 56       im   1				; set interrupt mode
 B476: 31 00 6F    ld   sp,unknown_CF00			; set stack again
 ; clear part of RAM
-B479: 21 00 60    ld   hl,unknown_C000
+B479: 21 00 60    ld   hl,active_task_bit_table_C000
 B47C: 01 20 00    ld   bc,$0080			; immediate value
 B47F: CD B7 B8    call clear_zone_B2BD
 B482: CD 41 BB    call init_ram_BB41
@@ -11251,7 +11266,7 @@ B4DC: AE          xor  (hl)
 B4DD: 77          ld   (hl),a
 B4DE: CB 03       rlc  e
 B4E0: 16 00       ld   d,$00
-B4E2: FD 21 85 B2 ld   iy,ram_address_table_B825
+B4E2: FD 21 85 B2 ld   iy,task_struct_table_B825
 B4E6: FD 19       add  iy,de
 B4E8: FD 6E 00    ld   l,(iy+$00)
 B4EB: FD 66 01    ld   h,(iy+$01)
@@ -11347,7 +11362,7 @@ B573: C9          ret
 ; load iy with player structure
 load_iy_with_player_structure_B574:
 B574: 3A 82 60    ld   a,(player_2_attack_flags_C028)
-B577: FD 21 00 61 ld   iy,unknown_C100
+B577: FD 21 00 61 ld   iy,task_struct_C100
 B57B: 47          ld   b,a
 B57C: 0E 00       ld   c,$00
 B57E: A7          and  a
@@ -11360,7 +11375,7 @@ B589: CB 19       rr   c
 B58B: FD 09       add  iy,bc
 B58D: C9          ret
 
-B58E: FD 21 00 61 ld   iy,unknown_C100
+B58E: FD 21 00 61 ld   iy,task_struct_C100
 B592: 47          ld   b,a
 B593: 0E 00       ld   c,$00
 B595: A7          and  a
@@ -11376,7 +11391,7 @@ B5A4: C9          ret
 warm_reboot_B5A5:
 B5A5: CD E8 BB    call disable_interrupts_BBE2
 B5A8: 3A 82 60    ld   a,(player_2_attack_flags_C028)
-B5AB: 21 00 60    ld   hl,unknown_C000
+B5AB: 21 00 60    ld   hl,active_task_bit_table_C000
 B5AE: 4F          ld   c,a
 B5AF: 06 00       ld   b,$00
 B5B1: 11 00 00    ld   de,$0000
@@ -11397,9 +11412,9 @@ B5C9: 77          ld   (hl),a
 jump_to_mainloop_B5CA:
 B5CA: C3 27 B4    jp   jump_to_mainloop_B48D
 
-bitfield_clear_B5CD:
+unsuspend_task_B5CD:
 B5CD: CD E8 BB    call disable_interrupts_BBE2
-B5D0: 21 00 60    ld   hl,unknown_C000
+B5D0: 21 00 60    ld   hl,active_task_bit_table_C000
 B5D3: 4F          ld   c,a
 B5D4: 06 00       ld   b,$00
 B5D6: 11 00 00    ld   de,$0000
@@ -11457,9 +11472,9 @@ B61F: C9          ret
 ; changes $C000-$C005 (bitfield 6*8 = 48 bits)
 ; returns changed bits in $C006-$C00B
 ; returns 0 if something changed, $FF otherwise
-bitfield_set_B620:
+schedule_task_to_start_B620:
 B620: CD E8 BB    call disable_interrupts_BBE2
-B623: 21 00 60    ld   hl,unknown_C000
+B623: 21 00 60    ld   hl,active_task_bit_table_C000
 B626: 4F          ld   c,a
 B627: 06 00       ld   b,$00
 B629: 11 00 00    ld   de,$0000
@@ -11499,6 +11514,7 @@ B65D: C9          ret
 ; < a: probably? number of frames to wait until next frame
 ; this can be slower or faster if a computer is playing
 ; depending on the difficulty level
+suspend_task_B65E:
 B65E: CD E8 BB    call disable_interrupts_BBE2
 B661: F5          push af
 B662: 3A 82 60    ld   a,(player_2_attack_flags_C028)
@@ -11521,7 +11537,7 @@ B67F: DD 7E 00    ld   a,(ix+$00)
 B682: B6          or   (hl)
 B683: 77          ld   (hl),a
 B684: 3A 82 60    ld   a,(player_2_attack_flags_C028)
-B687: FD 21 00 61 ld   iy,unknown_C100
+B687: FD 21 00 61 ld   iy,task_struct_C100
 B68B: 47          ld   b,a
 B68C: 0E 00       ld   c,$00
 B68E: A7          and  a
@@ -11535,18 +11551,19 @@ B69B: FD 09       add  iy,bc
 B69D: F1          pop  af
 ; writes in player struct + 2: number of frames to wait until next frame
 B69E: FD 77 08    ld   (iy+$02),a
+; get current stack to store it in the task structure
 B6A1: 21 00 00    ld   hl,$0000
 B6A4: 39          add  hl,sp
 B6A5: FD 75 00    ld   (iy+$00),l
 B6A8: FD 74 01    ld   (iy+$01),h
 B6AB: C3 27 B4    jp   jump_to_mainloop_B48D
 
-; sets bits but way further than $C00B...
-bitfield_manipulation_B6AE:
+; seems to suspend and also resume a task...
+task_manipulation_B6AE:
 B6AE: CD E8 BB    call disable_interrupts_BBE2
 B6B1: C5          push bc
 B6B2: F5          push af
-B6B3: 21 00 60    ld   hl,unknown_C000
+B6B3: 21 00 60    ld   hl,active_task_bit_table_C000
 B6B6: 4F          ld   c,a
 B6B7: 06 00       ld   b,$00
 B6B9: 11 00 00    ld   de,$0000
@@ -11590,7 +11607,7 @@ B6F9: 78          ld   a,b
 B6FA: B6          or   (hl)
 B6FB: 77          ld   (hl),a
 B6FC: F1          pop  af
-B6FD: FD 21 00 61 ld   iy,unknown_C100
+B6FD: FD 21 00 61 ld   iy,task_struct_C100
 B701: 47          ld   b,a
 B702: 0E 00       ld   c,$00
 B704: A7          and  a
@@ -11671,7 +11688,7 @@ B78C: CB 3F       srl  a
 B78E: DA 35 BD    jp   c,$B795
 B791: 1C          inc  e
 B792: C3 2C BD    jp   $B786
-B795: DD 21 00 61 ld   ix,unknown_C100
+B795: DD 21 00 61 ld   ix,task_struct_C100
 B799: F5          push af
 B79A: 79          ld   a,c
 B79B: 83          add  a,e
@@ -11752,8 +11769,8 @@ ram_address_table_B7E5:
 	dc.w	task_struct_C4A0 ; $b81f
 	dc.w	task_struct_C4C0 ; $b821
 	dc.w	task_struct_C4E0 ; $b823
-ram_address_table_B825:
-	dc.w	task_struct_C420 ; ram_address_table_B825
+task_struct_table_B825:
+	dc.w	task_struct_C420 ; task_struct_table_B825
 	dc.w	task_struct_C440 ; $b827
 	dc.w	task_struct_C460 ; $b829
 	dc.w	task_struct_C480 ; $b82b
@@ -11791,7 +11808,7 @@ ram_address_table_B825:
 	dc.w	$c018 ; $b86b
 	dc.w	$c020 ; $b86d
 	dc.w	player_2_attack_flags_C028 ; $b86f
-	dc.w	$c030 ; $b871
+	dc.w	dip_switches_copy_C030 ; $b871
 	dc.w	$c038 ; $b873
 
 ; looks very much like joystick combination tables to check player moves
@@ -11902,7 +11919,7 @@ BADB: A7          and  a
 BADC: CA E5 BA    jp   z,$BAE5
 BADF: AF          xor  a
 BAE0: 06 0C       ld   b,$06
-BAE2: CD AE BC    call bitfield_manipulation_B6AE
+BAE2: CD AE BC    call task_manipulation_B6AE
 BAE5: C9          ret
 BAE6: A7          and  a
 BAE7: C2 FA BA    jp   nz,$BAFA
@@ -11956,7 +11973,7 @@ BB44: 21 00 70    ld   hl,$D000
 BB47: 01 00 10    ld   bc,$1000			; immediate value
 BB4A: CD B7 B8    call clear_zone_B2BD
 ; clear ram
-BB4D: 21 00 60    ld   hl,unknown_C000
+BB4D: 21 00 60    ld   hl,active_task_bit_table_C000
 BB50: 01 00 10    ld   bc,$1000			; immediate value
 BB53: CD B7 B8    call clear_zone_B2BD
 BB56: D5          push de
@@ -11967,7 +11984,7 @@ BB5C: 32 60 60    ld   (unknown_C0C0),a
 BB5F: CD 38 BB    call get_dip_switches_BB92
 BB62: 32 90 60    ld   (dip_switches_copy_C030),a
 BB65: AF          xor  a
-BB66: CD 80 BC    call bitfield_set_B620
+BB66: CD 80 BC    call schedule_task_to_start_B620
 BB69: 3E 20       ld   a,$80
 BB6B: CD 7F BB    call stop_sound_BBDF
 BB6E: C9          ret
@@ -11986,6 +12003,7 @@ BB7E: 32 91 60    ld   (unknown_C031),a
 BB81: C9          ret
 
 ; read system port
+check_coin_ports_BB82:
 BB82: C5          push bc
 BB83: DB 20       in   a,($80)
 BB85: 2F          cpl
@@ -12111,7 +12129,7 @@ E012: FE 09       cp   $03
 E014: C2 81 E0    jp   nz,$E021
 E017: 3E 01       ld   a,$01
 E019: 06 01       ld   b,$01
-E01B: CD AE BC    call bitfield_manipulation_B6AE
+E01B: CD AE BC    call task_manipulation_B6AE
 E01E: CD A5 B5    call warm_reboot_B5A5
 
 E021: 3E 04       ld   a,$04
@@ -12125,27 +12143,27 @@ E02E: C3 91 E0    jp   $E031
 E031: E5          push hl
 E032: F5          push af
 E033: 3E 15       ld   a,$15
-E035: CD 80 BC    call bitfield_set_B620
+E035: CD 80 BC    call schedule_task_to_start_B620
 E038: 3E 1C       ld   a,$16
-E03A: CD 80 BC    call bitfield_set_B620
+E03A: CD 80 BC    call schedule_task_to_start_B620
 E03D: 3E 1D       ld   a,$17
-E03F: CD 80 BC    call bitfield_set_B620
+E03F: CD 80 BC    call schedule_task_to_start_B620
 E042: 3E 01       ld   a,$01
-E044: CD 5E BC    call wait_a_few_frames_B65E
+E044: CD 5E BC    call suspend_task_B65E
 E047: F1          pop  af
 E048: 47          ld   b,a
 E049: F5          push af
 E04A: 3E 15       ld   a,$15
-E04C: CD AE BC    call bitfield_manipulation_B6AE
+E04C: CD AE BC    call task_manipulation_B6AE
 E04F: F1          pop  af
 E050: 47          ld   b,a
 E051: F5          push af
 E052: 3E 1C       ld   a,$16
-E054: CD AE BC    call bitfield_manipulation_B6AE
+E054: CD AE BC    call task_manipulation_B6AE
 E057: F1          pop  af
 E058: 47          ld   b,a
 E059: 3E 1D       ld   a,$17
-E05B: CD AE BC    call bitfield_manipulation_B6AE
+E05B: CD AE BC    call task_manipulation_B6AE
 E05E: CD D4 B5    call load_iy_with_player_structure_B574
 E061: E1          pop  hl
 E062: FD 36 17 00 ld   (iy+$1d),$00
@@ -12198,7 +12216,7 @@ E0CE: DD E5       push ix
 E0D0: E1          pop  hl
 E0D1: FD 75 1B    ld   (iy+$1b),l
 E0D4: FD 74 16    ld   (iy+$1c),h
-E0D7: CD 5E BC    call wait_a_few_frames_B65E
+E0D7: CD 5E BC    call suspend_task_B65E
 E0DA: C3 DC E0    jp   $E076
 E0DD: DD 23       inc  ix
 E0DF: DD 6E 00    ld   l,(ix+$00)
@@ -12208,7 +12226,7 @@ E0E6: DD 7E 01    ld   a,(ix+$01)
 E0E9: DD 46 08    ld   b,(ix+$02)
 E0EC: DD E5       push ix
 E0EE: FD E5       push iy
-E0F0: CD AE BC    call bitfield_manipulation_B6AE
+E0F0: CD AE BC    call task_manipulation_B6AE
 E0F3: FD E1       pop  iy
 E0F5: DD E1       pop  ix
 E0F7: 01 09 00    ld   bc,$0003
@@ -12222,7 +12240,7 @@ E108: CD A5 B5    call warm_reboot_B5A5
 E10B: FD E5       push iy
 E10D: DD E5       push ix
 E10F: AF          xor  a
-E110: CD 5E BC    call wait_a_few_frames_B65E
+E110: CD 5E BC    call suspend_task_B65E
 E113: DD E1       pop  ix
 E115: FD E1       pop  iy
 E117: DD 23       inc  ix
@@ -12270,7 +12288,7 @@ E17E: FD E1       pop  iy
 E180: DD 7E 09    ld   a,(ix+$03)
 E183: DD E5       push ix
 E185: FD E5       push iy
-E187: CD 5E BC    call wait_a_few_frames_B65E
+E187: CD 5E BC    call suspend_task_B65E
 E18A: FD E1       pop  iy
 E18C: E1          pop  hl
 E18D: 01 04 00    ld   bc,$0004
@@ -12309,7 +12327,7 @@ E1D8: FD 74 16    ld   (iy+$1c),h
 E1DB: C3 DC E0    jp   $E076
 
 E1DE: AF          xor  a
-E1DF: CD 5E BC    call wait_a_few_frames_B65E
+E1DF: CD 5E BC    call suspend_task_B65E
 E1E2: 06 00       ld   b,$00
 E1E4: 4F          ld   c,a
 E1E5: CB 21       sla  c
@@ -12322,7 +12340,7 @@ E1F4: CD D4 B5    call load_iy_with_player_structure_B574
 E1F7: E1          pop  hl
 E1F8: C3 C8 E0    jp   $E062
 E1FB: AF          xor  a
-E1FC: CD 5E BC    call wait_a_few_frames_B65E
+E1FC: CD 5E BC    call suspend_task_B65E
 E1FF: 06 00       ld   b,$00
 E201: 4F          ld   c,a
 E202: CB 21       sla  c
@@ -12391,55 +12409,55 @@ E27E: C8          ret  z
 E27F: FD E5       push iy
 E281: 3E 0F       ld   a,$0F
 E283: 06 01       ld   b,$01
-E285: CD AE BC    call bitfield_manipulation_B6AE
+E285: CD AE BC    call task_manipulation_B6AE
 E288: FD E1       pop  iy
 E28A: 3E 09       ld   a,$03
 E28C: CD 00 E9    call $E300
 E28F: FD E5       push iy
 E291: 3E 10       ld   a,$10
-E293: CD 5E BC    call wait_a_few_frames_B65E
+E293: CD 5E BC    call suspend_task_B65E
 E296: FD E1       pop  iy
 E298: 3E 0C       ld   a,$06
 E29A: CD 00 E9    call $E300
 E29D: FD E5       push iy
 E29F: 3E 10       ld   a,$10
-E2A1: CD 5E BC    call wait_a_few_frames_B65E
+E2A1: CD 5E BC    call suspend_task_B65E
 E2A4: FD E1       pop  iy
 E2A6: 3E 09       ld   a,$03
 E2A8: CD 00 E9    call $E300
 E2AB: FD E5       push iy
 E2AD: 3E 10       ld   a,$10
-E2AF: CD 5E BC    call wait_a_few_frames_B65E
+E2AF: CD 5E BC    call suspend_task_B65E
 E2B2: FD E1       pop  iy
 E2B4: 3E 0C       ld   a,$06
 E2B6: CD 00 E9    call $E300
 E2B9: FD E5       push iy
 E2BB: 3E 10       ld   a,$10
-E2BD: CD 5E BC    call wait_a_few_frames_B65E
+E2BD: CD 5E BC    call suspend_task_B65E
 E2C0: FD E1       pop  iy
 E2C2: 3E 09       ld   a,$03
 E2C4: CD 00 E9    call $E300
 E2C7: FD E5       push iy
 E2C9: 3E 10       ld   a,$10
-E2CB: CD 5E BC    call wait_a_few_frames_B65E
+E2CB: CD 5E BC    call suspend_task_B65E
 E2CE: FD E1       pop  iy
 E2D0: 3E 0C       ld   a,$06
 E2D2: CD 00 E9    call $E300
 E2D5: FD E5       push iy
 E2D7: 3E 10       ld   a,$10
-E2D9: CD 5E BC    call wait_a_few_frames_B65E
+E2D9: CD 5E BC    call suspend_task_B65E
 E2DC: FD E1       pop  iy
 E2DE: 3E 09       ld   a,$03
 E2E0: CD 00 E9    call $E300
 E2E3: FD E5       push iy
 E2E5: 3E 10       ld   a,$10
-E2E7: CD 5E BC    call wait_a_few_frames_B65E
+E2E7: CD 5E BC    call suspend_task_B65E
 E2EA: FD E1       pop  iy
 E2EC: 3E 04       ld   a,$04
 E2EE: CD 00 E9    call $E300
 E2F1: FD E5       push iy
 E2F3: 3E 10       ld   a,$10
-E2F5: CD 5E BC    call wait_a_few_frames_B65E
+E2F5: CD 5E BC    call suspend_task_B65E
 E2F8: FD E1       pop  iy
 E2FA: 3E 20       ld   a,$80
 E2FC: CD B5 BB    call play_sound_BBB5
@@ -12469,26 +12487,26 @@ E331: 3A 11 63    ld   a,(background_and_state_bits_C911)
 E334: FE 02       cp   $08
 E336: C2 96 E9    jp   nz,$E33C
 E339: 21 34 E9    ld   hl,table_E394
-E33C: CD 31 B9    call display_multicolor_text_B357
+E33C: CD 31 B9    call display_multicolor_text_B391
 E33F: 21 FD E9    ld   hl,table_E3F7
-E342: CD 31 B9    call display_multicolor_text_B357
+E342: CD 31 B9    call display_multicolor_text_B391
 E345: 3E 02       ld   a,$08
-E347: CD 5E BC    call wait_a_few_frames_B65E
+E347: CD 5E BC    call suspend_task_B65E
 E34A: 21 B5 E9    ld   hl,table_E3B5
 E34D: 3A 11 63    ld   a,(background_and_state_bits_C911)
 E350: FE 02       cp   $08
 E352: C2 52 E9    jp   nz,$E358
 E355: 21 7C E9    ld   hl,table_E3D6
-E358: CD 31 B9    call display_multicolor_text_B357
+E358: CD 31 B9    call display_multicolor_text_B391
 E35B: 21 89 E4    ld   hl,table_E423
-E35E: CD 31 B9    call display_multicolor_text_B357
+E35E: CD 31 B9    call display_multicolor_text_B391
 E361: 3E 02       ld   a,$08
-E363: CD 5E BC    call wait_a_few_frames_B65E
+E363: CD 5E BC    call suspend_task_B65E
 E366: C1          pop  bc
 E367: 10 64       djnz $E32D
 E369: 3E 01       ld   a,$01
 E36B: 06 01       ld   b,$01
-E36D: CD AE BC    call bitfield_manipulation_B6AE
+E36D: CD AE BC    call task_manipulation_B6AE
 E370: CD A5 B5    call warm_reboot_B5A5
 table_E373:
 	dc.b	0x08,0x1d,0x0c,0xa0,0x11,0xa0,0x0a,0xa0 ; table_E373
@@ -12560,7 +12578,7 @@ E490: FE 01       cp   $01
 E492: CA 32 E4    jp   z,$E498
 E495: 21 59 E5    ld   hl,table_E553
 E498: AF          xor  a
-E499: CD 5E BC    call wait_a_few_frames_B65E
+E499: CD 5E BC    call suspend_task_B65E
 E49C: 47          ld   b,a
 E49D: C5          push bc
 E49E: FD 21 90 6D ld   iy,unknown_C730
@@ -12571,20 +12589,20 @@ E4A7: FD 36 01 BD ld   (iy+$01),$B7
 E4AB: FD 36 05 B2 ld   (iy+$05),$B8
 E4AF: FD E5       push iy
 E4B1: 3E 04       ld   a,$04
-E4B3: CD 5E BC    call wait_a_few_frames_B65E
+E4B3: CD 5E BC    call suspend_task_B65E
 E4B6: FD E1       pop  iy
 E4B8: 11 02 00    ld   de,$0008
 E4BB: FD 19       add  iy,de
 E4BD: C1          pop  bc
 E4BE: 10 E8       djnz $E4A2
 E4C0: 3E 1D       ld   a,$17
-E4C2: CD 67 B5    call bitfield_clear_B5CD
+E4C2: CD 67 B5    call unsuspend_task_B5CD
 E4C5: 21 D9 E9    ld   hl,table_E373
 E4C8: 3A 11 63    ld   a,(background_and_state_bits_C911)
 E4CB: FE 02       cp   $08
 E4CD: C2 79 E4    jp   nz,$E4D3
 E4D0: 21 34 E9    ld   hl,table_E394
-E4D3: CD 31 B9    call display_multicolor_text_B357
+E4D3: CD 31 B9    call display_multicolor_text_B391
 E4D6: C1          pop  bc
 E4D7: 78          ld   a,b
 E4D8: FE 0A       cp   $0A
@@ -12596,7 +12614,7 @@ E4E3: 3A 11 63    ld   a,(background_and_state_bits_C911)
 E4E6: FE 02       cp   $08
 E4E8: C2 EE E4    jp   nz,$E4EE
 E4EB: 21 46 EC    ld   hl,table_E64C
-E4EE: CD 31 B9    call display_multicolor_text_B357
+E4EE: CD 31 B9    call display_multicolor_text_B391
 E4F1: F1          pop  af
 E4F2: CD AB B1    call $B1AB
 E4F5: 3A 11 63    ld   a,(background_and_state_bits_C911)
@@ -12609,28 +12627,28 @@ E503: DD 21 20 6D ld   ix,unknown_C780
 E507: 3E 09       ld   a,$03
 E509: CD 57 FD    call $F75D
 E50C: 3E 10       ld   a,$10
-E50E: CD 5E BC    call wait_a_few_frames_B65E
+E50E: CD 5E BC    call suspend_task_B65E
 E511: 21 C4 C2    ld   hl,$6864		; immediate
 E514: DD 21 20 6D ld   ix,unknown_C780
 E518: 3E 0C       ld   a,$06
 E51A: CD 57 FD    call $F75D
 E51D: 3E 10       ld   a,$10
-E51F: CD 5E BC    call wait_a_few_frames_B65E
+E51F: CD 5E BC    call suspend_task_B65E
 E522: C1          pop  bc
 E523: 10 7A       djnz $E4FF
 E525: C3 87 E5    jp   $E52D
 E528: 3E 20       ld   a,$80
 E52A: CD B5 BB    call play_sound_BBB5
 E52D: 3E 01       ld   a,$01
-E52F: CD 5E BC    call wait_a_few_frames_B65E
+E52F: CD 5E BC    call suspend_task_B65E
 E532: 3E 0C       ld   a,$06
 E534: 06 0C       ld   b,$06
-E536: CD AE BC    call bitfield_manipulation_B6AE
+E536: CD AE BC    call task_manipulation_B6AE
 E539: 3E 20       ld   a,$80
-E53B: CD 5E BC    call wait_a_few_frames_B65E
+E53B: CD 5E BC    call suspend_task_B65E
 E53E: 3E 01       ld   a,$01
 E540: 06 01       ld   b,$01
-E542: CD AE BC    call bitfield_manipulation_B6AE
+E542: CD AE BC    call task_manipulation_B6AE
 E545: CD A5 B5    call warm_reboot_B5A5
 table_E548:
 	dc.b	0x0c,0x19,0xee,0xa3,0x3d,0xa0,0x3d,0xa0 ; table_E548
@@ -12649,19 +12667,19 @@ E56D: C9          ret
 E56E: 3E 01       ld   a,$01
 E570: D3 A2       out  ($A8),a
 E572: 3E 0C       ld   a,$06
-E574: CD 80 BC    call bitfield_set_B620
+E574: CD 80 BC    call schedule_task_to_start_B620
 E577: CD D4 B5    call load_iy_with_player_structure_B574
 E57A: 3E 1C       ld   a,$16
-E57C: CD 80 BC    call bitfield_set_B620
+E57C: CD 80 BC    call schedule_task_to_start_B620
 E57F: 3E 04       ld   a,$04
-E581: CD 80 BC    call bitfield_set_B620
+E581: CD 80 BC    call schedule_task_to_start_B620
 E584: 21 C0 C2    ld   hl,$6860		; immediate
 E587: FD 21 C7 EC ld   iy,table_E66D
 E58B: DD 21 00 6D ld   ix,referee_x_pos_C700
 E58F: AF          xor  a
 E590: CD 5E E5    call $E55E
 E593: 3E 90       ld   a,$30
-E595: CD 5E BC    call wait_a_few_frames_B65E
+E595: CD 5E BC    call suspend_task_B65E
 E598: 21 C0 C2    ld   hl,$6860		; immediate
 E59B: FD 21 C7 EC ld   iy,table_E66D
 E59F: DD 21 00 6D ld   ix,referee_x_pos_C700
@@ -12671,7 +12689,7 @@ E5A6: DD E5       push ix
 E5A8: AF          xor  a
 E5A9: CD 5E E5    call $E55E
 E5AC: 3E 08       ld   a,$02
-E5AE: CD 5E BC    call wait_a_few_frames_B65E
+E5AE: CD 5E BC    call suspend_task_B65E
 E5B1: CD 3C BB    call $BB96
 E5B4: DD E1       pop  ix
 E5B6: FD E1       pop  iy
@@ -12699,7 +12717,7 @@ E5E1: FD E5       push iy
 E5E3: 3E 01       ld   a,$01
 E5E5: CD 5E E5    call $E55E
 E5E8: 3E 01       ld   a,$01
-E5EA: CD 5E BC    call wait_a_few_frames_B65E
+E5EA: CD 5E BC    call suspend_task_B65E
 E5ED: FD E1       pop  iy
 E5EF: E1          pop  hl
 E5F0: DD E1       pop  ix
@@ -12712,7 +12730,7 @@ E5F8: DA 7E E5    jp   c,$E5DE
 E5FB: FD 46 01    ld   b,(iy+$01)
 E5FE: C5          push bc
 E5FF: 3E 1C       ld   a,$16
-E601: CD AE BC    call bitfield_manipulation_B6AE
+E601: CD AE BC    call task_manipulation_B6AE
 E604: 3E 08       ld   a,$02
 E606: CD 2E B5    call $B58E
 E609: FD 36 03 62 ld   (iy+$09),$C8
@@ -12724,12 +12742,12 @@ E615: C2 1A EC    jp   nz,$E61A
 E618: 06 0B       ld   b,$0B
 E61A: C5          push bc
 E61B: 3E 40       ld   a,$40
-E61D: CD 5E BC    call wait_a_few_frames_B65E
+E61D: CD 5E BC    call suspend_task_B65E
 E620: C1          pop  bc
 E621: 3E 04       ld   a,$04
-E623: CD AE BC    call bitfield_manipulation_B6AE
+E623: CD AE BC    call task_manipulation_B6AE
 E626: 3E 00       ld   a,$00
-E628: CD 5E BC    call wait_a_few_frames_B65E
+E628: CD 5E BC    call suspend_task_B65E
 table_E62B:
 	dc.b	0x08,0x1d,0x19,0xa0,0x0e,0xa0,0x1b,0xa0 ; table_E62B
 	dc.b	0x0f,0xa0,0x0e,0xa0,0x0c,0xa0,0x1d,0xa0 ; $e633
@@ -12774,7 +12792,7 @@ E6C9: C6 06       add  a,$0C
 E6CB: 6F          ld   l,a
 E6CC: 10 ED       djnz $E6B5
 E6CE: AF          xor  a
-E6CF: CD 5E BC    call wait_a_few_frames_B65E
+E6CF: CD 5E BC    call suspend_task_B65E
 E6D2: FD 21 90 6D ld   iy,unknown_C730
 E6D6: 47          ld   b,a
 E6D7: C5          push bc
@@ -12785,16 +12803,16 @@ E6DD: FD 36 01 36 ld   (iy+$01),$9C
 E6E1: FD 36 05 36 ld   (iy+$05),$9C
 E6E5: FD E5       push iy
 E6E7: 3E 04       ld   a,$04
-E6E9: CD 5E BC    call wait_a_few_frames_B65E
+E6E9: CD 5E BC    call suspend_task_B65E
 E6EC: FD E1       pop  iy
 E6EE: 11 02 00    ld   de,$0008
 E6F1: FD 19       add  iy,de
 E6F3: C1          pop  bc
 E6F4: 10 E8       djnz $E6D8
 E6F6: 3E 1D       ld   a,$17
-E6F8: CD 67 B5    call bitfield_clear_B5CD
+E6F8: CD 67 B5    call unsuspend_task_B5CD
 E6FB: 21 D9 E9    ld   hl,table_E373
-E6FE: CD 31 B9    call display_multicolor_text_B357
+E6FE: CD 31 B9    call display_multicolor_text_B391
 E701: C1          pop  bc
 E702: 78          ld   a,b
 E703: FE 0A       cp   $0A
@@ -12802,7 +12820,7 @@ E705: C2 18 ED    jp   nz,$E712
 E708: 3E 80       ld   a,$20
 E70A: F5          push af
 E70B: 21 8B EC    ld   hl,table_E62B
-E70E: CD 31 B9    call display_multicolor_text_B357
+E70E: CD 31 B9    call display_multicolor_text_B391
 E711: F1          pop  af
 E712: CD AB B1    call $B1AB
 E715: C3 F5 E4    jp   $E4F5
@@ -12838,7 +12856,7 @@ E769: 85          add  a,l
 E76A: 6F          ld   l,a
 E76B: 10 B4       djnz $E721
 E76D: AF          xor  a
-E76E: CD 5E BC    call wait_a_few_frames_B65E
+E76E: CD 5E BC    call suspend_task_B65E
 E771: 47          ld   b,a
 E772: C5          push bc
 E773: FD 21 90 6D ld   iy,unknown_C730
@@ -12851,16 +12869,16 @@ E784: FD 36 03 A9 ld   (iy+$09),$A3
 E788: FD 36 07 A4 ld   (iy+$0d),$A4
 E78C: FD E5       push iy
 E78E: 3E 04       ld   a,$04
-E790: CD 5E BC    call wait_a_few_frames_B65E
+E790: CD 5E BC    call suspend_task_B65E
 E793: FD E1       pop  iy
 E795: 11 10 00    ld   de,$0010
 E798: FD 19       add  iy,de
 E79A: C1          pop  bc
 E79B: 10 7A       djnz $E777
 E79D: 3E 1D       ld   a,$17
-E79F: CD 67 B5    call bitfield_clear_B5CD
+E79F: CD 67 B5    call unsuspend_task_B5CD
 E7A2: 21 D9 E9    ld   hl,table_E373
-E7A5: CD 31 B9    call display_multicolor_text_B357
+E7A5: CD 31 B9    call display_multicolor_text_B391
 E7A8: C1          pop  bc
 E7A9: 78          ld   a,b
 E7AA: FE 0A       cp   $0A
@@ -12868,17 +12886,17 @@ E7AC: C2 B3 ED    jp   nz,$E7B9
 E7AF: 3E 80       ld   a,$20
 E7B1: F5          push af
 E7B2: 21 8B EC    ld   hl,table_E62B
-E7B5: CD 31 B9    call display_multicolor_text_B357
+E7B5: CD 31 B9    call display_multicolor_text_B391
 E7B8: F1          pop  af
 E7B9: CD AB B1    call $B1AB
 E7BC: 3E 0C       ld   a,$06
 E7BE: 06 0C       ld   b,$06
-E7C0: CD AE BC    call bitfield_manipulation_B6AE
+E7C0: CD AE BC    call task_manipulation_B6AE
 E7C3: 3E 20       ld   a,$80
-E7C5: CD 5E BC    call wait_a_few_frames_B65E
+E7C5: CD 5E BC    call suspend_task_B65E
 E7C8: 3E 01       ld   a,$01
 E7CA: 06 01       ld   b,$01
-E7CC: CD AE BC    call bitfield_manipulation_B6AE
+E7CC: CD AE BC    call task_manipulation_B6AE
 E7CF: CD A5 B5    call warm_reboot_B5A5
 E7D2: CD 64 F7    call $FDC4
 E7D5: CD 44 F7    call $FD44
@@ -12966,7 +12984,7 @@ E879: DD E5       push ix
 E87B: F5          push af
 E87C: CD FF EB    call $EBFF
 E87F: 3E 01       ld   a,$01
-E881: CD 5E BC    call wait_a_few_frames_B65E
+E881: CD 5E BC    call suspend_task_B65E
 E884: CD 3C BB    call $BB96
 E887: A7          and  a
 E888: C2 BE E2    jp   nz,$E8BE
@@ -12998,7 +13016,7 @@ E8BB: C3 DC E2    jp   $E876
 E8BE: 3E 20       ld   a,$80
 E8C0: CD B5 BB    call play_sound_BBB5
 E8C3: 3E 01       ld   a,$01
-E8C5: CD 5E BC    call wait_a_few_frames_B65E
+E8C5: CD 5E BC    call suspend_task_B65E
 E8C8: F1          pop  af
 E8C9: DD E1       pop  ix
 E8CB: FD E1       pop  iy
@@ -13018,7 +13036,7 @@ E8E3: 3E 00       ld   a,$00
 E8E5: DD 21 40 6D ld   ix,unknown_C740
 E8E9: CD FF EB    call $EBFF
 E8EC: 3E 08       ld   a,$02
-E8EE: CD 5E BC    call wait_a_few_frames_B65E
+E8EE: CD 5E BC    call suspend_task_B65E
 E8F1: E1          pop  hl
 E8F2: 3E 02       ld   a,$08
 E8F4: 84          add  a,h
@@ -13028,7 +13046,7 @@ E8FA: 3E 01       ld   a,$01
 E8FC: E5          push hl
 E8FD: CD FF EB    call $EBFF
 E900: 3E 08       ld   a,$02
-E902: CD 5E BC    call wait_a_few_frames_B65E
+E902: CD 5E BC    call suspend_task_B65E
 E905: E1          pop  hl
 E906: 3E 02       ld   a,$08
 E908: 84          add  a,h
@@ -13038,7 +13056,7 @@ E90E: 3E 08       ld   a,$02
 E910: E5          push hl
 E911: CD FF EB    call $EBFF
 E914: 3E 08       ld   a,$02
-E916: CD 5E BC    call wait_a_few_frames_B65E
+E916: CD 5E BC    call suspend_task_B65E
 E919: E1          pop  hl
 E91A: DD 21 40 6D ld   ix,unknown_C740
 E91E: 3E 09       ld   a,$03
@@ -13046,13 +13064,13 @@ E920: CD FF EB    call $EBFF
 E923: FD E1       pop  iy
 E925: FD 46 08    ld   b,(iy+$02)
 E928: 3E 1D       ld   a,$17
-E92A: CD AE BC    call bitfield_manipulation_B6AE
+E92A: CD AE BC    call task_manipulation_B6AE
 E92D: CD A5 B5    call warm_reboot_B5A5
 
 E930: 3E 04       ld   a,$04
-E932: CD 80 BC    call bitfield_set_B620
+E932: CD 80 BC    call schedule_task_to_start_B620
 E935: AF          xor  a
-E936: CD 5E BC    call wait_a_few_frames_B65E
+E936: CD 5E BC    call suspend_task_B65E
 E939: 47          ld   b,a
 E93A: C5          push bc
 E93B: FD 21 C2 6D ld   iy,unknown_C768
@@ -13068,7 +13086,7 @@ E952: C2 53 E3    jp   nz,$E959
 E955: FD CB 08 FE set  7,(iy+$02)
 E959: FD E5       push iy
 E95B: 3E 04       ld   a,$04
-E95D: CD 5E BC    call wait_a_few_frames_B65E
+E95D: CD 5E BC    call suspend_task_B65E
 E960: FD E1       pop  iy
 E962: FD 23       inc  iy
 E964: FD 23       inc  iy
@@ -13077,18 +13095,18 @@ E968: FD 23       inc  iy
 E96A: C1          pop  bc
 E96B: 10 7C       djnz $E943
 E96D: 3E 1C       ld   a,$16
-E96F: CD 67 B5    call bitfield_clear_B5CD
+E96F: CD 67 B5    call unsuspend_task_B5CD
 E972: 21 D9 E9    ld   hl,table_E373
-E975: CD 31 B9    call display_multicolor_text_B357
+E975: CD 31 B9    call display_multicolor_text_B391
 E978: C1          pop  bc
 E979: 78          ld   a,b
 E97A: FE 0A       cp   $0A
 E97C: C2 38 E3    jp   nz,$E992
 E97F: 21 8B EC    ld   hl,table_E62B
-E982: CD 31 B9    call display_multicolor_text_B357
+E982: CD 31 B9    call display_multicolor_text_B391
 E985: 3E 0F       ld   a,$0F
 E987: 06 80       ld   b,$20
-E989: CD AE BC    call bitfield_manipulation_B6AE
+E989: CD AE BC    call task_manipulation_B6AE
 E98C: A7          and  a
 E98D: C4 2C B1    call nz,display_error_text_B186
 E990: 06 0B       ld   b,$0B
@@ -13100,7 +13118,7 @@ E999: FD 36 03 62 ld   (iy+$09),$C8
 E99D: FD 36 0A 60 ld   (iy+$0a),$C0
 E9A1: 3E 04       ld   a,$04
 E9A3: C5          push bc
-E9A4: CD AE BC    call bitfield_manipulation_B6AE
+E9A4: CD AE BC    call task_manipulation_B6AE
 E9A7: C1          pop  bc
 E9A8: 78          ld   a,b
 E9A9: FE 0B       cp   $0B
@@ -13283,13 +13301,13 @@ EC97: 06 90       ld   b,$30
 EC99: DD 21 30 6D ld   ix,unknown_C790
 EC9D: DD E5       push ix
 EC9F: 78          ld   a,b
-ECA0: CD 5E BC    call wait_a_few_frames_B65E
+ECA0: CD 5E BC    call suspend_task_B65E
 ECA3: DD E1       pop  ix
 ECA5: C3 71 E6    jp   $ECD1
 ECA8: 3E 01       ld   a,$01
 ECAA: CD B5 BB    call play_sound_BBB5
 ECAD: 01 96 D0    ld   bc,$703C
-ECB0: CD 1C B9    call $B316
+ECB0: CD 1C B9    call fill_video_and_attribute_memory_B316
 ECB3: CD AE F1    call $F1AE
 ECB6: 21 DC FE    ld   hl,table_FE76
 ECB9: 16 30       ld   d,$90
@@ -13331,7 +13349,7 @@ ED06: 16 08       ld   d,$02
 ED08: 7A          ld   a,d
 ED09: CD 57 FD    call $F75D
 ED0C: 3E 01       ld   a,$01
-ED0E: CD 5E BC    call wait_a_few_frames_B65E
+ED0E: CD 5E BC    call suspend_task_B65E
 ED11: 06 06       ld   b,$0C
 ED13: DD E1       pop  ix
 ED15: 11 04 00    ld   de,$0004
@@ -13368,17 +13386,17 @@ ED5B: 21 05 0A    ld   hl,$0A05		; immediate
 ED5E: 3E 04       ld   a,$04
 ED60: CD E4 F3    call $F9E4
 ED63: 3E 40       ld   a,$40
-ED65: CD 5E BC    call wait_a_few_frames_B65E
+ED65: CD 5E BC    call suspend_task_B65E
 ED68: 21 05 0A    ld   hl,$0A05		; immediate
 ED6B: 3E 05       ld   a,$05
 ED6D: CD E4 F3    call $F9E4
 ED70: 3E 40       ld   a,$40
-ED72: CD 5E BC    call wait_a_few_frames_B65E
+ED72: CD 5E BC    call suspend_task_B65E
 ED75: C1          pop  bc
 ED76: 10 E8       djnz $ED5A
 ED78: 3E 01       ld   a,$01
 ED7A: 06 01       ld   b,$01
-ED7C: CD AE BC    call bitfield_manipulation_B6AE
+ED7C: CD AE BC    call task_manipulation_B6AE
 ED7F: CD A5 B5    call warm_reboot_B5A5
 
 ED82: CD FC B8    call compute_screen_address_from_XY_B2F6
@@ -13529,7 +13547,7 @@ table_F131:
 	dc.b	0x22,0xb0,0x23,0xb0,0x25,0xb0,0x26,0xb0 ; $f161
 	dc.b	0x27,0xb0,0x2d,0xb0,0x2f,0xb0,0x29,0xb0 ; $f169
 	dc.b	0x2f,0xb0,0xaf ; $f171
-F174: CD 5E BC    call wait_a_few_frames_B65E
+F174: CD 5E BC    call suspend_task_B65E
 F177: CB 27       sla  a
 F179: C6 0F       add  a,$0F
 F17B: 6F          ld   l,a
@@ -13545,7 +13563,7 @@ F18D: A7          and  a
 F18E: ED 52       sbc  hl,de
 F190: 10 F3       djnz $F18B
 F192: 3E 80       ld   a,$20
-F194: CD 5E BC    call wait_a_few_frames_B65E
+F194: CD 5E BC    call suspend_task_B65E
 F197: E1          pop  hl
 F198: E5          push hl
 F199: 06 0A       ld   b,$0A
@@ -13555,11 +13573,11 @@ F1A0: A7          and  a
 F1A1: ED 52       sbc  hl,de
 F1A3: 10 F3       djnz $F19E
 F1A5: 3E 80       ld   a,$20
-F1A7: CD 5E BC    call wait_a_few_frames_B65E
+F1A7: CD 5E BC    call suspend_task_B65E
 F1AA: E1          pop  hl
 F1AB: C3 25 F1    jp   $F185
 F1AE: 21 D7 EF    ld   hl,table_EF7D
-F1B1: CD 31 B9    call display_multicolor_text_B357
+F1B1: CD 31 B9    call display_multicolor_text_B391
 F1B4: 06 0C       ld   b,$06
 F1B6: FD 21 40 60 ld   iy,unknown_C040
 F1BA: DD 21 02 6F ld   ix,unknown_CF08
@@ -13596,7 +13614,7 @@ F20A: DD 23       inc  ix
 F20C: DD 23       inc  ix
 F20E: 10 EF       djnz $F1FF
 F210: 21 02 6F    ld   hl,unknown_CF08
-F213: CD 31 B9    call display_multicolor_text_B357
+F213: CD 31 B9    call display_multicolor_text_B391
 F216: FD E1       pop  iy
 F218: DD 21 02 6F ld   ix,unknown_CF08
 F21C: DD 34 01    inc  (ix+$01)
@@ -13661,7 +13679,7 @@ F2CD: FD 7E 0B    ld   a,(iy+$0b)
 F2D0: DD 77 0D    ld   (ix+$07),a
 F2D3: FD E5       push iy
 F2D5: 21 02 6F    ld   hl,unknown_CF08
-F2D8: CD 31 B9    call display_multicolor_text_B357
+F2D8: CD 31 B9    call display_multicolor_text_B391
 F2DB: FD E1       pop  iy
 F2DD: C1          pop  bc
 F2DE: DD 21 02 6F ld   ix,unknown_CF08
@@ -13691,7 +13709,7 @@ F320: 10 ED       djnz $F309
 F322: E1          pop  hl
 F323: 3E 01       ld   a,$01
 F325: 06 01       ld   b,$01
-F327: CD AE BC    call bitfield_manipulation_B6AE
+F327: CD AE BC    call task_manipulation_B6AE
 F32A: CD A5 B5    call warm_reboot_B5A5
 F32D: 3E 0C       ld   a,$06
 F32F: 90          sub  b
@@ -13700,7 +13718,7 @@ F331: FD E5       push iy
 F333: DD E5       push ix
 F335: 47          ld   b,a
 F336: 3E 1C       ld   a,$16
-F338: CD AE BC    call bitfield_manipulation_B6AE
+F338: CD AE BC    call task_manipulation_B6AE
 F33B: DD E1       pop  ix
 F33D: FD E1       pop  iy
 F33F: C1          pop  bc
@@ -13781,7 +13799,7 @@ F3F0: 70          ld   (hl),b
 F3F1: C9          ret
 F3F2: C9          ret
 F3F3: 3E 01       ld   a,$01
-F3F5: CD 5E BC    call wait_a_few_frames_B65E
+F3F5: CD 5E BC    call suspend_task_B65E
 F3F8: 3A 09 6F    ld   a,(unknown_CF03)
 F3FB: D6 01       sub  $01
 F3FD: 27          daa
@@ -13997,7 +14015,7 @@ F5CD: 32 05 6F    ld   (unknown_CF05),a
 F5D0: 06 02       ld   b,$08
 F5D2: 3E 01       ld   a,$01
 F5D4: C5          push bc
-F5D5: CD 5E BC    call wait_a_few_frames_B65E
+F5D5: CD 5E BC    call suspend_task_B65E
 F5D8: 3A 09 6F    ld   a,(unknown_CF03)
 F5DB: D6 01       sub  $01
 F5DD: 27          daa
@@ -14041,10 +14059,10 @@ F62E: C3 F9 F9    jp   $F3F3
 F631: 3E 01       ld   a,$01
 F633: CD B5 BB    call play_sound_BBB5
 F636: 3E 01       ld   a,$01
-F638: CD 5E BC    call wait_a_few_frames_B65E
+F638: CD 5E BC    call suspend_task_B65E
 F63B: CD F0 F8    call $F2F0
 F63E: 01 96 D0    ld   bc,$703C
-F641: CD 1C B9    call $B316
+F641: CD 1C B9    call fill_video_and_attribute_memory_B316
 F644: DD 21 00 6D ld   ix,referee_x_pos_C700
 F648: 06 40       ld   b,$40
 F64A: DD 36 00 00 ld   (ix+$00),$00
@@ -14054,7 +14072,7 @@ F652: DD 23       inc  ix
 F654: DD 23       inc  ix
 F656: 10 F8       djnz $F64A
 F658: 21 71 E7    ld   hl,table_EDD1
-F65B: CD 31 B9    call display_multicolor_text_B357
+F65B: CD 31 B9    call display_multicolor_text_B391
 F65E: CD AE F1    call $F1AE
 F661: DD 21 02 6F ld   ix,unknown_CF08
 F665: DD 36 00 05 ld   (ix+$00),$05
@@ -14095,10 +14113,10 @@ F6CD: CD 3F F9    call $F39F
 F6D0: CD F9 F9    call $F3F3
 F6D3: CD AE F1    call $F1AE
 F6D6: 3E 90       ld   a,$30
-F6D8: CD 5E BC    call wait_a_few_frames_B65E
+F6D8: CD 5E BC    call suspend_task_B65E
 F6DB: 3E 01       ld   a,$01
 F6DD: 06 01       ld   b,$01
-F6DF: CD AE BC    call bitfield_manipulation_B6AE
+F6DF: CD AE BC    call task_manipulation_B6AE
 F6E2: CD A5 B5    call warm_reboot_B5A5
 ; copy contents of ROM in $C040
 init_C040_F6E5:
@@ -14482,7 +14500,7 @@ FDD2: 21 14 FE    ld   hl,table_FE14
 FDD5: FE 02       cp   $08
 FDD7: CA 77 F7    jp   z,$FDDD
 FDDA: 21 45 FE    ld   hl,table_FE45
-FDDD: CD 31 B9    call display_multicolor_text_B357
+FDDD: CD 31 B9    call display_multicolor_text_B391
 FDE0: C9          ret
 table_FDE1:
 	dc.b	0x06,0x05,0x9e,0x92,0x9f,0x92,0xbb,0x92 ; table_FDE1

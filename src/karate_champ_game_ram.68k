@@ -1,8 +1,8 @@
 	.global	address_of_current_player_move_byte_CF04
 	.global	background_and_state_bits_C911
 	.global	computer_skill_C910
-	.global	counter_C029
-	.global	counter_C02A
+	.global	nb_tasks_to_start_C029
+	.global	nb_suspended_tasks_C02A
 	.global	current_move_C24B
 	.global	level_number_C0DC
 	.global	map_index_C900
@@ -62,6 +62,7 @@
 	.global	task_struct_C6C0
 	.global	task_struct_C6E0
 	.global	task_struct_C700
+	.global	referee_x_pos_C700
 	.global	task_struct_C720
 	.global	task_struct_C740
 	.global	task_struct_C760
@@ -70,7 +71,7 @@
 	.global	task_struct_C7C0
 	.global	task_struct_C7E0
 	.global	task_struct_C800
-	.global	unknown_C000
+	.global	active_task_bit_table_C000
 	.global	unknown_C001
 	.global	unknown_C002
 	.global	unknown_C006
@@ -84,7 +85,7 @@
 	.global	unknown_C026
 	.global	player_2_attack_flags_C028
 	.global	unknown_C02C
-	.global	unknown_C030
+	.global	dip_switches_copy_C030
 	.global	unknown_C031
 	.global	unknown_C032
 	.global	unknown_C038
@@ -174,7 +175,7 @@
 
 task_struct_RATIO = 4
 
-unknown_C000:
+active_task_bit_table_C000:
 	ds.b	1
 unknown_C001:
 	ds.b	1
@@ -202,9 +203,9 @@ unknown_C026:
 	ds.b	2
 player_2_attack_flags_C028:
 	ds.b	1
-counter_C029:
+nb_tasks_to_start_C029:
 	ds.b	1
-counter_C02A:
+nb_suspended_tasks_C02A:
 	ds.b	1
 periodic_counter_8bit_C02B:
 	ds.b	1
@@ -214,7 +215,7 @@ players_type_human_or_cpu_flags_C02D:
 	ds.b	1
 periodic_counter_16bit_C02E:
 	ds.b	2
-unknown_C030:
+dip_switches_copy_C030:
 	ds.b	1
 unknown_C031:
 	ds.b	1
@@ -452,6 +453,7 @@ task_struct_C6E0:
 	ds.b	32
 	.align	2
 task_struct_C700:
+referee_x_pos_C700:
 	ds.b	1
 unknown_C701:
 	ds.b	1
