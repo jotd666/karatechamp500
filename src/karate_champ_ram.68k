@@ -2,6 +2,7 @@
 	.global	bg_videoram
 	.global	bg_colorram
 	.global	stack_top
+	.global	stack_bottom
 	.global invincible_flag
 	.global vb_ticks_count
 	
@@ -19,7 +20,7 @@
 	* 0011b6ee 41fa d124                lea.l (pc,$d124) == $00118814,a0 ($8814 LSW matches!)
 	*
 
-	ds.b	0x8000-2		| for some reason, there's a 2 byte shift, let's make up for it
+	ds.b	0xC000		| for some reason, there's a 2 byte shift, let's make up for it
 	.endif
 	.else
 	* Neogeo: needs different writable section from ROM code
@@ -49,8 +50,6 @@ vbl_sync_counter_start_screen:
 	.word	0
 high_score_beaten:
 	.word	0
-stack_top:
-	.long	0
 invincible_flag:
 	.byte	0
 infinite_lives_flag:
@@ -61,4 +60,8 @@ vb_ticks_count:
 current_ticks_count:
 	.byte	0
 
+	.align	4
+stack_bottom:
+	ds.l	4000		| hopefully big enough
+stack_top:
 	.ascii	"RAM_END!"

@@ -11199,18 +11199,20 @@ B48A: CD E2 BB    call enable_interrupts_BBE2
 jump_to_mainloop_B48D:
 B48D: 31 00 6F    ld   sp,unknown_CF00			; pops all calls
 B490: CD E2 BB    call enable_interrupts_BBE2
-; loop until one of the 2 timers is nonzero
+; loop until one of the 2 timers/counters is nonzero
 ; jump at different locations
+scheduler_loop_b493:
 B493: 21 0C 60    ld   hl,unknown_C006
-B496: 3A 83 60    ld   a,(counter_C029)
+B496: 3A 83 60    ld   a,(nb_tasks_to_start_C029)
 B499: A7          and  a
-B49A: C2 AD B4    jp   nz,$B4A7
+B49A: C2 AD B4    jp   nz,run_a_task_b4a7
 
-B49D: 3A 8A 60    ld   a,(counter_C02A)
+B49D: 3A 8A 60    ld   a,(nb_suspended_tasks_C02A)
 B4A0: A7          and  a
-B4A1: C2 09 B5    jp   nz,$B503
-B4A4: C3 39 B4    jp   $B493
-; end loop, test against zero in ram
+B4A1: C2 09 B5    jp   nz,resume_a_task_b503
+B4A4: C3 39 B4    jp   scheduler_loop_b493
+
+run_a_task_b4a7:
 B4A7: AF          xor  a
 B4A8: 57          ld   d,a
 ; check change of bitfield state $C006-$C00B notify bitfield changes
@@ -11234,7 +11236,7 @@ B4BE: CB 03       rlc  e
 B4C0: CB 03       rlc  e			; e*8
 B4C2: 06 00       ld   b,$00
 B4C4: 4E          ld   c,(hl)
-B4C5: A7          and  a
+B4C5: A7          and  a	; clear carry for next rl
 B4C6: CB 11       rl   c
 B4C8: CB 10       rl   b
 B4CA: DD 21 D7 B2 ld   ix,table_B87D
@@ -11254,7 +11256,7 @@ B4E6: FD 19       add  iy,de
 B4E8: FD 6E 00    ld   l,(iy+$00)
 B4EB: FD 66 01    ld   h,(iy+$01)
 B4EE: F9          ld   sp,hl
-B4EF: 21 83 60    ld   hl,counter_C029
+B4EF: 21 83 60    ld   hl,nb_tasks_to_start_C029
 B4F2: 35          dec  (hl)
 B4F3: FD 21 80 00 ld   iy,task_address_table_0020
 B4F7: FD 19       add  iy,de
@@ -11275,6 +11277,7 @@ B4FF: CD E2 BB    call enable_interrupts_BBE2
 ; then called when screen changes
 B502: E9          jp   (hl)
 
+resume_a_task_b503:
 B503: CD E8 BB    call disable_interrupts_BBE2
 B506: 21 06 60    ld   hl,unknown_C00C
 B509: FD 21 06 60 ld   iy,unknown_C00C
@@ -11284,6 +11287,7 @@ B513: FD B6 08    or   (iy+$02)
 B516: FD B6 09    or   (iy+$03)
 B519: CA 27 B4    jp   z,jump_to_mainloop_B48D
 B51C: AF          xor  a
+; compute free task slot?
 B51D: 57          ld   d,a
 B51E: BE          cp   (hl)
 B51F: C2 87 B5    jp   nz,$B52D
@@ -11293,6 +11297,7 @@ B524: C2 87 B5    jp   nz,$B52D
 B527: 2C          inc  l
 B528: BE          cp   (hl)
 B529: C2 87 B5    jp   nz,$B52D
+; must be that slot since one of 4 slots is free
 B52C: 2C          inc  l
 B52D: 7D          ld   a,l
 B52E: D6 06       sub  $0C
@@ -11334,7 +11339,7 @@ B568: 19          add  hl,de
 B569: 46          ld   b,(hl)
 B56A: 23          inc  hl
 B56B: 7E          ld   a,(hl)
-B56C: 21 8A 60    ld   hl,counter_C02A
+B56C: 21 8A 60    ld   hl,nb_suspended_tasks_C02A
 B56F: 35          dec  (hl)
 B570: CD E2 BB    call enable_interrupts_BBE2
 B573: C9          ret
@@ -11424,7 +11429,7 @@ B5F9: CA 0D BC    jp   z,$B607
 B5FC: 78          ld   a,b
 B5FD: AE          xor  (hl)
 B5FE: 77          ld   (hl),a
-B5FF: 21 83 60    ld   hl,counter_C029
+B5FF: 21 83 60    ld   hl,nb_tasks_to_start_C029
 B602: 35          dec  (hl)
 B603: CD E2 BB    call enable_interrupts_BBE2
 B606: C9          ret
@@ -11436,7 +11441,7 @@ B60A: CA 12 BC    jp   z,$B618
 B60D: 78          ld   a,b
 B60E: AE          xor  (hl)
 B60F: 77          ld   (hl),a
-B610: 21 8A 60    ld   hl,counter_C02A
+B610: 21 8A 60    ld   hl,nb_suspended_tasks_C02A
 B613: 35          dec  (hl)
 B614: CD E2 BB    call enable_interrupts_BBE2
 B617: C9          ret
@@ -11482,7 +11487,7 @@ B64B: 09          add  hl,bc
 B64C: 7B          ld   a,e
 B64D: B6          or   (hl)
 B64E: 77          ld   (hl),a
-B64F: 21 83 60    ld   hl,counter_C029
+B64F: 21 83 60    ld   hl,nb_tasks_to_start_C029
 B652: 34          inc  (hl)		; increment timer
 B653: AF          xor  a
 B654: CD E2 BB    call enable_interrupts_BBE2
@@ -11579,7 +11584,7 @@ B6EC: 19          add  hl,de
 B6ED: 78          ld   a,b
 B6EE: A6          and  (hl)
 B6EF: CA F3 BC    jp   z,$B6F9
-B6F2: FD 21 8A 60 ld   iy,counter_C02A
+B6F2: FD 21 8A 60 ld   iy,nb_suspended_tasks_C02A
 B6F6: FD 35 00    dec  (iy+$00)
 B6F9: 78          ld   a,b
 B6FA: B6          or   (hl)
@@ -11600,7 +11605,7 @@ B713: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B716: FD 77 05    ld   (iy+$05),a
 B719: C1          pop  bc
 B71A: FD 70 0C    ld   (iy+$06),b
-B71D: 21 8A 60    ld   hl,counter_C02A
+B71D: 21 8A 60    ld   hl,nb_suspended_tasks_C02A
 B720: 34          inc  (hl)
 B721: AF          xor  a
 B722: CD E2 BB    call enable_interrupts_BBE2
@@ -11693,7 +11698,7 @@ B7BA: C2 E0 BD    jp   nz,$B7E0		; non-zero => skip
 ; seems that it can be used for other animations or timeouts
 ; to put a breakpoint that filters player 2 animation: bp B7BD,ix == C260
 B7BD: DD 77 0C    ld   (ix+$06),a
-B7C0: DD 21 8A 60 ld   ix,counter_C02A
+B7C0: DD 21 8A 60 ld   ix,nb_suspended_tasks_C02A
 B7C4: DD 34 00    inc  (ix+$00)
 B7C7: DD 21 D5 B2 ld   ix,powers_of_2_table_B875
 B7CB: DD 19       add  ix,de
@@ -11715,71 +11720,71 @@ B7E1: 1C          inc  e
 B7E2: C3 2C BD    jp   $B786
 
 ram_address_table_B7E5:
-	dc.w	stack_C100 ; ram_address_table_B7E5
-	dc.w	stack_C120 ; $b7e7
-	dc.w	stack_C140 ; $b7e9
-	dc.w	stack_C160 ; $b7eb
-	dc.w	stack_C180 ; $b7ed
-	dc.w	stack_C1A0 ; $b7ef
-	dc.w	stack_C1C0 ; $b7f1
-	dc.w	stack_C1E0 ; $b7f3
-	dc.w	stack_C200 ; $b7f5
-	dc.w	stack_C220 ; $b7f7
-	dc.w	stack_C240 ; $b7f9
-	dc.w	stack_C260 ; $b7fb
-	dc.w	stack_C280 ; $b7fd
-	dc.w	stack_C2A0 ; $b7ff
-	dc.w	stack_C2C0 ; $b801
-	dc.w	stack_C2E0 ; $b803
-	dc.w	stack_C300 ; $b805
-	dc.w	stack_C320 ; $b807
-	dc.w	stack_C340 ; $b809
-	dc.w	stack_C360 ; $b80b
-	dc.w	stack_C380 ; $b80d
-	dc.w	stack_C3A0 ; $b80f
-	dc.w	stack_C3C0 ; $b811
-	dc.w	stack_C3E0 ; $b813
-	dc.w	stack_C400 ; $b815
-	dc.w	stack_C420 ; $b817
-	dc.w	stack_C440 ; $b819
-	dc.w	stack_C460 ; $b81b
-	dc.w	stack_C480 ; $b81d
-	dc.w	stack_C4A0 ; $b81f
-	dc.w	stack_C4C0 ; $b821
-	dc.w	stack_C4E0 ; $b823
+	dc.w	task_struct_C100 ; ram_address_table_B7E5
+	dc.w	task_struct_C120 ; $b7e7
+	dc.w	task_struct_C140 ; $b7e9
+	dc.w	task_struct_C160 ; $b7eb
+	dc.w	task_struct_C180 ; $b7ed
+	dc.w	task_struct_C1A0 ; $b7ef
+	dc.w	task_struct_C1C0 ; $b7f1
+	dc.w	task_struct_C1E0 ; $b7f3
+	dc.w	task_struct_C200 ; $b7f5
+	dc.w	task_struct_C220 ; $b7f7
+	dc.w	task_struct_C240 ; $b7f9
+	dc.w	task_struct_C260 ; $b7fb
+	dc.w	task_struct_C280 ; $b7fd
+	dc.w	task_struct_C2A0 ; $b7ff
+	dc.w	task_struct_C2C0 ; $b801
+	dc.w	task_struct_C2E0 ; $b803
+	dc.w	task_struct_C300 ; $b805
+	dc.w	task_struct_C320 ; $b807
+	dc.w	task_struct_C340 ; $b809
+	dc.w	task_struct_C360 ; $b80b
+	dc.w	task_struct_C380 ; $b80d
+	dc.w	task_struct_C3A0 ; $b80f
+	dc.w	task_struct_C3C0 ; $b811
+	dc.w	task_struct_C3E0 ; $b813
+	dc.w	task_struct_C400 ; $b815
+	dc.w	task_struct_C420 ; $b817
+	dc.w	task_struct_C440 ; $b819
+	dc.w	task_struct_C460 ; $b81b
+	dc.w	task_struct_C480 ; $b81d
+	dc.w	task_struct_C4A0 ; $b81f
+	dc.w	task_struct_C4C0 ; $b821
+	dc.w	task_struct_C4E0 ; $b823
 ram_address_table_B825:
-	dc.w	stack_C420 ; ram_address_table_B825
-	dc.w	stack_C440 ; $b827
-	dc.w	stack_C460 ; $b829
-	dc.w	stack_C480 ; $b82b
-	dc.w	stack_C4A0 ; $b82d
-	dc.w	stack_C4C0 ; $b82f
-	dc.w	stack_C4E0 ; $b831
-	dc.w	stack_C500 ; $b833
-	dc.w	stack_C520 ; $b835
-	dc.w	stack_C540 ; $b837
-	dc.w	stack_C560 ; $b839
-	dc.w	stack_C580 ; $b83b
-	dc.w	stack_C5A0 ; $b83d
-	dc.w	stack_C5C0 ; $b83f
-	dc.w	stack_C5E0 ; $b841
-	dc.w	stack_C600 ; $b843
-	dc.w	stack_C620 ; $b845
-	dc.w	stack_C640 ; $b847
-	dc.w	stack_C660 ; $b849
-	dc.w	stack_C680 ; $b84b
-	dc.w	stack_C6A0 ; $b84d
-	dc.w	stack_C6C0 ; $b84f
-	dc.w	stack_C6E0 ; $b851
-	dc.w	stack_C700 ; $b853
-	dc.w	stack_C720 ; $b855
-	dc.w	stack_C740 ; $b857
-	dc.w	stack_C760 ; $b859
-	dc.w	stack_C780 ; $b85b
-	dc.w	stack_C7A0 ; $b85d
-	dc.w	stack_C7C0 ; $b85f
-	dc.w	stack_C7E0 ; $b861
-	dc.w	stack_C800 ; $b863
+	dc.w	task_struct_C420 ; ram_address_table_B825
+	dc.w	task_struct_C440 ; $b827
+	dc.w	task_struct_C460 ; $b829
+	dc.w	task_struct_C480 ; $b82b
+	dc.w	task_struct_C4A0 ; $b82d
+	dc.w	task_struct_C4C0 ; $b82f
+	dc.w	task_struct_C4E0 ; $b831
+	dc.w	task_struct_C500 ; $b833
+	dc.w	task_struct_C520 ; $b835
+	dc.w	task_struct_C540 ; $b837
+	dc.w	task_struct_C560 ; $b839
+	dc.w	task_struct_C580 ; $b83b
+	dc.w	task_struct_C5A0 ; $b83d
+	dc.w	task_struct_C5C0 ; $b83f
+	dc.w	task_struct_C5E0 ; $b841
+	dc.w	task_struct_C600 ; $b843
+	dc.w	task_struct_C620 ; $b845
+	dc.w	task_struct_C640 ; $b847
+	dc.w	task_struct_C660 ; $b849
+	dc.w	task_struct_C680 ; $b84b
+	dc.w	task_struct_C6A0 ; $b84d
+	dc.w	task_struct_C6C0 ; $b84f
+	dc.w	task_struct_C6E0 ; $b851
+	dc.w	task_struct_C700 ; $b853
+	dc.w	task_struct_C720 ; $b855
+	dc.w	task_struct_C740 ; $b857
+	dc.w	task_struct_C760 ; $b859
+	dc.w	task_struct_C780 ; $b85b
+	dc.w	task_struct_C7A0 ; $b85d
+	dc.w	task_struct_C7C0 ; $b85f
+	dc.w	task_struct_C7E0 ; $b861
+	dc.w	task_struct_C800 ; $b863
 	dc.w	$c000 ; $b865
 	dc.w	$c008 ; $b867
 	dc.w	$c010 ; $b869
