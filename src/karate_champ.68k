@@ -215,60 +215,64 @@ karate_champ_reset:
 	* we need 60 updates / second so on amiga PAL
 	* we need to set this variable to 2 once out of 5 calls
 	move.b	#1,vb_ticks_count
-	lea		stack_top,sp
+	lea		stack_top_CF00,sp
 l_0000:
 	jra	startup_B045                       	| [jp   startup_B045]
 	
 * routines called by the main scheduler at B502
 task_address_table_0020:
-	.long	l_5250                           	|  $0020
-	.long	l_53d2                           	|  $0022
-	.long	l_544f                           	|  $0024
-	.long	l_6491                           	|  $0026
-	.long	l_6529                           	|  $0028
-	.long	l_7c5d                           	|  $002a
-	.long	l_6f89                           	|  $002c
-	.long	l_6622                           	|  $002e
-	.long	l_755b                           	|  $0030
-	.long	l_7657                           	|  $0032
-	.long	l_3a9c                           	|  $0034
-	.long	l_3a9c                           	|  $0036
-	.long	l_illegal
-	.long	l_illegal
-	.long	l_illegal
-	.long	l_6d5e                           	|  $003e
-	.long	l_47d6                           	|  $0040
-	.long	l_47d6                           	|  $0042
-	.long	l_47d6                           	|  $0044
-	.long	l_47d6                           	|  $0046
-	.long	l_50f2                           	|  $0048
-	.long	l_b099                           	|  $004a
-	.long	l_b09c                           	|  $004c
-	.long	l_b09f                           	|  $004e
+	.long	task_5250                           	|  $0020
+	.long	task_53d2                           	|  $0022
+	.long	task_544f                           	|  $0024
+	.long	task_6491                           	|  $0026
+	.long	task_6529                           	|  $0028
+	.long	task_7c5d                           	|  $002a
+	.long	task_6f89                           	|  $002c
+	.long	task_6622                           	|  $002e
+	.long	task_755b                           	|  $0030
+	.long	task_7657                           	|  $0032
+	.long	task_3a9c                           	|  $0034
+	.long	task_3a9c                           	|  $0036
+	.long	task_illegal
+	.long	task_illegal
+	.long	task_illegal
+	.long	task_6d5e                           	|  $003e
+	.long	task_47d6                           	|  $0040
+	.long	task_47d6                           	|  $0042
+	.long	task_47d6                           	|  $0044
+	.long	task_47d6                           	|  $0046
+	.long	task_50f2                           	|  $0048
+	.long	task_b099                           	|  $004a
+	.long	task_b09c                           	|  $004c
+	.long	task_b09f                           	|  $004e
 
-l_illegal:
+task_illegal:
 	illegal
 	nop
 	
-l_53d2:   
-l_544f:   
-l_6491:   
-l_6529:   
-l_7c5d:   
-l_6f89:   
-l_6622:   
-l_755b:   
-l_7657:   
-l_3a9c:
-l_6d5e:   
-l_47d6:   
-l_50f2:   
-l_b099:   
-l_b09c:   
-l_b09f:
+task_53d2:   
+	bsr	osd_break
+	nop
+	nop
+	
+task_544f:   
+task_6491:   
+task_6529:   
+task_7c5d:   
+task_6f89:   
+task_6622:   
+task_755b:   
+task_7657:   
+task_3a9c:
+task_6d5e:   
+task_47d6:   
+task_50f2:   
+task_b099:   
+task_b09c:   
+task_b09f:
 	illegal
 
-l_5250:
+task_5250:
 	clr.b	d0                               	| [$5250: ld   a,$00]
 	lea	map_index_C900,a2              	| [$5252: ld   ix,map_index_C900]
 	move.b	d0,(0x00,a2)                    	| [$5256: ld   (ix+$00),a]
@@ -300,9 +304,9 @@ l_5287:
 	move.b	#0x01,d0                        	| [$528f: ld   a,$01]
 	jbsr	unsuspend_tasks_b015                            	| [$5291: call $B015]
 	move.b	nb_credits_minus_one_C024,d0    	| [$5294: ld   a,(nb_credits_minus_one_C024)]
-	tst.b	d0                               	| [$5297: and  a]
+												| [$5297: and  a]
 * after game over check if there are still credits
-	jeq	l_5250                             	| [$5298: jp   z,$5250]
+	jeq	task_5250                             	| [$5298: jp   z,$5250]
 	lea	map_index_C900,a2              	| [$529b: ld   ix,map_index_C900]
 	lea	unknown_C908,a3                	| [$529f: ld   iy,unknown_C908]
 	clr.b	d0                               	| [$52a3: ld   a,$00]
@@ -695,7 +699,7 @@ startup_B469:
 
 	move.b	#0x42,d0                        	| [$b469: ld   a,$42]
 	move.b	d0,unknown_CD21                 	| [$b46b: ld   (unknown_CD21),a]
-	lea		stack_top,sp			| ld   sp,temp_numeric_buffer_CF00			| set stack
+	lea		stack_top_CF00,sp			| ld   sp,stack_top_CF00			| set stack
 	jbsr	disable_interrupts_BBE2           	| [$b471: call disable_interrupts_BBE2]
 * clear part of RAM
 	lea	active_task_bit_table_C000,a0                	| [$b479: ld   hl,active_task_bit_table_C000]
@@ -708,7 +712,7 @@ startup_B469:
 
 * this is called by most routines that want to yield control to this mainloop
 jump_to_mainloop_B48D:
-	lea		stack_top,sp			| ld   sp,temp_numeric_buffer_CF00			| set stack
+	lea		stack_top_CF00,sp			| ld   sp,stack_top_CF00			| set stack
 	jbsr	enable_interrupts_BBE2            	| [$b490: call enable_interrupts_BBE2]
 
 * main "task" scheduler
@@ -737,9 +741,7 @@ run_a_task_b4a7:
 *
 * this is a task scheduler, with stack location change and all!!!
 * find a non-zero slot
-	bsr		osd_break
-	addq.w	#6,a0		| HL which is always 0xC006
-	move.b	#0xC,d6		| coupling D6 (L) with A0 (HL) to point on 0xC00C
+	move.b	#0x6,d6		| coupling D6 (L) with A0 (HL) to point on 0xC00C
 	cmp.b	(a0),d0                          	| [$b4a9: cp   (hl)]
 	jne	l_b4b8                             	| [$b4aa: jp   nz,$B4B8]
 	addq.w	#1,a0
@@ -762,8 +764,8 @@ l_b4b8:
 	clr.w	d2                               	| [$b4c2: ld   b,$00]
 	move.b	(a0),d2                         	| [$b4c4: ld   c,(hl)]
 												| [$b4c5: and  a] clear carry
-	lsl.w	#1,d2                           	| [$b4c6: rl   c]
-	                           	| [$b4c8: rl   b]
+	add.w	d2,d2                           	| [$b4c6: rl   c] times 2 on 16 bits (bc)
+												| [$b4c8: rl   b]
 	lea	table_B87D(pc),a2                  	| [$b4ca: ld   ix,table_B87D]
 	add.w	d2,a2                            	| [$b4ce: add  ix,bc]
 
@@ -777,19 +779,20 @@ l_b4b8:
 	eor.b	d7,d0                            	| [$b4dc: xor  (hl)]
 	* kind of zeroes slot, not of what's done here
 	move.b	d0,(a0)                         	| [$b4dd: ld   (hl),a]
+
 	add.w	d4,d4                            	| [$b4de: rlc  e]
 	add.w	d4,d4                            	| double (long address)
 	                               	| [$b4e0: ld   d,$00]
-	lea	task_struct_table_B825(pc),a3      	| [$b4e2: ld   iy,task_struct_table_B825]
+	lea	task_stack_buffer_table_B825(pc),a3      	| [$b4e2: ld   iy,task_stack_buffer_table_B825]
 	add.w	d4,a3                            	| [$b4e6: add  iy,de]
 	* switch stack pointer according to routine we jump to!!
 	* (seems that they've coded a mini-OS for this game!)
-	lea		stack_bottom,a1
-	add.w	(a3),a1                    	| [$b4e8: ld   l,(iy+$00)]
+	
+	move.l	(a3),a7                    	| [$b4e8: ld   l,(iy+$00)]
 										| [$b4eb: ld   h,(iy+$01)]
-	move.l	a1,a7
-	lea	nb_tasks_to_start_C029,a0                	| [$b4ef: ld   hl,nb_tasks_to_start_C029]
-	subq.b	#1,(a0)                         	| [$b4f2: dec  (hl)]
+	
+									| [$b4ef: ld   hl,nb_tasks_to_start_C029]
+	subq.b	#1,nb_tasks_to_start_C029                         	| [$b4f2: dec  (hl)]
 	lea		task_address_table_0020,a3                      	| [$b4f3: ld   iy,$0020] 32
 	add.w	d4,a3                            	| [$b4f7: add  iy,de]
 
@@ -873,7 +876,7 @@ l_b52d:
 	* a0 = task structure
 	* rather offset vs bottom than full address, as it would shift
 	* task structure offsets. It's complex enough to avoid it!
-	lea		stack_bottom,a1
+	lea		stack_bottom_C400,a1
 	add.w	(a0),a1
 	
 	* sets stack for this task 
@@ -898,6 +901,11 @@ l_b52d:
 
 
 unsuspend_task_B5CD:
+	bsr		osd_break
+	nop
+	nop
+	nop
+	nop
 	jbsr	disable_interrupts_BBE2           	| [$b5cd: call disable_interrupts_BBE2]
 	lea	active_task_bit_table_C000(pc),a0                	| [$b5d0: ld   hl,active_task_bit_table_C000]
 	move.b	d0,d2                           	| [$b5d3: ld   c,a]
@@ -1009,6 +1017,9 @@ l_b658:
 * this can be slower or faster if a computer is playing
 * depending on the difficulty level
 suspend_task_B65E:
+	bsr		osd_break
+	nop
+	nop
 	jbsr	disable_interrupts_BBE2           	| [$b65e: call disable_interrupts_BBE2]
 	move.w	d0,-(sp)                        	| [$b661: push af]
 	move.b	player_2_attack_flags_C028,d0   	| [$b662: ld   a,(player_2_attack_flags_C028)]
@@ -1045,11 +1056,11 @@ suspend_task_B65E:
 	move.w	(sp)+,d0                        	| [$b69d: pop  af]
 * writes in player struct + 2: number of frames to wait until next frame
 	move.b	d0,(0x02,a3)                    	| [$b69e: ld   (iy+$02),a]
-	* get current stack (rather stack offset) 
+	* get current stack (rather stack offset so we fit in 16 bits) 
 	* to store it in the task structure
 	                      	                   | [$b6a1: ld   hl,$0000] 0
 	move.l	sp,d0                            	| [$b6a4: add  hl,sp]
-	sub.l	#stack_bottom,d0
+	sub.l	#stack_bottom_C400,d0
 	move.w	d0,(a3)           | [$b6a5: ld   (iy+$00),l]
 	                          | [$b6a8: ld   (iy+$01),h]
 
@@ -1168,46 +1179,49 @@ task_struct_table_B7E5:
 	.long	task_struct_C3C0                           	|  $b811
 	.long	task_struct_C3E0                           	|  $b813
 	.long	task_struct_C400                           	|  $b815
-	.long	task_struct_C420                           	|  $b817
-	.long	task_struct_C440                           	|  $b819
-	.long	task_struct_C460                           	|  $b81b
-	.long	task_struct_C480                           	|  $b81d
-	.long	task_struct_C4A0                           	|  $b81f
-	.long	task_struct_C4C0                           	|  $b821
-	.long	task_struct_C4E0                           	|  $b823
-task_struct_table_B825:
-	.long	task_struct_C420                           	|  $b825
-	.long	task_struct_C440                           	|  $b827
-	.long	task_struct_C460                           	|  $b829
-	.long	task_struct_C480                           	|  $b82b
-	.long	task_struct_C4A0                           	|  $b82d
-	.long	task_struct_C4C0                           	|  $b82f
-	.long	task_struct_C4E0                           	|  $b831
-	.long	task_struct_C500                           	|  $b833
-	.long	task_struct_C520                           	|  $b835
-	.long	task_struct_C540                           	|  $b837
-	.long	task_struct_C560                           	|  $b839
-	.long	task_struct_C580                           	|  $b83b
-	.long	task_struct_C5A0                           	|  $b83d
-	.long	task_struct_C5C0                           	|  $b83f
-	.long	task_struct_C5E0                           	|  $b841
-	.long	task_struct_C600                           	|  $b843
-	.long	task_struct_C620                           	|  $b845
-	.long	task_struct_C640                           	|  $b847
-	.long	task_struct_C660                           	|  $b849
-	.long	task_struct_C680                           	|  $b84b
-	.long	task_struct_C6A0                           	|  $b84d
-	.long	task_struct_C6C0                           	|  $b84f
-	.long	task_struct_C6E0                           	|  $b851
-	.long	task_struct_C700                           	|  $b853
-	.long	task_struct_C720                           	|  $b855
-	.long	task_struct_C740                           	|  $b857
-	.long	task_struct_C760                           	|  $b859
-	.long	task_struct_C780                           	|  $b85b
-	.long	task_struct_C7A0                           	|  $b85d
-	.long	task_struct_C7C0                           	|  $b85f
-	.long	task_struct_C7E0                           	|  $b861
-	.long	task_struct_C800                           	|  $b863
+	* this is probably not reached, and a mistake
+	* as this overlaps the stack buffers
+	* let it crash loudly if accessed!!!
+	.long	-1   | task_struct_C420                           	|  $b817
+	.long	-1   | task_struct_C440                           	|  $b819
+	.long	-1   | task_struct_C460                           	|  $b81b
+	.long	-1   | task_struct_C480                           	|  $b81d
+	.long	-1   | task_struct_C4A0                           	|  $b81f
+	.long	-1   | task_struct_C4C0                           	|  $b821
+	.long	-1   | task_struct_C4E0                           	|  $b823
+task_stack_buffer_table_B825:
+	.long	stack_buffer_C420                           	|  $b825
+	.long	stack_buffer_C440                           	|  $b827
+	.long	stack_buffer_C460                           	|  $b829
+	.long	stack_buffer_C480                           	|  $b82b
+	.long	stack_buffer_C4A0                           	|  $b82d
+	.long	stack_buffer_C4C0                           	|  $b82f
+	.long	stack_buffer_C4E0                           	|  $b831
+	.long	stack_buffer_C500                           	|  $b833
+	.long	stack_buffer_C520                           	|  $b835
+	.long	stack_buffer_C540                           	|  $b837
+	.long	stack_buffer_C560                           	|  $b839
+	.long	stack_buffer_C580                           	|  $b83b
+	.long	stack_buffer_C5A0                           	|  $b83d
+	.long	stack_buffer_C5C0                           	|  $b83f
+	.long	stack_buffer_C5E0                           	|  $b841
+	.long	stack_buffer_C600                           	|  $b843
+	.long	stack_buffer_C620                           	|  $b845
+	.long	stack_buffer_C640                           	|  $b847
+	.long	stack_buffer_C660                           	|  $b849
+	.long	stack_buffer_C680                           	|  $b84b
+	.long	stack_buffer_C6A0                           	|  $b84d
+	.long	stack_buffer_C6C0                           	|  $b84f
+	.long	stack_buffer_C6E0                           	|  $b851
+	.long	stack_buffer_C700                           	|  $b853
+	.long	-1   | stack_buffer_C720                           	|  $b855
+	.long	-1   | stack_buffer_C740                           	|  $b857
+	.long	-1   | stack_buffer_C760                           	|  $b859
+	.long	-1   | stack_buffer_C780                           	|  $b85b
+	.long	-1   | stack_buffer_C7A0                           	|  $b85d
+	.long	-1   | stack_buffer_C7C0                           	|  $b85f
+	.long	-1   | stack_buffer_C7E0                           	|  $b861
+	.long	-1   | stack_buffer_C800                           	|  $b863
 	.long	active_task_bit_table_C000                           	|  $b865
 	.long	unknown_C008                           	|  $b867
 	.long	unknown_C010                           	|  $b869

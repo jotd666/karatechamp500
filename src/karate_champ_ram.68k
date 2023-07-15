@@ -60,8 +60,5 @@ vb_ticks_count:
 current_ticks_count:
 	.byte	0
 
-	.align	4
-stack_bottom:
-	ds.l	4000		| hopefully big enough
-stack_top:
+
 	.ascii	"RAM_END!"

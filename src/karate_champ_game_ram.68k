@@ -38,39 +38,32 @@
 	.global	task_struct_C3C0
 	.global	task_struct_C3E0
 	.global	task_struct_C400
-	.global	task_struct_C420
-	.global	task_struct_C440
-	.global	task_struct_C460
-	.global	task_struct_C480
-	.global	task_struct_C4A0
-	.global	task_struct_C4C0
-	.global	task_struct_C4E0
-	.global	task_struct_C500
-	.global	task_struct_C520
-	.global	task_struct_C540
-	.global	task_struct_C560
-	.global	task_struct_C580
-	.global	task_struct_C5A0
-	.global	task_struct_C5C0
-	.global	task_struct_C5E0
-	.global	task_struct_C600
-	.global	task_struct_C620
-	.global	task_struct_C640
-	.global	task_struct_C660
-	.global	task_struct_C680
-	.global	task_struct_C6A0
-	.global	task_struct_C6C0
-	.global	task_struct_C6E0
-	.global	task_struct_C700
+	.global	stack_buffer_C420
+	.global	stack_buffer_C440
+	.global	stack_buffer_C460
+	.global	stack_buffer_C480
+	.global	stack_buffer_C4A0
+	.global	stack_buffer_C4C0
+	.global	stack_buffer_C4E0
+	.global	stack_buffer_C500
+	.global	stack_buffer_C520
+	.global	stack_buffer_C540
+	.global	stack_buffer_C560
+	.global	stack_buffer_C580
+	.global	stack_buffer_C5A0
+	.global	stack_buffer_C5C0
+	.global	stack_buffer_C5E0
+	.global	stack_buffer_C600
+	.global	stack_buffer_C620
+	.global	stack_buffer_C640
+	.global	stack_buffer_C660
+	.global	stack_buffer_C680
+	.global	stack_buffer_C6A0
+	.global	stack_buffer_C6C0
+	.global	stack_buffer_C6E0
+	.global	stack_buffer_C700
 	.global	referee_x_pos_C700
-	.global	task_struct_C720
-	.global	task_struct_C740
-	.global	task_struct_C760
-	.global	task_struct_C780
-	.global	task_struct_C7A0
-	.global	task_struct_C7C0
-	.global	task_struct_C7E0
-	.global	task_struct_C800
+
 	.global	active_task_bit_table_C000
 	.global	unknown_C001
 	.global	unknown_C002
@@ -173,6 +166,12 @@
 	.global	unknown_CF16
 	.global	unknown_CF21
 
+	.global stack_bottom_C400
+	.global stack_top_CF00
+* we play it safe, 68000 processors use more stack
+* than Z80s, plus there are osd calls, so times 4 seems good
+* increase if unexplained crashes
+STACK_INFLATION = 4
 
 active_task_bit_table_C000:
 	ds.b	1
@@ -366,9 +365,7 @@ task_struct_C360:
 	ds.b	32
 	.align	2
 task_struct_C380:
-	ds.b	7
-unknown_C387:
-	ds.b	25
+	ds.b	32
 	.align	2
 task_struct_C3A0:
 	ds.b	32
@@ -379,79 +376,80 @@ task_struct_C3C0:
 task_struct_C3E0:
 	ds.b	32
 	.align	2
+stack_bottom_C400:
 task_struct_C400:
-	ds.b	32
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C420:
-	ds.b	32
+stack_buffer_C420:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C440:
-	ds.b	32
+stack_buffer_C440:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C460:
-	ds.b	32
+stack_buffer_C460:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C480:
-	ds.b	32
+stack_buffer_C480:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C4A0:
-	ds.b	32
+stack_buffer_C4A0:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C4C0:
-	ds.b	32
+stack_buffer_C4C0:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C4E0:
-	ds.b	32
+stack_buffer_C4E0:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C500:
-	ds.b	32
+stack_buffer_C500:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C520:
-	ds.b	32
+stack_buffer_C520:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C540:
-	ds.b	32
+stack_buffer_C540:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C560:
-	ds.b	32
+stack_buffer_C560:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C580:
-	ds.b	32
+stack_buffer_C580:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C5A0:
-	ds.b	32
+stack_buffer_C5A0:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C5C0:
-	ds.b	32
+stack_buffer_C5C0:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C5E0:
-	ds.b	32
+stack_buffer_C5E0:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C600:
-	ds.b	32
+stack_buffer_C600:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C620:
-	ds.b	32
+stack_buffer_C620:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C640:
-	ds.b	32
+stack_buffer_C640:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C660:
-	ds.b	32
+stack_buffer_C660:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C680:
-	ds.b	32
+stack_buffer_C680:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C6A0:
-	ds.b	32
+stack_buffer_C6A0:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C6C0:
-	ds.b	32
+stack_buffer_C6C0:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C6E0:
-	ds.b	32
+stack_buffer_C6E0:
+	ds.b	32*STACK_INFLATION
 	.align	2
-task_struct_C700:
+stack_buffer_C700:
 referee_x_pos_C700:
 	ds.b	1
 unknown_C701:
@@ -471,7 +469,7 @@ unknown_C70A:
 unknown_C71C:
 	ds.b	4
 	.align	2
-task_struct_C720:
+*task_struct_C720:
 	ds.b	8
 unknown_C728:
 	ds.b	8
@@ -480,12 +478,12 @@ unknown_C730:
 unknown_C734:
 	ds.b	12
 	.align	2
-task_struct_C740:
+*task_struct_C740:
 	ds.b	12
 unknown_C74C:
 	ds.b	20
 	.align	2
-task_struct_C760:
+*task_struct_C760:
 	ds.b	8
 unknown_C768:
 	ds.b	20
@@ -494,26 +492,26 @@ unknown_C77C:
 unknown_C77D:
 	ds.b	3
 	.align	2
-task_struct_C780:
+*task_struct_C780:
 	ds.b	16
 unknown_C790:
 	ds.b	16
 	.align	2
-task_struct_C7A0:
+*task_struct_C7A0:
 	ds.b	28
 unknown_C7BC:
 	ds.b	2
 unknown_C7BE:
 	ds.b	2
 	.align	2
-task_struct_C7C0:
+*task_struct_C7C0:
 	ds.b	8
 unknown_C7C8:
 	ds.b	12
 unknown_C7D4:
 	ds.b	12
 	.align	2
-task_struct_C7E0:
+*task_struct_C7E0:
 	ds.b	4
 unknown_C7E4:
 	ds.b	20
@@ -522,7 +520,7 @@ unknown_C7F8:
 unknown_C7FB:
 	ds.b	5
 	.align	2
-task_struct_C800:
+*task_struct_C800:
 	ds.b	256
 map_index_C900:
 	ds.b	1
@@ -552,6 +550,10 @@ unknown_CC3D:
 	ds.b	228
 unknown_CD21:
 	ds.b	479
+	.align 4
+	* roughly
+	ds.b	0X200*STACK_INFLATION
+stack_top_CF00:
 temp_numeric_buffer_CF00:
 	ds.b	1
 unknown_CF01:

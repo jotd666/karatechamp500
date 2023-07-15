@@ -11269,15 +11269,19 @@ B4DC: AE          xor  (hl)
 B4DD: 77          ld   (hl),a
 B4DE: CB 03       rlc  e
 B4E0: 16 00       ld   d,$00
-B4E2: FD 21 85 B2 ld   iy,task_struct_table_B825
+B4E2: FD 21 85 B2 ld   iy,task_stack_buffer_table_B825
 B4E6: FD 19       add  iy,de
+; read address of stack top for task to run
 B4E8: FD 6E 00    ld   l,(iy+$00)
 B4EB: FD 66 01    ld   h,(iy+$01)
+; set it
 B4EE: F9          ld   sp,hl
+; one less task to start
 B4EF: 21 83 60    ld   hl,nb_tasks_to_start_C029
 B4F2: 35          dec  (hl)
 B4F3: FD 21 80 00 ld   iy,task_address_table_0020
 B4F7: FD 19       add  iy,de
+; get entrypoint address
 B4F9: FD 6E 00    ld   l,(iy+$00)
 B4FC: FD 66 01    ld   h,(iy+$01)
 B4FF: CD E2 BB    call enable_interrupts_BBE2
@@ -11293,6 +11297,8 @@ B4FF: CD E2 BB    call enable_interrupts_BBE2
 ; $B09F
 ;
 ; then called when screen changes
+
+; and start the task
 B502: E9          jp   (hl)
 
 resume_a_task_b503:
@@ -11340,7 +11346,7 @@ B551: AE          xor  (hl)
 B552: 77          ld   (hl),a
 B553: CB 03       rlc  e
 B555: 16 00       ld   d,$00
-B557: 21 E5 BD    ld   hl,ram_address_table_B7E5
+B557: 21 E5 BD    ld   hl,task_struct_table_B7E5
 B55A: 19          add  hl,de
 B55B: 5E          ld   e,(hl)
 B55C: 23          inc  hl
@@ -11739,8 +11745,8 @@ B7E0: F1          pop  af
 B7E1: 1C          inc  e
 B7E2: C3 2C BD    jp   $B786
 
-ram_address_table_B7E5:
-	dc.w	task_struct_C100 ; ram_address_table_B7E5
+task_struct_table_B7E5:
+	dc.w	task_struct_C100 ; task_struct_table_B7E5
 	dc.w	task_struct_C120 ; $b7e7
 	dc.w	task_struct_C140 ; $b7e9
 	dc.w	task_struct_C160 ; $b7eb
@@ -11765,6 +11771,8 @@ ram_address_table_B7E5:
 	dc.w	task_struct_C3C0 ; $b811
 	dc.w	task_struct_C3E0 ; $b813
 	dc.w	task_struct_C400 ; $b815
+	; this is probably not reached, and a mistake
+	; as this overlaps the stack buffers
 	dc.w	task_struct_C420 ; $b817
 	dc.w	task_struct_C440 ; $b819
 	dc.w	task_struct_C460 ; $b81b
@@ -11772,39 +11780,39 @@ ram_address_table_B7E5:
 	dc.w	task_struct_C4A0 ; $b81f
 	dc.w	task_struct_C4C0 ; $b821
 	dc.w	task_struct_C4E0 ; $b823
-task_struct_table_B825:
-	dc.w	task_struct_C420 ; task_struct_table_B825
-	dc.w	task_struct_C440 ; $b827
-	dc.w	task_struct_C460 ; $b829
-	dc.w	task_struct_C480 ; $b82b
-	dc.w	task_struct_C4A0 ; $b82d
-	dc.w	task_struct_C4C0 ; $b82f
-	dc.w	task_struct_C4E0 ; $b831
-	dc.w	task_struct_C500 ; $b833
-	dc.w	task_struct_C520 ; $b835
-	dc.w	task_struct_C540 ; $b837
-	dc.w	task_struct_C560 ; $b839
-	dc.w	task_struct_C580 ; $b83b
-	dc.w	task_struct_C5A0 ; $b83d
-	dc.w	task_struct_C5C0 ; $b83f
-	dc.w	task_struct_C5E0 ; $b841
-	dc.w	task_struct_C600 ; $b843
-	dc.w	task_struct_C620 ; $b845
-	dc.w	task_struct_C640 ; $b847
-	dc.w	task_struct_C660 ; $b849
-	dc.w	task_struct_C680 ; $b84b
-	dc.w	task_struct_C6A0 ; $b84d
-	dc.w	task_struct_C6C0 ; $b84f
-	dc.w	task_struct_C6E0 ; $b851
-	dc.w	task_struct_C700 ; $b853
-	dc.w	task_struct_C720 ; $b855
-	dc.w	task_struct_C740 ; $b857
-	dc.w	task_struct_C760 ; $b859
-	dc.w	task_struct_C780 ; $b85b
-	dc.w	task_struct_C7A0 ; $b85d
-	dc.w	task_struct_C7C0 ; $b85f
-	dc.w	task_struct_C7E0 ; $b861
-	dc.w	task_struct_C800 ; $b863
+task_stack_buffer_table_B825:
+	dc.w	stack_buffer_C420 ; $B825
+	dc.w	stack_buffer_C440 ; $b827
+	dc.w	stack_buffer_C460 ; $b829
+	dc.w	stack_buffer_C480 ; $b82b
+	dc.w	stack_buffer_C4A0 ; $b82d
+	dc.w	stack_buffer_C4C0 ; $b82f
+	dc.w	stack_buffer_C4E0 ; $b831
+	dc.w	stack_buffer_C500 ; $b833
+	dc.w	stack_buffer_C520 ; $b835
+	dc.w	stack_buffer_C540 ; $b837
+	dc.w	stack_buffer_C560 ; $b839
+	dc.w	stack_buffer_C580 ; $b83b
+	dc.w	stack_buffer_C5A0 ; $b83d
+	dc.w	stack_buffer_C5C0 ; $b83f
+	dc.w	stack_buffer_C5E0 ; $b841
+	dc.w	stack_buffer_C600 ; $b843
+	dc.w	stack_buffer_C620 ; $b845
+	dc.w	stack_buffer_C640 ; $b847
+	dc.w	stack_buffer_C660 ; $b849
+	dc.w	stack_buffer_C680 ; $b84b
+	dc.w	stack_buffer_C6A0 ; $b84d
+	dc.w	stack_buffer_C6C0 ; $b84f
+	dc.w	stack_buffer_C6E0 ; $b851
+	dc.w	stack_buffer_C700 ; $b853
+	dc.w	stack_buffer_C720 ; $b855
+	dc.w	stack_buffer_C740 ; $b857
+	dc.w	stack_buffer_C760 ; $b859
+	dc.w	stack_buffer_C780 ; $b85b
+	dc.w	stack_buffer_C7A0 ; $b85d
+	dc.w	stack_buffer_C7C0 ; $b85f
+	dc.w	stack_buffer_C7E0 ; $b861
+	dc.w	stack_buffer_C800 ; $b863
 	dc.w	$c000 ; $b865
 	dc.w	$c008 ; $b867
 	dc.w	$c010 ; $b869
