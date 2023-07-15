@@ -15,13 +15,9 @@ AFB_68010 = 0
 AFB_68020 = 1
 NO68020 = 1
 
-DYNAMIC_COPPER_ROWS = 228
 
 SCREEN_ADDRESS = 0xD000
 
-DYN_COLOR_INDEX = 4
-
-ROW_Y_OFFSET = 3
 
 SCORE_FILE_SIZE = 0x1E
 
@@ -39,9 +35,6 @@ ONE_TICK = 1
 	.ifne	OPT_DISABLE_SPRITES
 	.error	"debug option OPT_DISABLE_SPRITES in release mode"
 	.endif
-	.ifne	OPT_SKIP_THANKS_SCREEN
-	.error	"nonzero OPT_SKIP_THANKS_SCREEN option in release mode"
-	.endif
 	.ifne	OPT_SKIP_TITLE_SCREEN
 	.error	"nonzero OPT_SKIP_TITLE_SCREEN option in release mode"
 	.endif
@@ -51,15 +44,10 @@ ONE_TICK = 1
 	.ifne	OPT_SKIP_GAME_DEMO
 	.error	"nonzero OPT_SKIP_GAME_DEMO option in release mode"
 	.endif
-	.ifne	OPT_SKIP_ICE_PACK_SCREEN
-	.error	"nonzero OPT_SKIP_ICE_PACK_SCREEN option in release mode"
-	.endif
 	.ifne	OPT_START_SCORE
 	.error	"nonzero OPT_START_SCORE option in release mode"
 	.endif
-	.ifne	OPT_ONLY_ONE_SNOBEE
-	.error	"OPT_ONLY_ONE_SNOBEE option in release mode"
-	.endif
+
 	.else
 OPT_ENABLE_LOGGING = 0
 OPT_ENABLE_PROFILING = 0
@@ -189,7 +177,6 @@ w\@:
 		.global osd_r_colorram
 		.global osd_set_bank_selectors
 		.global osd_update_sprites
-		.global osd_set_vblank_return_address
 		.global osd_read_dipswitches
 		.global osd_small_wait
 		.global osd_read_inputs
@@ -407,25 +394,8 @@ _user:
 	
 	jsr	 _detect_controller_types 
 
+	jra		demo_game
 
-
-		moveq			#2,d0
-		*move.b		(BIOS_USER_REQUEST),d0
-		lsl.w			#2,d0
-    movea.l   1f(pc,d0.w),a0
-    jmp       (a0)
-    .align 4
-1:	.long			startup_init
-		.long			eye_catcher
-		.long			demo_game
-		.long			title_display
-
-startup_init:
-		rts
-
-eye_catcher:
-* we're not doing things the NeoGeo way
-		rts
 
 * < D0: bcpl string (with leading size byte)
 * < A1: dest C string
@@ -570,11 +540,7 @@ call_bcpl:
 	movem.l (sp)+,d2-d7/a2-a6
 	rts
 
-* change return address from vblank
-* D0: return address (0: no change)
-osd_set_vblank_return_address:
-	move.l	d0,return_address
-	rts
+
 	
 get_hiscore_name:
     lea normal_hiscorename,a0
@@ -643,17 +609,7 @@ demo_game:
 0:	
 		jmp			karate_champ_reset					| pass control to the pengo core
 		
-title_display:
-* we're not doing things the NeoGeo way
-    rts
 
-_player_start:
-* we're not doing things the NeoGeo way
-		rts
-				
-_demo_end:
-* we're not doing things the NeoGeo way
-		rts
 	
 				
 _vblank:
@@ -736,36 +692,7 @@ _vblank:
 osd_break:
 	blitz
 	rts
-	
 
-	
-* speed regulation for game mainloop, the bigger, the faster
-* Slightly depends on PAL/NTSC.
-* tried to calibrated it the best possible by recording
-* the demo game on MAME and on this version and comparing
-* them. 12 makes a slightly slower game, 13 should be all right
-
-osd_get_sync_period:
-	move.w	#13,d0
-	rts
-	
-* this needs tuning. waits roughly 400 micro seconds
-* this emulates Z80 active loop found in the intro and in other
-* places too
-*        djnz itself (10 FE)
-* < D1: 0: max (actually $100), > 0: lower
-osd_small_wait:
-	movem.w	d0/d1,-(a7)
-	and.w	#0xFF,d1
-	bne.b	0f
-	move.w	#0x100,d1
-0:
-	divu	#12,d1		| empiric
-	move.w	d1,d0
-	bsr		beamdelay
-	movem.w	(a7)+,d0/d1
-	rts
-	
 *osd_calibrate_display:
 *	movem.l	a0/d0-d1,-(a7)
 *	move.l	bg_drawed_screen_ptr,a0
@@ -864,10 +791,6 @@ osd_update_sprites:
 	add.b	#8,d0
 	not.b	d1
 	add.b	#16,d1
-	tst.b	alternate_bank_selectors
-	bne.b	222f
-	subq.b	#ROW_Y_OFFSET,d1
-222:
 	bsr		store_sprite_pos_16
 	move.l	d0,(a5)
 	* set colors
@@ -905,23 +828,6 @@ osd_update_sprites:
 	swap	d3
 	move.w	d3,(a5)
 	move.w	d7,(8,a5)
-	tst.b	dynamic_color_mode
-	beq.b	25f
-	cmp.w	#DYNAMIC_COPPER_ROWS,d1
-	bcc.b	25f		| too low: not doing it
-	* dynamic color mode: we need to update copperlist row 3 colors
-	lea		color_line_copper+4,a0
-	lsl.w	#4,d1		| times 16
-	add.w	d1,a0		| get relevant row
-
-	add.w	#color+34,d5	| color register
-	
-	lea		(-6,a6),a6
-	.rept	3
-	move.w	d5,(a0)+
-	addq.w	#2,d5
-	move.w	(a6)+,(a0)+
-	.endr
 25:
 	* set sprite in copperlist
 	move.w	d4,(6,a3)
@@ -1062,7 +968,6 @@ alloc_sprite:
 * (only for ice-pack screen)
 
 osd_set_bank_selectors:
-	bsr		reset_dynamic_colors
 	move.b	d0,alternate_bank_selectors
 	* alternate bank: enable dynamic sprites
 	sne		dynamic_color_mode
@@ -1399,7 +1304,6 @@ load_palette_in_copperlist:
 	* alternate palette
 	add.w	#32,a0
 0:
-	move.w	(DYN_COLOR_INDEX*2,a0),orig_color_4
 	move.w	#TOTAL_NB_COLORS-1,d0
 	lea		copperlist_colors+2,a1
 1:
@@ -1431,40 +1335,8 @@ osd_disable_vblank_interrupt:
 
 
 
-	
-reset_dynamic_colors:
-	movem.l	a0/d2-d3,-(a7)
-	lea	color_line_copper+4,a0
-	move.w	#DYNAMIC_COPPER_ROWS-1,d3
-	move.w	#0x1FE,d2
-0:
-	move.w	d2,(a0)
-	addq.w	#4,a0
-	move.w	d2,(a0)
-	addq.w	#4,a0
-	move.w	d2,(a0)
-	addq.w	#8,a0
-	dbf		d3,0b
-	movem.l	(a7)+,a0/d2-d3
-	rts
 
 	
-* < D6: video ram offset
-* < D0: data to write
-update_dynamic_color_mode:
-	tst.b	alternate_bank_selectors
-	bne.b	1f		| alternate bank selectors: don't change, stay dynamic
-	cmp.w	#0x19B,d6
-	beq.b	0f
-1:
-	rts
-0:
-	bsr		reset_dynamic_colors
-	* see if we disable or enable dyn color mode
-	* because (R) is there (title screen)
-	cmp.b	#0x22,d0
-	seq.b	dynamic_color_mode
-	rts
 	
 * < D4: sprite properties
 *     Y code+attrs clut X
@@ -1526,19 +1398,10 @@ osd_w_videoram:
 	lea		bg_videoram,a1
 	add.w	d6,a1
 	
-	* force write of digits (force score refresh because of 2 lines hack)
-	cmp.b	#48,d0
-	bcs.b	2f
-	cmp.b	#58,d0
-	bcs.b	3f
-2:
-	* detect (R) sega registered logo
-	* to enable sprite dynamic color mode
-	bsr		update_dynamic_color_mode
 
 	cmp.b	(a1),d0
 	beq.b	0f		| already the proper value
-3:
+
 	move.b	d0,(a1)	| update logical grid
 	lea		bg_colorram,a1
 	move.b	(a1,d6.W),d1
@@ -1577,7 +1440,6 @@ osd_w_colorram:
     .endif | OPT_DISABLE_BG_LAYER
 	rts
 
-	move.w	orig_color_4(pc),copperlist_colors+DYN_COLOR_INDEX*4+2	| change 4th color with color clut
 
 * d6: screen offset
 * d0: tile code
@@ -1615,53 +1477,20 @@ update_bg_tile:
 	.endif
 
 
-	cmp.w	#0x3C0,d6
-	bcc.b	0f
-	cmp.w	#0x40,d6
-	bcs.b	2f
+
 	move.w	d6,d3
 	lsr.w	#5,d6		| this is X
 	neg.w	d6
 	add.w	#32,d6
 	and.w	#0x1F,d3	| this is Y
 	addq.w	#2,d3
-	bra.b	1f
-	* two first rows are special
-0:
-	move.w	d6,d3
-	lsr.w	#5,d3		| this is Y
-	
-	sub.w	#30,d3		| minus 2
-	and.w	#0x1F,d6	| this is X
-	neg.w	d6
-	add.w	#32,d6
-	bra.b	1f
-	* two last rows as well
-2:
-	move.w	d6,d3
-	lsr.w	#5,d3		| this is Y
-	add.w	#34,d3		| plus 2
-	and.w	#0x1F,d6	| this is X
-	neg.w	d6
-	add.w	#32,d6
-1:
+
 	lea		mulNB_BYTES_PER_ROW_table(pc),a0
 
 	
 	move.l	bg_drawed_screen_ptr(pc),a1
 	* D3 = Y
-	tst.b	alternate_bank_selectors
-	bne.b	3f
-	tst		d3
-	seq		first_row_standard_bank_selector
-	beq.b	3f
-	* no-first-line hack: first row displayed isn't shifted
-	* but other lines are. We get away with it because what's there
-	* is score then pengo lives which aren't too high (2 first rows are black)
-	* shifting that way allows to see most of the 'ACT' bottom status bar, still
-	* slightly truncated but good enough.
-	lea	(-NB_BYTES_PER_ROW*ROW_Y_OFFSET,a1),a1
-3:
+
 	add.w	d3,d3
 	move.w	(a0,d3.w),d3
 	lsl.w	#3,d3		| times 8
@@ -1672,8 +1501,8 @@ update_bg_tile:
 
 	* optimization when a well-known
 	* empty character is passed (standard charset)
-	cmp.w	#0x20,d0	| empty character
-	jeq	1f
+	**cmp.w	#0x20,d0	| empty character
+	**jeq	1f
 
 	lea		character_table,a0
 	add.w	d0,d0
@@ -2336,13 +2165,8 @@ sprites:
 
 	.set    beampos,0x1C01
 color_line_copper:
-	.rept	DYNAMIC_COPPER_ROWS
 	.word	beampos,0xFFFE
-	.word	0x1FE,0
-	.word	0x1FE,0
-	.word	0x1FE,0
-	.set    beampos,beampos+0x100
-	.endr
+	*.set    beampos,beampos+0x100
 
 
 	* pal limit
