@@ -160,7 +160,7 @@
 	.global	unknown_C91D
 	.global	unknown_CC3D
 	.global	unknown_CD21
-	.global	unknown_CF00
+	.global	temp_numeric_buffer_CF00
 	.global	unknown_CF01
 	.global	unknown_CF02
 	.global	unknown_CF03
@@ -553,7 +553,7 @@ unknown_CC3D:
 	ds.b	228
 unknown_CD21:
 	ds.b	479
-unknown_CF00:
+temp_numeric_buffer_CF00:
 	ds.b	1
 unknown_CF01:
 	ds.b	1

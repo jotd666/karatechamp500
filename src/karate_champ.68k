@@ -286,7 +286,7 @@ l_5266:
 	move.b	#0x01,d0                        	| [$526c: ld   a,$01]
 	jbsr	schedule_task_to_start_B057                 	| [$526e: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5271: and  a]
-	beq	0f
+	beq.b	0f
 	jbsr	display_error_text_B075           	| [$5272: call nz,display_error_text_B075]
 0:
 	move.b	#0x80,d0                        	| [$5275: ld   a,$80]
@@ -299,7 +299,7 @@ l_5266:
 l_5287:
 	clr.b	d0                               	| [$5287: ld   a,$00]
 	jbsr	suspend_task_B05A            	| [$5289: call suspend_task_B05A]
-	jbsr	l_b060                            	| [$528c: call $B060]
+	jbsr	set_normal_screen_b060                            	| [$528c: call $B060]
 	move.b	#0x01,d0                        	| [$528f: ld   a,$01]
 	jbsr	unsuspend_tasks_b015                            	| [$5291: call $B015]
 	move.b	nb_credits_minus_one_C024,d0    	| [$5294: ld   a,(nb_credits_minus_one_C024)]
@@ -355,8 +355,8 @@ l_5287:
 	jbsr	play_sound_B072                   	| [$5318: call play_sound_B072]
 l_531b:
 	jbsr	disable_interrupts_B0BD                            	| [$531b: call $B0C0]
-	jbsr	l_7b92                            	| [$531e: call $7B92]
-	jbsr	l_7c1c                            	| [$5321: call $7C1C]
+	jbsr	display_start_message_7b92                           	| [$531e: call $7B92]
+	jbsr	display_credits_7C1C                            	| [$5321: call $7C1C]
 	jbsr	check_coin_ports_B069                            	| [$5324: call $B069]
 	btst.b	#2,d0                           	| [$5327: bit  2,a]
 	jne	l_5266                             	| [$5329: jp   nz,$5266]
@@ -401,6 +401,65 @@ table_53CC:
 	dc.b	0xd2,0xd0,0x80,0xff,0xcc,0x53 | table_53CC
 	.align	2
 
+display_start_message_7b92:
+	move.b	nb_credits_minus_one_C024,d0    	| [$7b92: ld   a,(nb_credits_minus_one_C024)]
+	lea	start_1P_message_7BA6(pc),a0       	| [$7b95: ld   hl,start_1P_message_7BA6]
+	cmp.b	#0x00,d0                         	| [$7b98: cp   $00]
+	jeq	l_7ba0                             	| [$7b9a: jp   z,$7BA0]
+	lea	start_2P_message_7BCA(pc),a0       	| [$7b9d: ld   hl,start_2P_message_7BCA]
+l_7ba0:
+	move.b	#0x98,d3                        	| [$7ba0: ld   d,$98]
+	jbsr	display_text_B039                 	| [$7ba2: call display_text_B039]
+	rts                                    	| [$7ba5: ret]
+start_1P_message_7BA6:
+	dc.b	0x05,0x0a,0x19,0x1b,0x0e,0x1c,0x1c,0x3c | table_7BA6
+	dc.b	0x01,0x19,0x3c,0x0b,0x1e,0x1d,0x1d,0x18 | $7bae
+	dc.b	0x17,0x3c,0x0f,0x18,0x1b,0xfe,0x09,0x0c | $7bb6
+	dc.b	0x1c,0x12,0x17,0x10,0x15,0x0e,0x3c,0x19 | $7bbe
+	dc.b	0x15,0x0a,0x22,0xff | $7bc6
+start_2P_message_7BCA:
+	dc.b	0x05,0x0a,0x19,0x1b,0x0e,0x1c,0x1c,0x3c | table_7BCA
+	dc.b	0x01,0x19,0x3c,0x0b,0x1e,0x1d,0x1d,0x18 | $7bd2
+	dc.b	0x17,0x3c,0x0f,0x18,0x1b,0xfe,0x09,0x0c | $7bda
+	dc.b	0x1c,0x12,0x17,0x10,0x15,0x0e,0x3c,0x19 | $7be2
+	dc.b	0x15,0x0a,0x22,0xfe,0x05,0x0e,0x19,0x1b | $7bea
+	dc.b	0x0e,0x1c,0x1c,0x3c,0x02,0x19,0x3c,0x0b | $7bf2
+	dc.b	0x1e,0x1d,0x1d,0x18,0x17,0x3c,0x0f,0x18 | $7bfa
+	dc.b	0x1b,0xfe,0x04,0x10,0x0f,0x12,0x10,0x11 | $7c02
+	dc.b	0x1d,0x3c,0x0b,0x0e,0x1d,0x20,0x0e,0x0e | $7c0a
+	dc.b	0x17,0x3c,0x19,0x15,0x0a,0x22,0x0e,0x1b | $7c12
+	dc.b	0x1c,0xff | $7c1a
+
+display_credits_7C1C:
+	lea	credit_text_7C54(pc),a0            	| [$7c1c: ld   hl,credit_text_7C54]
+	move.b	#0x98,d3                        	| [$7c1f: ld   d,$98]
+	jbsr	display_text_B039                 	| [$7c21: call display_text_B039]
+											| [$7c24: ld   hl,$1F1C]
+	move.w	#0x1C1F,temp_numeric_buffer_CF00     	| [$7c27: ld   (temp_numeric_buffer_CF00),hl]
+* at least during "press 1P button" screen
+* check number of credits, maybe to display them
+* as there's a "daa" instruction (bcd conversion)
+	move.b	nb_credits_minus_one_C024,d0    	| [$7c2a: ld   a,(nb_credits_minus_one_C024)]
+	addq.b	#0x01,d0                        	| [$7c2d: add  a,$01]
+**daa
+	move.b	d0,d1                           	| [$7c30: ld   b,a]
+	lea	temp_numeric_buffer_CF00(pc),a2    	| [$7c31: ld   ix,temp_numeric_buffer_CF00]
+	and.b	#0x0F,d0                         	| [$7c35: and  $0F]
+	move.b	d0,(0x03,a2)                    	| [$7c37: ld   (ix+$03),a]
+	move.b	d1,d0                           	| [$7c3a: ld   a,b]
+	lsr.b	#4,d0                            	| [$7c3b: srl  a] * 4
+	move.b	d0,(0x02,a2)                    	| [$7c43: ld   (ix+$02),a]
+	st.b	d0                                	| [$7c46: ld   a,$FF]
+	move.b	d0,(0x04,a2)                    	| [$7c48: ld   (ix+$04),a]
+	lea	temp_numeric_buffer_CF00(pc),a0    	| [$7c4b: ld   hl,temp_numeric_buffer_CF00]
+	move.b	#0x98,d3                        	| [$7c4e: ld   d,$98]
+	jbsr	display_text_B039                 	| [$7c50: call display_text_B039]
+	rts                                    	| [$7c53: ret]
+credit_text_7C54:
+	dc.b	0x15,0x1f,0x0c,0x1b,0x0e,0x0d,0x12,0x1d | credit_7C54
+	dc.b	0xff | $7c5c
+	.align	2
+	
 unsuspend_tasks_b015:
 	jra	unsuspend_tasks_b171                             	| [$b015: jp   unsuspend_tasks_b171]
 
@@ -411,6 +470,9 @@ clear_zone_B021:
 
 fill_video_and_attribute_memory_B030:
 	jra	fill_video_and_attribute_memory_B316	| [$b030: jp   fill_video_and_attribute_memory_B316]
+
+display_text_B039:
+	jra	display_text_B357                  	| [$b039: jp   display_text_B357]
 
 startup_B045:
 	jra	startup_B469                       	| [$b045: jp   startup_B469]
@@ -424,7 +486,7 @@ unsuspend_task_B054:
 schedule_task_to_start_B057:
 	jra	schedule_task_to_start_B620                  	| [$b057: jp   schedule_task_to_start_B620]
 
-l_b060:
+set_normal_screen_b060:
 	jra	set_normal_screen_bb72                             	| [$b060: jp   $BB72]
 check_coin_ports_B069:
 	jra	check_coin_ports_BB82              	| [$b069: jp   check_coin_ports_BB82]
@@ -636,7 +698,7 @@ l_b38e:
 startup_B469:
 	move.b	#0x42,d0                        	| [$b469: ld   a,$42]
 	move.b	d0,unknown_CD21                 	| [$b46b: ld   (unknown_CD21),a]
-	lea		stack_top,sp			| ld   sp,unknown_CF00			| set stack
+	lea		stack_top,sp			| ld   sp,temp_numeric_buffer_CF00			| set stack
 	jbsr	disable_interrupts_BBE2           	| [$b471: call disable_interrupts_BBE2]
 * clear part of RAM
 	lea	active_task_bit_table_C000,a0                	| [$b479: ld   hl,active_task_bit_table_C000]
@@ -649,7 +711,7 @@ startup_B469:
 
 * this is called by most routines that want to yield control to this mainloop
 jump_to_mainloop_B48D:
-	lea		stack_top,sp			| ld   sp,unknown_CF00			| set stack
+	lea		stack_top,sp			| ld   sp,temp_numeric_buffer_CF00			| set stack
 	jbsr	enable_interrupts_BBE2            	| [$b490: call enable_interrupts_BBE2]
 
 * main "task" scheduler
