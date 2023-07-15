@@ -189,8 +189,8 @@
 	dc.b	0x00,0x00,0x00,0x00,0x00 ; $001b
 ; routines called by the main scheduler at B502
 task_address_table_0020:
-	dc.w	$5250 ; task_address_table_0020
-	dc.w	$53d2 ; $0022
+	dc.w	task_5250 ; task_address_table_0020
+	dc.w	task_53d2 ; $0022
 	dc.w	$544f ; $0024
 	dc.w	$6491 ; $0026
 	dc.w	$6529 ; $0028
@@ -1244,7 +1244,7 @@ task_address_table_0020:
 3ABF: D2 74 9A    jp   nc,$3AD4
 3AC2: AF          xor  a
 3AC3: FD E5       push iy
-3AC5: CD 5A B0    call wait_a_few_frames_B05A
+3AC5: CD 5A B0    call suspend_task_B05A
 3AC8: FD E1       pop  iy
 3ACA: FE 02       cp   $08
 3ACC: CA F2 9B    jp   z,$3BF8
@@ -1261,7 +1261,7 @@ task_address_table_0020:
 3AE7: A7          and  a
 3AE8: C4 D5 B0    call nz,display_error_text_B075
 3AEB: AF          xor  a
-3AEC: CD 5A B0    call wait_a_few_frames_B05A
+3AEC: CD 5A B0    call suspend_task_B05A
 3AEF: FD E1       pop  iy
 3AF1: FE 09       cp   $03
 3AF3: CA E6 9B    jp   z,$3BEC
@@ -1390,7 +1390,7 @@ task_address_table_0020:
 3C13: FD E1       pop  iy
 3C15: AF          xor  a
 3C16: FD E5       push iy
-3C18: CD 5A B0    call wait_a_few_frames_B05A
+3C18: CD 5A B0    call suspend_task_B05A
 3C1B: FD E1       pop  iy
 3C1D: FE 07       cp   $0D
 3C1F: CA 15 96    jp   z,$3C15
@@ -1445,7 +1445,7 @@ task_address_table_0020:
 3C97: C2 DC 96    jp   nz,$3C76
 3C9A: FD E5       push iy
 3C9C: 3E 02       ld   a,$08
-3C9E: CD 5A B0    call wait_a_few_frames_B05A
+3C9E: CD 5A B0    call suspend_task_B05A
 3CA1: A7          and  a
 3CA2: C4 D5 B0    call nz,display_error_text_B075
 3CA5: FD E1       pop  iy
@@ -2184,7 +2184,7 @@ table_43C7:
 441F: FD 74 0E    ld   (iy+$0e),h
 4422: 3E 04       ld   a,$04
 4424: FD E5       push iy
-4426: CD 5A B0    call wait_a_few_frames_B05A
+4426: CD 5A B0    call suspend_task_B05A
 4429: FD E1       pop  iy
 442B: FE 07       cp   $0D
 442D: CA 88 44    jp   z,$4422
@@ -2247,7 +2247,7 @@ table_43C7:
 44B8: C9          ret
 44B9: FD E5       push iy
 44BB: 3E 96       ld   a,$3C
-44BD: CD 5A B0    call wait_a_few_frames_B05A
+44BD: CD 5A B0    call suspend_task_B05A
 44C0: FD E1       pop  iy
 44C2: CD B9 40    call $40B3
 44C5: DD E5       push ix
@@ -2276,7 +2276,7 @@ table_43C7:
 44F0: 78          ld   a,b
 44F1: CD A8 B0    call $B0A2
 44F4: 3E 10       ld   a,$10
-44F6: CD 5A B0    call wait_a_few_frames_B05A
+44F6: CD 5A B0    call suspend_task_B05A
 44F9: DD E1       pop  ix
 44FB: E1          pop  hl
 44FC: E5          push hl
@@ -2289,7 +2289,7 @@ table_43C7:
 450B: 78          ld   a,b
 450C: CD A8 B0    call $B0A2
 450F: 3E 10       ld   a,$10
-4511: CD 5A B0    call wait_a_few_frames_B05A
+4511: CD 5A B0    call suspend_task_B05A
 4514: DD E1       pop  ix
 4516: E1          pop  hl
 4517: C1          pop  bc
@@ -2298,7 +2298,7 @@ table_43C7:
 451C: C9          ret
 451D: FD E5       push iy
 451F: 3E 96       ld   a,$3C
-4521: CD 5A B0    call wait_a_few_frames_B05A
+4521: CD 5A B0    call suspend_task_B05A
 4524: FD E1       pop  iy
 4526: 21 A2 1B    ld   hl,$1BA8		; immediate value
 4529: FD 75 0D    ld   (iy+$07),l
@@ -2576,7 +2576,7 @@ player_management_routine_46FD:
 4780: F2 25 4D    jp   p,$4785	; can't be negative
 4783: 3E 01       ld   a,$01
 4785: FD E5       push iy
-4787: CD 5A B0    call wait_a_few_frames_B05A
+4787: CD 5A B0    call suspend_task_B05A
 478A: FD E1       pop  iy
 478C: C9          ret
 
@@ -2633,7 +2633,7 @@ get_current_frame_contents_478D:
 47E7: CD D2 43    call $4978
 47EA: FD E5       push iy
 47EC: 3E 01       ld   a,$01
-47EE: CD 5A B0    call wait_a_few_frames_B05A
+47EE: CD 5A B0    call suspend_task_B05A
 47F1: FD E1       pop  iy
 47F3: A7          and  a
 47F4: C4 D5 B0    call nz,display_error_text_B075
@@ -2671,7 +2671,7 @@ get_current_frame_contents_478D:
 483F: FD E1       pop  iy
 4841: FD E5       push iy
 4843: 3E 96       ld   a,$3C
-4845: CD 5A B0    call wait_a_few_frames_B05A
+4845: CD 5A B0    call suspend_task_B05A
 4848: A7          and  a
 4849: C4 D5 B0    call nz,display_error_text_B075
 484C: FD E1       pop  iy
@@ -3207,7 +3207,7 @@ table_4D14:
 4D6A: 7E          ld   a,(hl)
 4D6B: 00          nop
 4D6C: FD E5       push iy
-4D6E: CD 5A B0    call wait_a_few_frames_B05A
+4D6E: CD 5A B0    call suspend_task_B05A
 4D71: FD E1       pop  iy
 4D73: C9          ret
 table_4D74:
@@ -3248,7 +3248,7 @@ table_4D74:
 4DC2: FD E1       pop  iy
 4DC4: FD E5       push iy
 4DC6: 3E 00       ld   a,$00
-4DC8: CD 5A B0    call wait_a_few_frames_B05A
+4DC8: CD 5A B0    call suspend_task_B05A
 4DCB: FE 10       cp   $10
 4DCD: CA E0 47    jp   z,$4DE0
 4DD0: FE 01       cp   $01
@@ -3261,7 +3261,7 @@ table_4D74:
 4DE0: FD E1       pop  iy
 4DE2: FD E5       push iy
 4DE4: 3E F0       ld   a,$F0
-4DE6: CD 5A B0    call wait_a_few_frames_B05A
+4DE6: CD 5A B0    call suspend_task_B05A
 4DE9: A7          and  a
 4DEA: C4 D5 B0    call nz,display_error_text_B075
 4DED: FD E1       pop  iy
@@ -3464,7 +3464,7 @@ table_5040:
 
 50F5: CD 18 B0    call $B012
 50F8: FD 36 19 09 ld   (iy+$13),$03
-50FC: 11 2D 69    ld   de,unknown_C387
+50FC: 11 2D 69    ld   de,task_struct_C380+7
 50FF: 21 45 58    ld   hl,table_5245
 5102: 01 03 00    ld   bc,$0009
 5105: ED B0       ldir
@@ -3574,7 +3574,7 @@ table_5040:
 5202: CD 12 B0    call $B018
 5205: FD E5       push iy
 5207: 3E 40       ld   a,$40
-5209: CD 5A B0    call wait_a_few_frames_B05A
+5209: CD 5A B0    call suspend_task_B05A
 520C: A7          and  a
 520D: C4 D5 B0    call nz,display_error_text_B075
 5210: FD E1       pop  iy
@@ -3603,6 +3603,7 @@ table_5245:
 	dc.b	0x1d,0x3a,0xe8,0xb0,0x00,0x07,0x03,0x4c ; table_5245
 	dc.b	0xc7,0x00,0x00 ; $524d
 
+task_5250:
 5250: 3E 00       ld   a,$00
 5252: DD 21 00 63 ld   ix,map_index_C900
 5256: DD 77 00    ld   (ix+$00),a
@@ -3625,8 +3626,8 @@ table_5245:
 5282: 3E 09       ld   a,$03
 5284: 32 84 60    ld   (nb_credits_minus_one_C024),a
 5287: 3E 00       ld   a,$00
-5289: CD 5A B0    call wait_a_few_frames_B05A
-528C: CD C0 B0    call $B060
+5289: CD 5A B0    call suspend_task_B05A
+528C: CD C0 B0    call set_normal_screen_b060
 528F: 3E 01       ld   a,$01
 5291: CD 15 B0    call unsuspend_tasks_b015
 5294: 3A 84 60    ld   a,(nb_credits_minus_one_C024)
@@ -3675,7 +3676,7 @@ table_5245:
 5307: 77          ld   (hl),a
 5308: CD 1E B0    call clear_C7xx_B01E
 530B: 3E 01       ld   a,$01
-530D: CD 5A B0    call wait_a_few_frames_B05A
+530D: CD 5A B0    call suspend_task_B05A
 5310: 01 96 00    ld   bc,$003C
 5313: CD 90 B0    call fill_video_and_attribute_memory_B030
 5316: 3E 20       ld   a,$80
@@ -3725,12 +3726,13 @@ table_53C9:
 	dc.b	0x3b,0x54,0x51 ; table_53C9
 table_53CC:
 	dc.b	0xd2,0xd0,0x80,0xff,0xcc,0x53 ; table_53CC
+task_53d2:
 53D2: 21 62 60    ld   hl,unknown_C0C8
 53D5: 06 10       ld   b,$10
 53D7: 36 00       ld   (hl),$00
 53D9: 23          inc  hl
 53DA: 10 FB       djnz $53D7
-53DC: CD C0 B0    call $B060
+53DC: CD C0 B0    call set_normal_screen_b060
 ; 1 player mode (and also at game bootup)
 53DF: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
 53E2: CB D6       set  2,(hl)
@@ -3740,7 +3742,7 @@ table_53CC:
 53EB: CD 15 B0    call unsuspend_tasks_b015
 53EE: CD 1E B0    call clear_C7xx_B01E
 53F1: 3E 01       ld   a,$01
-53F3: CD 5A B0    call wait_a_few_frames_B05A
+53F3: CD 5A B0    call suspend_task_B05A
 53F6: A7          and  a
 53F7: C4 D5 B0    call nz,display_error_text_B075
 53FA: 01 96 00    ld   bc,$003C
@@ -3771,7 +3773,7 @@ table_53CC:
 5436: A7          and  a
 5437: C4 D5 B0    call nz,display_error_text_B075
 543A: 3E 00       ld   a,$00
-543C: CD 5A B0    call wait_a_few_frames_B05A
+543C: CD 5A B0    call suspend_task_B05A
 543F: CD D4 53    call $5974
 5442: A7          and  a
 5443: CA E4 59    jp   z,$53E4
@@ -3915,7 +3917,7 @@ jump_table_547B:
 5564: A7          and  a
 5565: C4 D5 B0    call nz,display_error_text_B075
 5568: 3E 00       ld   a,$00
-556A: CD 5A B0    call wait_a_few_frames_B05A
+556A: CD 5A B0    call suspend_task_B05A
 556D: FE 02       cp   $08
 556F: C2 36 55    jp   nz,$559C
 5572: 3E 0A       ld   a,$0A
@@ -3978,12 +3980,12 @@ jump_table_547B:
 55FE: 3E 01       ld   a,$01
 5600: CD 12 B0    call $B018
 5603: 3E 0C       ld   a,$06
-5605: CD 5A B0    call wait_a_few_frames_B05A
+5605: CD 5A B0    call suspend_task_B05A
 5608: 3A CD 61    ld   a,(match_timer_C167)
 560B: A7          and  a
 560C: C2 71 55    jp   nz,$55D1
 560F: 3E 96       ld   a,$3C
-5611: CD 5A B0    call wait_a_few_frames_B05A
+5611: CD 5A B0    call suspend_task_B05A
 5614: 3E 0D       ld   a,$07
 5616: CD 54 B0    call unsuspend_task_B054
 5619: 3E 0A       ld   a,$0A
@@ -4002,7 +4004,7 @@ jump_table_547B:
 5638: 21 E0 60    ld   hl,unknown_C0E0
 563B: CD 03 5F    call $5F09
 563E: 3E C4       ld   a,$64
-5640: CD 5A B0    call wait_a_few_frames_B05A
+5640: CD 5A B0    call suspend_task_B05A
 5643: 3E 01       ld   a,$01
 5645: 47          ld   b,a
 5646: CD 57 B0    call task_manipulation_B05D
@@ -4046,12 +4048,12 @@ jump_table_547B:
 56A5: 3E 01       ld   a,$01
 56A7: CD 12 B0    call $B018
 56AA: 3E 0C       ld   a,$06
-56AC: CD 5A B0    call wait_a_few_frames_B05A
+56AC: CD 5A B0    call suspend_task_B05A
 56AF: 3A CD 61    ld   a,(match_timer_C167)
 56B2: A7          and  a
 56B3: C2 D2 5C    jp   nz,$5678
 56B6: 3E 96       ld   a,$3C
-56B8: CD 5A B0    call wait_a_few_frames_B05A
+56B8: CD 5A B0    call suspend_task_B05A
 56BB: 3E 0D       ld   a,$07
 56BD: CD 54 B0    call unsuspend_task_B054
 56C0: 3E 0B       ld   a,$0B
@@ -4070,7 +4072,7 @@ jump_table_547B:
 56DF: 21 E9 60    ld   hl,unknown_C0E3
 56E2: CD 03 5F    call $5F09
 56E5: 3E C4       ld   a,$64
-56E7: CD 5A B0    call wait_a_few_frames_B05A
+56E7: CD 5A B0    call suspend_task_B05A
 56EA: 3E 01       ld   a,$01
 56EC: 06 08       ld   b,$02
 56EE: CD 57 B0    call task_manipulation_B05D
@@ -4101,7 +4103,7 @@ jump_table_547B:
 5727: A7          and  a
 5728: C4 D5 B0    call nz,display_error_text_B075
 572B: 3E D2       ld   a,$78
-572D: CD 5A B0    call wait_a_few_frames_B05A
+572D: CD 5A B0    call suspend_task_B05A
 5730: A7          and  a
 5731: C4 D5 B0    call nz,display_error_text_B075
 5734: 3E 0C       ld   a,$06
@@ -4193,7 +4195,7 @@ jump_table_547B:
 57C0: 21 73 D3    ld   hl,evade_object_period_table_79D9
 57C3: 09          add  hl,bc
 57C4: 7E          ld   a,(hl)
-57C5: CD 5A B0    call wait_a_few_frames_B05A
+57C5: CD 5A B0    call suspend_task_B05A
 57C8: A7          and  a
 57C9: CA E6 5D    jp   z,$57EC
 57CC: FE 09       cp   $03
@@ -4201,7 +4203,7 @@ jump_table_547B:
 57D1: 3E 06       ld   a,$0C
 57D3: CD 15 B0    call unsuspend_tasks_b015
 57D6: 3E 96       ld   a,$3C
-57D8: CD 5A B0    call wait_a_few_frames_B05A
+57D8: CD 5A B0    call suspend_task_B05A
 57DB: A7          and  a
 57DC: C4 D5 B0    call nz,display_error_text_B075
 57DF: 3E 01       ld   a,$01
@@ -4222,7 +4224,7 @@ jump_table_547B:
 5802: B0          or   b
 5803: CA 18 52    jp   z,$5812
 5806: 3E 1E       ld   a,$1E
-5808: CD 5A B0    call wait_a_few_frames_B05A
+5808: CD 5A B0    call suspend_task_B05A
 580B: A7          and  a
 580C: C2 66 5D    jp   nz,$57CC
 580F: C3 F9 5D    jp   $57F3
@@ -4233,7 +4235,7 @@ jump_table_547B:
 581C: A7          and  a
 581D: C4 D5 B0    call nz,display_error_text_B075
 5820: 3E 28       ld   a,$82
-5822: CD 5A B0    call wait_a_few_frames_B05A
+5822: CD 5A B0    call suspend_task_B05A
 5825: A7          and  a
 5826: C4 D5 B0    call nz,display_error_text_B075
 5829: 3E 01       ld   a,$01
@@ -4262,7 +4264,7 @@ jump_table_547B:
 5861: 06 96       ld   b,$3C
 5863: C5          push bc
 5864: 3E 01       ld   a,$01
-5866: CD 5A B0    call wait_a_few_frames_B05A
+5866: CD 5A B0    call suspend_task_B05A
 5869: CD C3 B0    call check_coin_ports_B069
 586C: C1          pop  bc
 586D: CB 57       bit  2,a
@@ -4322,7 +4324,7 @@ jump_table_547B:
 58E3: 06 0D       ld   b,$07
 58E5: C5          push bc
 58E6: 3E 9F       ld   a,$3F
-58E8: CD 5A B0    call wait_a_few_frames_B05A
+58E8: CD 5A B0    call suspend_task_B05A
 58EB: A7          and  a
 58EC: C4 D5 B0    call nz,display_error_text_B075
 58EF: C1          pop  bc
@@ -4340,7 +4342,7 @@ jump_table_547B:
 5909: 06 05       ld   b,$05
 590B: C5          push bc
 590C: 3E 9F       ld   a,$3F
-590E: CD 5A B0    call wait_a_few_frames_B05A
+590E: CD 5A B0    call suspend_task_B05A
 5911: A7          and  a
 5912: C4 D5 B0    call nz,display_error_text_B075
 5915: C1          pop  bc
@@ -4358,7 +4360,7 @@ jump_table_547B:
 592F: 06 08       ld   b,$02
 5931: C5          push bc
 5932: 3E 9F       ld   a,$3F
-5934: CD 5A B0    call wait_a_few_frames_B05A
+5934: CD 5A B0    call suspend_task_B05A
 5937: A7          and  a
 5938: C4 D5 B0    call nz,display_error_text_B075
 593B: C1          pop  bc
@@ -4376,7 +4378,7 @@ jump_table_547B:
 5959: 16 32       ld   d,$98
 595B: CD 93 B0    call display_text_B039
 595E: 3E 50       ld   a,$50
-5960: CD 5A B0    call wait_a_few_frames_B05A
+5960: CD 5A B0    call suspend_task_B05A
 5963: A7          and  a
 5964: C4 D5 B0    call nz,display_error_text_B075
 5967: 3E 01       ld   a,$01
@@ -4699,7 +4701,7 @@ return_zero_in_A_5B7A:
 5C82: 16 32       ld   d,$98
 5C84: CD 00 C5    call $6500
 5C87: 3E D2       ld   a,$78
-5C89: CD 5A B0    call wait_a_few_frames_B05A
+5C89: CD 5A B0    call suspend_task_B05A
 5C8C: A7          and  a
 5C8D: C4 D5 B0    call nz,display_error_text_B075
 5C90: 3A 10 63    ld   a,(computer_skill_C910)
@@ -4736,13 +4738,13 @@ return_zero_in_A_5B7A:
 5CD3: 21 43 61    ld   hl,unknown_C149
 5CD6: 35          dec  (hl)
 5CD7: 3E 0F       ld   a,$0F
-5CD9: CD 5A B0    call wait_a_few_frames_B05A
+5CD9: CD 5A B0    call suspend_task_B05A
 5CDC: C3 3D 56    jp   $5C97
 5CDF: CD DC 5E    call $5E76
 5CE2: 3E 80       ld   a,$20
 5CE4: CD D8 B0    call play_sound_B072
 5CE7: 3E D2       ld   a,$78
-5CE9: CD 5A B0    call wait_a_few_frames_B05A
+5CE9: CD 5A B0    call suspend_task_B05A
 5CEC: A7          and  a
 5CED: C4 D5 B0    call nz,display_error_text_B075
 5CF0: 3E 01       ld   a,$01
@@ -4831,14 +4833,14 @@ table_5E07:
 5E79: 3E 00       ld   a,$00
 5E7B: CD 5C 5E    call $5E56
 5E7E: 3E 14       ld   a,$14
-5E80: CD 5A B0    call wait_a_few_frames_B05A
+5E80: CD 5A B0    call suspend_task_B05A
 5E83: A7          and  a
 5E84: C4 D5 B0    call nz,display_error_text_B075
 5E87: 21 00 5F    ld   hl,table_5F00
 5E8A: 16 32       ld   d,$98
 5E8C: CD 93 B0    call display_text_B039
 5E8F: 3E 14       ld   a,$14
-5E91: CD 5A B0    call wait_a_few_frames_B05A
+5E91: CD 5A B0    call suspend_task_B05A
 5E94: A7          and  a
 5E95: C4 D5 B0    call nz,display_error_text_B075
 5E98: C1          pop  bc
@@ -4932,7 +4934,7 @@ table_5F00:
 5F63: 06 4C       ld   b,$46
 5F65: C5          push bc
 5F66: 3E 09       ld   a,$03
-5F68: CD 5A B0    call wait_a_few_frames_B05A
+5F68: CD 5A B0    call suspend_task_B05A
 5F6B: A7          and  a
 5F6C: C4 D5 B0    call nz,display_error_text_B075
 5F6F: CD C3 B0    call check_coin_ports_B069
@@ -4969,7 +4971,7 @@ table_5F00:
 5FBA: 3E 09       ld   a,$03
 ; within this B05A call the computer performs the current technique
 ; animation
-5FBC: CD 5A B0    call wait_a_few_frames_B05A
+5FBC: CD 5A B0    call suspend_task_B05A
 5FBF: A7          and  a
 5FC0: C2 71 5F    jp   nz,$5FD1
 5FC3: CD C3 B0    call check_coin_ports_B069
@@ -4978,14 +4980,14 @@ table_5F00:
 5FCB: 32 4F 61    ld   (unknown_C14F),a
 5FCE: C3 BA 5F    jp   $5FBA
 5FD1: 3E C4       ld   a,$64
-5FD3: CD 5A B0    call wait_a_few_frames_B05A
+5FD3: CD 5A B0    call suspend_task_B05A
 5FD6: 3E 0F       ld   a,$0F
 5FD8: 06 80       ld   b,$20
 5FDA: CD 57 B0    call task_manipulation_B05D
 5FDD: A7          and  a
 5FDE: C4 D5 B0    call nz,display_error_text_B075
 5FE1: 3E D2       ld   a,$78
-5FE3: CD 5A B0    call wait_a_few_frames_B05A
+5FE3: CD 5A B0    call suspend_task_B05A
 5FE6: A7          and  a
 5FE7: C4 D5 B0    call nz,display_error_text_B075
 5FEA: 3E 01       ld   a,$01
@@ -5062,7 +5064,7 @@ table_602E:
 6099: CB 5F       bit  3,a
 609B: C2 23 C1    jp   nz,$6189
 609E: 3E 00       ld   a,$00
-60A0: CD 5A B0    call wait_a_few_frames_B05A
+60A0: CD 5A B0    call suspend_task_B05A
 60A3: FE 06       cp   $0C
 60A5: C4 D5 B0    call nz,display_error_text_B075
 60A8: FD 21 39 C9 ld   iy,table_6393
@@ -5099,7 +5101,7 @@ table_602E:
 60F2: A7          and  a
 60F3: C2 CC C1    jp   nz,$6166
 60F6: FD 7E 03    ld   a,(iy+$09)
-60F9: CD 5A B0    call wait_a_few_frames_B05A
+60F9: CD 5A B0    call suspend_task_B05A
 60FC: A7          and  a
 60FD: C4 D5 B0    call nz,display_error_text_B075
 6100: FD 21 80 68 ld   iy,unknown_C220
@@ -5113,7 +5115,7 @@ table_602E:
 6115: 06 98       ld   b,$32
 6117: C5          push bc
 6118: 3E 01       ld   a,$01
-611A: CD 5A B0    call wait_a_few_frames_B05A
+611A: CD 5A B0    call suspend_task_B05A
 611D: A7          and  a
 611E: C4 D5 B0    call nz,display_error_text_B075
 6121: C1          pop  bc
@@ -5158,7 +5160,7 @@ table_602E:
 6183: C4 D5 B0    call nz,display_error_text_B075
 6186: C3 3C C0    jp   $6096
 6189: 3E 01       ld   a,$01
-618B: CD 5A B0    call wait_a_few_frames_B05A
+618B: CD 5A B0    call suspend_task_B05A
 618E: A7          and  a
 618F: CA B4 C1    jp   z,$61B4
 6192: FE 03       cp   $09
@@ -5417,13 +5419,13 @@ table_6473:
 64A8: DD 74 01    ld   (ix+$01),h
 64AB: CD FB C4    call $64FB
 64AE: 3E 00       ld   a,$00
-64B0: CD 5A B0    call wait_a_few_frames_B05A
+64B0: CD 5A B0    call suspend_task_B05A
 64B3: FE 03       cp   $09
 64B5: CA AE C4    jp   z,$64AE
 64B8: FE 0A       cp   $0A
 64BA: C4 D5 B0    call nz,display_error_text_B075
 64BD: 3E 96       ld   a,$3C
-64BF: CD 5A B0    call wait_a_few_frames_B05A
+64BF: CD 5A B0    call suspend_task_B05A
 64C2: FE 03       cp   $09
 64C4: CA AE C4    jp   z,$64AE
 64C7: A7          and  a
@@ -5472,7 +5474,7 @@ table_6473:
 6528: C9          ret
 
 6529: AF          xor  a
-652A: CD 5A B0    call wait_a_few_frames_B05A
+652A: CD 5A B0    call suspend_task_B05A
 652D: F5          push af
 652E: 78          ld   a,b
 652F: DD 21 F2 6D ld   ix,unknown_C7F8
@@ -5522,7 +5524,7 @@ table_6473:
 65A0: DD B6 08    or   (ix+$02)
 65A3: DD 77 08    ld   (ix+$02),a
 65A6: 3E 5A       ld   a,$5A
-65A8: CD 5A B0    call wait_a_few_frames_B05A
+65A8: CD 5A B0    call suspend_task_B05A
 65AB: A7          and  a
 65AC: C2 87 C5    jp   nz,$652D
 65AF: 3E 00       ld   a,$00
@@ -5579,7 +5581,7 @@ table_65FB:
 6659: CD 6F CB    call $6BCF
 665C: CD EE CB    call $6BEE
 665F: 3E 90       ld   a,$30
-6661: CD 5A B0    call wait_a_few_frames_B05A
+6661: CD 5A B0    call suspend_task_B05A
 6664: A7          and  a
 6665: C4 D5 B0    call nz,display_error_text_B075
 6668: 01 09 08    ld   bc,$0203
@@ -5611,7 +5613,7 @@ table_65FB:
 66A7: A7          and  a
 66A8: C4 D5 B0    call nz,display_error_text_B075
 66AB: 3E 96       ld   a,$3C
-66AD: CD 5A B0    call wait_a_few_frames_B05A
+66AD: CD 5A B0    call suspend_task_B05A
 66B0: C5          push bc
 66B1: F5          push af
 66B2: CD 47 DA    call $7A4D
@@ -5637,7 +5639,7 @@ table_65FB:
 66DE: 3E EA       ld   a,$EA
 66E0: 32 03 6D    ld   (unknown_C709),a
 66E3: 3E 14       ld   a,$14
-66E5: CD 5A B0    call wait_a_few_frames_B05A
+66E5: CD 5A B0    call suspend_task_B05A
 66E8: A7          and  a
 66E9: C2 00 CD    jp   nz,$6700
 66EC: 3A E3 61    ld   a,(referee_walk_direction_C1E9)
@@ -5681,13 +5683,13 @@ table_65FB:
 6744: 3E 84       ld   a,$24
 6746: CD D8 B0    call play_sound_B072
 6749: 3E D0       ld   a,$70
-674B: CD 5A B0    call wait_a_few_frames_B05A
+674B: CD 5A B0    call suspend_task_B05A
 674E: A7          and  a
 674F: C4 D5 B0    call nz,display_error_text_B075
 6752: CD 47 DA    call $7A4D
 6755: CD CB CA    call $6A6B
 6758: 3E 96       ld   a,$3C
-675A: CD 5A B0    call wait_a_few_frames_B05A
+675A: CD 5A B0    call suspend_task_B05A
 675D: 01 0D 08    ld   bc,$0207
 6760: FD 21 E0 61 ld   iy,unknown_C1E0
 6764: FD 7E 0A    ld   a,(iy+$0a)
@@ -5712,7 +5714,7 @@ table_65FB:
 6790: 3E 82       ld   a,$28
 6792: CD D8 B0    call play_sound_B072
 6795: 3E 96       ld   a,$3C
-6797: CD 5A B0    call wait_a_few_frames_B05A
+6797: CD 5A B0    call suspend_task_B05A
 679A: CD 47 DA    call $7A4D
 679D: 21 16 63    ld   hl,player_2_points_C91A
 67A0: 3A 1A 63    ld   a,(player_1_points_C91A)
@@ -5731,7 +5733,7 @@ table_65FB:
 67C0: 3E 83       ld   a,$29
 67C2: CD D8 B0    call play_sound_B072
 67C5: 3E 90       ld   a,$30
-67C7: CD 5A B0    call wait_a_few_frames_B05A
+67C7: CD 5A B0    call suspend_task_B05A
 67CA: 3E 0B       ld   a,$0B
 67CC: 06 18       ld   b,$12
 67CE: CD 57 B0    call task_manipulation_B05D
@@ -5739,7 +5741,7 @@ table_65FB:
 67D3: 06 19       ld   b,$13
 67D5: CD 57 B0    call task_manipulation_B05D
 67D8: 3E 62       ld   a,$C8
-67DA: CD 5A B0    call wait_a_few_frames_B05A
+67DA: CD 5A B0    call suspend_task_B05A
 67DD: 3E 08       ld   a,$02
 67DF: 47          ld   b,a
 67E0: CD 57 B0    call task_manipulation_B05D
@@ -5752,7 +5754,7 @@ table_65FB:
 67F2: 3E 8A       ld   a,$2A
 67F4: CD D8 B0    call play_sound_B072
 67F7: 3E 90       ld   a,$30
-67F9: CD 5A B0    call wait_a_few_frames_B05A
+67F9: CD 5A B0    call suspend_task_B05A
 67FC: 3E 0A       ld   a,$0A
 67FE: 06 18       ld   b,$12
 6800: CD 57 B0    call task_manipulation_B05D
@@ -5760,7 +5762,7 @@ table_65FB:
 6805: 06 19       ld   b,$13
 6807: CD 57 B0    call task_manipulation_B05D
 680A: 3E 62       ld   a,$C8
-680C: CD 5A B0    call wait_a_few_frames_B05A
+680C: CD 5A B0    call suspend_task_B05A
 680F: 3E 08       ld   a,$02
 6811: 06 01       ld   b,$01
 6813: CD 57 B0    call task_manipulation_B05D
@@ -5770,7 +5772,7 @@ table_65FB:
 681D: F5          push af
 681E: C5          push bc
 681F: 3E 82       ld   a,$28
-6821: CD 5A B0    call wait_a_few_frames_B05A
+6821: CD 5A B0    call suspend_task_B05A
 6824: A7          and  a
 6825: C4 D5 B0    call nz,display_error_text_B075
 6828: 3E 0F       ld   a,$0F
@@ -5813,7 +5815,7 @@ table_65FB:
 687F: 06 18       ld   b,$12
 6881: CD 57 B0    call task_manipulation_B05D
 6884: 3E C4       ld   a,$64
-6886: CD 5A B0    call wait_a_few_frames_B05A
+6886: CD 5A B0    call suspend_task_B05A
 6889: 3E 08       ld   a,$02
 688B: 06 01       ld   b,$01
 688D: CD 57 B0    call task_manipulation_B05D
@@ -5841,7 +5843,7 @@ table_65FB:
 68C8: 06 18       ld   b,$12
 68CA: CD 57 B0    call task_manipulation_B05D
 68CD: 3E 62       ld   a,$C8
-68CF: CD 5A B0    call wait_a_few_frames_B05A
+68CF: CD 5A B0    call suspend_task_B05A
 68D2: 3E 08       ld   a,$02
 68D4: 47          ld   b,a
 68D5: CD 57 B0    call task_manipulation_B05D
@@ -5896,12 +5898,12 @@ table_65FB:
 6953: C3 BD C2    jp   $68B7
 6956: 32 17 63    ld   (unknown_C91D),a
 6959: 3E B0       ld   a,$B0
-695B: CD 5A B0    call wait_a_few_frames_B05A
+695B: CD 5A B0    call suspend_task_B05A
 695E: CD 47 DA    call $7A4D
 6961: CD 97 CB    call $6B3D
 6964: CD DD CB    call $6B77
 6967: 3E 96       ld   a,$3C
-6969: CD 5A B0    call wait_a_few_frames_B05A
+6969: CD 5A B0    call suspend_task_B05A
 696C: A7          and  a
 696D: C4 D5 B0    call nz,display_error_text_B075
 6970: 3E 0A       ld   a,$0A
@@ -5923,7 +5925,7 @@ table_65FB:
 6996: C2 36 C3    jp   nz,$699C
 6999: CD EE CB    call $6BEE
 699C: 3E 1E       ld   a,$1E
-699E: CD 5A B0    call wait_a_few_frames_B05A
+699E: CD 5A B0    call suspend_task_B05A
 69A1: A7          and  a
 69A2: C4 D5 B0    call nz,display_error_text_B075
 69A5: C3 C2 CC    jp   $6668
@@ -6141,12 +6143,12 @@ table_6BCA:
 6BD1: C5          push bc
 6BD2: CD EE CB    call $6BEE
 6BD5: 3E 0F       ld   a,$0F
-6BD7: CD 5A B0    call wait_a_few_frames_B05A
+6BD7: CD 5A B0    call suspend_task_B05A
 6BDA: A7          and  a
 6BDB: C4 D5 B0    call nz,display_error_text_B075
 6BDE: CD 86 C6    call clear_text_6C2C
 6BE1: 3E 0F       ld   a,$0F
-6BE3: CD 5A B0    call wait_a_few_frames_B05A
+6BE3: CD 5A B0    call suspend_task_B05A
 6BE6: A7          and  a
 6BE7: C4 D5 B0    call nz,display_error_text_B075
 6BEA: C1          pop  bc
@@ -6319,7 +6321,7 @@ table_6D3E:
 6DC6: FD 77 0A    ld   (iy+$0a),a
 6DC9: FD 36 0E 45 ld   (iy+$0e),$45
 6DCD: 3E 00       ld   a,$00
-6DCF: CD 5A B0    call wait_a_few_frames_B05A
+6DCF: CD 5A B0    call suspend_task_B05A
 6DD2: FE 80       cp   $20
 6DD4: C4 D5 B0    call nz,display_error_text_B075
 6DD7: FD 21 00 6D ld   iy,referee_x_pos_C700
@@ -6358,7 +6360,7 @@ table_6D3E:
 6E2A: 21 BE 6D    ld   hl,unknown_C7BE
 6E2D: CB FE       set  7,(hl)
 6E2F: 3E 96       ld   a,$3C
-6E31: CD 5A B0    call wait_a_few_frames_B05A
+6E31: CD 5A B0    call suspend_task_B05A
 6E34: A7          and  a
 6E35: C4 D5 B0    call nz,display_error_text_B075
 6E38: CD 51 B0    call warm_reboot_B051
@@ -6481,7 +6483,7 @@ table_6f56:
 7096: DD E5       push ix
 7098: FD E5       push iy
 709A: 3E 14       ld   a,$14
-709C: CD 5A B0    call wait_a_few_frames_B05A
+709C: CD 5A B0    call suspend_task_B05A
 709F: A7          and  a
 70A0: C4 D5 B0    call nz,display_error_text_B075
 70A3: FD E1       pop  iy
@@ -6493,7 +6495,7 @@ table_6f56:
 70B7: DD E5       push ix
 70B9: FD E5       push iy
 70BB: 3E 14       ld   a,$14
-70BD: CD 5A B0    call wait_a_few_frames_B05A
+70BD: CD 5A B0    call suspend_task_B05A
 70C0: A7          and  a
 70C1: C4 D5 B0    call nz,display_error_text_B075
 70C4: FD E1       pop  iy
@@ -6509,7 +6511,7 @@ table_6f56:
 70E4: DD E5       push ix
 70E6: FD E5       push iy
 70E8: 3E 14       ld   a,$14
-70EA: CD 5A B0    call wait_a_few_frames_B05A
+70EA: CD 5A B0    call suspend_task_B05A
 70ED: A7          and  a
 70EE: C4 D5 B0    call nz,display_error_text_B075
 70F1: FD E1       pop  iy
@@ -6521,7 +6523,7 @@ table_6f56:
 7105: DD E5       push ix
 7107: FD E5       push iy
 7109: 3E 14       ld   a,$14
-710B: CD 5A B0    call wait_a_few_frames_B05A
+710B: CD 5A B0    call suspend_task_B05A
 710E: A7          and  a
 710F: C4 D5 B0    call nz,display_error_text_B075
 7112: FD E1       pop  iy
@@ -6537,7 +6539,7 @@ table_6f56:
 7132: DD E5       push ix
 7134: FD E5       push iy
 7136: 3E 14       ld   a,$14
-7138: CD 5A B0    call wait_a_few_frames_B05A
+7138: CD 5A B0    call suspend_task_B05A
 713B: A7          and  a
 713C: C4 D5 B0    call nz,display_error_text_B075
 713F: FD E1       pop  iy
@@ -6549,7 +6551,7 @@ table_6f56:
 7153: DD E5       push ix
 7155: FD E5       push iy
 7157: 3E 14       ld   a,$14
-7159: CD 5A B0    call wait_a_few_frames_B05A
+7159: CD 5A B0    call suspend_task_B05A
 715C: A7          and  a
 715D: C4 D5 B0    call nz,display_error_text_B075
 7160: FD E1       pop  iy
@@ -6565,7 +6567,7 @@ table_6f56:
 7180: DD E5       push ix
 7182: FD E5       push iy
 7184: 3E 14       ld   a,$14
-7186: CD 5A B0    call wait_a_few_frames_B05A
+7186: CD 5A B0    call suspend_task_B05A
 7189: A7          and  a
 718A: C4 D5 B0    call nz,display_error_text_B075
 718D: FD E1       pop  iy
@@ -6577,7 +6579,7 @@ table_6f56:
 71A1: DD E5       push ix
 71A3: FD E5       push iy
 71A5: 3E 14       ld   a,$14
-71A7: CD 5A B0    call wait_a_few_frames_B05A
+71A7: CD 5A B0    call suspend_task_B05A
 71AA: A7          and  a
 71AB: C4 D5 B0    call nz,display_error_text_B075
 71AE: FD E1       pop  iy
@@ -6746,7 +6748,7 @@ table_6f56:
 733B: 23          inc  hl
 733C: 10 FD       djnz $7335
 733E: 3E 1B       ld   a,$1B
-7340: CD 5A B0    call wait_a_few_frames_B05A
+7340: CD 5A B0    call suspend_task_B05A
 7343: A7          and  a
 7344: C4 D5 B0    call nz,display_error_text_B075
 7347: DD 21 60 61 ld   ix,unknown_C1C0
@@ -6768,7 +6770,7 @@ table_6f56:
 7376: FD 36 07 CC ld   (iy+$0d),$66
 737A: FD E5       push iy
 737C: 3E 10       ld   a,$10
-737E: CD 5A B0    call wait_a_few_frames_B05A
+737E: CD 5A B0    call suspend_task_B05A
 7381: FD E1       pop  iy
 7383: FD 36 01 CD ld   (iy+$01),$67
 7387: FD 36 05 CD ld   (iy+$05),$67
@@ -6776,7 +6778,7 @@ table_6f56:
 738F: FD 36 07 C2 ld   (iy+$0d),$68
 7393: FD E5       push iy
 7395: 3E 10       ld   a,$10
-7397: CD 5A B0    call wait_a_few_frames_B05A
+7397: CD 5A B0    call suspend_task_B05A
 739A: FD E1       pop  iy
 739C: C3 CC D9    jp   $7366
 table_739f:
@@ -6881,14 +6883,14 @@ table_73a5:
 7488: FD 75 15    ld   (iy+$15),l
 748B: FD 74 1C    ld   (iy+$16),h
 748E: 3E 82       ld   a,$28
-7490: CD 5A B0    call wait_a_few_frames_B05A
+7490: CD 5A B0    call suspend_task_B05A
 7493: A7          and  a
 7494: C4 D5 B0    call nz,display_error_text_B075
 7497: FD 21 00 6D ld   iy,referee_x_pos_C700
 749B: FD 36 01 74 ld   (iy+$01),$D4
 749F: FD 36 05 75 ld   (iy+$05),$D5
 74A3: 3E 82       ld   a,$28
-74A5: CD 5A B0    call wait_a_few_frames_B05A
+74A5: CD 5A B0    call suspend_task_B05A
 74A8: A7          and  a
 74A9: C4 D5 B0    call nz,display_error_text_B075
 74AC: FD 21 00 6D ld   iy,referee_x_pos_C700
@@ -6978,7 +6980,7 @@ table_75C1:
 	dc.w	$0000 ; $75c9
 	dc.w	display_error_text_B075 ; $75cb
 75CD: 3E 00       ld   a,$00
-75CF: CD 5A B0    call wait_a_few_frames_B05A
+75CF: CD 5A B0    call suspend_task_B05A
 75D2: FE 03       cp   $09
 75D4: CA 67 D5    jp   z,$75CD
 75D7: FE 06       cp   $0C
@@ -6998,7 +7000,7 @@ table_75C1:
 75FA: DD 46 01    ld   b,(ix+$01)
 75FD: C5          push bc
 75FE: 3E 00       ld   a,$00
-7600: CD 5A B0    call wait_a_few_frames_B05A
+7600: CD 5A B0    call suspend_task_B05A
 7603: FE 06       cp   $0C
 7605: C4 D5 B0    call nz,display_error_text_B075
 7608: C1          pop  bc
@@ -7032,7 +7034,7 @@ table_75C1:
 7644: DD 46 01    ld   b,(ix+$01)
 7647: C3 FE D5    jp   $75FE
 764A: 3E 00       ld   a,$00
-764C: CD 5A B0    call wait_a_few_frames_B05A
+764C: CD 5A B0    call suspend_task_B05A
 764F: C3 4A DC    jp   $764A
 table_7652:
 	dc.b	0x17,0x0c,0x13,0x0c,0xff ; table_7652
@@ -7098,7 +7100,7 @@ table_76BD:
 76CF: DD 46 01    ld   b,(ix+$01)
 76D2: C5          push bc
 76D3: 3E 00       ld   a,$00
-76D5: CD 5A B0    call wait_a_few_frames_B05A
+76D5: CD 5A B0    call suspend_task_B05A
 76D8: FE 06       cp   $0C
 76DA: C4 D5 B0    call nz,display_error_text_B075
 76DD: C1          pop  bc
@@ -7132,12 +7134,12 @@ table_76BD:
 771B: C5          push bc
 771C: C3 79 DC    jp   $76D3
 771F: 3E 00       ld   a,$00
-7721: CD 5A B0    call wait_a_few_frames_B05A
+7721: CD 5A B0    call suspend_task_B05A
 7724: C3 1F DD    jp   $771F
 table_7727:
 	dc.b	0x17,0x0c,0x0b,0x0c,0xff ; table_7727
 772C: 3E 00       ld   a,$00
-772E: CD 5A B0    call wait_a_few_frames_B05A
+772E: CD 5A B0    call suspend_task_B05A
 7731: FE 03       cp   $09
 7733: CA 86 DD    jp   z,$772C
 7736: FE 06       cp   $0C
@@ -7167,7 +7169,7 @@ table_7753:
 778E: 16 32       ld   d,$98
 7790: CD 93 B0    call display_text_B039
 7793: 3E 20       ld   a,$80
-7795: CD 5A B0    call wait_a_few_frames_B05A
+7795: CD 5A B0    call suspend_task_B05A
 7798: C9          ret
 table_7799:
 	dc.b	0x0c,0x0e,0x19,0x15,0x0a,0x22,0x0e,0x1b ; table_7799
@@ -7234,7 +7236,7 @@ table_78b7:
 78FB: 21 33 D3    ld   hl,table_7999
 78FE: CD 96 B0    call display_multicolor_text_B03C
 7901: 3E 1E       ld   a,$1E
-7903: CD 5A B0    call wait_a_few_frames_B05A
+7903: CD 5A B0    call suspend_task_B05A
 7906: A7          and  a
 7907: C4 D5 B0    call nz,display_error_text_B075
 790A: 3E 02       ld   a,$08
@@ -7250,12 +7252,12 @@ table_78b7:
 7921: 21 D8 D3    ld   hl,table_7972
 7924: CD 96 B0    call display_multicolor_text_B03C
 7927: 3E 14       ld   a,$14
-7929: CD 5A B0    call wait_a_few_frames_B05A
+7929: CD 5A B0    call suspend_task_B05A
 792C: 21 57 D3    ld   hl,table_795D
 792F: 16 32       ld   d,$98
 7931: CD 93 B0    call display_text_B039
 7934: 3E 14       ld   a,$14
-7936: CD 5A B0    call wait_a_few_frames_B05A
+7936: CD 5A B0    call suspend_task_B05A
 7939: C1          pop  bc
 793A: 10 E4       djnz $7920
 793C: 3E 02       ld   a,$08
@@ -7571,7 +7573,7 @@ credit_text_7C54:
 7CBB: FD 66 01    ld   h,(iy+$01)
 7CBE: CD 96 B0    call display_multicolor_text_B03C
 7CC1: 3E 82       ld   a,$28
-7CC3: CD 5A B0    call wait_a_few_frames_B05A
+7CC3: CD 5A B0    call suspend_task_B05A
 7CC6: FD E1       pop  iy
 7CC8: DD E1       pop  ix
 7CCA: A7          and  a
@@ -7589,13 +7591,13 @@ credit_text_7C54:
 7CE8: FD 66 09    ld   h,(iy+$03)
 7CEB: CD 96 B0    call display_multicolor_text_B03C
 7CEE: 3E 82       ld   a,$28
-7CF0: CD 5A B0    call wait_a_few_frames_B05A
+7CF0: CD 5A B0    call suspend_task_B05A
 7CF3: FD E1       pop  iy
 7CF5: DD E1       pop  ix
 7CF7: C3 A1 D6    jp   $7CA1
 7CFA: DD E5       push ix
 7CFC: 3E 00       ld   a,$00
-7CFE: CD 5A B0    call wait_a_few_frames_B05A
+7CFE: CD 5A B0    call suspend_task_B05A
 7D01: DD E1       pop  ix
 7D03: C3 A1 D6    jp   $7CA1
 	dc.b	0x69,0xa1,0x7c
@@ -8871,7 +8873,7 @@ fight_mainloop_A37B:
 A37B: CD 4B B0    call load_iy_with_player_structure_B04B
 A37E: FD 36 10 00 ld   (iy+$10),$00
 A382: AF          xor  a
-A383: CD 5A B0    call wait_a_few_frames_B05A
+A383: CD 5A B0    call suspend_task_B05A
 A386: FE 03       cp   $09
 A388: CA DB A9    jp   z,fight_mainloop_A37B
 A38B: FE 06       cp   $0C
@@ -10380,7 +10382,7 @@ AD50: C3 C4 A7    jp   $AD64
 AD53: FD E5       push iy
 AD55: C5          push bc
 AD56: 3E 01       ld   a,$01
-AD58: CD 5A B0    call wait_a_few_frames_B05A
+AD58: CD 5A B0    call suspend_task_B05A
 AD5B: C1          pop  bc
 AD5C: FD E1       pop  iy
 AD5E: A7          and  a
@@ -10563,10 +10565,11 @@ unsuspend_task_B054:
 B054: C3 67 B5    jp   unsuspend_task_B5CD
 schedule_task_to_start_B057:
 B057: C3 80 BC    jp   schedule_task_to_start_B620
-wait_a_few_frames_B05A:
+suspend_task_B05A:
 B05A: C3 5E BC    jp   suspend_task_B65E
 task_manipulation_B05D:
 B05D: C3 AE BC    jp   task_manipulation_B6AE
+set_normal_screen_b060:
 B060: C3 D8 BB    jp   set_normal_screen_bb72
 B063: C3 DA BB    jp   $BB7A
 B066: C3 28 BB    jp   check_coin_ports_BB82
@@ -11805,6 +11808,8 @@ task_stack_buffer_table_B825:
 	dc.w	stack_buffer_C6C0 ; $b84f
 	dc.w	stack_buffer_C6E0 ; $b851
 	dc.w	stack_buffer_C700 ; $b853
+	; this is probably not used too as referee x pos
+	; is located that C700 too
 	dc.w	stack_buffer_C720 ; $b855
 	dc.w	stack_buffer_C740 ; $b857
 	dc.w	stack_buffer_C760 ; $b859
