@@ -207,18 +207,15 @@
 	.align	2
 	.endif
 
+karate_champ_irq:
+	rts
+	
 karate_champ_reset:
 	* default: 1 update/irq call
 	* we need 60 updates / second so on amiga PAL
 	* we need to set this variable to 2 once out of 5 calls
 	move.b	#1,vb_ticks_count
 	lea		stack_top,sp
-	
-
-karate_champ_irq:
-	rts
-	
-	
 l_0000:
 	jra	startup_B045                       	| [jp   startup_B045]
 	
@@ -652,7 +649,6 @@ l_b320:
 display_text_B357:
 
 	move.l	a3,-(sp)                        	| [$b357: push iy]
-
 	move.l	a0,a3                        	| [$b359: push hl]
 	                        	| [$b35a: pop  iy]
 	* a3 points on coords , color, + text
@@ -685,7 +681,7 @@ l_b37f:
 	add.w	#0x400,d6                            	| [$b383: add  hl,bc] attribute memory
 	move.b	d3,d0
 	jbsr	osd_w_colorram                         	| [$b384: ld   (hl),d]
-	                      	| [$b385: ld   bc,$0420] next line
+	                      	| [$b385: ld   bc,$0420] next char
 	                               	| [$b388: xor  a]
 	sub.w	#0x420,d6				| [sbc  hl,bc]
 	jra	l_b36b                             	| [$b38b: jp   $B36B]
@@ -696,6 +692,7 @@ l_b38e:
 
 
 startup_B469:
+
 	move.b	#0x42,d0                        	| [$b469: ld   a,$42]
 	move.b	d0,unknown_CD21                 	| [$b46b: ld   (unknown_CD21),a]
 	lea		stack_top,sp			| ld   sp,temp_numeric_buffer_CF00			| set stack
@@ -740,16 +737,21 @@ run_a_task_b4a7:
 *
 * this is a task scheduler, with stack location change and all!!!
 * find a non-zero slot
-	move.b	#0xC,d6		| lsb of HL which is always 0xC00C fortunately
+	bsr		osd_break
+	addq.w	#6,a0		| HL which is always 0xC006
+	move.b	#0xC,d6		| coupling D6 (L) with A0 (HL) to point on 0xC00C
 	cmp.b	(a0),d0                          	| [$b4a9: cp   (hl)]
 	jne	l_b4b8                             	| [$b4aa: jp   nz,$B4B8]
+	addq.w	#1,a0
 	addq.b	#1,d6                           	| [$b4ad: inc  l]
 	cmp.b	(a0),d0                          	| [$b4ae: cp   (hl)]
 	jne	l_b4b8                             	| [$b4af: jp   nz,$B4B8]
+	addq.w	#1,a0
 	addq.b	#1,d6                           	| [$b4b2: inc  l]
 	cmp.b	(a0),d0                          	| [$b4b3: cp   (hl)]
 	jne	l_b4b8                             	| [$b4b4: jp   nz,$B4B8]
 	* if not found pick the last slot (probably replace last running task if any)
+	addq.w	#1,a0
 	addq.b	#1,d6                           	| [$b4b7: inc  l]
 l_b4b8:
 	move.b	d6,d0                           	| [$b4b8: ld   a,l]
@@ -827,11 +829,13 @@ resume_a_task_b503:
 	* compute free task slot?				| [$b51d: ld   d,a]
 	cmp.b	(a0),d0                          	| [$b51e: cp   (hl)]
 	jne	l_b52d                             	| [$b51f: jp   nz,$B52D]
+	addq.w	#1,a0
 	addq.w	#1,d6                           	| [$b522: inc  l]
 	* check for 1 in task id
 	cmp.b	(a0),d0                          	| [$b523: cp   (hl)]
 	jne	l_b52d                             	| [$b524: jp   nz,$B52D]
 	* check for 2 in task id
+	addq.w	#1,a0
 	addq.b	#1,d6                           	| [$b527: inc  l]
 	cmp.b	(a0),d0                          	| [$b528: cp   (hl)]
 	jne	l_b52d                             	| [$b529: jp   nz,$B52D]
@@ -910,7 +914,7 @@ unsuspend_task_B5CD:
 	lea	powers_of_2_table_B875(pc),a2      	| [$b5e4: ld   ix,powers_of_2_table_B875]
 	add.w	d3,a2                            	| [$b5e8: add  ix,de]
 
-	move.b	(0x00,a2),d0                    	| [$b5ea: ld   a,(ix+$00)]
+	move.b	(a2),d0                    	| [$b5ea: ld   a,(ix+$00)]
 	move.b	d0,d1                           	| [$b5ed: ld   b,a]
 	and.b	(a0),d0
 	bne.b	0f
@@ -963,7 +967,7 @@ l_b618:
 * returns 0 if something changed, $FF otherwise
 schedule_task_to_start_B620:
 	jbsr	disable_interrupts_BBE2           	| [$b620: call disable_interrupts_BBE2]
-	lea	active_task_bit_table_C000(pc),a0                	| [$b623: ld   hl,active_task_bit_table_C000]
+	lea	active_task_bit_table_C000,a0                	| [$b623: ld   hl,active_task_bit_table_C000]
 	move.b	d0,d2                           	| [$b626: ld   c,a]
 	clr.w	d1                               	| [$b627: ld   b,$00]
 	moveq	#0,d3                      	| [$b629: ld   de,$0000] 0
@@ -991,7 +995,7 @@ schedule_task_to_start_B620:
 	move.b	d4,d0                           	| [$b64c: ld   a,e]
 	or.b	(a0),d0                           	| [$b64d: or   (hl)]
 	move.b	d0,(a0)                         	| [$b64e: ld   (hl),a]
-	lea	nb_tasks_to_start_C029(pc),a0      	| [$b64f: ld   hl,nb_tasks_to_start_C029]
+	lea	nb_tasks_to_start_C029,a0      	| [$b64f: ld   hl,nb_tasks_to_start_C029]
 	addq.b	#1,(a0)                         	| [$b652: inc  (hl)] increment timer
 	clr.b	d0                               	| [$b653: xor  a]
 	jbsr	enable_interrupts_BBE2            	| [$b654: call enable_interrupts_BBE2]
@@ -1008,7 +1012,7 @@ suspend_task_B65E:
 	jbsr	disable_interrupts_BBE2           	| [$b65e: call disable_interrupts_BBE2]
 	move.w	d0,-(sp)                        	| [$b661: push af]
 	move.b	player_2_attack_flags_C028,d0   	| [$b662: ld   a,(player_2_attack_flags_C028)]
-	lea	unknown_C012(pc),a0                	| [$b665: ld   hl,unknown_C012]
+	lea	unknown_C012,a0                	| [$b665: ld   hl,unknown_C012]
 	move.b	d0,d2                           	| [$b668: ld   c,a]
 	clr.w	d1                               	| [$b669: ld   b,$00]
 	move.w	#0x0000,d3                      	| [$b66b: ld   de,$0000] 0
@@ -1025,7 +1029,7 @@ suspend_task_B65E:
 	or.b	(a0),d0                           	| [$b682: or   (hl)]
 	move.b	d0,(a0)                         	| [$b683: ld   (hl),a]
 	move.b	player_2_attack_flags_C028,d0   	| [$b684: ld   a,(player_2_attack_flags_C028)]
-	lea	task_struct_C100(pc),a3                	| [$b687: ld   iy,task_struct_C100]
+	lea	task_struct_C100,a3                	| [$b687: ld   iy,task_struct_C100]
 	move.b	d0,d1                           	| [$b68b: ld   b,a]
 	clr.b	d2                               	| [$b68c: ld   c,$00]
 	tst.b	d0                               	| [$b68e: and  a]
@@ -1348,7 +1352,7 @@ stop_sound_BBDF:
 init_C040_F6E5:
 	move.w	#0x006C,d1                      	| [$f6e5: ld   bc,$006C] 108
 	lea	table_F6F1(pc),a0                  	| [$f6e8: ld   hl,table_F6F1]
-	lea	unknown_C040(pc),a1                	| [$f6eb: ld   de,unknown_C040]
+	lea	unknown_C040,a1                	| [$f6eb: ld   de,unknown_C040]
 	jbsr	ldir                              	| [$f6ee: ldir]
 	rts                                    	| [$f6f0: ret]
 table_F6F1:

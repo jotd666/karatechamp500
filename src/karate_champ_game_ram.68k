@@ -173,7 +173,6 @@
 	.global	unknown_CF16
 	.global	unknown_CF21
 
-task_struct_RATIO = 4
 
 active_task_bit_table_C000:
 	ds.b	1

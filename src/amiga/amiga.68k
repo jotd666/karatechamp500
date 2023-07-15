@@ -970,7 +970,6 @@ alloc_sprite:
 osd_set_bank_selectors:
 	move.b	d0,alternate_bank_selectors
 	* alternate bank: enable dynamic sprites
-	sne		dynamic_color_mode
 	bsr		load_palette_in_copperlist
 	rts
 	
@@ -988,10 +987,7 @@ osd_sound_start:
 	
 	lsl.w	#3,d0
 	lea		sound_table_set_2,a0
-	tst.b	alternate_music_flag
-	bne.b	0f
-	lea		sound_table_set_1,a0	
-0:
+
 	move.w	(a0,d0.w),d1	| sound type
 	beq.b	0f		| no sound
 
@@ -1248,6 +1244,7 @@ platform_init:
 	dbf		d1,0b
 	
 	bsr		set_bg_bitplanes
+	bsr		load_palette_in_copperlist
 	
 	* set copperlist
 	move.l	#copperlist,cop1lc(a5)
@@ -1382,7 +1379,7 @@ osd_r_colorram:
 	rts
 	
 * d6=screen address (preserved), d0=tile (preserved)
-* d6 starts at 0x8000 ends at 0x83FF
+* d6 starts at 0xD000 ends at 0xD3FF
 * should preserve all registers
 
 osd_w_videoram:
@@ -1412,7 +1409,7 @@ osd_w_videoram:
 	rts
 
 * d6=screen address (preserved), d0=attribute (preserved)
-* d6 starts at 0x8000 ends at 0x83FF
+* d6 starts at 0xD400 ends at 0xD7FF
 * should preserve all registers
 
 osd_w_colorram:
@@ -1451,6 +1448,8 @@ osd_w_colorram:
 * other rows use a X/Y transposed system like Galaxian or Xevious!
 *
 update_bg_tile:
+	move.w	#11,d1		| TEMP fix color
+
 	* compute Y
 	and.w	#0xFF,d0	| mask up to 255
 	and.w	#0xFF,d1	| mask up to 255
@@ -1503,7 +1502,7 @@ update_bg_tile:
 	* empty character is passed (standard charset)
 	**cmp.w	#0x20,d0	| empty character
 	**jeq	1f
-
+	
 	lea		character_table,a0
 	add.w	d0,d0
 	add.w	d0,d0
@@ -1515,8 +1514,6 @@ update_bg_tile:
 	add.w	(a0,d1.w),a0
 	cmp.l	d0,a0
 	jeq		12f		| should not happen
-	tst.b	first_row_standard_bank_selector
-	bne.b	5f
 4:
 	.set	offset,0
 	.rept	8
@@ -1527,20 +1524,9 @@ update_bg_tile:
 	dbf		d3,4b
 0:
 	rts
-5:
-	.set	offset,0
-	.rept	7
-	move.b	(a0)+,(offset,a1)	
-	.set	offset,offset+NB_BYTES_PER_ROW
-	.endr
-	addq.w	#1,a0		| skip last row
-	add.w	#BG_SCREEN_PLANE_SIZE,a1
-	dbf		d3,5b
-	rts
-	* clear tile
+
 1:
-	tst.b	first_row_standard_bank_selector
-	bne.b	55f
+
 11:
 	.set	offset,0
 	.rept	8
@@ -1551,15 +1537,7 @@ update_bg_tile:
 	dbf		d3,11b
 2:
 	rts
-55:
-	.set	offset,0
-	.rept	7
-	clr.b	(offset,a1)
-	.set	offset,offset+NB_BYTES_PER_ROW
-	.endr
-	add.w	#BG_SCREEN_PLANE_SIZE,a1
-	dbf		d3,55b
-	rts
+
 12:
 	* clut/tile combo not declared as used
 	**blitz
@@ -2046,10 +2024,6 @@ music_playing:
 	.byte	0
 music_muted:
 	.byte	0
-dynamic_color_mode:
-	.byte	0
-alternate_music_flag:
-	.byte	0
 cheat_used:
 	.byte	0
 dosname:
@@ -2059,7 +2033,7 @@ graphicsname:
 	.ascii	"graphics.library"
 	.byte	0
 normal_hiscorename:
-	.asciz	"pengo.high"
+	.asciz	"kchamp.high"
 floppy_file:
 	.ascii	"floppy"
 	.byte	0

@@ -20,7 +20,7 @@
 	* 0011b6ee 41fa d124                lea.l (pc,$d124) == $00118814,a0 ($8814 LSW matches!)
 	*
 
-	ds.b	0xC000		| for some reason, there's a 2 byte shift, let's make up for it
+	ds.b	0xC000-0x810		| for some reason, there's a 2 byte shift, let's make up for it
 	.endif
 	.else
 	* Neogeo: needs different writable section from ROM code
