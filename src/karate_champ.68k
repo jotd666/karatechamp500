@@ -1816,7 +1816,7 @@ suspend_task_B65E:
 	move.b	d2,d1
 	add.w	d1,a3                            	| [$b69b: add  iy,bc]
 	move.w	(sp)+,d0                        	| [$b69d: pop  af]
-* writes in player struct + 2: number of frames to wait until next frame
+* writes in task struct + 2: number of frames to wait until next frame
 	move.b	d0,(0x02,a3)                    	| [$b69e: ld   (iy+$02),a]
 	* get current stack (rather stack offset so we fit in 16 bits) 
 	* to store it in the task structure
