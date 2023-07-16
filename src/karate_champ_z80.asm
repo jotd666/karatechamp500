@@ -1546,11 +1546,11 @@ table_3D77:
 3DBA: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 3DBD: FE 02       cp   $08
 3DBF: C2 62 97    jp   nz,$3DC8
-3DC2: CD BD B0    call $B0B7
+3DC2: CD BD B0    call read_p1_controls_B0B7
 3DC5: C3 70 97    jp   $3DD0
 3DC8: FE 03       cp   $09
 3DCA: C4 D5 B0    call nz,display_error_text_B075
-3DCD: CD BA B0    call $B0BA
+3DCD: CD BA B0    call read_p2_controls_B0BA
 3DD0: 06 13       ld   b,$19
 3DD2: 21 F2 97    ld   hl,table_3DF8
 3DD5: 11 09 00    ld   de,$0003
@@ -2788,6 +2788,7 @@ table_494B:
 	dc.b	0x38,0x07,0xe3,0x38,0x0d ; $495b
 table_4960:
 	dc.b	0x7c,0xc7,0x8c,0xc7,0x9c,0xc7,0xac,0xc7 ; table_4960
+
 4968: CD 4B B0    call load_iy_with_player_structure_B04B
 496B: FD 6E 0E    ld   l,(iy+$0e)
 496E: FD 66 0F    ld   h,(iy+$0f)
@@ -2795,6 +2796,7 @@ table_4960:
 4972: DD E1       pop  ix
 4974: FD 4E 07    ld   c,(iy+$0d)
 4977: C9          ret
+
 4978: CD 27 4D    call get_current_frame_contents_478D
 497B: 7E          ld   a,(hl)
 497C: E6 20       and  $80
@@ -3786,7 +3788,7 @@ task_53d2:
 5455: CD B1 B0    call is_title_screen_demo_mode_B0B1
 5458: A7          and  a
 5459: CA C4 54    jp   z,$5464
-545C: CD B4 B0    call $B0B4
+545C: CD B4 B0    call display_players_rank_B0B4
 545F: 3E 00       ld   a,$00
 5461: CD 12 B0    call $B018
 5464: 3A 11 63    ld   a,(background_and_state_bits_C911)
@@ -4661,7 +4663,7 @@ return_zero_in_A_5B7A:
 5C15: 21 9C D7    ld   hl,table_7D36
 5C18: CD 96 B0    call display_multicolor_text_B03C
 5C1B: CD 7C DA    call $7AD6
-5C1E: CD B4 B0    call $B0B4
+5C1E: CD B4 B0    call display_players_rank_B0B4
 5C21: 3E 00       ld   a,$00
 5C23: CD 12 B0    call $B018
 5C26: 3A 10 63    ld   a,(computer_skill_C910)
@@ -4891,6 +4893,7 @@ table_5E07:
 table_5F00:
 	dc.b	0x12,0x13,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c ; table_5F00
 	dc.b	0xff ; $5f08
+; <> HL
 ; check level number < 8 > 10 whatever
 5F09: 3A 76 60    ld   a,(level_number_C0DC)
 5F0C: FE 02       cp   $08
@@ -4911,6 +4914,7 @@ table_5F00:
 5F27: B6          or   (hl)
 5F28: 77          ld   (hl),a
 5F29: C9          ret
+
 5F2A: 01 91 A4    ld   bc,$A431
 5F2D: CD 90 B0    call fill_video_and_attribute_memory_B030
 5F30: 21 E3 29    ld   hl,table_83e9
@@ -4919,7 +4923,7 @@ table_5F00:
 5F39: CD 96 B0    call display_multicolor_text_B03C
 5F3C: 21 9C D7    ld   hl,table_7D36
 5F3F: CD 96 B0    call display_multicolor_text_B03C
-5F42: CD B4 B0    call $B0B4
+5F42: CD B4 B0    call display_players_rank_B0B4
 5F45: CD 7C DA    call $7AD6
 5F48: 3E 00       ld   a,$00
 5F4A: CD 12 B0    call $B018
@@ -10530,7 +10534,7 @@ table_linear_search_B00F:
 B00F: C3 42 B1    jp   table_linear_search_B148
 B012: C3 56 B1    jp   $B15C
 unsuspend_tasks_b015:
-B015: C3 D1 B1    jp   $B171
+B015: C3 D1 B1    jp   unsuspend_tasks_b171
 B018: C3 AB B1    jp   $B1AB
 B01B: C3 2E B8    jp   $B28E
 clear_C7xx_B01E:
@@ -10542,7 +10546,7 @@ B024: C3 6A B8    jp   fill_zone_with_a_B2CA
 B027: C3 73 B8    jp   $B2D9
 B02A: C3 EC B8    jp   $B2E6
 B02D: C3 FC B8    jp   compute_screen_address_from_XY_B2F6
-fill_video_and_attribute_memory_B030: 
+fill_video_and_attribute_memory_B030:
 B030: C3 1C B9    jp   fill_video_and_attribute_memory_B316
 B033: C3 91 B9    jp   $B331
 B036: C3 49 B9    jp   $B343
@@ -10560,7 +10564,7 @@ periodic_interrupt_B048:
 B048: C3 8F BD    jp   on_periodic_interrupt_B72F
 B04B: C3 D4 B5    jp   load_iy_with_player_structure_B574
 B04E: C3 2E B5    jp   $B58E
-B051: C3 A5 B5    jp   warm_reboot_B5A5
+B051: C3 A5 B5    jp   task_yield_B5A5
 unsuspend_task_B054:
 B054: C3 67 B5    jp   unsuspend_task_B5CD
 schedule_task_to_start_B057:
@@ -10576,7 +10580,7 @@ B066: C3 28 BB    jp   check_coin_ports_BB82
 check_coin_ports_B069:
 B069: C3 28 BB    jp   check_coin_ports_BB82
 B06C: C3 38 BB    jp   get_dip_switches_BB92
-B06F: C3 3C BB    jp   $BB96
+B06F: C3 3C BB    jp   read_current_player_controls_BB96
 play_sound_B072:
 B072: C3 B5 BB    jp   play_sound_BBB5
 display_error_text_B075:
@@ -10602,9 +10606,12 @@ B0AB: C3 00 E0    jp   $E000
 B0AE: C3 7F BB    jp   stop_sound_BBDF
 is_title_screen_demo_mode_B0B1:
 B0B1: C3 DE B8    jp   is_title_screen_demo_mode_B27E
-B0B4: C3 44 F7    jp   $FD44
-B0B7: C3 A2 BB    jp   read_port_0_BBA8
-B0BA: C3 A7 BB    jp   $BBAD
+display_players_rank_B0B4:
+B0B4: C3 44 F7    jp   display_players_rank_FD44
+read_p1_controls_B0B7:
+B0B7: C3 A2 BB    jp   read_p1_controls_BBA8
+read_p2_controls_B0BA:
+B0BA: C3 A7 BB    jp   read_p2_controls_BBAD
 disable_interrupts_B0BD:
 B0BD: C3 E8 BB    jp   disable_interrupts_BBE2
 enable_interrupts_b0c0:
@@ -10916,7 +10923,7 @@ clear_zone_B2BD:
 B2BD: DD E1       pop  ix			; return address in ix
 B2BF: 36 00       ld   (hl),$00		; set to 0
 B2C1: 23          inc  hl			; increment hl
-B2C2: 0B          dec  bc			; decrement bc counter²
+B2C2: 0B          dec  bc			; decrement bc counter
 B2C3: 78          ld   a,b			; test b=c=0
 B2C4: B1          or   c
 B2C5: C2 BF B8    jp   nz,$B2BF		; not 0, keep looping
@@ -10979,7 +10986,7 @@ B315: C9          ret
 ; fill video & attribute memory with an uniform value
 ; < c: what to set in video memory
 ; < b: what to set in attribute memory
-; 
+;
 fill_video_and_attribute_memory_B316:
 B316: 21 00 70    ld   hl,$D000
 B319: DD 21 00 74 ld   ix,$D400
@@ -11400,7 +11407,7 @@ B5A0: CB 19       rr   c
 B5A2: FD 09       add  iy,bc
 B5A4: C9          ret
 
-warm_reboot_B5A5:
+task_yield_B5A5:
 B5A5: CD E8 BB    call disable_interrupts_BBE2
 B5A8: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 B5AB: 21 00 60    ld   hl,active_task_bit_table_C000
@@ -11666,6 +11673,7 @@ B747: 22 8E 60    ld   (periodic_counter_16bit_C02E),hl
 B74A: 3A 8B 60    ld   a,(periodic_counter_8bit_C02B)
 B74D: 3C          inc  a
 B74E: 32 8B 60    ld   (periodic_counter_8bit_C02B),a
+; screen not flipped
 B751: AF          xor  a
 B752: CD CF BB    call write_a_in_port_0_BB6F
 B755: CD D7 BA    call manage_coin_inserted_BA7D
@@ -12009,10 +12017,13 @@ write_a_in_port_0_BB6F:
 BB6F: D3 00       out  ($00),a
 BB71: C9          ret
 
+screen_flip_off_BB72:
 BB72: 3E 00       ld   a,$00
 BB74: D3 00       out  ($00),a
 BB76: 32 91 60    ld   (unknown_C031),a
 BB79: C9          ret
+
+screen_flip_on_BB7A:
 BB7A: 3E 01       ld   a,$01
 BB7C: D3 00       out  ($00),a
 BB7E: 32 91 60    ld   (unknown_C031),a
@@ -12069,16 +12080,17 @@ BB95: C9          ret
 BB96: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 BB99: CB 5F       bit  3,a
 BB9B: CA A4 BB    jp   z,$BBA4
-BB9E: CD A7 BB    call $BBAD
+BB9E: CD A7 BB    call read_p2_controls_BBAD
 BBA1: C3 AD BB    jp   $BBA7
 
-BBA4: CD A2 BB    call read_port_0_BBA8
+BBA4: CD A2 BB    call read_p1_controls_BBA8
 BBA7: C9          ret
 
-read_port_0_BBA8:
+read_p1_controls_BBA8:
 BBA8: DB 00       in   a,($00)
 BBAA: C3 AF BB    jp   $BBAF
 
+read_p2_controls_BBAD:
 BBAD: DB 40       in   a,($40)
 BBAF: 2F          cpl
 BBB0: 07          rlca
@@ -12146,7 +12158,7 @@ E014: C2 81 E0    jp   nz,$E021
 E017: 3E 01       ld   a,$01
 E019: 06 01       ld   b,$01
 E01B: CD AE BC    call task_manipulation_B6AE
-E01E: CD A5 B5    call warm_reboot_B5A5
+E01E: CD A5 B5    call task_yield_B5A5
 
 E021: 3E 04       ld   a,$04
 E023: 21 80 E9    ld   hl,table_E320
@@ -12252,7 +12264,7 @@ E0FE: E1          pop  hl
 E0FF: FD 75 1B    ld   (iy+$1b),l
 E102: FD 74 16    ld   (iy+$1c),h
 E105: C3 DC E0    jp   $E076
-E108: CD A5 B5    call warm_reboot_B5A5
+E108: CD A5 B5    call task_yield_B5A5
 E10B: FD E5       push iy
 E10D: DD E5       push ix
 E10F: AF          xor  a
@@ -12373,10 +12385,10 @@ E21D: DD 66 01    ld   h,(ix+$01)
 E220: 7D          ld   a,l
 E221: A4          and  h
 E222: FE FF       cp   $FF		; FFFF: invalid address in table
-E224: CC A5 B5    call z,warm_reboot_B5A5
+E224: CC A5 B5    call z,task_yield_B5A5
 E227: E9          jp   (hl)
 address_table_E228:
-	dc.w	$e32b ; address_table_E228
+	dc.w	$e32b ; $e228
 	dc.w	display_error_text_B186 ; $e22a
 	dc.w	display_error_text_B186 ; $e22c
 	dc.w	$e44f ; $e22e
@@ -12502,9 +12514,9 @@ E32E: 21 D9 E9    ld   hl,table_E373
 E331: 3A 11 63    ld   a,(background_and_state_bits_C911)
 E334: FE 02       cp   $08
 E336: C2 96 E9    jp   nz,$E33C
-E339: 21 34 E9    ld   hl,table_E394
+E339: 21 34 E9    ld   hl,challenge_stage_text_E394
 E33C: CD 31 B9    call display_multicolor_text_B391
-E33F: 21 FD E9    ld   hl,table_E3F7
+E33F: 21 FD E9    ld   hl,space_text_E3F7
 E342: CD 31 B9    call display_multicolor_text_B391
 E345: 3E 02       ld   a,$08
 E347: CD 5E BC    call suspend_task_B65E
@@ -12512,9 +12524,9 @@ E34A: 21 B5 E9    ld   hl,table_E3B5
 E34D: 3A 11 63    ld   a,(background_and_state_bits_C911)
 E350: FE 02       cp   $08
 E352: C2 52 E9    jp   nz,$E358
-E355: 21 7C E9    ld   hl,table_E3D6
+E355: 21 7C E9    ld   hl,space_text_E3D6
 E358: CD 31 B9    call display_multicolor_text_B391
-E35B: 21 89 E4    ld   hl,table_E423
+E35B: 21 89 E4    ld   hl,space_text_E423
 E35E: CD 31 B9    call display_multicolor_text_B391
 E361: 3E 02       ld   a,$08
 E363: CD 5E BC    call suspend_task_B65E
@@ -12523,15 +12535,15 @@ E367: 10 64       djnz $E32D
 E369: 3E 01       ld   a,$01
 E36B: 06 01       ld   b,$01
 E36D: CD AE BC    call task_manipulation_B6AE
-E370: CD A5 B5    call warm_reboot_B5A5
+E370: CD A5 B5    call task_yield_B5A5
 table_E373:
 	dc.b	0x08,0x1d,0x0c,0xa0,0x11,0xa0,0x0a,0xa0 ; table_E373
 	dc.b	0x15,0xa0,0x15,0xa0,0x0e,0xa0,0x17,0xa0 ; $e37b
 	dc.b	0x10,0xa0,0x0e,0xa0,0x3c,0xa0,0x1c,0xa0 ; $e383
 	dc.b	0x1d,0xa0,0x0a,0xa0,0x10,0xa0,0x0e,0xa0 ; $e38b
 	dc.b	0xff ; $e393
-table_E394:
-	dc.b	0x08,0x11,0x0c,0xa0,0x11,0xa0,0x0a,0xa0 ; table_E394
+challenge_stage_text_E394:
+	dc.b	0x08,0x11,0x0c,0xa0,0x11,0xa0,0x0a,0xa0 ; challenge_stage_text_E394
 	dc.b	0x15,0xa0,0x15,0xa0,0x0e,0xa0,0x17,0xa0 ; $e39c
 	dc.b	0x10,0xa0,0x0e,0xa0,0x3c,0xa0,0x1c,0xa0 ; $e3a4
 	dc.b	0x1d,0xa0,0x0a,0xa0,0x10,0xa0,0x0e,0xa0 ; $e3ac
@@ -12542,27 +12554,27 @@ table_E3B5:
 	dc.b	0x3c,0xa0,0x3c,0xa0,0x3c,0xa0,0x3c,0xa0 ; $e3c5
 	dc.b	0x3c,0xa0,0x3c,0xa0,0x3c,0xa0,0x3c,0xa0 ; $e3cd
 	dc.b	0xff ; $e3d5
-table_E3D6:
-	dc.b	0x08,0x11,0x3c,0xa0,0x3c,0xa0,0x3c,0xa0 ; table_E3D6
+space_text_E3D6:
+	dc.b	0x08,0x11,0x3c,0xa0,0x3c,0xa0,0x3c,0xa0 ; space_text_E3D6
 	dc.b	0x3c,0xa0,0x3c,0xa0,0x3c,0xa0,0x3c,0xa0 ; $e3de
 	dc.b	0x3c,0xa0,0x3c,0xa0,0x3c,0xa0,0x3c,0xa0 ; $e3e6
 	dc.b	0x3c,0xa0,0x3c,0xa0,0x3c,0xa0,0x3c,0xa0 ; $e3ee
 	dc.b	0xff ; $e3f6
-table_E3F7:
-	dc.b	0x17,0x10,0x3c,0x88,0x3c,0x88,0x3c,0x88 ; table_E3F7
+space_text_E3F7:
+	dc.b	0x17,0x10,0x3c,0x88,0x3c,0x88,0x3c,0x88 ; space_text_E3F7
 	dc.b	0x3c,0x88,0xfe,0x17,0x11,0x3c,0x88,0xaf ; $e3ff
 	dc.b	0x88,0xb0,0x88,0x3c,0x88,0xfe,0x17,0x12 ; $e407
 	dc.b	0x3c,0x88,0xb3,0x88,0xb4,0x88,0x3c,0x88 ; $e40f
 	dc.b	0xfe,0x17,0x13,0x3c,0x88,0x3c,0x88,0x3c ; $e417
 	dc.b	0x88,0x3c,0x88,0xff ; $e41f
-table_E423:
-	dc.b	0x17,0x10,0x3c,0x88,0xac,0x88,0xad,0x88 ; table_E423
+space_text_E423:
+	dc.b	0x17,0x10,0x3c,0x88,0xac,0x88,0xad,0x88 ; space_text_E423
 	dc.b	0x3c,0x88,0xfe,0x17,0x11,0xae,0x88,0xaf ; $e42b
 	dc.b	0x88,0xb0,0x88,0xb1,0x88,0xfe,0x17,0x12 ; $e433
 	dc.b	0xb2,0x88,0xb3,0x88,0xb4,0x88,0xb5,0x88 ; $e43b
 	dc.b	0xfe,0x17,0x13,0x3c,0x88,0xb6,0x88,0xb7 ; $e443
 	dc.b	0x88,0x3c,0x88,0xff ; $e44b
-E44F: CD 64 F7    call $FDC4
+E44F: CD 64 F7    call clear_score_text_FDC4
 E452: FD 21 90 6D ld   iy,unknown_C730
 E456: 21 25 C2    ld   hl,$6885		; immediate
 E459: 06 0A       ld   b,$0A
@@ -12617,7 +12629,7 @@ E4C5: 21 D9 E9    ld   hl,table_E373
 E4C8: 3A 11 63    ld   a,(background_and_state_bits_C911)
 E4CB: FE 02       cp   $08
 E4CD: C2 79 E4    jp   nz,$E4D3
-E4D0: 21 34 E9    ld   hl,table_E394
+E4D0: 21 34 E9    ld   hl,challenge_stage_text_E394
 E4D3: CD 31 B9    call display_multicolor_text_B391
 E4D6: C1          pop  bc
 E4D7: 78          ld   a,b
@@ -12625,7 +12637,7 @@ E4D8: FE 0A       cp   $0A
 E4DA: C2 F8 E4    jp   nz,$E4F2
 E4DD: 3E 80       ld   a,$20
 E4DF: F5          push af
-E4E0: 21 8B EC    ld   hl,table_E62B
+E4E0: 21 8B EC    ld   hl,perfect_text_E62B
 E4E3: 3A 11 63    ld   a,(background_and_state_bits_C911)
 E4E6: FE 02       cp   $08
 E4E8: C2 EE E4    jp   nz,$E4EE
@@ -12665,13 +12677,14 @@ E53B: CD 5E BC    call suspend_task_B65E
 E53E: 3E 01       ld   a,$01
 E540: 06 01       ld   b,$01
 E542: CD AE BC    call task_manipulation_B6AE
-E545: CD A5 B5    call warm_reboot_B5A5
+E545: CD A5 B5    call task_yield_B5A5
 table_E548:
 	dc.b	0x0c,0x19,0xee,0xa3,0x3d,0xa0,0x3d,0xa0 ; table_E548
 	dc.b	0xee,0xa3,0xff ; $e550
 table_E553:
 	dc.b	0x0c,0x19,0xef,0xa3,0x3f,0xd8,0x3f,0xd8 ; table_E553
 	dc.b	0xef,0xa3,0xff ; $e55b
+
 E55E: E5          push hl
 E55F: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
 E562: CB 5E       bit  3,(hl)
@@ -12680,6 +12693,7 @@ E567: C6 0A       add  a,$0A
 E569: E1          pop  hl
 E56A: CD 57 FD    call $F75D
 E56D: C9          ret
+
 E56E: 3E 01       ld   a,$01
 E570: D3 A2       out  ($A8),a
 E572: 3E 0C       ld   a,$06
@@ -12706,7 +12720,7 @@ E5A8: AF          xor  a
 E5A9: CD 5E E5    call $E55E
 E5AC: 3E 08       ld   a,$02
 E5AE: CD 5E BC    call suspend_task_B65E
-E5B1: CD 3C BB    call $BB96
+E5B1: CD 3C BB    call read_current_player_controls_BB96
 E5B4: DD E1       pop  ix
 E5B6: FD E1       pop  iy
 E5B8: E1          pop  hl
@@ -12764,8 +12778,8 @@ E621: 3E 04       ld   a,$04
 E623: CD AE BC    call task_manipulation_B6AE
 E626: 3E 00       ld   a,$00
 E628: CD 5E BC    call suspend_task_B65E
-table_E62B:
-	dc.b	0x08,0x1d,0x19,0xa0,0x0e,0xa0,0x1b,0xa0 ; table_E62B
+perfect_text_E62B:
+	dc.b	0x08,0x1d,0x19,0xa0,0x0e,0xa0,0x1b,0xa0 ; perfect_text_E62B
 	dc.b	0x0f,0xa0,0x0e,0xa0,0x0c,0xa0,0x1d,0xa0 ; $e633
 	dc.b	0x3c,0xa0,0x3c,0xa0,0x3c,0xa0,0x3c,0xa0 ; $e63b
 	dc.b	0x02,0xa0,0x00,0xa0,0x00,0xa0,0x00,0xa0 ; $e643
@@ -12835,7 +12849,7 @@ E703: FE 0A       cp   $0A
 E705: C2 18 ED    jp   nz,$E712
 E708: 3E 80       ld   a,$20
 E70A: F5          push af
-E70B: 21 8B EC    ld   hl,table_E62B
+E70B: 21 8B EC    ld   hl,perfect_text_E62B
 E70E: CD 31 B9    call display_multicolor_text_B391
 E711: F1          pop  af
 E712: CD AB B1    call $B1AB
@@ -12901,7 +12915,7 @@ E7AA: FE 0A       cp   $0A
 E7AC: C2 B3 ED    jp   nz,$E7B9
 E7AF: 3E 80       ld   a,$20
 E7B1: F5          push af
-E7B2: 21 8B EC    ld   hl,table_E62B
+E7B2: 21 8B EC    ld   hl,perfect_text_E62B
 E7B5: CD 31 B9    call display_multicolor_text_B391
 E7B8: F1          pop  af
 E7B9: CD AB B1    call $B1AB
@@ -12913,9 +12927,9 @@ E7C5: CD 5E BC    call suspend_task_B65E
 E7C8: 3E 01       ld   a,$01
 E7CA: 06 01       ld   b,$01
 E7CC: CD AE BC    call task_manipulation_B6AE
-E7CF: CD A5 B5    call warm_reboot_B5A5
-E7D2: CD 64 F7    call $FDC4
-E7D5: CD 44 F7    call $FD44
+E7CF: CD A5 B5    call task_yield_B5A5
+E7D2: CD 64 F7    call clear_score_text_FDC4
+E7D5: CD 44 F7    call display_players_rank_FD44
 E7D8: 3E 01       ld   a,$01
 E7DA: CD B5 BB    call play_sound_BBB5
 E7DD: 3A 11 63    ld   a,(background_and_state_bits_C911)
@@ -13001,7 +13015,7 @@ E87B: F5          push af
 E87C: CD FF EB    call $EBFF
 E87F: 3E 01       ld   a,$01
 E881: CD 5E BC    call suspend_task_B65E
-E884: CD 3C BB    call $BB96
+E884: CD 3C BB    call read_current_player_controls_BB96
 E887: A7          and  a
 E888: C2 BE E2    jp   nz,$E8BE
 E88B: F1          pop  af
@@ -13081,8 +13095,9 @@ E923: FD E1       pop  iy
 E925: FD 46 08    ld   b,(iy+$02)
 E928: 3E 1D       ld   a,$17
 E92A: CD AE BC    call task_manipulation_B6AE
-E92D: CD A5 B5    call warm_reboot_B5A5
-
+E92D: CD A5 B5    call task_yield_B5A5
+table_E92E:
+	dc.b	0xa5,0xb5 ; $e92e
 E930: 3E 04       ld   a,$04
 E932: CD 80 BC    call schedule_task_to_start_B620
 E935: AF          xor  a
@@ -13118,7 +13133,7 @@ E978: C1          pop  bc
 E979: 78          ld   a,b
 E97A: FE 0A       cp   $0A
 E97C: C2 38 E3    jp   nz,$E992
-E97F: 21 8B EC    ld   hl,table_E62B
+E97F: 21 8B EC    ld   hl,perfect_text_E62B
 E982: CD 31 B9    call display_multicolor_text_B391
 E985: 3E 0F       ld   a,$0F
 E987: 06 80       ld   b,$20
@@ -13145,35 +13160,11 @@ table_E9C2:
 	dc.b	0x18,0x80,0x28,0x9c,0x28,0x9c,0x18,0x80 ; $e9d2
 	dc.b	0x18,0x80,0x18,0x80,0x18,0x80,0x18,0x80 ; $e9da
 table_E9E2:
-%%DCB
-table_E92E:
-	dc.b	0xa5,0xb5,0x9e,0x04,0x67,0x20,0xb6,0xaf ; table_E92E
-	dc.b	0x67,0x5e,0xb6,0x4d,0x65,0xf7,0x81,0x68 ; $e936
-	dc.b	0xc7,0xad,0x6a,0x6d,0xe9,0x9e,0x14,0x67 ; $e93e
-	dc.b	0xb5,0xbb,0x65,0xf7,0x9c,0x01,0xd9,0x9a ; $e946
-	dc.b	0x2d,0xc0,0x6b,0x5d,0x68,0x59,0xe9,0xf7 ; $e94e
-	dc.b	0x6b,0x02,0xfe,0xf7,0xe5,0x9e,0x04,0x67 ; $e956
-	dc.b	0x5e,0xb6,0xf7,0xe1,0xf7,0x89,0xf7,0x89 ; $e95e
-	dc.b	0xf7,0x89,0xf7,0x89,0x61,0x10,0xd6,0x9e ; $e966
-	dc.b	0x16,0x67,0xcd,0xb5,0x81,0x73,0xe3,0x67 ; $e96e
-	dc.b	0x91,0xb3,0x61,0xd2,0xfe,0x0a,0x68,0x92 ; $e976
-	dc.b	0xe9,0x81,0x2b,0xe6,0x67,0x91,0xb3,0x9e ; $e97e
-	dc.b	0x0f,0x0c,0x20,0x67,0xae,0xb6,0xad,0x64 ; $e986
-	dc.b	0x86,0xb1,0x0c,0x0b,0x65,0x9e,0x02,0x67 ; $e98e
-	dc.b	0x8e,0xb5,0x61,0xf7,0x9c,0x09,0xc8,0xf7 ; $e996
-	dc.b	0x9c,0x0a,0xc0,0x9e,0x04,0x65,0x67,0xae ; $e99e
-	dc.b	0xb6,0x61,0xd2,0xfe,0x0b,0x68,0xb0,0xe9 ; $e9a6
-	dc.b	0x9e,0x20,0x67,0xab,0xb1,0x9e,0x80,0x67 ; $e9ae
-	dc.b	0x5e,0xb6,0x9e,0x01,0x0c,0x01,0x67,0xae ; $e9b6
-	dc.b	0xb6,0x67,0xa5,0xb5,0x18,0x80,0x28,0x9c ; $e9be
-	dc.b	0x18,0x80,0x18,0x80,0x28,0x9c,0x18,0x80 ; $e9c6
-	dc.b	0x18,0x80,0x18,0x80,0x18,0x80,0x28,0x9c ; $e9ce
-	dc.b	0x28,0x9c,0x18,0x80,0x18,0x80,0x18,0x80 ; $e9d6
-	dc.b	0x18,0x80,0x18,0x80,0xdf,0xea,0xf3,0xea ; $e9de
-	dc.b	0x07,0xeb,0x1b,0xeb,0x38,0xeb,0x4c,0xeb ; $e9e6
-	dc.b	0x60,0xeb,0x65,0xeb,0x6a,0xeb,0x6f,0xeb ; $e9ee
-	dc.b	0x83,0xeb,0x97,0xeb,0xab,0xeb,0xc8,0xeb ; $e9f6
-	dc.b	0xdc,0xeb,0xf0,0xeb,0xf5,0xeb,0xfa,0xeb ; $e9fe
+	dc.b	0xdf,0xea,0xf3,0xea,0x07,0xeb,0x1b,0xeb ; $e9e2
+	dc.b	0x38,0xeb,0x4c,0xeb,0x60,0xeb,0x65,0xeb ; $e9ea
+	dc.b	0x6a,0xeb,0x6f,0xeb,0x83,0xeb,0x97,0xeb ; $e9f2
+	dc.b	0xab,0xeb,0xc8,0xeb,0xdc,0xeb,0xf0,0xeb ; $e9fa
+	dc.b	0xf5,0xeb,0xfa,0xeb ; $ea02
 table_EA06:
 	dc.b	0xff,0x02,0x00,0xff,0x02,0x00,0xff,0x02 ; table_EA06
 	dc.b	0x00,0xff,0x02,0x00,0x00,0x02,0x00,0xff ; $ea0e
@@ -13324,8 +13315,8 @@ ECA8: 3E 01       ld   a,$01
 ECAA: CD B5 BB    call play_sound_BBB5
 ECAD: 01 96 D0    ld   bc,$703C
 ECB0: CD 1C B9    call fill_video_and_attribute_memory_B316
-ECB3: CD AE F1    call $F1AE
-ECB6: 21 DC FE    ld   hl,table_FE76
+ECB3: CD AE F1    call display_hiscores_F1AE
+ECB6: 21 DC FE    ld   hl,copyright_data_east_text_FE76
 ECB9: 16 30       ld   d,$90
 ECBB: CD 5D B9    call display_text_B357
 ECBE: 06 0B       ld   b,$0B
@@ -13413,7 +13404,7 @@ ED76: 10 E8       djnz $ED5A
 ED78: 3E 01       ld   a,$01
 ED7A: 06 01       ld   b,$01
 ED7C: CD AE BC    call task_manipulation_B6AE
-ED7F: CD A5 B5    call warm_reboot_B5A5
+ED7F: CD A5 B5    call task_yield_B5A5
 
 ED82: CD FC B8    call compute_screen_address_from_XY_B2F6
 ED85: E5          push hl
@@ -13497,8 +13488,8 @@ table_EDD1:
 	dc.b	0xb2,0x2d,0xb0,0xde,0xb2,0x2f,0xb0,0xde ; $ef69
 	dc.b	0xb2,0x29,0xb0,0x2a,0xb0,0x2b,0xb0,0x2c ; $ef71
 	dc.b	0xb0,0xde,0xb2,0xff ; $ef79
-table_EF7D:
-	dc.b	0x08,0x0d,0x19,0x98,0x18,0x98,0x12,0x98 ; table_EF7D
+point_rank_name_text_EF7D:
+	dc.b	0x08,0x0d,0x19,0x98,0x18,0x98,0x12,0x98 ; point_rank_name_text_EF7D
 	dc.b	0x17,0x98,0x1d,0x98,0x3c,0x70,0x3c,0x70 ; $ef85
 	dc.b	0x3c,0x70,0x1b,0x98,0x0a,0x98,0x17,0x98 ; $ef8d
 	dc.b	0x14,0x98,0x3c,0x70,0x3c,0x70,0x3c,0x70 ; $ef95
@@ -13592,7 +13583,9 @@ F1A5: 3E 80       ld   a,$20
 F1A7: CD 5E BC    call suspend_task_B65E
 F1AA: E1          pop  hl
 F1AB: C3 25 F1    jp   $F185
-F1AE: 21 D7 EF    ld   hl,table_EF7D
+
+display_hiscores_F1AE:
+F1AE: 21 D7 EF    ld   hl,point_rank_name_text_EF7D
 F1B1: CD 31 B9    call display_multicolor_text_B391
 F1B4: 06 0C       ld   b,$06
 F1B6: FD 21 40 60 ld   iy,unknown_C040
@@ -13726,7 +13719,7 @@ F322: E1          pop  hl
 F323: 3E 01       ld   a,$01
 F325: 06 01       ld   b,$01
 F327: CD AE BC    call task_manipulation_B6AE
-F32A: CD A5 B5    call warm_reboot_B5A5
+F32A: CD A5 B5    call task_yield_B5A5
 F32D: 3E 0C       ld   a,$06
 F32F: 90          sub  b
 F330: C5          push bc
@@ -13770,6 +13763,7 @@ F392: DD 36 0D B0 ld   (ix+$07),$B0
 F396: DD 36 02 96 ld   (ix+$08),$3C
 F39A: DD 36 03 B0 ld   (ix+$09),$B0
 F39E: C9          ret
+
 F39F: F5          push af
 F3A0: 3A 01 6F    ld   a,(unknown_CF01)
 F3A3: D6 0D       sub  $07
@@ -13850,7 +13844,7 @@ F43D: FE 00       cp   $00
 F43F: C2 44 F4    jp   nz,$F444
 F442: 3D          dec  a
 F443: C9          ret
-F444: CD 3C BB    call $BB96
+F444: CD 3C BB    call read_current_player_controls_BB96
 F447: A7          and  a
 F448: CA F9 F9    jp   z,$F3F3
 F44B: F5          push af
@@ -14058,7 +14052,7 @@ F608: 01 00 04    ld   bc,$0400
 F60B: FD 09       add  iy,bc
 F60D: FD 36 00 32 ld   (iy+$00),$98
 F611: FD 36 E0 32 ld   (iy-$20),$98
-F615: CD 3C BB    call $BB96
+F615: CD 3C BB    call read_current_player_controls_BB96
 F618: C1          pop  bc
 F619: E6 0F       and  $0F
 F61B: CA 80 FC    jp   z,$F620
@@ -14089,7 +14083,7 @@ F654: DD 23       inc  ix
 F656: 10 F8       djnz $F64A
 F658: 21 71 E7    ld   hl,table_EDD1
 F65B: CD 31 B9    call display_multicolor_text_B391
-F65E: CD AE F1    call $F1AE
+F65E: CD AE F1    call display_hiscores_F1AE
 F661: DD 21 02 6F ld   ix,unknown_CF08
 F665: DD 36 00 05 ld   (ix+$00),$05
 F669: DD 36 01 04 ld   (ix+$01),$04
@@ -14127,13 +14121,13 @@ F6C8: 32 01 6F    ld   (unknown_CF01),a
 F6CB: 3E 01       ld   a,$01
 F6CD: CD 3F F9    call $F39F
 F6D0: CD F9 F9    call $F3F3
-F6D3: CD AE F1    call $F1AE
+F6D3: CD AE F1    call display_hiscores_F1AE
 F6D6: 3E 90       ld   a,$30
 F6D8: CD 5E BC    call suspend_task_B65E
 F6DB: 3E 01       ld   a,$01
 F6DD: 06 01       ld   b,$01
 F6DF: CD AE BC    call task_manipulation_B6AE
-F6E2: CD A5 B5    call warm_reboot_B5A5
+F6E2: CD A5 B5    call task_yield_B5A5
 ; copy contents of ROM in $C040
 init_C040_F6E5:
 F6E5: 01 C6 00    ld   bc,$006C
@@ -14156,6 +14150,9 @@ table_F6F1:
 	dc.b	0x00,0x01,0x01,0x00,0x00,0x00,0x00,0x00 ; $f749
 	dc.b	0x2f,0xb0,0x2f,0xb0,0x2f,0xb0,0x2f,0xb0 ; $f751
 	dc.b	0x2f,0xb0,0x00,0x01 ; $f759
+
+; < ix
+; < a
 F75D: FD 21 64 FD ld   iy,table_F7C4
 F761: 11 00 00    ld   de,$0000
 F764: 5F          ld   e,a
@@ -14315,14 +14312,39 @@ FA24: C1          pop  bc
 FA25: 10 77       djnz $FA04
 FA27: C9          ret
 table_FA28:
-	dc.b	0xb2,0xfa,0xc6,0xfa,0x0a,0xfb,0xec,0xfb ; table_FA28
-	dc.b	0xda,0xfa,0xf2,0xfa,0x2e,0xfc,0x42,0xfc ; $fa30
-	dc.b	0x56,0xfc,0x6a,0xfc,0xff,0xff,0xff,0xff ; $fa38
-	dc.b	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff ; $fa40
-	dc.b	0x68,0xfa,0x68,0xfa,0x68,0xfa,0x68,0xfa ; $fa48
-	dc.b	0x68,0xfa,0x68,0xfa,0x68,0xfa,0x68,0xfa ; $fa50
-	dc.b	0x68,0xfa,0x68,0xfa,0x68,0xfa,0x68,0xfa ; $fa58
-	dc.b	0x68,0xfa,0x68,0xfa,0x68,0xfa,0x68,0xfa ; $fa60
+	dc.w	0xfab2 ; $fa28
+	dc.w	0xfac6 ; $fa2a
+	dc.w	0xfb0a ; $fa2c
+	dc.w	0xfbec ; $fa2e
+	dc.w	0xfada ; $fa30 INSERT COIN text
+	dc.w	0xfaf2 ; $fa32
+	dc.w	0xfc2e ; $fa34
+	dc.w	0xfc42 ; $fa36
+	dc.w	0xfc56 ; $fa38
+	dc.w	0xfc6a ; $fa3a
+	dc.w	0xffff ; $fa3c
+	dc.w	0xffff ; $fa3e
+	dc.w	0xffff ; $fa40
+	dc.w	0xffff ; $fa42
+	dc.w	0xffff ; $fa44
+	dc.w	0xffff ; $fa46
+	dc.w	0xfa68 ; $fa48
+	dc.w	0xfa68 ; $fa4a
+	dc.w	0xfa68 ; $fa4c
+	dc.w	0xfa68 ; $fa4e
+	dc.w	0xfa68 ; $fa50
+	dc.w	0xfa68 ; $fa52
+	dc.w	0xfa68 ; $fa54
+	dc.w	0xfa68 ; $fa56
+	dc.w	0xfa68 ; $fa58
+	dc.w	0xfa68 ; $fa5a
+	dc.w	0xfa68 ; $fa5c
+	dc.w	0xfa68 ; $fa5e
+	dc.w	0xfa68 ; $fa60
+	dc.w	0xfa68 ; $fa62
+	dc.w	0xfa68 ; $fa64
+	dc.w	0xfa68 ; $fa66
+table_FA68:
 	dc.b	0x09,0x04,0xa1,0x3a,0xa2,0x3a,0xa2,0x3a ; $fa68
 	dc.b	0xa2,0x3a,0xa2,0x3a,0xa2,0x3a,0xa2,0x3a ; $fa70
 	dc.b	0xa2,0x3a,0xa4,0x3a,0x3f,0x38,0x3f,0x38 ; $fa78
@@ -14390,6 +14412,7 @@ table_FA28:
 	dc.b	0x5d,0x42,0x03,0x03,0x5e,0x42,0x5e,0x5a ; $fc68
 	dc.b	0x5f,0x42,0x62,0x62,0x60,0xb2,0x5d,0x42 ; $fc70
 	dc.b	0x60,0x62,0x5d,0x62,0x60,0x42 ; $fc78
+	
 FC7E: FD 21 E0 F6 ld   iy,table_FCE0
 FC82: 01 00 00    ld   bc,$0000
 FC85: 4F          ld   c,a
@@ -14452,6 +14475,8 @@ table_FCE0:
 	dc.b	0xa9,0x04,0xaa,0x04,0xa8,0x04,0xa9,0x04 ; $fd30
 	dc.b	0xa9,0x04,0xaa,0x04,0xa8,0x04,0xa9,0x04 ; $fd38
 	dc.b	0xa9,0x04,0xaa,0x04 ; $fd40
+
+display_players_rank_FD44:	
 FD44: 1E 04       ld   e,$04
 FD46: 16 30       ld   d,$90
 FD48: 21 10 63    ld   hl,computer_skill_C910
@@ -14462,12 +14487,14 @@ FD52: C2 CC F7    jp   nz,$FD66
 FD55: 1E 08       ld   e,$02
 FD57: 16 32       ld   d,$98
 FD59: 21 00 63    ld   hl,map_index_C900
-FD5C: CD CA F7    call $FD6A
+FD5C: CD CA F7    call display_player_rank_FD6A
 FD5F: 1E 0C       ld   e,$06
 FD61: 16 30       ld   d,$90
 FD63: 21 02 63    ld   hl,unknown_C908
-FD66: CD CA F7    call $FD6A
+FD66: CD CA F7    call display_player_rank_FD6A
 FD69: C9          ret
+
+display_player_rank_FD6A:
 FD6A: D5          push de
 FD6B: E5          push hl
 FD6C: 1C          inc  e
@@ -14490,7 +14517,7 @@ FD85: 87          add  a,a
 FD86: 81          add  a,c
 FD87: 4F          ld   c,a
 FD88: 06 00       ld   b,$00
-FD8A: 21 A9 F7    ld   hl,table_FDA3
+FD8A: 21 A9 F7    ld   hl,position_table_FDA3
 FD8D: 09          add  hl,bc
 FD8E: 11 0A 6F    ld   de,unknown_CF0A
 FD91: ED A0       ldi
@@ -14501,49 +14528,53 @@ FD9B: 21 02 6F    ld   hl,unknown_CF08
 FD9E: D1          pop  de
 FD9F: CD 5D B9    call display_text_B357
 FDA2: C9          ret
-table_FDA3:
-	dc.b	0x01,0x1c,0x1d,0x02,0x17,0x0d,0x03,0x1b ; table_FDA3
+; 1ST, 2ND ...
+position_table_FDA3:
+	dc.b	0x01,0x1c,0x1d,0x02,0x17,0x0d,0x03,0x1b ; position_table_FDA3
 	dc.b	0x0d,0x04,0x1d,0x11,0x05,0x1d,0x11,0x06 ; $fdab
 	dc.b	0x1d,0x11,0x07,0x1d,0x11,0x08,0x1d,0x11 ; $fdb3
 	dc.b	0x09,0x1d,0x11,0x01,0x00,0x10,0x0c,0x16 ; $fdbb
 	dc.b	0x19 ; $fdc3
-FDC4: 21 E1 F7    ld   hl,table_FDE1
+	
+clear_score_text_FDC4:
+FDC4: 21 E1 F7    ld   hl,space_text_FDE1
 FDC7: C3 77 F7    jp   $FDDD
+
 FDCA: 3A 11 63    ld   a,(background_and_state_bits_C911)
 FDCD: CB 7F       bit  7,a
 FDCF: C2 77 F7    jp   nz,$FDDD
-FDD2: 21 14 FE    ld   hl,table_FE14
+FDD2: 21 14 FE    ld   hl,score_00_text_FE14
 FDD5: FE 02       cp   $08
 FDD7: CA 77 F7    jp   z,$FDDD
-FDDA: 21 45 FE    ld   hl,table_FE45
+FDDA: 21 45 FE    ld   hl,score_00_text_FE45
 FDDD: CD 31 B9    call display_multicolor_text_B391
 FDE0: C9          ret
-table_FDE1:
-	dc.b	0x06,0x05,0x9e,0x92,0x9f,0x92,0xbb,0x92 ; table_FDE1
+space_text_FDE1:
+	dc.b	0x06,0x05,0x9e,0x92,0x9f,0x92,0xbb,0x92 ; space_text_FDE1
 	dc.b	0xbc,0x92,0xbd,0x92,0xbe,0x92,0xbf,0x92 ; $fde9
 	dc.b	0xfe,0x06,0x06,0xc0,0x92,0x8d,0x92,0x8e ; $fdf1
 	dc.b	0x92,0x8f,0x92,0x90,0x92,0x91,0x92,0x92 ; $fdf9
 	dc.b	0x92,0xfe,0x06,0x07,0x93,0x92,0x94,0x92 ; $fe01
 	dc.b	0x95,0x92,0x96,0x92,0x97,0x92,0x98,0x92 ; $fe09
 	dc.b	0x99,0x92,0xff ; $fe11
-table_FE14:
-	dc.b	0x02,0x05,0x7a,0xba,0x7b,0xba,0x7c,0xba ; table_FE14
+score_00_text_FE14:
+	dc.b	0x02,0x05,0x7a,0xba,0x7b,0xba,0x7c,0xba ; score_00_text_FE14
 	dc.b	0x7d,0xba,0x00,0x00,0x7e,0xba,0x7f,0xba ; $fe1c
 	dc.b	0xfe,0x02,0x06,0x80,0xb2,0x81,0xb2,0x82 ; $fe24
 	dc.b	0xb2,0x83,0xb2,0x84,0xb2,0x85,0xb2,0x86 ; $fe2c
 	dc.b	0xb2,0xfe,0x02,0x07,0x87,0xb2,0x88,0xb2 ; $fe34
 	dc.b	0x89,0xb2,0x8a,0xb2,0x8b,0xb2,0x8c,0xb2 ; $fe3c
 	dc.b	0xff ; $fe44
-table_FE45:
-	dc.b	0x06,0x05,0x7a,0xba,0x7b,0xba,0x7c,0xba ; table_FE45
+score_00_text_FE45:
+	dc.b	0x06,0x05,0x7a,0xba,0x7b,0xba,0x7c,0xba ; score_00_text_FE45
 	dc.b	0x7d,0xba,0x00,0x00,0x7e,0xba,0x7f,0xba ; $fe4d
 	dc.b	0xfe,0x06,0x06,0x80,0xb2,0x81,0xb2,0x82 ; $fe55
 	dc.b	0xb2,0x83,0xb2,0x84,0xb2,0x85,0xb2,0x86 ; $fe5d
 	dc.b	0xb2,0xfe,0x06,0x07,0x87,0xb2,0x88,0xb2 ; $fe65
 	dc.b	0x89,0xb2,0x8a,0xb2,0x8b,0xb2,0x8c,0xb2 ; $fe6d
 	dc.b	0xff ; $fe75
-table_FE76:
-	dc.b	0x07,0x1d,0x30,0x3c,0x0c,0x18,0x19,0x22 ; table_FE76
+copyright_data_east_text_FE76:
+	dc.b	0x07,0x1d,0x30,0x3c,0x0c,0x18,0x19,0x22 ; copyright_data_east_text_FE76
 	dc.b	0x1b,0x12,0x10,0x11,0x1d,0x3c,0x01,0x09 ; $fe7e
 	dc.b	0x08,0x04,0xfe,0x07,0x1f,0x0d,0x0a,0x1d ; $fe86
 	dc.b	0x0a,0x3c,0x0e,0x0a,0x1c,0x1d,0x3c,0x1e ; $fe8e
