@@ -682,11 +682,6 @@ _vblank:
 	move.w	#0x10,_custom+intreq
 3:
     movem.l (a7)+,d0-d7/a0-a6
-	tst.l	return_address
-	beq.b	4f
-	move.l	return_address,(2,a7)		| change return address
-	clr.l	return_address				| just for this time
-4:
     rte
 	
 osd_break:
@@ -1927,8 +1922,7 @@ old_actiview:
 	.long	0
 old_stack:
 	.long	0
-return_address:
-	.long	0
+
 	
 	
 _tag:
