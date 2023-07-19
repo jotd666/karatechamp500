@@ -25,6 +25,8 @@
 	.global	task_struct_C220
 	.global	task_struct_C240
 	.global	task_struct_C260
+	.global	player_1_struct_C240
+	.global	player_2_struct_C260
 	.global	task_struct_C280
 	.global	task_struct_C2A0
 	.global	task_struct_C2C0
@@ -318,6 +320,7 @@ task_struct_C200:
 task_struct_C220:
 	ds.b	32
 	.align	2
+player_1_struct_C240:
 task_struct_C240:
 	ds.b	7
 unknown_C247:
@@ -329,6 +332,7 @@ current_move_C24B:
 unknown_C24C:
 	ds.b	20
 	.align	2
+player_2_struct_C260:
 task_struct_C260:
 	ds.b	7
 unknown_C267:
