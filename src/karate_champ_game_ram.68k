@@ -64,6 +64,9 @@
 	.global	stack_buffer_C6C0
 	.global	stack_buffer_C6E0
 	.global	stack_buffer_C700
+	.global unknown_C7C0
+	.global unknown_C760
+	.global unknown_C780
 	.global	referee_x_pos_C700
 
 	.global	active_task_bit_table_C000
@@ -133,6 +136,7 @@
 	.global	unknown_C728
 	.global	unknown_C730
 	.global	unknown_C734
+	.global	unknown_C740
 	.global	unknown_C74C
 	.global	unknown_C768
 	.global	unknown_C77C
@@ -482,12 +486,12 @@ unknown_C730:
 unknown_C734:
 	ds.b	12
 	.align	2
-*task_struct_C740:
+unknown_C740:
 	ds.b	12
 unknown_C74C:
 	ds.b	20
 	.align	2
-*task_struct_C760:
+unknown_C760:
 	ds.b	8
 unknown_C768:
 	ds.b	20
@@ -496,7 +500,7 @@ unknown_C77C:
 unknown_C77D:
 	ds.b	3
 	.align	2
-*task_struct_C780:
+unknown_C780:
 	ds.b	16
 unknown_C790:
 	ds.b	16
@@ -508,7 +512,7 @@ unknown_C7BC:
 unknown_C7BE:
 	ds.b	2
 	.align	2
-*task_struct_C7C0:
+unknown_C7C0:
 	ds.b	8
 unknown_C7C8:
 	ds.b	12
