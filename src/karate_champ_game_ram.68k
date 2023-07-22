@@ -160,7 +160,7 @@
 	.global	unknown_CF02
 	.global	unknown_CF03
 	.global	unknown_CF05
-	.global	unknown_CF06
+	.global	unknown_pointer_CF06
 	.global	unknown_CF08
 	.global	unknown_CF0A
 	.global	unknown_CF0B
@@ -570,8 +570,9 @@ address_of_current_player_move_byte_CF04:
 	ds.b	1
 unknown_CF05:
 	ds.b	1
-unknown_CF06:
-	ds.b	2
+	.align	2
+unknown_pointer_CF06:
+	ds.l	1	
 unknown_CF08:
 	ds.b	2
 unknown_CF0A:
