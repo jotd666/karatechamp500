@@ -1826,25 +1826,21 @@ l_61e2:
 display_practice_technique_name_61EC:
 	add.b	d0,d0                            	| [$61ec: add  a,a]
 	add.b	d0,d0                            	| [$61ed: add  a,a]
-	move.b	d0,d2                           	| [$61ee: ld   c,a]
-	clr.b	d1                               	| [$61ef: ld   b,$00]
+	clr.w	d1                               	| [$61ef: ld   b,$00]
+	move.b	d0,d1                           	| [$61ee: ld   c,a]
 	movem.w	d1/d2,-(sp)                    	| [$61f1: push bc]
-	move.l	a4,-(sp)                        	| [$61f1: push bc]
 	move.b	(0x0c,a3),d0                    	| [$61f2: ld   a,(iy+$0c)]
 	clr.w	d1                               	| [$61f8: ld   b,$00]
-	asl.b	#1,d0                            	| [$61f5: sla  a]
+	asl.b	#2,d0                            	| [$61f5: sla  a]
 	move.b	d0,d1                           	| [$61f7: ld   c,a]
-	lea	practice_table_end_6361(pc),a2     	| [$61fa: ld   ix,practice_table_end_6361]
+	lea	practice_table_table_6361(pc),a2     	| [$61fa: ld   ix,practice_table_end_6361]
 	add.w	d1,a2                            	| [$61fe: add  ix,bc]
-  ^^^^ review
-	move.b	(0x00,a2),d6                    	| [$6200: ld   l,(ix+$00)]
-	move.b	(0x01,a2),d5                    	| [$6203: ld   h,(ix+$01)]
+	move.l	(0x00,a2),a0                    	| [$6200: ld   l,(ix+$00)]
+												| [$6203: ld   h,(ix+$01)]
 
-	move.l	a0,a2                        	| [$6206: push hl]
-	move.l	(sp)+,a4                        	| [$6209: pop  bc]
+	move.l	a0,a2                        	| [$6206: push hl+pop ix]
 	movem.w	(sp)+,d1/d2                    	| [$6209: pop  bc]
 	add.w	d1,a2                            	| [$620a: add  ix,bc]
-  ^^^^ review
 * practice
 	move.b	(0x00,a2),d0                    	| [$620c: ld   a,(ix+$00)] technique id loaded
 	lea	players_type_human_or_cpu_flags_C02D(pc),a0	| [$620f: ld   hl,players_type_human_or_cpu_flags_C02D]
@@ -1981,7 +1977,7 @@ practice_table_6341:
 	dc.b	0x05,0x02,0xC3,0x63	; back kick
 	dc.b	0x0A,0x01,0xF8,0x63	; front kick
 	dc.b		; lunge punch  <==== start of sequence #3
-practice_table_end_6361:
+practice_table_table_6361:
 	.long	practice_table_6301 ; $6361
 	.long	practice_table_6321 ; $6363
 	.long	practice_table_6341 ; $6365
