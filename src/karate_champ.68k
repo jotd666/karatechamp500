@@ -207,6 +207,49 @@
 	.align	2
 	.endif
 
+* utility routines, code repeated a lot, and needs the same adaptation
+* allows to store a pointer into game structures and stay within 16 bit boundary
+* this forces us to keep a copy of ROM
+	.macro STORE_AX_IN_AY_STRUCTURE_ZZ_ADDRESS   ax,ay,zz
+store_\ax\()_in_\ay\()_structure_\zz\()_address:
+	move.l	\ax,d7
+	sub.l	#game_mem,d7
+	* store as little endian
+	move.b	d7,(0x\zz,\ay)                    	| [$5a90: ld   (ix+$02),l]
+	lsr.w	#8,d7
+	move.b	d7,(0x\zz+1,\ay)                    	| [$5a93: ld   (ix+$03),h]
+	rts
+	.endm
+	
+	.macro LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS   ax,ay,zz
+load_\ax\()_from_\ay\()_structure_\zz\()_address:
+	moveq	#0,d7
+	* load as little endian
+	move.b	(0x\zz+1,\ay),d7                    	| [$5a93: ld   (ix+$03),h]
+	lsl.w	#8,d7
+	move.b	(0x\zz,\ay),d7                    	| [$5a90: ld   (ix+$02),l]
+	add.l	#game_mem,d7
+	move.l	d7,\ax
+	rts
+	.endm
+	
+	STORE_AX_IN_AY_STRUCTURE_ZZ_ADDRESS	a0,a3,02
+	STORE_AX_IN_AY_STRUCTURE_ZZ_ADDRESS	a0,a2,02
+	STORE_AX_IN_AY_STRUCTURE_ZZ_ADDRESS	a0,a3,1b
+	STORE_AX_IN_AY_STRUCTURE_ZZ_ADDRESS	a1,a3,1b
+	
+	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS a0,a3,1b
+	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS a0,a2,02
+	
+load_a1_from_a0:
+	moveq.l	#0,d5
+	move.b	(1,a0),d5
+	lsl.w	#8,d5
+	move.b	(a0),d5
+	add.l	#game_mem,d5
+	move.l	d5,a1
+	rts
+	
 karate_champ_irq:
 	bra		on_periodic_interrupt_B72F
 	
@@ -284,8 +327,7 @@ task_illegal:
 	illegal
 	nop
 	
-l_5974:
-	trap	#2
+
 l_b0b4:
 	trap	#3
 l_5925:
@@ -1330,6 +1372,305 @@ l_56ea:
 0:
 	jbsr	task_yield_B051                  	| [$56f5: call task_yield_B051]
 
+l_5974:
+	move.b	d0,d1                           	| [$5974: ld   b,a]
+	move.b	background_and_state_bits_C911,d0	| [$5975: ld   a,(background_and_state_bits_C911)]
+	btst.b	#7,d0                           	| [$5978: bit  7,a]
+	jne	l_5b52                             	| [$597a: jp   nz,$5B52]
+	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$597d: ld   a,(players_type_human_or_cpu_flags_C02D)]
+	and.b	#0x03,d0                         	| [$5980: and  $03]
+	cmp.b	#0x03,d0                         	| [$5982: cp   $03]
+	jeq	l_59ff                             	| [$5984: jp   z,$59FF]
+	move.b	background_and_state_bits_C911,d0	| [$5987: ld   a,(background_and_state_bits_C911)]
+	bclr.b	#7,d0                           	| [$598a: res  7,a]
+	cmp.b	#0x51,d0                         	| [$598c: cp   $51]
+	jne	l_599c                             	| [$598e: jp   nz,$599C]
+	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5991: ld   a,(players_type_human_or_cpu_flags_C02D)]
+	and.b	#0xF0,d0                         	| [$5994: and  $F0]
+	move.b	d0,players_type_human_or_cpu_flags_C02D	| [$5996: ld   (players_type_human_or_cpu_flags_C02D),a]
+	st.b	d0                                	| [$5999: ld   a,$FF]
+	rts                                    	| [$599b: ret]
+l_599c:
+	cmp.b	#0x10,d0                         	| [$599c: cp   $10]
+	jcc	l_5b5c                             	| [$599e: jp   nc,$5B5C]
+	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$59a1: ld   a,(players_type_human_or_cpu_flags_C02D)]
+	btst.b	#2,d0                           	| [$59a4: bit  2,a]
+	jeq	l_59c5                             	| [$59a6: jp   z,$59C5]
+	lea	map_index_C900(pc),a2              	| [$59a9: ld   ix,map_index_C900]
+	move.b	d1,d0                           	| [$59ad: ld   a,b]
+	cmp.b	#0x01,d0                         	| [$59ae: cp   $01]
+	jne	l_59f9                             	| [$59b0: jp   nz,$59F9]
+* increase level
+	lea	level_number_C0DC(pc),a0           	| [$59b3: ld   hl,level_number_C0DC]
+	addq.b	#1,(a0)                         	| [$59b6: inc  (hl)]
+	move.b	unknown_C914,d0                 	| [$59b7: ld   a,(unknown_C914)]
+	cmp.b	#0xFF,d0                         	| [$59ba: cp   $FF]
+	jeq	l_59e6                             	| [$59bc: jp   z,$59E6]
+* increase level number too (separate counters than C0DC: C900)
+	addq.b	#1,(0x00,a2)                    	| [$59bf: inc  (ix+$00)]
+	jra	l_5b5c                             	| [$59c2: jp   $5B5C]
+l_59c5:
+	btst.b	#3,d0                           	| [$59c5: bit  3,a]
+	bne	0f
+	jbsr	display_error_text_B075           	| [$59c7: call z,display_error_text_B075]
+0:
+	lea	unknown_C908(pc),a2                	| [$59ca: ld   ix,unknown_C908]
+	move.b	d1,d0                           	| [$59ce: ld   a,b]
+	cmp.b	#0x02,d0                         	| [$59cf: cp   $02]
+	jne	l_59f9                             	| [$59d1: jp   nz,$59F9]
+	lea	level_number_C0DC(pc),a0           	| [$59d4: ld   hl,level_number_C0DC]
+	addq.b	#1,(a0)                         	| [$59d7: inc  (hl)]
+	move.b	unknown_C914,d0                 	| [$59d8: ld   a,(unknown_C914)]
+	cmp.b	#0xFF,d0                         	| [$59db: cp   $FF]
+	jeq	l_59e6                             	| [$59dd: jp   z,$59E6]
+	addq.b	#1,(0x00,a2)                    	| [$59e0: inc  (ix+$00)]
+	jra	l_5b5c                             	| [$59e3: jp   $5B5C]
+l_59e6:
+	addq.b	#1,(0x00,a2)                    	| [$59e6: inc  (ix+$00)]
+	lea	game_mem+0x53C9,a0                  	| [$59e9: ld   hl,table_53C9]
+	move.b	(a0),d0                         	| [$59ec: ld   a,(hl)]
+	move.b	d0,(0x01,a2)                    	| [$59ed: ld   (ix+$01),a]
+	bsr		store_a0_in_a2_structure_02_address   | [$59f0: ld   (ix+$02),l]
+	                                              | [$59f3: ld   (ix+$03),h]
+	jra	return_zero_in_A_5B7A              	| [$59f6: jp   return_zero_in_A_5B7A]
+l_59f9:
+	jbsr	l_5b7d                            	| [$59f9: call $5B7D]
+	jra	return_zero_in_A_5B7A              	| [$59fc: jp   return_zero_in_A_5B7A]
+l_59ff:
+	move.b	background_and_state_bits_C911,d0	| [$59ff: ld   a,(background_and_state_bits_C911)]
+	bclr.b	#7,d0                           	| [$5a02: res  7,a]
+	cmp.b	#0x10,d0                         	| [$5a04: cp   $10]
+	jcc	l_5ab8                             	| [$5a06: jp   nc,$5AB8]
+	move.b	d1,d0                           	| [$5a09: ld   a,b]
+	cmp.b	#0x01,d0                         	| [$5a0a: cp   $01]
+	jne	l_5a61                             	| [$5a0c: jp   nz,$5A61]
+	lea	level_number_C0DC(pc),a0           	| [$5a0f: ld   hl,level_number_C0DC]
+	addq.b	#1,(a0)                         	| [$5a12: inc  (hl)]
+	lea	map_index_C900(pc),a2              	| [$5a13: ld   ix,map_index_C900]
+	addq.b	#1,(0x00,a2)                    	| [$5a17: inc  (ix+$00)]
+	move.b	(0x01,a2),d1                    	| [$5a1a: ld   b,(ix+$01)]
+	movem.w	d1/d2,-(sp)                    	| [$5a1d: push bc]
+	move.l	a4,-(sp)                        	| [$5a1d: push bc]
+	move.b	d1,(0x05,a2)                    	| [$5a1e: ld   (ix+$05),b]
+	lea	players_type_human_or_cpu_flags_C02D(pc),a0	| [$5a21: ld   hl,players_type_human_or_cpu_flags_C02D]
+	bclr.b	#2,(a0)                         	| [$5a24: res  2,(hl)]
+	move.b	unknown_C914,d0                 	| [$5a26: ld   a,(unknown_C914)]
+	cmp.b	#0xFF,d0                         	| [$5a29: cp   $FF]
+	jne	l_5a42                             	| [$5a2b: jp   nz,$5A42]
+	lea	game_mem+0x53C9,a0                  	| [$5a2e: ld   hl,table_53C9]
+	lea	map_index_C900,a2              	| [$5a31: ld   ix,map_index_C900]
+	move.b	(a0),d0                         	| [$5a35: ld   a,(hl)]
+	move.b	d0,(0x01,a2)                    	| [$5a36: ld   (ix+$01),a]
+	bsr		store_a0_in_a2_structure_02_address  | [$5a39: ld   (ix+$02),l]
+	                                             | [$5a3c: ld   (ix+$03),h]
+	jra	l_5a49                             	| [$5a3f: jp   $5A49]
+l_5a42:
+	lea	map_index_C900(pc),a2              	| [$5a42: ld   ix,map_index_C900]
+	jbsr	l_5ba1                            	| [$5a46: call $5BA1]
+l_5a49:
+	lea	game_mem+0x53C6,a0                  	| [$5a49: ld   hl,table_53C6]
+	move.l	(sp)+,a4                        	| [$5a4c: pop  bc]
+	movem.w	(sp)+,d1/d2                    	| [$5a4c: pop  bc]
+	lea	unknown_C908,a2                	| [$5a4d: ld   ix,unknown_C908]
+	move.b	d1,(0x05,a2)                    	| [$5a51: ld   (ix+$05),b]
+	move.b	(a0),d0                         	| [$5a54: ld   a,(hl)]
+	move.b	d0,(0x01,a2)                    	| [$5a55: ld   (ix+$01),a]
+	bsr		store_a0_in_a2_structure_02_address  | [$5a58: ld   (ix+$02),l]
+	                                             | [$5a5b: ld   (ix+$03),h]
+	jra	return_zero_in_A_5B7A              	| [$5a5e: jp   return_zero_in_A_5B7A]
+l_5a61:
+	cmp.b	#0x02,d0                         	| [$5a61: cp   $02]
+	beq.b	0f
+	jbsr	display_error_text_B075           	| [$5a63: call nz,display_error_text_B075]
+0:
+	lea	level_number_C0DC(pc),a0           	| [$5a66: ld   hl,level_number_C0DC]
+	addq.b	#1,(a0)                         	| [$5a69: inc  (hl)]
+	lea	unknown_C908,a2                	| [$5a6a: ld   ix,unknown_C908]
+	addq.b	#1,(0x00,a2)                    	| [$5a6e: inc  (ix+$00)]
+	move.b	(0x01,a2),d1                    	| [$5a71: ld   b,(ix+$01)]
+	movem.w	d1/d2,-(sp)                    	| [$5a74: push bc]
+	move.l	a4,-(sp)                        	| [$5a74: push bc]
+	move.b	d1,(0x05,a2)                    	| [$5a75: ld   (ix+$05),b]
+	lea	players_type_human_or_cpu_flags_C02D(pc),a0	| [$5a78: ld   hl,players_type_human_or_cpu_flags_C02D]
+	bclr.b	#3,(a0)                         	| [$5a7b: res  3,(hl)]
+	move.b	unknown_C914,d0                 	| [$5a7d: ld   a,(unknown_C914)]
+	cmp.b	#0xFF,d0                         	| [$5a80: cp   $FF]
+	jne	l_5a99                             	| [$5a82: jp   nz,$5A99]
+	lea	game_mem+0x53C9,a0                  	| [$5a85: ld   hl,table_53C9]
+	lea	unknown_C908,a2                	| [$5a88: ld   ix,unknown_C908]
+	move.b	(a0),d0                         	| [$5a8c: ld   a,(hl)]
+	move.b	d0,(0x01,a2)                    	| [$5a8d: ld   (ix+$01),a]
+	bsr		store_a0_in_a2_structure_02_address  | [$5a90: ld   (ix+$02),l]
+	                                             | [$5a93: ld   (ix+$03),h]
+	jra	l_5aa0                             	| [$5a96: jp   $5AA0]
+l_5a99:
+	lea	unknown_C908,a2                	| [$5a99: ld   ix,unknown_C908]
+	jbsr	l_5ba1                            	| [$5a9d: call $5BA1]
+l_5aa0:
+	lea	game_mem+0x53C6,a0                  	| [$5aa0: ld   hl,table_53C6]
+	move.l	(sp)+,a4                        	| [$5aa3: pop  bc]
+	movem.w	(sp)+,d1/d2                    	| [$5aa3: pop  bc]
+	lea	map_index_C900(pc),a2              	| [$5aa4: ld   ix,map_index_C900]
+	move.b	d1,(0x05,a2)                    	| [$5aa8: ld   (ix+$05),b]
+	move.b	(a0),d0                         	| [$5aab: ld   a,(hl)]
+	move.b	d0,(0x01,a2)                    	| [$5aac: ld   (ix+$01),a]
+	bsr		store_a0_in_a2_structure_02_address  | [$5aaf: ld   (ix+$02),l]
+	                                             | [$5ab2: ld   (ix+$03),h]
+	jra	return_zero_in_A_5B7A              	| [$5ab5: jp   return_zero_in_A_5B7A]
+l_5ab8:
+	move.b	background_and_state_bits_C911,d0	| [$5ab8: ld   a,(background_and_state_bits_C911)]
+	bclr.b	#7,d0                           	| [$5abb: res  7,a]
+	cmp.b	#0x51,d0                         	| [$5abd: cp   $51]
+	jne	l_5afa                             	| [$5abf: jp   nz,$5AFA]
+	move.b	unknown_C914,d0                 	| [$5ac2: ld   a,(unknown_C914)]
+	cmp.b	#0xFF,d0                         	| [$5ac5: cp   $FF]
+	jeq	l_5ad5                             	| [$5ac7: jp   z,$5AD5]
+	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5aca: ld   a,(players_type_human_or_cpu_flags_C02D)]
+	eor.b	#0x0C,d0                         	| [$5acd: xor  $0C]
+	move.b	d0,players_type_human_or_cpu_flags_C02D	| [$5acf: ld   (players_type_human_or_cpu_flags_C02D),a]
+	jra	return_zero_in_A_5B7A              	| [$5ad2: jp   return_zero_in_A_5B7A]
+l_5ad5:
+	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5ad5: ld   a,(players_type_human_or_cpu_flags_C02D)]
+	btst.b	#2,d0                           	| [$5ad8: bit  2,a]
+	jeq	l_5ae9                             	| [$5ada: jp   z,$5AE9]
+	bclr.b	#0,d0                           	| [$5add: res  0,a]
+	bclr.b	#2,d0                           	| [$5adf: res  2,a]
+	bset.b	#3,d0                           	| [$5ae1: set  3,a]
+	move.b	d0,players_type_human_or_cpu_flags_C02D	| [$5ae3: ld   (players_type_human_or_cpu_flags_C02D),a]
+	jra	return_zero_in_A_5B7A              	| [$5ae6: jp   return_zero_in_A_5B7A]
+l_5ae9:
+	btst.b	#3,d0                           	| [$5ae9: bit  3,a]
+	bne.b	0f
+	jbsr	display_error_text_B075           	| [$5aeb: call z,display_error_text_B075]
+0:
+	bclr.b	#1,d0                           	| [$5aee: res  1,a]
+	bclr.b	#3,d0                           	| [$5af0: res  3,a]
+	bset.b	#2,d0                           	| [$5af2: set  2,a]
+	move.b	d0,players_type_human_or_cpu_flags_C02D	| [$5af4: ld   (players_type_human_or_cpu_flags_C02D),a]
+	jra	return_zero_in_A_5B7A              	| [$5af7: jp   return_zero_in_A_5B7A]
+l_5afa:
+	cmp.b	#0x55,d0                         	| [$5afa: cp   $55]
+	jne	l_5b5c                             	| [$5afc: jp   nz,$5B5C]
+	lea	map_index_C900,a2              	| [$5aff: ld   ix,map_index_C900]
+	move.b	(0x01,a2),d0                    	| [$5b03: ld   a,(ix+$01)]
+	cmp.b	#0x55,d0                         	| [$5b06: cp   $55]
+	jeq	l_5b0f                             	| [$5b08: jp   z,$5B0F]
+	lea	unknown_C908,a2                	| [$5b0b: ld   ix,unknown_C908]
+l_5b0f:
+	jbsr	l_5ba1                            	| [$5b0f: call $5BA1]
+	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5b12: ld   a,(players_type_human_or_cpu_flags_C02D)]
+	and.b	#0x0F,d0                         	| [$5b15: and  $0F]
+	cmp.b	#0x0F,d0                         	| [$5b17: cp   $0F]
+	jne	l_5b40                             	| [$5b19: jp   nz,$5B40]
+	move.b	unknown_C901,d0                 	| [$5b1c: ld   a,(unknown_C901)]
+	cmp.b	#0x51,d0                         	| [$5b1f: cp   $51]
+	jne	l_5b32                             	| [$5b21: jp   nz,$5B32]
+	lea	unknown_C909,a0                	| [$5b24: ld   hl,unknown_C909]
+	lea	unknown_C901,a1                	| [$5b27: ld   de,unknown_C901]
+	move.w	#0x0003,d1                      	| [$5b2a: ld   bc,$0003] 3
+	jbsr	ldir                              	| [$5b2d: ldir]
+	jra	return_zero_in_A_5B7A              	| [$5b2f: jp   return_zero_in_A_5B7A]
+l_5b32:
+	lea	unknown_C901,a0                	| [$5b32: ld   hl,unknown_C901]
+	lea	unknown_C909,a1                	| [$5b35: ld   de,unknown_C909]
+	move.w	#0x0003,d1                      	| [$5b38: ld   bc,$0003] 3
+	jbsr	ldir                              	| [$5b3b: ldir]
+	jra	return_zero_in_A_5B7A              	| [$5b3d: jp   return_zero_in_A_5B7A]
+l_5b40:
+	lea	players_type_human_or_cpu_flags_C02D(pc),a0	| [$5b40: ld   hl,players_type_human_or_cpu_flags_C02D]
+	cmp.b	#0x0B,d0                         	| [$5b43: cp   $0B]
+	jne	l_5b4d                             	| [$5b45: jp   nz,$5B4D]
+	bclr.b	#0,(a0)                         	| [$5b48: res  0,(hl)]
+	jra	return_zero_in_A_5B7A              	| [$5b4a: jp   return_zero_in_A_5B7A]
+l_5b4d:
+	bclr.b	#1,(a0)                         	| [$5b4d: res  1,(hl)]
+	jra	return_zero_in_A_5B7A              	| [$5b4f: jp   return_zero_in_A_5B7A]
+l_5b52:
+	lea	unknown_C0C8,a0                	| [$5b52: ld   hl,unknown_C0C8]
+	move.b	#0x10,d1                        	| [$5b55: ld   b,$10]
+l_5b57:
+	clr.b	(a0)+                             	| [$5b57: ld   (hl),$00]
+										| [$5b59: inc  hl]
+	subq.b	#1,d1                           	| [...]
+	jne	l_5b57                             	| [$5b5a: djnz $5B57]
+l_5b5c:
+	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5b5c: ld   a,(players_type_human_or_cpu_flags_C02D)]
+	btst.b	#2,d0                           	| [$5b5f: bit  2,a]
+	jeq	l_5b6b                             	| [$5b61: jp   z,$5B6B]
+	lea	map_index_C900,a2              	| [$5b64: ld   ix,map_index_C900]
+	jbsr	l_5ba1                            	| [$5b68: call $5BA1]
+l_5b6b:
+	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5b6b: ld   a,(players_type_human_or_cpu_flags_C02D)]
+	btst.b	#3,d0                           	| [$5b6e: bit  3,a]
+	jeq	return_zero_in_A_5B7A              	| [$5b70: jp   z,return_zero_in_A_5B7A]
+	lea	unknown_C908,a2                	| [$5b73: ld   ix,unknown_C908]
+	jbsr	l_5ba1                            	| [$5b77: call $5BA1]
+return_zero_in_A_5B7A:
+	clr.b	d0                               	| [$5b7a: ld   a,$00]
+	rts                                    	| [$5b7c: ret]
+l_5b7d:
+	lea	unknown_C908,a2                	| [$5b7d: ld   ix,unknown_C908]
+	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5b81: ld   a,(players_type_human_or_cpu_flags_C02D)]
+	btst.b	#2,d0                           	| [$5b84: bit  2,a]
+	jeq	l_5b8d                             	| [$5b86: jp   z,$5B8D]
+	lea	map_index_C900,a2              	| [$5b89: ld   ix,map_index_C900]
+l_5b8d:
+	move.b	(0x01,a2),d1                    	| [$5b8d: ld   b,(ix+$01)]
+	move.b	d1,(0x05,a2)                    	| [$5b90: ld   (ix+$05),b]
+	lea	game_mem+0x53C6,a0                  	| [$5b93: ld   hl,table_53C6]
+	move.b	(a0),d0                         	| [$5b96: ld   a,(hl)]
+	move.b	d0,(0x01,a2)                    	| [$5b97: ld   (ix+$01),a]
+	bsr		store_a0_in_a2_structure_02_address   | [$5b9a: ld   (ix+$02),l]
+	                    	                      | [$5b9d: ld   (ix+$03),h]
+	rts                                    	| [$5ba0: ret]
+l_5ba1:
+	move.b	background_and_state_bits_C911,d0	| [$5ba1: ld   a,(background_and_state_bits_C911)]
+	btst.b	#7,d0                           	| [$5ba4: bit  7,a]
+	jeq	l_5bca                             	| [$5ba6: jp   z,$5BCA]
+	bsr		load_a0_from_a2_structure_02_address   	| [$5ba9: ld   l,(ix+$02)]
+	                    	| [$5bac: ld   h,(ix+$03)]
+	                      	| [$5baf: ld   bc,$0001] 1
+	addq.w	#1,a0                            	| [$5bb2: add  hl,bc]
+	move.b	(a0),d0                         	| [$5bb3: ld   a,(hl)]
+	cmp.b	#0xFF,d0                         	| [$5bb4: cp   $FF]
+	jne	l_5bc0                             	| [$5bb6: jp   nz,$5BC0]
+	addq.w	#1,a0                           	| [$5bb9: inc  hl]
+	bsr		load_a1_from_a0                  	| [$5bba: ld   c,(hl)]
+												| [$5bbb: inc  hl]
+												| [$5bbc: ld   b,(hl)]
+	movel	a1,a0            	        	| [$5bbd: push bc]
+												| [$5bbe: pop  hl]
+	move.b	(a0),d0                         	| [$5bbf: ld   a,(hl)]
+l_5bc0:
+	move.b	d0,(0x01,a2)                    	| [$5bc0: ld   (ix+$01),a]
+	bsr		store_a0_in_a2_structure_02_address  |  [$5bc3: ld   (ix+$02),l]
+										         | [$5bc6: ld   (ix+$03),h]
+	rts                                    	| [$5bc9: ret]
+l_5bca:
+	bsr		load_a0_from_a2_structure_02_address    | [$5bca: ld   l,(ix+$02)]
+	                    	| [$5bcd: ld   h,(ix+$03)]
+	                      	| [$5bd0: ld   bc,$0001] 1
+	addq.w	#1,a0                            	| [$5bd3: add  hl,bc]
+	move.b	(a0),d0                         	| [$5bd4: ld   a,(hl)]
+	move.b	d0,d1                           	| [$5bd5: ld   b,a]
+	and.b	#0xF0,d0                         	| [$5bd6: and  $F0]
+	cmp.b	#0x40,d0                         	| [$5bd8: cp   $40]
+	jne	l_5be2                             	| [$5bda: jp   nz,$5BE2]
+	move.b	(0x05,a2),d0                    	| [$5bdd: ld   a,(ix+$05)]
+	or.b	d1,d0                             	| [$5be0: or   b]
+	move.b	d0,d1                           	| [$5be1: ld   b,a]
+l_5be2:
+	move.b	d1,(0x01,a2)                    	| [$5be2: ld   (ix+$01),b]
+	bsr		store_a0_in_a2_structure_02_address | [$5be5: ld   (ix+$02),l]
+												| [$5be8: ld   (ix+$03),h]
+	addq.w	#1,a0                           	| [$5beb: inc  hl]
+	move.b	(a0),d0                         	| [$5bec: ld   a,(hl)]
+	cmp.b	#0xFF,d0                         	| [$5bed: cp   $FF]
+	beq.b	0f
+	rts                                    	| [$5bef: ret  nz]
+0:
+	move.b	d0,(0x04,a2)                    	| [$5bf0: ld   (ix+$04),a]
+	rts                                    	| [$5bf3: ret]
 task_6491:
 	move.b	background_and_state_bits_C911,d0	| [$6491: ld   a,(background_and_state_bits_C911)]
 	and.b	#0x7F,d0                         	| [$6494: and  $7F]
