@@ -5484,34 +5484,36 @@ table_6300:
 ;
 ; one possible sequence is (see <===) front kick, back kick,
 practice_table_6301:
-	dc.b	$11,$14,$44,$64	; lunge punch (high, forward)
-	dc.b	$05,$02,$C3,$63	; back kick
-	dc.b	$09,$82,$E9,$63	; foot sweep
-	dc.b	$0A,$01,$F8,$63	; front kick
-	dc.b	$0B,$21,$07,$64	; back round kick
-	dc.b	$10,$24,$44,$64	; lunge punch (high, still)
-	dc.b	$14,$08,$66,$64	; low kick
-	dc.b	$0F,$04,$35,$64	; round kick  <==== first move of sequence #1
-
-	dc.b	$08,$42,$D1,$63	; jumping back kick
-	dc.b	$10,$24,$44,$64	; lunge punch (high, still)
-	dc.b	$13,$84,$54,$64	; reverse punch
-	dc.b	$0F,$04,$35,$64	; round kick
-	dc.b	$09,$82,$E9,$63	; foot sweep (back)
-	dc.b	$14,$08,$66,$64	; low kick
-	dc.b	$05,$02,$C3,$63	; back kick
-	dc.b	$0A,$01,$F8,$63	; front kick   <==== start of sequence #2
-
-	dc.b	$08,$42,$D1,$63	; jumping back kick
-	dc.b	$0F,$04,$35,$64	; round kick
-	dc.b	$09,$82,$E9,$63	; foot sweep (back)
-	dc.b	$10,$24,$44,$64	; lunge punch
-	dc.b	$14,$08,$66,$64	; low kick
-	dc.b	$05,$02,$C3,$63	; back kick
-	dc.b	$0A,$01,$F8,$63	; front kick
+	dc.b	0x11,0x14,0x44,0x64	; lunge punch (high, forward)
+	dc.b	0x05,0x02,0xC3,0x63	; back kick
+	dc.b	0x09,0x82,0xE9,0x63	; foot sweep
+	dc.b	0x0A,0x01,0xF8,0x63	; front kick
+	dc.b	0x0B,0x21,0x07,0x64	; back round kick
+	dc.b	0x10,0x24,0x44,0x64	; lunge punch (high, still)
+	dc.b	0x14,0x08,0x66,0x64	; low kick
+	dc.b	0x0F,0x04,0x35,0x64	; round kick  <==== first move of sequence #1
+practice_table_6321:
+	dc.b	0x08,0x42,0xD1,0x63	; jumping back kick
+	dc.b	0x10,0x24,0x44,0x64	; lunge punch (high, still)
+	dc.b	0x13,0x84,0x54,0x64	; reverse punch
+	dc.b	0x0F,0x04,0x35,0x64	; round kick
+	dc.b	0x09,0x82,0xE9,0x63	; foot sweep (back)
+	dc.b	0x14,0x08,0x66,0x64	; low kick
+	dc.b	0x05,0x02,0xC3,0x63	; back kick
+	dc.b	0x0A,0x01,0xF8,0x63	; front kick   <==== start of sequence #2
+practice_table_6341:
+	dc.b	0x08,0x42,0xD1,0x63	; jumping back kick
+	dc.b	0x0F,0x04,0x35,0x64	; round kick
+	dc.b	0x09,0x82,0xE9,0x63	; foot sweep (back)
+	dc.b	0x10,0x24,0x44,0x64	; lunge punch
+	dc.b	0x14,0x08,0x66,0x64	; low kick
+	dc.b	0x05,0x02,0xC3,0x63	; back kick
+	dc.b	0x0A,0x01,0xF8,0x63	; front kick
+	dc.b		; lunge punch  <==== start of sequence #3
 practice_table_end_6361:
-	dc.b	$11,$14,$44,$64	; lunge punch  <==== start of sequence #3
-	dc.b	0x01,0x63,0x21,0x63,0x41,0x63 ; practice_table_end_6361
+	dc.w	practice_table_6301 ; $6361
+	dc.w	practice_table_6321 ; $6363
+	dc.w	practice_table_6341 ; $6365
 table_6367:
 	dc.b	0x0b,0x1c,0x3c,0x88,0xac,0xd8,0xad,0xd8 ; table_6367
 	dc.b	0x3c,0x88,0xfe,0x0b,0x1d,0xae,0xd8,0xaf ; $636f
@@ -12595,17 +12597,17 @@ address_table_E24C:
 	dc.w	table_e26d ; $e25a
 	dc.w	table_e270 ; $e25c
 table_e25e:
-%%DCB
+	dc.b	0x00,0x00,0xff ; $e25e
 table_e261:
-%%DCB
+	dc.b	0x00,0x00,0xff ; $e261
 table_e264:
-%%DCB
+	dc.b	0x00,0x00,0xff ; $e264
 table_e267:
-%%DCB
+	dc.b	0x00,0x00,0xfa,0xa8,0xec,0xff ; $e267
 table_e26d:
-%%DCB
+	dc.b	0x00,0x00,0xff ; $e26d
 table_e270:
-%%DCB
+	dc.b	0x00,0x00,0xff ; $e270
 
 
 E273: 3E 1C       ld   a,$16
@@ -13338,14 +13340,14 @@ E9A7: C1          pop  bc
 E9A8: 78          ld   a,b
 E9A9: FE 0B       cp   $0B
 E9AB: C2 B0 E3    jp   nz,$E9B0
-E9AE: 3E 80       ld   a,$20                                          
-E9B0: CD AB B1    call $B1AB                                          
-E9B3: 3E 20       ld   a,$80                                          
-E9B5: CD 5E BC    call suspend_this_task_B65E                                          
-E9B8: 3E 01       ld   a,$01                                          
-E9BA: 06 01       ld   b,$01                                          
-E9BC: CD AE BC    call task_manipulation_B6AE                                        
-E9BF: CD A5 B5    call task_yield_B5A5                                     
+E9AE: 3E 80       ld   a,$20
+E9B0: CD AB B1    call $B1AB
+E9B3: 3E 20       ld   a,$80
+E9B5: CD 5E BC    call suspend_this_task_B65E
+E9B8: 3E 01       ld   a,$01
+E9BA: 06 01       ld   b,$01
+E9BC: CD AE BC    call task_manipulation_B6AE
+E9BF: CD A5 B5    call task_yield_B5A5
 
 
 table_E9C2:
