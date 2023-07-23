@@ -2521,7 +2521,7 @@ table_43C7:
 45CF: C9          ret
 45D0: 50          ld   d,b
 45D1: 1E 80       ld   e,$20
-45D3: CD 00 B0    call $B000
+45D3: CD 00 B0    call multiply_de_B000
 45D6: DD 21 00 61 ld   ix,task_struct_C100
 45DA: DD 19       add  ix,de
 45DC: 21 F9 45    ld   hl,table_45F3
@@ -5509,7 +5509,7 @@ practice_table_6341:
 	dc.b	0x14,0x08,0x66,0x64	; low kick
 	dc.b	0x05,0x02,0xC3,0x63	; back kick
 	dc.b	0x0A,0x01,0xF8,0x63	; front kick
-	dc.b		; lunge punch  <==== start of sequence #3
+	dc.b	0x11,0x14,0x44,0x64	; lunge punch  <==== start of sequence #3
 practice_table_end_6361:
 	dc.w	practice_table_6301 ; $6361
 	dc.w	practice_table_6321 ; $6363
@@ -10685,6 +10685,7 @@ AE1F:
 	dc.b	0x00 ; $afff
 ; a lot of redirected jumps
 ; doesn't help a lot when reversing...
+multiply_de_B000:
 B000: C3 69 B0    jp   multiply_de_B0C3
 B003: C3 7B B0    jp   $B0DB
 random_B006:

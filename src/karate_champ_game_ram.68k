@@ -23,6 +23,7 @@
 	.global	task_struct_C1E0
 	.global	task_struct_C200
 	.global	task_struct_C220
+	.global unknown_C220
 	.global	task_struct_C240
 	.global	task_struct_C260
 	.global	player_1_struct_C240
@@ -321,6 +322,7 @@ unknown_C1ED:
 task_struct_C200:
 	ds.b	32
 	.align	2
+unknown_C220:
 task_struct_C220:
 	ds.b	32
 	.align	2
