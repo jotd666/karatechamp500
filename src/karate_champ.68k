@@ -837,9 +837,10 @@ task_5250:
 	clr.b	d0                               	| [$5250: ld   a,$00]
 	lea	map_index_C900,a2              	| [$5252: ld   ix,map_index_C900]
 	move.b	d0,(0x00,a2)                    	| [$5256: ld   (ix+$00),a]
-	lea	table_53CC(pc),a0                  	| [$5259: ld   hl,table_53CC]
-	move.b	d6,(0x02,a2)                    	| [$525c: ld   (ix+$02),l]
-	move.b	d5,(0x03,a2)                    	| [$525f: ld   (ix+$03),h]
+	lea	game_mem+0x53CC,a0                  	| [$5259: ld   hl,table_53CC]
+	bsr		store_a0_in_a2_structure_02_address        	| [$525c: ld   (ix+$02),l]
+									| [$525f: ld   (ix+$03),h]
+
 	move.b	(a0),d0                         	| [$5262: ld   a,(hl)]
 	move.b	d0,(0x01,a2)                    	| [$5263: ld   (ix+$01),a]
 l_5266:
@@ -2032,7 +2033,7 @@ l_75cd:
 	cmp.b	#0x09,d0                         	| [$75d2: cp   $09]
 	jeq	l_75cd                             	| [$75d4: jp   z,$75CD]
 	cmp.b	#0x0C,d0                         	| [$75d7: cp   $0C]
-	beq	0f
+	beq.b	0f
 	jbsr	display_error_text_B075           	| [$75d9: call nz,display_error_text_B075]
 0:
 	jbsr	l_3db7                            	| [$75dc: call $3DB7]
@@ -4494,7 +4495,7 @@ task_yield_B5A5:
 	move.b	d0,d3                           	| [$b5b6: ld   e,a]
 	move.b	d2,d0                           	| [$b5b7: ld   a,c]
 	and.b	#0xF8,d0                         	| [$b5b8: and  $F8]
-	roxr.b	#3,d0                           	| [$b5ba: rra] * 3
+	ror.b	#3,d0                           	| [$b5ba: rra] * 3
 	move.b	d0,d1                           	| [$b5bd: ld   c,a]
 	add.w	d1,a0                            	| [$b5be: add  hl,bc]
 
@@ -4520,7 +4521,7 @@ resume_task_B5CD:
 	move.b	d0,d3                           	| [$b5db: ld   e,a]
 	move.b	d2,d0                           	| [$b5dc: ld   a,c]
 	and.b	#0xF8,d0                         	| [$b5dd: and  $F8]
-	roxr.b	#3,d0                           	| [$b5df: rra] * 3
+	ror.b	#3,d0                           	| [$b5df: rra] * 3
 	move.b	d0,d1                           	| [$b5e2: ld   c,a]
 	add.w	d1,a0                            	| [$b5e3: add  hl,bc]
 
@@ -4591,7 +4592,8 @@ schedule_task_to_start_B620:
 	move.b	d0,d3                           	| [$b62e: ld   e,a] A & 7 in E
 	move.b	d2,d0                           	| [$b62f: ld   a,c] restore original A
 	and.b	#0xF8,d0                         	| [$b630: and  $F8] mask it to get upper part (align on 8)
-	roxr.b	#3,d0                           	| [$b632: rra] * 3 divide by 8
+	* roxr => ror as a X flag can be persistent and cause issues!
+	ror.b	#3,d0                           	| [$b632: rra] * 3 divide by 8
 	move.b	d0,d1                           	| [$b635: ld   c,a]
 	add.w	d1,a0                            	| [$b636: add  hl,bc]
 	lea	powers_of_2_table_B875(pc),a2      	| [$b637: ld   ix,powers_of_2_table_B875]
@@ -4636,7 +4638,7 @@ suspend_this_task_B65E:
 	move.b	d0,d3                           	| [$b670: ld   e,a]
 	move.b	d2,d0                           	| [$b671: ld   a,c]
 	and.b	#0xF8,d0                         	| [$b672: and  $F8]
-	roxr.b	#3,d0                           	| [$b674: rra] * 3
+	ror.b	#3,d0                           	| [$b674: rra] * 3
 	move.b	d0,d1                           	| [$b677: ld   c,a]
 	add.w	d1,a0                            	| [$b678: add  hl,bc]
 	lea	powers_of_2_table_B875(pc),a2      	| [$b679: ld   ix,powers_of_2_table_B875]
@@ -4696,7 +4698,7 @@ task_manipulation_B6AE:
 	move.b	d0,d3                           	| [$b6be: ld   e,a]
 	move.b	d2,d0                           	| [$b6bf: ld   a,c]
 	and.b	#0xF8,d0                         	| [$b6c0: and  $F8]
-	roxr.b	#3,d0                           	| [$b6c2: rra] * 3
+	ror.b	#3,d0                           	| [$b6c2: rra] * 3
 	move.b	d0,d1                           	| [$b6c5: ld   c,a]
 	add.w	d1,a0                            	| [$b6c6: add  hl,bc]
 
