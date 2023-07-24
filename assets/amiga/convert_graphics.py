@@ -11,7 +11,7 @@ src_dir = os.path.join(this_dir,"../../src/amiga")
 ripped_tiles_dir = os.path.join(this_dir,"../tiles")
 dump_dir = os.path.join(this_dir,"dumps")
 
-NB_POSSIBLE_SPRITES = 128  #64+64 alternate
+NB_POSSIBLE_SPRITES = 1536  #64+64 alternate
 
 rw_json = os.path.join(this_dir,"used_cluts.json")
 if os.path.exists(rw_json):
@@ -100,60 +100,49 @@ with open(os.path.join(src_dir,"palette_.68k"),"w") as f:
 
 character_codes_list = list()
 
+# group palette 4 by 4
+bg_cluts = [palette[i:i+4] for i in range(0,128,4)]
 
-rgb_cluts_normal = [[tuple(palette[pidx]) for pidx in clut] for clut in bg_cluts[:32]]
-rgb_cluts_alt = [[tuple(palette[pidx]) for pidx in clut] for clut in bg_cluts[96:]]
-
-# dump cluts and the pics look very much like in MAME F4 menu
-#dump_rgb_cluts(rgb_cluts_normal,"normal")
-#dump_rgb_cluts(rgb_cluts_alt,"alternate")
+sprite_cluts = [palette[i:i+4] for i in range(128,256,4)]
 
 
 for k,chardat in enumerate(block_dict["tile"]["data"]):
     # k < 0x100: normal tileset
     # k >= 0x100: alternate pack ice tileset
     img = Image.new('RGB',(8,8))
-    if k < 0x100:
-        local_palette = palette[0:16]
-        rgb_cluts = rgb_cluts_normal
-    else:
-        local_palette = palette[16:]
-        rgb_cluts = rgb_cluts_alt
 
     character_codes = list()
 
-    for cidx,colors in enumerate(rgb_cluts):
+    for cidx,colors in enumerate(bg_cluts[0:1]):
         if not used_cluts or (k in used_cluts and cidx in used_cluts[k]):
             d = iter(chardat)
             for i in range(8):
                 for j in range(8):
                     v = next(d)
                     img.putpixel((j,i),colors[v])
-            character_codes.append(bitplanelib.palette_image2raw(img,None,local_palette))
+            character_codes.append(bitplanelib.palette_image2raw(img,None,colors))
         else:
             character_codes.append(None)
     character_codes_list.append(character_codes)
 
-##    if dump_it:
-##        scaled = ImageOps.scale(img,5,0)
-##        scaled.save(os.path.join(dump_dir,f"char_{k:02x}.png"))
+    if dump_it:
+        scaled = ImageOps.scale(img,5,0)
+        scaled.save(os.path.join(dump_dir,f"char_{k:02x}.png"))
 
-with open(os.path.join(this_dir,"sprite_config.json")) as f:
-    sprite_config = {int(k):v for k,v in json.load(f).items()}
 
+##with open(os.path.join(this_dir,"sprite_config.json")) as f:
+##    sprite_config = {int(k):v for k,v in json.load(f).items()}
+
+sprite_config = {i:{"name":"sprite"} for i in range(len(block_dict["sprite"]["data"]))}
 
 sprites = collections.defaultdict(dict)
 
 clut_index = 12  # temp
 
-bg_cluts_bank_0 = [[tuple(palette[pidx]) for pidx in clut] for clut in bg_cluts[0:16]]
-# second bank
-bg_cluts_bank_1 = [[tuple(palette[pidx]) for pidx in clut] for clut in bg_cluts[16:]]
-
 
 # pick a clut index with different colors
 # it doesn't matter which one
-for clut in bg_cluts:
+for clut in sprite_cluts:
     if len(clut)==len(set(clut)):
         spritepal = clut
         break
@@ -161,12 +150,10 @@ else:
     # can't happen
     raise Exception("no way jose")
 
-# convert our picked palette to RGB
-spritepal = [tuple(palette[pidx]) for pidx in spritepal]
 
 for k,data in sprite_config.items():
     sprdat = block_dict["sprite"]["data"][k]
-
+    print(k)
     d = iter(sprdat)
     img = Image.new('RGB',(16,16))
     y_start = 0
@@ -265,7 +252,7 @@ with open(os.path.join(src_dir,"graphics_.68k"),"w") as f:
 
     f.write("\t.section\t.datachip\n")
 
-    for i in range(256):
+    for i in range(NB_POSSIBLE_SPRITES):
         sprite = sprites.get(i)
         if sprite:
             name = sprite_names[i]
