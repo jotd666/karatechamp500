@@ -6096,13 +6096,14 @@ compute_screen_address_from_XY_B2F6:
 
 
 * fill video & attribute memory with an uniform value
-* < d2: what to set in video memory
-* < d1: what to set in attribute memory
-*
+* < d1.W: what to set in attribute memory / what to set in video memory
+
 fill_video_and_attribute_memory_B316:
 	move.w	#0xD000,d4                      	| [$b316: ld   hl,$D000]
 	move.w	#0xD400,d5                      	| [$b316: ld   hl,$D000]
 	move.w	#0x400,d3                      	| [$b31d: ld   de,$0400]
+	move.b	d1,d2
+	lsr.w	#8,d1
 l_b320:
 	move.w	d4,d6
 	move.b	d2,d0                        	| [$b320: ld   (hl),c]
@@ -6418,7 +6419,6 @@ l_b4b8:
 	add.w	d4,d4                            	| double (long address)
 	add.w	d4,a3                            	| [$b4f7: add  iy,de]
 
-	move.l	(a3),0x100   | debug
 	move.l	(4,a3),a0                    	| [$b4f9: ld   l,(iy+$00)]
 										| [$b4fc: ld   h,(iy+$01)]
 	jbsr	enable_interrupts_BBE2            	| [$b4ff: call enable_interrupts_BBE2]

@@ -49,15 +49,10 @@ ONE_TICK = 1
 	.endif
 
 	.else
-OPT_ENABLE_LOGGING = 0
+OPT_ENABLE_LOGGING = 1
 OPT_ENABLE_PROFILING = 0
 * set to higher values than 1 to speed game up
 ONE_TICK = 1
-* pengo still has some strange sprite/clut combinations
-* we choose to ignore them as they're completely bogus
-* (ex: 95,12: yellow part of andor genesis, makes no sense,
-* Mark says that it happens when starting at level > 1 as
-* game isn't designed to do this)
 
 	.endif
 	
@@ -973,6 +968,8 @@ osd_sound_enable:
 osd_sound_disable:	
 	rts
 osd_sound_start:
+	rts
+	
 	movem.l	d0/d1/a0/a6,-(a7)
 	tst.b	d0
 	jmi	7f		| should stop the sound
@@ -1443,17 +1440,13 @@ osd_w_colorram:
 * other rows use a X/Y transposed system like Galaxian or Xevious!
 *
 update_bg_tile:
-	move.w	#11,d1		| TEMP fix color
+	*move.w	#11,d1		| TEMP fix color
+
 
 	* compute Y
 	and.w	#0xFF,d0	| mask up to 255
 	and.w	#0xFF,d1	| mask up to 255
-	tst.b	alternate_bank_selectors
-	beq.b	0f
-	* tile 0x100->0x1FF
-	clr.b	first_row_standard_bank_selector
-	bset	#8,d0
-0:
+
 	.ifne	OPT_ENABLE_LOGGING
 	* when logging is enabled, play a while
 	* and break. Get the address in 0x100 then do
@@ -1462,12 +1455,12 @@ update_bg_tile:
 	
 	lea		tile_log_table,a0
 	move.l	a0,0x100
-	movem.w	d0-d1,-(a7)
+	movem.l	d0-d1,-(a7)
 	and.l	#0xFFFF,d0
-	lsl.l	#7,d0
-	add.w	d1,d0
+	lsl.w	#8,d0
+	add.b	d1,d0
 	st.b	(a0,d0.l)
-	movem.w	(a7)+,d0-d1
+	movem.l	(a7)+,d0-d1
 	.endif
 
 
@@ -2048,17 +2041,19 @@ palette:
 	* whenever possible (and it does)
 	.ifndef	RELEASE
 	* easier to debug game to have memory aligned on 0x10000
+	.ifeq	OPT_ENABLE_LOGGING
 	.align	0x10000
 
-	.ifne	OPT_ENABLE_LOGGING
+	.else  |	OPT_ENABLE_LOGGING
 	.section	.bss
 tile_log_table:
-	* 128 cluts, 256 tiles
 	* a lot of combinations aren't used (fortunately!)
-	ds.w	0x10000
+	ds.b	0x10000
+sprite_log_table:
+	* a lot of combinations aren't used (fortunately!)
+	ds.b	0x10000
 	.endif
 	.endif
-	.ascii	"CODE_END"
 
 
 	.section	.datachip

@@ -13,7 +13,7 @@ dump_dir = os.path.join(this_dir,"dumps")
 
 NB_POSSIBLE_SPRITES = 1536  #64+64 alternate
 
-rw_json = os.path.join(this_dir,"used_cluts.json")
+rw_json = os.path.join(this_dir,"used_tiles.json")
 if os.path.exists(rw_json):
     with open(rw_json) as f:
         used_cluts = json.load(f)
@@ -85,35 +85,82 @@ def dump_rgb_cluts(rgb_cluts,name):
     img.save(out)
 
 
-# 32 colors 16+16 (alternate)
+# 256 colors but only 20 unique colors used! I guess that the lack
+# of colors per sprite was a problem!
+# conveniently, there are never more than 16 different colors on the screen
 palette = block_dict["palette"]["data"]
 
 
-##print(len({tuple(x) for x in palette}))
-# looks that there are only 32 cluts for 16 colors totol
+#print(len({tuple(x) for x in palette}))
 
-palette = [tuple(x) for x in palette]
+palette_256 = [tuple(x) for x in palette]
 
-with open(os.path.join(src_dir,"palette_.68k"),"w") as f:
-    bitplanelib.palette_dump(palette,f,pformat=bitplanelib.PALETTE_FORMAT_ASMGNU)
+# base palette. It can't contain the 20 used colors, but the 2 last colors can be set dynamically
+# and 2 other colors can be changed dynamically too and it works for all levels & backgrounds!
+palette_16 = bitplanelib.palette_dcw2palette("""    dc.w    $0000,$0fff,$0fcc,$0bbb,$04cf,$0ffc,$000f,$0800
+    dc.w    $080c,$0f00,$0c80,$0cc0,$0fc0,$0ff0,$0000,$0ccc""")
+palette_16_rgb4 = [bitplanelib.to_rgb4_color(p) for p in palette_16]
+
+# RGB4 dict contains the used 20 colors, as RGB4
+rgb4_dict = {bitplanelib.round_color(p,0xF0):p for p in palette_256}
+
+# there are 14 different setups (matching the 12 levels, title, and highscore palette)
+# this table has been computed from a palette optmization done in the previous/given up version
+# of my Karate Champ port (no transcode) where I noticed that there was never more than 16 simultaneous
+# colors on screen for some reason
+# for instance, the bull color only appears in levels where the background also has this color or has
+# enough free color for the color to be used without using more than 16 colors. Same for some other colors.
+#
+# basically, the 14 first colors of the palette are used, 2 extra colors are per level, and 0 to 2 colors aren't used
+# and can be replaced by colors that are used in this level
+
+params = [
+[{},[0,0xCCC]],  # 0
+[{},[0xCA3,0xCCC]], #1
+[{},[0x0C0,0xCCC]], #2
+[{0xC0:0x80C},[0xCA3,0x8F0]], #3
+[{0xC0:0x80C,0x800:0x8F0},[0xCA3,0xCCC]], #4
+[{},[0xCA3,0xCCC]], #5
+[{0xC0:0x80C},[0xCA3,0x8F0]], #6
+[{0xC0:0x80C,0xCA3:0xC80},[0x8F0,0xCCC]], #7
+[{},[0xCA3,0xCCC]],  #8
+[{},[0xC0,0xCA3]],   #9
+[{0xC0:0x80C},[0xCA3,0xCCC]],  #10
+[{},[0xCA3,0xCCC]],  #11
+[{0xC0:0xFC0},[0xCA3,0x8F0]],  #12
+[{},[0,0xCCC]],  #13
+]
+# invert mapping, data entered is reversed, but I don't want to swap it manually
+params = [[{v:k for k,v in d.items()},c] for d,c in params]
+
+palettes_to_try = [[repl.get(c,c) for c in palette_16_rgb4[:14]+last_cols] for repl,last_cols in params]
+
+palette_256_as_rgb4 = [bitplanelib.to_rgb4_color(x) for x in palette_256]
+palette_256_rounded = [bitplanelib.round_color(x,0xF0) for x in palette_256]
+# there aren't cluts in this game, but 256 colors = 4*32 groups of colors. The color code is a value 0-31
+# so technically there's a clut table
+
+clut_table = [palette_256_rounded[i:i+4] for i in range(0,256,4)]
+print(clut_table)
+# dump base palette
+with open(os.path.join(src_dir,"palette.68k"),"w") as f:
+    bitplanelib.palette_dump(palette_16,f,pformat=bitplanelib.PALETTE_FORMAT_ASMGNU)
 
 
 character_codes_list = list()
 
 # group palette 4 by 4
-bg_cluts = [palette[i:i+4] for i in range(0,128,4)]
+bg_cluts = clut_table[:128]
 
-sprite_cluts = [palette[i:i+4] for i in range(128,256,4)]
+sprite_cluts = clut_table[:128]
 
 
 for k,chardat in enumerate(block_dict["tile"]["data"]):
-    # k < 0x100: normal tileset
-    # k >= 0x100: alternate pack ice tileset
     img = Image.new('RGB',(8,8))
 
     character_codes = list()
 
-    for cidx,colors in enumerate(bg_cluts[0:1]):
+    for cidx,colors in enumerate(bg_cluts):
         if not used_cluts or (k in used_cluts and cidx in used_cluts[k]):
             d = iter(chardat)
             for i in range(8):
@@ -121,13 +168,13 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
                     v = next(d)
                     img.putpixel((j,i),colors[v])
             character_codes.append(bitplanelib.palette_image2raw(img,None,colors))
+            if dump_it:
+                scaled = ImageOps.scale(img,5,0)
+                scaled.save(os.path.join(dump_dir,f"char_{k:02x}_{cidx}.png"))
         else:
             character_codes.append(None)
     character_codes_list.append(character_codes)
 
-    if dump_it:
-        scaled = ImageOps.scale(img,5,0)
-        scaled.save(os.path.join(dump_dir,f"char_{k:02x}.png"))
 
 
 ##with open(os.path.join(this_dir,"sprite_config.json")) as f:
@@ -153,7 +200,6 @@ else:
 
 for k,data in sprite_config.items():
     sprdat = block_dict["sprite"]["data"][k]
-    print(k)
     d = iter(sprdat)
     img = Image.new('RGB',(16,16))
     y_start = 0
@@ -181,7 +227,7 @@ for k,data in sprite_config.items():
 
     if dump_it:
         scaled = ImageOps.scale(img,5,0)
-        scaled.save(os.path.join(dump_dir,outname))
+        #scaled.save(os.path.join(dump_dir,outname))
 
 
 
