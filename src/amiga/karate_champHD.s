@@ -23,7 +23,7 @@ _keyexit
 	dc.b	$59					; ws_keyexit
 _expmem
     IFD CHIP_ONLY
-    dc.l    0
+    dc.l    $0
     ELSE
 	dc.l	$C0000					; ws_expmem
     ENDC
@@ -78,7 +78,7 @@ start:
     
     IFD CHIP_ONLY
     lea  _expmem(pc),a0
-    move.l  #$10000,(a0)
+    move.l  #$100000,(a0)
     ENDC
     lea progstart(pc),a0
     move.l  _expmem(pc),(a0)
@@ -96,8 +96,6 @@ start:
     lea  _custom,a1
     move.w  #$1200,bplcon0(a1)
     move.w  #$0024,bplcon2(a1)
-    
-
     rts
 	
 _Relocate	movem.l	d0-d1/a0-a2,-(sp)

@@ -49,7 +49,7 @@ ONE_TICK = 1
 	.endif
 
 	.else
-OPT_ENABLE_LOGGING = 1
+OPT_ENABLE_LOGGING = 0
 OPT_ENABLE_PROFILING = 0
 * set to higher values than 1 to speed game up
 ONE_TICK = 1
@@ -349,6 +349,7 @@ _user:
 	move.l	#-1,184(A0)	| pr_WindowPtr: no more system requesters (insert volume, write protected...)
 
 .no_forbid:
+	
 	move.l	dip_switch_difficulty(pc),d0
 	lsl.b	#6,d0
 	
@@ -602,6 +603,7 @@ demo_game:
 		*sne		infinite_lives_flag
 		
 0:	
+
 		jmp			karate_champ_reset					| pass control to the pengo core
 		
 
@@ -705,8 +707,7 @@ osd_break:
 osd_update_sprites:
 	*lea		test_sprites_xy,a1
 	*lea		test_sprites_code,a0
-	move.l	a0,0x110
-	move.l	a1,0x114
+
 	* clear host sprites
 	move.w	#NB_HOST_SPRITES-1,d0
 
@@ -786,12 +787,9 @@ osd_update_sprites:
 	* set colors
 	moveq	#0,d3
 	move.b	(SPRITE_CLUT,a2),d3
-	lea		normal_cluts+2,a6
+	**lea		normal_cluts+2,a6
 	lsl.w	#3,d3		| times 8
-	tst.b	alternate_bank_selectors
-	beq.b	23f
-	lea		alt_cluts+2,a6
-23:
+
 	add.w	d3,a6
 	* check if CLUT doesn't contain only color zero
 	* (we may as well cache the values in spare registers)
@@ -1440,8 +1438,6 @@ osd_w_colorram:
 * other rows use a X/Y transposed system like Galaxian or Xevious!
 *
 update_bg_tile:
-	*move.w	#11,d1		| TEMP fix color
-
 
 	* compute Y
 	and.w	#0xFF,d0	| mask up to 255
@@ -1463,7 +1459,15 @@ update_bg_tile:
 	movem.l	(a7)+,d0-d1
 	.endif
 
+	* color code first 3 bits are actually tile code high bits (8-11)
+	* color code needs 3 bit right shift & mask
 
+	move.b	d1,d2
+	and.b	#7,d2
+	lsl.w	#8,d2
+	add.w	d2,d0		| extended character code
+	lsr.b	#3,d1
+	and.b	#0x1F,d1	| proper color code
 
 	move.w	d6,d3
 	lsr.w	#5,d6		| this is X
@@ -2033,7 +2037,7 @@ palette:
 	.include "palette.68k"
 	* sprites "individual" 4-color palettes
 
-	.include "palette_cluts.68k"
+	*.include "palette_cluts.68k"
 	
 	
 	* on amiga, this file is included in pengo.68k file
