@@ -12604,7 +12604,9 @@ table_e261:
 table_e264:
 	dc.b	0x00,0x00,0xff ; $e264
 table_e267:
-	dc.b	0x00,0x00,0xfa,0xa8,0xec,0xff ; $e267
+	dc.b	0x00,0x00,0xfa
+	dc.w	show_highscores_screen_eca8
+	dc.b	0xff ; $e269
 table_e26d:
 	dc.b	0x00,0x00,0xff ; $e26d
 table_e270:
@@ -13547,6 +13549,8 @@ EC9F: 78          ld   a,b
 ECA0: CD 5E BC    call suspend_this_task_B65E
 ECA3: DD E1       pop  ix
 ECA5: C3 71 E6    jp   $ECD1
+
+show_highscores_screen_eca8:
 ECA8: 3E 01       ld   a,$01
 ECAA: CD B5 BB    call play_sound_BBB5
 ECAD: 01 96 D0    ld   bc,$703C
@@ -13559,7 +13563,7 @@ ECBE: 06 0B       ld   b,$0B
 ECC0: 21 00 00    ld   hl,$0000
 ECC3: E5          push hl
 ECC4: C5          push bc
-ECC5: CD 28 E7    call $ED82
+ECC5: CD 28 E7    call display_upper_cyan_part_ed82
 ECC8: C1          pop  bc
 ECC9: E1          pop  hl
 ECCA: 2C          inc  l
@@ -13642,6 +13646,7 @@ ED7A: 06 01       ld   b,$01
 ED7C: CD AE BC    call task_manipulation_B6AE
 ED7F: CD A5 B5    call task_yield_B5A5
 
+display_upper_cyan_part_ed82:
 ED82: CD FC B8    call compute_screen_address_from_XY_B2F6
 ED85: E5          push hl
 ED86: FD E1       pop  iy

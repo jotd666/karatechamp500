@@ -3,7 +3,7 @@ import json,os,collections
 clut_dump = r"C:\Users\Public\Documents\Amiga Files\WinUAE\used_tiles"
 this_dir = os.path.dirname(__file__)
 
-rw_json = os.path.join(this_dir,"used_tiles.json")
+rw_json = os.path.join(this_dir,"used_tiles_and_sprites.json")
 
 with open(clut_dump,"rb") as f:
     dump = f.read()

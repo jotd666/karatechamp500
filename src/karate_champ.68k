@@ -6848,11 +6848,12 @@ l_b726:
 * main interrupt (vblank) routine, called every 1/60s
 on_periodic_interrupt_B72F:
 	*jbsr	disable_interrupts_BBE2           	| [$b735: call disable_interrupts_BBE2]
-* update sprites into hardware registers TODO
-	*lea	referee_x_pos_C700(pc),a0          	| [$b738: ld   hl,referee_x_pos_C700]
+* update sprites into hardware registers
+	lea	referee_x_pos_C700(pc),a0          	| [$b738: ld   hl,referee_x_pos_C700]
 	*lea	l_D800,a1                      	| [$b73b: ld   de,$D800]
 	*move.w	#0xFC,d1                      	| [$b73e: ld   bc,$00FC]
 	*jbsr	ldir                              	| [$b741: ldir]
+	jbsr	osd_update_sprites
 * increment attack counter
 	addq.w	#1,periodic_counter_16bit_C02E	| [$b743: ld   hl,(periodic_counter_16bit_C02E)]
 											| [$b746: inc  hl]
@@ -8337,6 +8338,8 @@ l_ec47:
 	subq.b	#1,d1                           	| [...]
 	jne	l_ec44                             	| [$ec86: djnz $EC44]
 	rts                                    	| [$ec88: ret]
+
+
 l_ec89:
 	move.b	#0x18,d1                        	| [$ec89: ld   b,$18]
 	lea	unknown_C760(pc),a2                	| [$ec8b: ld   ix,unknown_C760]
@@ -8352,7 +8355,9 @@ l_ec9d:
 	jbsr	suspend_this_task_B65E            	| [$eca0: call suspend_this_task_B65E]
 	move.l	(sp)+,a2                        	| [$eca3: pop  ix]
 	jra	l_ecd1                             	| [$eca5: jp   $ECD1]
+	
 l_eca8:
+show_highscores_screen_eca8:
 	move.b	#0x01,d0                        	| [$eca8: ld   a,$01]
 	jbsr	play_sound_BBB5                   	| [$ecaa: call play_sound_BBB5]
 	move.w	#0x703C,d1                      	| [$ecad: ld   bc,$703C]
@@ -8362,11 +8367,12 @@ l_eca8:
 	move.b	#0x90,d3                        	| [$ecb9: ld   d,$90]
 	jbsr	display_text_B357                 	| [$ecbb: call display_text_B357]
 	move.b	#0x0B,d1                        	| [$ecbe: ld   b,$0B]
-	move.w	#0x0000,d5                      	| [$ecc0: ld   hl,$0000] 0
+	clr.w	d5		                      	| [$ecc0: ld   hl,$0000] 0
+	clr.w	d6
 l_ecc3:
 	                        	| [$ecc3: push hl]
 	movem.w	d1/d2/d5/d6,-(sp)                    	| [$ecc4: push bc]
-	jbsr	l_ed82                            	| [$ecc5: call $ED82]
+	jbsr	display_cyan_row_ed82                            	| [$ecc5: call $ED82]
 	movem.w	(sp)+,d1/d2/d5/d6                    	| [$ecc8: pop  bc]
 											| [$ecc9: pop  hl]
 	addq.b	#1,d6                           	| [$ecca: inc  l]
@@ -8470,17 +8476,19 @@ l_ed5a:
 l_ed7f:
 	jbsr	task_yield_B5A5                   	| [$ed7f: call task_yield_B5A5]
 
-l_ed82:
+display_cyan_row_ed82:
 	jbsr	compute_screen_address_from_XY_B2F6	| [$ed82: call compute_screen_address_from_XY_B2F6]
 
-	move.l	d6,d4                        	| [$ed85: push hl]
+	move.w	d6,d4                        	| [$ed85: push hl]
 	                        	| [$ed86: pop  iy]
 											| [$ed88: ld   de,$0400]
 	add.w	#0x400,d6                            	| [$ed8b: add  hl,de]
 
 										| [$ed8c: push hl]
 									| [$ed8d: pop  ix]
+	* delta Y
 	move.w	#0xFFE0,d3                      	| [$ed8f: ld   de,$FFE0] offset
+	* 32 rows
 	move.b	#0x20,d1                        	| [$ed92: ld   b,$20]
 l_ed94:
 	move.w	d6,-(a7)
