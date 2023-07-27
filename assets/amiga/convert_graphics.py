@@ -61,28 +61,6 @@ with open(os.path.join(this_dir,"..","kchampvs2_gfx.c")) as f:
         block_dict[block_name] = {"size":size,"data":ast.literal_eval(txt)}
 
 
-def dump_rgb_cluts(rgb_cluts,name):
-    out = os.path.join(dump_dir,f"{name}_cluts.png")
-    w = 16
-    nb_clut_per_row = 4
-    img = Image.new("RGB",(w*(nb_clut_per_row+1)*4,w*len(rgb_cluts)//nb_clut_per_row))
-    x = 0
-    y = 0
-    row_count = 0
-    for clut in rgb_cluts:
-        # undo the clut correction so it's the same as MAME
-        for color in [clut[0],clut[2],clut[1],clut[3]]:
-            for dx in range(w):
-                for dy in range(w):
-                    img.putpixel((x+dx,y+dy),color)
-            x += dx
-        row_count += 1
-        if row_count == 4:
-            x = 0
-            y += dy
-            row_count = 0
-
-    img.save(out)
 
 
 # 256 colors but only 20 unique colors used! I guess that the lack
@@ -133,7 +111,10 @@ params = [
 # invert mapping, data entered is reversed, but I don't want to swap it manually
 params = [[{v:k for k,v in d.items()},c] for d,c in params]
 
-palettes_to_try = [[repl.get(c,c) for c in palette_16_rgb4[:14]+last_cols] for repl,last_cols in params]
+contextual_palettes = [[repl.get(c,c) for c in palette_16_rgb4[:14]+last_cols] for repl,last_cols in params]
+
+palette_16_rgb = [bitplanelib.rgb4_to_rgb_triplet(p) for p in palette_16_rgb4]
+palettes_to_try = [[bitplanelib.rgb4_to_rgb_triplet(p) for p in cp] for cp in contextual_palettes]
 
 palette_256_as_rgb4 = [bitplanelib.to_rgb4_color(x) for x in palette_256]
 palette_256_rounded = [bitplanelib.round_color(x,0xF0) for x in palette_256]
@@ -169,7 +150,16 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
                 for j in range(8):
                     v = next(d)
                     img.putpixel((j,i),colors[v])
-            character_codes.append(bitplanelib.palette_image2raw(img,None,colors))
+
+            for pal in palettes_to_try:
+                try:
+                    character_codes.append(bitplanelib.palette_image2raw(img,None,pal))
+                    break
+                except bitplanelib.BitplaneException:
+                    pass
+            else:
+                raise Exception("No matching palette for tile {}, colors {}".format(k,colors))
+
             if dump_it:
                 scaled = ImageOps.scale(img,5,0)
                 scaled.save(os.path.join(dump_dir,f"char_{k:02}_{cidx}.png"))
