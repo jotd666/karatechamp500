@@ -13,16 +13,17 @@ dump_dir = os.path.join(this_dir,"dumps")
 
 NB_POSSIBLE_SPRITES = 1536  #64+64 alternate
 
-rw_json = os.path.join(this_dir,"used_tiles.json")
+rw_json = os.path.join(this_dir,"used_tiles_and_sprites.json")
 if os.path.exists(rw_json):
     with open(rw_json) as f:
         used_cluts = json.load(f)
     # key as integer, list as set for faster lookup (not that it matters...)
-    used_cluts = {int(k):set(v) for k,v in used_cluts.items()}
+    used_tile_cluts = {int(k):set(v) for k,v in used_cluts["tiles"].items()}
+    used_sprite_cluts = {int(k):set(v) for k,v in used_cluts["sprites"].items()}
 else:
     print("Warning: no {} file, no tile/clut filter, expect BIG graphics.68k file")
-    used_cluts = None
-
+    used_tile_cluts = None
+    used_sprite_cluts = None
 
 dump_it = True
 
@@ -144,7 +145,7 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
     character_codes = list()
 
     for cidx,colors in enumerate(bg_cluts):
-        if not used_cluts or (k in used_cluts and cidx in used_cluts[k]):
+        if not used_tile_cluts or (k in used_tile_cluts and cidx in used_tile_cluts[k]):
             d = iter(chardat)
             for i in range(8):
                 for j in range(8):
