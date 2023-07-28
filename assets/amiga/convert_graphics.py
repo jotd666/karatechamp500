@@ -25,7 +25,8 @@ else:
     used_tile_cluts = None
     used_sprite_cluts = None
 
-dump_it = True
+dump_tiles = False
+dump_sprites = True
 
 def dump_asm_bytes(*args,**kwargs):
     bitplanelib.dump_asm_bytes(*args,**kwargs,mit_format=True)
@@ -161,7 +162,7 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
             else:
                 raise Exception("No matching palette for tile {}, colors {}".format(k,colors))
 
-            if dump_it:
+            if dump_tiles:
                 scaled = ImageOps.scale(img,5,0)
                 scaled.save(os.path.join(dump_dir,f"char_{k:02}_{cidx}.png"))
         else:
@@ -176,6 +177,38 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
 sprite_config = {i:{"name":"sprite"} for i in range(len(block_dict["sprite"]["data"]))}
 
 sprites = collections.defaultdict(dict)
+
+side = 16
+for k,chardat in enumerate(block_dict["sprite"]["data"]):
+    img = Image.new('RGB',(side,side))
+
+    sprite_codes = list()
+
+    for cidx,colors in enumerate(bg_cluts):
+        if not used_sprite_cluts or (k in used_sprite_cluts and cidx in used_sprite_cluts[k]):
+            d = iter(chardat)
+            for i in range(side):
+                for j in range(side):
+                    v = next(d)
+                    img.putpixel((j,i),colors[v])
+
+            for pal in palettes_to_try:
+                try:
+                    sprite_codes.append(bitplanelib.palette_image2raw(img,None,pal))
+                    break
+                except bitplanelib.BitplaneException:
+                    pass
+            else:
+                raise Exception("No matching palette for sprite {}, colors {}".format(k,colors))
+
+            if dump_sprites:
+                scaled = ImageOps.scale(img,5,0)
+                scaled.save(os.path.join(dump_dir,f"sprite_{k:02}_{cidx}.png"))
+        else:
+            pass
+            #character_codes.append(None)
+    #character_codes_list.append(character_codes)
+
 
 
 # pick a clut index with different colors

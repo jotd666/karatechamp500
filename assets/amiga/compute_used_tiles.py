@@ -2,7 +2,7 @@ import json,os,collections
 
 dump_dir = r"C:\Users\Public\Documents\Amiga Files\WinUAE"
 clut_tile_dump = os.path.join(dump_dir,"used_tiles")
-clut_sprite_dump = os.path.join(dump_dir,"used_tiles")
+clut_sprite_dump = os.path.join(dump_dir,"used_sprites")
 
 this_dir = os.path.dirname(__file__)
 
@@ -49,8 +49,7 @@ for sprite_index in range(256):
         if sprite_dump[offset+attr]:
             color_code = attr& 0xF
             bank = ((attr & 0x60) >> 5)
-            print(bank)
-            tile_code = tile_index + ((attr & 0x10) << 4)
+            tile_code = sprite_index + ((attr & 0x10) << 4) +  bank*512
             used_cluts["sprites"][tile_code].add(color_code)
 
 for k in ["tiles","sprites"]:
