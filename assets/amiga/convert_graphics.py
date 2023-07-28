@@ -135,9 +135,9 @@ character_codes_list = list()
 # group palette 4 by 4
 
 
-bg_cluts = clut_table[:128]
+bg_cluts = clut_table[32:]
 
-sprite_cluts = clut_table[:128]
+sprite_cluts = clut_table[:32]
 
 
 for k,chardat in enumerate(block_dict["tile"]["data"]):
@@ -179,12 +179,17 @@ sprite_config = {i:{"name":"sprite"} for i in range(len(block_dict["sprite"]["da
 sprites = collections.defaultdict(dict)
 
 side = 16
+transparent = (202,0,202)
+
 for k,chardat in enumerate(block_dict["sprite"]["data"]):
     img = Image.new('RGB',(side,side))
 
     sprite_codes = list()
 
-    for cidx,colors in enumerate(bg_cluts):
+    for cidx,colors in enumerate(sprite_cluts):
+        if colors[0]==(0,0,0):      # if first color of clut is black it means transparent
+            colors[0] = transparent
+
         if not used_sprite_cluts or (k in used_sprite_cluts and cidx in used_sprite_cluts[k]):
             d = iter(chardat)
             for i in range(side):
@@ -194,7 +199,9 @@ for k,chardat in enumerate(block_dict["sprite"]["data"]):
 
             for pal in palettes_to_try:
                 try:
-                    sprite_codes.append(bitplanelib.palette_image2raw(img,None,pal))
+                    left = bitplanelib.palette_image2raw(img,None,pal,blit_pad=True,generate_mask=True,mask_color=transparent)
+                    right = bitplanelib.palette_image2raw(ImageOps.mirror(img),None,pal,blit_pad=True,generate_mask=True,mask_color=transparent)
+                    sprite_codes.append([left,right])
                     break
                 except bitplanelib.BitplaneException:
                     pass
@@ -205,56 +212,17 @@ for k,chardat in enumerate(block_dict["sprite"]["data"]):
                 scaled = ImageOps.scale(img,5,0)
                 scaled.save(os.path.join(dump_dir,f"sprite_{k:02}_{cidx}.png"))
         else:
-            pass
-            #character_codes.append(None)
-    #character_codes_list.append(character_codes)
+            sprite_codes.append(None)
+    if any(sprite_codes):
+        sprites[k] = {"name":f"sprite_{k:02}","data":sprite_codes}
 
 
 
-# pick a clut index with different colors
-# it doesn't matter which one
-for clut in sprite_cluts:
-    if len(clut)==len(set(clut)):
-        spritepal = clut
-        break
-else:
-    # can't happen
-    raise Exception("no way jose")
+bitplane_cache = dict()
+nb_bitplanes = 4+1
 
-
-##for k,data in sprite_config.items():
-##    sprdat = block_dict["sprite"]["data"][k]
-##    d = iter(sprdat)
-##    img = Image.new('RGB',(16,16))
-##    y_start = 0
-##
-##
-##    for i in range(16):
-##        for j in range(16):
-##            v = next(d)
-##            if j >= y_start:
-##                img.putpixel((j,i),spritepal[v])
-##
-##    spr = sprites[k]
-##    spr["name"] = data['name']
-##    mirror = any(x in data["name"] for x in ("left","right"))
-##
-##    right = None
-##    outname = f"{k:02x}_{clut_index}_{data['name']}.png"
-##
-##    left = bitplanelib.palette_image2sprite(img,None,spritepal)
-##    if mirror:
-##        right = bitplanelib.palette_image2sprite(ImageOps.mirror(img),None,spritepal)
-##
-##    spr["left"] = left
-##    spr["right"] = right
-##
-##    if dump_it:
-##        scaled = ImageOps.scale(img,5,0)
-##        #scaled.save(os.path.join(dump_dir,outname))
-
-
-
+# 16*16 on 4 bitplanes with 16 bits blit padding
+chunk_size = 16*4
 with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
     f.write("\t.global\tcharacter_table\n")
     f.write("\t.global\tsprite_table\n")
@@ -282,57 +250,55 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
                     f.write(f"char_{i}_{j}:")
                     bitplanelib.dump_asm_bytes(cc,f,mit_format=True)
     f.write("sprite_table:\n")
-    if False:
-        sprite_names = [None]*NB_POSSIBLE_SPRITES
-        for i in range(NB_POSSIBLE_SPRITES):
-            sprite = sprites.get(i)
-            f.write("\t.long\t")
-            if sprite:
-                name = f"{sprite['name']}_{i:02x}"
-                sprite_names[i] = name
-                f.write(name)
-            else:
-                f.write("0")
-            f.write("\n")
 
-        for i in range(NB_POSSIBLE_SPRITES):
-            sprite = sprites.get(i)
-            if sprite:
-                name = sprite_names[i]
-                f.write(f"{name}:\n")
-                for j in range(8):
-                    f.write("\t.long\t")
-                    f.write(f"{name}_{j}")
-                    f.write("\n")
+    sprite_names = [None]*NB_POSSIBLE_SPRITES
+    for i in range(NB_POSSIBLE_SPRITES):
+        sprite = sprites.get(i)
+        f.write("\t.word\t")
+        if sprite:
+            name = f"{sprite['name']}"
+            sprite_names[i] = name
+            f.write(f"{name}-sprite_table")
+        else:
+            f.write("0")
+        f.write("\n")
 
-        for i in range(NB_POSSIBLE_SPRITES):
-            sprite = sprites.get(i)
-            if sprite:
-                name = sprite_names[i]
-                for j in range(8):
-                    f.write(f"{name}_{j}:\n")
+    plane_cache_id = 0
+    for i in range(NB_POSSIBLE_SPRITES):
+        sprite = sprites.get(i)
+        if sprite:
+            name = sprite_names[i]
+            f.write(f"{name}:\n")
+            data = sprite["data"]
 
-                    for d in ["left","right"]:
-                        bitmap = sprite[d]
-                        if bitmap:
-                            f.write(f"\t.long\t{name}_{j}_sprdata\n".replace(d,opposite[d]))
-                        else:
-                            # same for both
-                            f.write(f"\t.long\t{name}_{j}_sprdata\n")
+            # we have to reference bitplanes here or 0 if nothing to draw, just erase
+            for i,blocks in enumerate(data):
+                if blocks:
+                    f.write(f"\t.word\t{name}_{i}-{name}\n")
+                else:
+                    f.write("\t.word\t0\n")
 
-        f.write("\t.section\t.datachip\n")
+            for i,blocks in enumerate(data):
+                if blocks:
+                    f.write(f"{name}_{i}:\n")
+                    for lr in ["left","right"]:
+                        f.write(f"\t.word\t{name}_{lr}_{i}-{name}\n")
 
-        for i in range(NB_POSSIBLE_SPRITES):
-            sprite = sprites.get(i)
-            if sprite:
-                name = sprite_names[i]
-                for j in range(8):
-                    # clut is valid for this sprite
+                    for lr,block in zip(["left","right"],blocks):
+                        f.write(f"{name}_{lr}_{i}:\n")
+                        for j in range(0,nb_bitplanes):
+                            plane = block[j*chunk_size:(j+1)*chunk_size]
+                            plane_name = bitplane_cache.get(plane)
+                            if plane_name:
+                                pass
+                            else:
+                                plane_name = f"plane_{plane_cache_id:03d}"
+                                plane_cache_id += 1
+                                bitplane_cache[plane] = plane_name
 
-                    for d in ["left","right"]:
-                        bitmap = sprite[d]
-                        if bitmap:
-                            sprite_label = f"{name}_{j}_sprdata".replace(d,opposite[d])
-                            f.write(f"{sprite_label}:\n\t.long\t0\t| control word")
-                            bitplanelib.dump_asm_bytes(sprite[d],f,mit_format=True)
-                            f.write("\t.long\t0\n")
+                            f.write(f"\t.long   {plane_name}\n")
+
+    f.write("\n\t.section\t.datachip\n")
+    for plane,plane_name in sorted(bitplane_cache.items(),key=lambda d:d[1]):
+        f.write(f"{plane_name}:")
+        bitplanelib.dump_asm_bytes(plane,f,mit_format=True)
