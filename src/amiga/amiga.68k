@@ -140,16 +140,6 @@ w\@:
 
     
 	
-* < D0 as native game offset
-* > D0,D1 as amiga X,Y
-.macro GET_XY_FROM_OFFSET
-	move.w	d0,d1
-	subq.w	#2,d1
-	and.w	#0x3F,d1	| Y is computed
-	lsr.w	#6,d0
-	neg.w	d0
-	add.w	#32,d0	| mirror: X is computed
-.endm
 
 
 * exports
@@ -707,23 +697,48 @@ osd_break:
 *            2        FGGTCCCC
 *            3        XXXXXXXX
 
+	.macro	CONVERT_XY
+	subq.b	#8,d1
+	*ext.w	d0
+	*neg.w	d0
+	*add.w	#247,d0	
+	.endm
+	
 osd_update_sprites:
 	*lea		test_sprites,a1
 	move.l	a0,0x108
 	move.l	a0,a6			| save sprite table in A6
 	move.w	#NB_TARGET_SPRITES-1,d7
+	lea		previous_sprites(pc),a4
+0:
 	moveq	#0,d0
 	moveq	#0,d1
 	* blit background on each sprite previous position
-	* TODO
+	move.b	(a4),d0
+	beq.b	1f
+	move.b	(1,a4),d1
+	CONVERT_XY
+	lea		bg_screen_backbuffer_data,a0	| source, no sprites, only tiles
+	bsr		blit_16x_background
+1:
+	addq.w	#2,a4
+	dbf		d7,0b
 	
 	move.w	#NB_TARGET_SPRITES-1,d7
 	moveq	#0,d0
 	moveq	#0,d1
+	lea		previous_sprites(pc),a4
 	* for each sprite
 0:
-	* sprite Y
+	moveq	#0,d0
+	moveq	#0,d1
+	* sprite Y (amiga X)
 	move.b	(a6),d0
+	move.b	d0,(a4)+
+	* sprite X (amiga Y)
+	move.b	(3,a6),d1
+	move.b	d1,(a4)+
+	tst.b	d0
 	jeq	1f
 	.ifne	OPT_ENABLE_LOGGING
 	lea		sprite_log_table,a1
@@ -737,7 +752,7 @@ osd_update_sprites:
 	
 
 	* tile index
-	moveq	#0,d1
+
 	moveq	#0,d2
 	moveq	#0,d3
 	moveq	#0,d4
@@ -771,21 +786,23 @@ osd_update_sprites:
 	add.w	(a0),a0				| make pointer absolute
 	* now A0 is a pointer on a list of 4 16x16 bitplanes + mask
 	* get coordinates (D0 is already loaded as X)
-	move.b	(3,a6),d1
+	CONVERT_XY
+	
 	moveq	#0,d2		| temp no flip
 	move.w	#16,d3		| height = 16
-* what: blits 16x?? data on fg planes, cookie cut
-* args:
-* < A0: data (16 pixels wide, 4+1 planes)
-* < D0: X
-* < D1: Y
-* < D2: bit 2: 0: direct, 1: flip
-* < D3: height	
+
 	bsr		blit_16x_bob
 1:
 	addq.w	#4,a6
 	dbf		d7,0b
 	rts
+
+
+
+previous_sprites:
+	ds.w	NB_TARGET_SPRITES
+
+
 
 	* clear host sprites
 	move.w	#NB_HOST_SPRITES-1,d0
@@ -920,7 +937,68 @@ test_sprites_code:
 	* pengo alone in the end
 	.word	0x8401,0x8001,0x8001,0x0000,0x160B,0x7009,0x0000
 
-* what: blits 16x?? data on fg planes, cookie cut
+* what: blits 32x16 data on bg plane, no horizontal shifting (erase)
+* args:
+* < A0: pristine background
+* < D0: X (rounded to smaller 8-multiple)
+* < D1: Y
+
+* trashes: D0-D1
+
+blit_16x_background:
+	movem.l	d2-d6/a0-a5,-(a7)
+	lea		_custom,a5
+	move.l	bg_drawed_screen_ptr(pc),a1
+	* adjust offset X: X//8
+	lsr.w	#3,d0
+	lea		mulNB_BYTES_PER_ROW_table(pc),a4
+	add.w	d1,d1
+	* add Y offset: Y*40
+	add.w	(a4,d1.w),d0
+	* same offset for source and destination
+	add.w	d0,a1
+	add.w	d0,a0
+	
+	moveq	#16,d4		| height
+    move.l  #0x09f00000,d3    | A->D copy, ascending mode
+	moveq	#4,d2			| 32 bits blit
+	move.w	#NB_BYTES_PER_ROW,d1		| blit modulo
+
+    sub.w   d2,d1       | blit modulo
+    lsl.w   #6,d4
+    lsr.w   #1,d2		| blit width
+    add.w   d2,d4       | blit height
+	
+    * always the same settings
+
+    * now just wait for blitter ready to write all registers
+	WAIT_BLIT
+    
+    * blitter registers set
+
+	move.l d3,bltcon0(a5)	| sets con0 and con1
+
+    move.w  d1,bltamod(a5)	|A modulo
+    move.w  d1,bltdmod(a5)	|D modulo
+							
+	move.l a0,bltapt(a5)	|source graphic top left corner
+	move.l a1,bltdpt(a5)	|destination top (bottom) left corner
+	move.w  d4,bltsize(a5)	|rectangle size, starts blit
+	
+	.rept	3
+	lea	(BG_SCREEN_PLANE_SIZE,a0),a0
+	lea	(BG_SCREEN_PLANE_SIZE,a1),a1
+	WAIT_BLIT
+	* second bitplane
+	move.l a0,bltapt(a5)	|source graphic top left corner
+	move.l a1,bltdpt(a5)	|destination top (bottom) left corner
+	move.w  d4,bltsize(a5)	|rectangle size, starts blit
+	.endr
+	
+	movem.l	(a7)+,d2-d6/a0-a5
+	rts
+
+* what: blits 16x?? data on bg plane, cookie cut
 * args:
 * < A0: data (16 pixels wide, 4+1 planes)
 * < D0: X
@@ -1070,11 +1148,8 @@ blit_planes_any_internal_cookie_cut:
     
     * blitter registers set
 
-	.ifdef	VARIABLE_BLITTER_MASKS_AND_MODS
-    move.l  d7,bltafwm(a5)
 	clr.w bltamod(a5)		|A modulo=bytes to skip between lines
 	clr.w bltbmod(a5)		|B modulo=bytes to skip between lines
-	.endif
 	move.l d5,bltcon0(a5)	| sets con0 and con1
 	move.w	(a7)+,d5
 	
