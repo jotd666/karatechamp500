@@ -246,8 +246,10 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address_mask:
 	rts
 	.endm
 	
-
-
+	.macro	SWAP_WORD	reg
+	rol.w	#8,\reg
+	.endm
+	
 	STORE_AX_IN_AY_STRUCTURE_ZZ_ADDRESS	a0,a3,02
 	STORE_AX_IN_AY_STRUCTURE_ZZ_ADDRESS	a0,a2,02
 	STORE_AX_IN_AY_STRUCTURE_ZZ_ADDRESS	a0,a3,1b
@@ -5656,7 +5658,7 @@ task_b09f:
 	jra	l_e1fb                             	| [$b09f: jp   $E1FB]
 
 l_b0a2:
-	jra	l_f75d                             	| [$b0a2: jp   $F75D]
+	jra	animate_guided_character_F75D                             	| [$b0a2: jp   $F75D]
 
 
 stop_sound_b0ae:
@@ -7690,14 +7692,14 @@ l_e4ff:
 	move.b	#0x64,d6                      	| [$e500: ld   hl,$6864] immediate
 	lea	unknown_C780(pc),a2                	| [$e503: ld   ix,unknown_C780]
 	move.b	#0x03,d0                        	| [$e507: ld   a,$03]
-	jbsr	l_f75d                            	| [$e509: call $F75D]
+	jbsr	animate_guided_character_F75D                            	| [$e509: call $F75D]
 	move.b	#0x10,d0                        	| [$e50c: ld   a,$10]
 	jbsr	suspend_this_task_B65E            	| [$e50e: call suspend_this_task_B65E]
 	move.b	#0x68,d5
 	move.b	#0x64,d6                      	| [ld   hl,$6864] immediate
 	lea	unknown_C780(pc),a2                	| [$e514: ld   ix,unknown_C780]
 	move.b	#0x06,d0                        	| [$e518: ld   a,$06]
-	jbsr	l_f75d                            	| [$e51a: call $F75D]
+	jbsr	animate_guided_character_F75D                            	| [$e51a: call $F75D]
 	move.b	#0x10,d0                        	| [$e51d: ld   a,$10]
 	jbsr	suspend_this_task_B65E            	| [$e51f: call suspend_this_task_B65E]
 	movem.w	(sp)+,d1/d2                    	| [$e522: pop  bc]
@@ -8388,7 +8390,8 @@ l_ecd1:
 	move.b	#0XF4,d5
 	move.b	#0x24,d6                      	| [$ecdc: ld   hl,$F424]
 l_ecdf:
-	lea	name_registration_time_str_EDAD(pc),a3                  	| [$ecdf: ld   iy,table_EDAD]
+	* load character_bounce_table
+	lea	game_mem+0xEDAD,a3                  	| [$ecdf: ld   iy,character_bounce_table_EDAD]
 	st.b	d1                                	| [$ece3: ld   b,$FF]
 l_ece5:
 	move.l	a2,-(sp)                        	| [$ece5: push ix]
@@ -8410,7 +8413,7 @@ l_ed06:
 	move.b	#0x02,d3                        	| [$ed06: ld   d,$02]
 l_ed08:
 	move.b	d3,d0                           	| [$ed08: ld   a,d]
-	jbsr	l_f75d                            	| [$ed09: call $F75D]
+	jbsr	animate_guided_character_F75D                            	| [$ed09: call $F75D]
 	move.b	#0x01,d0                        	| [$ed0c: ld   a,$01]
 	jbsr	suspend_this_task_B65E            	| [$ed0e: call suspend_this_task_B65E]
 	move.b	#0x0C,d1                        	| [$ed11: ld   b,$0C]
@@ -8433,7 +8436,7 @@ l_ed18:
 	* read pointer
 	moveq	#0,d3
 	move.b	(0x01,a3),d3                    	| [$ed35: ld   d,(iy+$01)]
-	lsl.w	#1,d3
+	lsl.w	#8,d3
 	move.b	(0x00,a3),d3                    	| [$ed32: ld   e,(iy+$00)]
 	move.l	d3,a3                        	| [$ed38: push de]
 	add.l	#game_mem,a3
@@ -8505,19 +8508,13 @@ l_ed94:
 	rts                                    	| [$eda2: ret]
 l_eda3:
 	subq.b	#2,d5                           	| [$eda3: dec  h]
-	move.b	(0x00,a3),d0                    	| [$eda5: ld   a,(iy+$00)]
+	move.b	(a3),d0                    	| [$eda5: ld   a,(iy+$00)]
 	add.b	d6,d0                            	| [$eda8: add  a,l]
 	move.b	d0,d6                           	| [$eda9: ld   l,a]
 	jra	l_ece5                             	| [$edaa: jp   $ECE5]
 	
-name_registration_time_str_EDAD:
-	dc.b	0x69,0xe5,0xec,0xf9,0xfc,0xfe,0xfe,0xfe | $edaa
-	dc.b	0xff,0xff,0xff,0xff,0xff,0x00,0xff,0x00 | $edb2
-	dc.b	0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x00 | $edba
-	dc.b	0x01,0x00,0x01,0x01,0x01,0x01,0x02,0x02 | $edc2
-	dc.b	0x02,0x03,0x05,0x03,0x80,0xad,0xed | $edca
-table_EDD1:
-	dc.b	0x04,0x01,0x17,0x70,0x0a,0x70,0x16,0x70 | table_EDD1
+name_registration_time_str_EDD1:
+	dc.b	0x04,0x01,0x17,0x70,0x0a,0x70,0x16,0x70 | name_registration_time_str_EDD1
 	dc.b	0x0e,0x70,0x3c,0x70,0x1b,0x70,0x0e,0x70 | $edd9
 	dc.b	0x10,0x70,0x12,0x70,0x1c,0x70,0x1d,0x70 | $ede1
 	dc.b	0x1b,0x70,0x0a,0x70,0x1d,0x70,0x12,0x70 | $ede9
@@ -9237,7 +9234,7 @@ l_f64a:
 	addq.w	#4,a2                           	| [$f64e: inc  ix] * 4
 	subq.b	#1,d1                           	| [...]
 	jne	l_f64a                             	| [$f656: djnz $F64A]
-	lea	table_EDD1(pc),a0                  	| [$f658: ld   hl,table_EDD1]
+	lea	name_registration_time_str_EDD1(pc),a0                  	| [$f658: ld   hl,name_registration_time_str_EDD1]
 	jbsr	display_multicolor_text_B391      	| [$f65b: call display_multicolor_text_B391]
 	jbsr	display_hiscores_F1AE             	| [$f65e: call display_hiscores_F1AE]
 	lea	unknown_CF08,a2                	| [$f661: ld   ix,unknown_CF08]
@@ -9309,47 +9306,55 @@ table_F6F1:
 	dc.b	0x2f,0xb0,0x2f,0xb0,0x2f,0xb0,0x2f,0xb0 | $f751
 	dc.b	0x2f,0xb0,0x00,0x01 | $f759
 	
-* < ix
-* < a
-* < D5,D6
-l_f75d:
-	lea	table_F7C4(pc),a3                  	| [$f75d: ld   iy,table_F7C4]
-	move.w	#0x0000,d3                      	| [$f761: ld   de,$0000] 0
+* < A2: sprite 4-byte data (0xC7xx)
+* < D0: movement index in table
+* < D5,D6: X,Y
+animate_guided_character_F75D:
+	
+	lea	game_mem+0xF7C4,a3                  	| [$f75d: ld   iy,table_F7C4]
+	moveq	#0,d3                      	| [$f761: ld   de,$0000] 0
 	move.b	d0,d3                           	| [$f764: ld   e,a]
-	asl.w	#2,d3                            	| [$f765: sla  e]
+	add.w	d3,d3                            	| [$f765: sla  e]
 												| [$f767: rl   d]
 	add.w	d3,a3                            	| [$f769: add  iy,de]
-	move.l	(a3),a3                    	| [$f76b: ld   e,(iy+$00)]
+	move.w	(a3),d3                    	| [$f76b: ld   e,(iy+$00)]
+	SWAP_WORD	d3
+	move.l	d3,a3
+	add.l	#game_mem+2,a3
 										| [$f76e: ld   d,(iy+$01)]
 										| [$f771: push de]
 										| [$f772: pop  iy]
-	move.w	#0x0002,d1                      	| [$f774: ld   bc,$0002] 2
-	add.w	d1,a3                            	| [$f777: add  iy,bc]
-	move.b	(-0x01,a3),d1                   	| [$f779: ld   b,(iy-$01)]
-	move.b	(-0x02,a3),d2                   	| [$f77c: ld   c,(iy-$02)]
+										| [$f774: ld   bc,$0002]
+										| [$f777: add  iy,bc]
+	* get previous_ data
+	move.b	(-1,a3),d1                   	| [$f779: ld   b,(iy-$01)]
+	move.b	(-2,a3),d2                   	| [$f77c: ld   c,(iy-$02)]
 l_f77f:
 	movem.w	d1/d2,-(sp)                    	| [$f77f: push bc]
-	move.l	a4,-(sp)                        	| [$f77f: push bc]
 	move.b	d2,d1                           	| [$f780: ld   b,c]
 
 	movem.w	d5/d6,-(sp)                        	| [$f781: push hl]
 l_f782:
-	move.b	d5,d0                           	| [$f782: ld   a,h]
-	move.b	d0,(0x00,a2)                    	| [$f783: ld   (ix+$00),a]
-	move.b	(0x00,a3),d0                    	| [$f786: ld   a,(iy+$00)]
-	move.b	d0,(0x01,a2)                    	| [$f789: ld   (ix+$01),a]
-	move.b	(0x02,a3),d0                    	| [$f78c: ld   a,(iy+$02)]
-	move.b	d0,(0x02,a2)                    	| [$f78f: ld   (ix+$02),a]
-	move.b	d6,d0                           	| [$f792: ld   a,l]
-	move.b	d0,(0x03,a2)                    	| [$f793: ld   (ix+$03),a]
-	move.b	(0x01,a3),d0                    	| [$f796: ld   a,(iy+$01)]
+												| [$f782: ld   a,h] X
+	* stores X position in sprite shadow ram
+	move.b	d5,(a2)                    	| [$f783: ld   (ix+$00),a]
+	move.b	(a3),d0                    	| [$f786: ld   a,(iy+$00)]
+	* store character code
+	move.b	d0,(1,a2)                    	| [$f789: ld   (ix+$01),a]
+	move.b	(2,a3),d0                    	| [$f78c: ld   a,(iy+$02)]
+	move.b	d0,(2,a2)                    	| [$f78f: ld   (ix+$02),a]
+											| [$f792: ld   a,l]
+	* stores Y position in sprite shadow ram
+	move.b	d6,(3,a2)                    	| [$f793: ld   (ix+$03),a]
+	move.b	(1,a3),d0                    	| [$f796: ld   a,(iy+$01)]
 	asl.b	#4,d0                            	| [$f799: sla  a] * 4
-	or.b	(0x02,a2),d0                      	| [$f7a1: or   (ix+$02)]
-	move.b	d0,(0x02,a2)                    	| [$f7a4: ld   (ix+$02),a]
+	or.b	(2,a2),d0                      	| [$f7a1: or   (ix+$02)]
+	move.b	d0,(2,a2)                    	| [$f7a4: ld   (ix+$02),a]
 	move.b	#0x10,d0                        	| [$f7a7: ld   a,$10]
 	add.b	d5,d0                            	| [$f7a9: add  a,h]
 	move.b	d0,d5                           	| [$f7aa: ld   h,a]
 	addq.w	#3,a3                           	| [$f7ab: inc  iy] * 3
+	* next elementary sprite
 	addq.w	#4,a2                           	| [$f7b1: inc  ix] * 4
 	subq.b	#1,d1                           	| [...]
 	jne	l_f782                             	| [$f7b9: djnz $F782]
@@ -9357,101 +9362,38 @@ l_f782:
 	move.b	#0x10,d0                        	| [$f7bc: ld   a,$10]
 	add.b	d6,d0                            	| [$f7be: add  a,l]
 	move.b	d0,d6                           	| [$f7bf: ld   l,a]
-	move.l	(sp)+,a4                        	| [$f7c0: pop  bc]
 	movem.w	(sp)+,d1/d2                    	| [$f7c0: pop  bc]
 	subq.b	#1,d1                           	| [...]
 	jne	l_f77f                             	| [$f7c1: djnz $F77F]
 	rts                                    	| [$f7c3: ret]
 table_F7C4:
-	.long	l_f7f8+0xf822-0xf7f8 | $f7c4
-	.long	l_f7f8+0xf83c-0xf7f8 | $f7c6
-	.long	l_f7f8+0xf88c-0xf7f8 | $f7c8
-	.long	l_f7f8+0xf89a-0xf7f8 | $f7ca
-	.long	l_f7f8+0xf8b6-0xf7f8 | $f7cc
-	.long	l_f7f8+0xf8c4-0xf7f8 | $f7ce
-	.long	l_f7f8+0xf8a8-0xf7f8 | $f7d0
-	.long	l_f7f8+0xf7f8-0xf7f8 | $f7d2
-	.long	l_f7f8+0xf806-0xf7f8 | $f7d4
-	.long	l_f7f8+0xf814-0xf7f8 | $f7d6
-	.long	l_f7f8+0xf857-0xf7f8 | $f7d8
-	.long	l_f7f8+0xf871-0xf7f8 | $f7da
-	.long	l_f7f8+0xffff-0xf7f8 | $f7dc
-	.long	l_f7f8+0xffff-0xf7f8 | $f7de
-	.long	l_f7f8+0xffff-0xf7f8 | $f7e0
-	.long	l_f7f8+0xffff-0xf7f8 | $f7e2
-	.long	l_f7f8+0xf8d8-0xf7f8 | $f7e4
-	.long	l_f7f8+0xf8fe-0xf7f8 | $f7e6
-	.long	l_f7f8+0xf924-0xf7f8 | $f7e8
-	.long	l_f7f8+0xf950-0xf7f8 | $f7ea
-	.long	l_f7f8+0xf924-0xf7f8 | $f7ec
-	.long	l_f7f8+0xf950-0xf7f8 | $f7ee
-	.long	l_f7f8+0xf97c-0xf7f8 | $f7f0
-	.long	l_f7f8+0xf996-0xf7f8 | $f7f2
-	.long	l_f7f8+0xf9b0-0xf7f8 | $f7f4
-	.long	l_f7f8+0xf9ca-0xf7f8 | $f7f6
-l_f7f8:
-	dc.b	0x02,0x02,0x89,0x03,0x0c,0x8a,0x03,0x0c | $f7f8
-	dc.b	0x8b,0x03,0x0c,0x8c,0x03,0x0c,0x02,0x02 | $f800
-	dc.b	0x8d,0x03,0x0c,0x8e,0x03,0x0c,0x8f,0x03 | $f808
-	dc.b	0x0c,0x90,0x03,0x0c,0x02,0x02,0x91,0x03 | $f810
-	dc.b	0x0c,0x92,0x03,0x0c,0x93,0x03,0x0c,0x94 | $f818
-	dc.b	0x03,0x0c,0x02,0x04,0x42,0x04,0x01,0x43 | $f820
-	dc.b	0x04,0x01,0x44,0x04,0x01,0x45,0x04,0x01 | $f828
-	dc.b	0x46,0x04,0x01,0x47,0x04,0x01,0x48,0x04 | $f830
-	dc.b	0x01,0x49,0x04,0x01,0x02,0x04,0x4a,0x04 | $f838
-	dc.b	0x01,0x4b,0x04,0x01,0x4c,0x04,0x01,0x4d | $f840
-	dc.b	0x04,0x01,0x4e,0x04,0x01,0x4f,0x04,0x01 | $f848
-	dc.b	0x50,0x04,0x01,0x00,0x00,0x01,0x00,0x02 | $f850
-	dc.b	0x04,0x42,0x04,0x02,0x43,0x04,0x02,0x44 | $f858
-	dc.b	0x04,0x02,0x45,0x04,0x02,0x46,0x04,0x02 | $f860
-	dc.b	0x47,0x04,0x02,0x48,0x04,0x02,0x49,0x04 | $f868
-	dc.b	0x02,0x02,0x04,0x4a,0x04,0x02,0x4b,0x04 | $f870
-	dc.b	0x02,0x4c,0x04,0x02,0x4d,0x04,0x02,0x4e | $f878
-	dc.b	0x04,0x02,0x4f,0x04,0x02,0x50,0x04,0x02 | $f880
-	dc.b	0x00,0x00,0x02,0x00,0x02,0x02,0x61,0x04 | $f888
-	dc.b	0x01,0x62,0x04,0x01,0x63,0x04,0x01,0x64 | $f890
-	dc.b	0x04,0x01,0x02,0x02,0x67,0x04,0x01,0x67 | $f898
-	dc.b	0x04,0x81,0x68,0x04,0x05,0x68,0x04,0x85 | $f8a0
-	dc.b	0x02,0x02,0x65,0x04,0x01,0x65,0x04,0x81 | $f8a8
-	dc.b	0x66,0x04,0x05,0x66,0x04,0x85,0x02,0x02 | $f8b0
-	dc.b	0x00,0x00,0x01,0x00,0x00,0x01,0x00,0x00 | $f8b8
-	dc.b	0x01,0x00,0x00,0x01,0x02,0x03,0x67,0x04 | $f8c0
-	dc.b	0x01,0x67,0x04,0x81,0x68,0x04,0x05,0x68 | $f8c8
-	dc.b	0x04,0x85,0x63,0x04,0x05,0x64,0x04,0x05 | $f8d0
-	dc.b	0x04,0x03,0x69,0x04,0x02,0x6a,0x04,0x03 | $f8d8
-	dc.b	0x6b,0x04,0x03,0x6c,0x04,0x03,0x6d,0x04 | $f8e0
-	dc.b	0x03,0x6e,0x04,0x03,0xff,0x03,0x03,0x6f | $f8e8
-	dc.b	0x04,0x03,0x70,0x04,0x03,0x71,0x04,0x03 | $f8f0
-	dc.b	0x72,0x04,0x03,0x73,0x04,0x03,0x04,0x03 | $f8f8
-	dc.b	0x69,0x04,0x03,0x6a,0x04,0x03,0x6b,0x04 | $f900
-	dc.b	0x03,0xc4,0x04,0x03,0x6d,0x04,0x03,0x6e | $f908
-	dc.b	0x04,0x03,0xff,0x03,0x03,0x79,0x04,0x03 | $f910
-	dc.b	0x75,0x04,0x03,0x76,0x04,0x03,0x77,0x04 | $f918
-	dc.b	0x03,0x78,0x04,0x03,0x0e,0x01,0x7c,0x04 | $f920
-	dc.b	0x8a,0x7d,0x04,0x8a,0x7e,0x04,0x8a,0x7f | $f928
-	dc.b	0x04,0x8a,0x7c,0x04,0x8a,0x7d,0x04,0x8a | $f930
-	dc.b	0x7e,0x04,0x8a,0x7f,0x04,0x8a,0x7c,0x04 | $f938
-	dc.b	0x8a,0x7d,0x04,0x8a,0x7e,0x04,0x8a,0x7f | $f940
-	dc.b	0x04,0x8a,0x7c,0x04,0x8a,0x7d,0x04,0x8a | $f948
-	dc.b	0x0e,0x01,0x7e,0x04,0x8a,0x7f,0x04,0x8a | $f950
-	dc.b	0x7c,0x04,0x8a,0x7d,0x04,0x8a,0x7e,0x04 | $f958
-	dc.b	0x8a,0x7f,0x04,0x8a,0x7c,0x04,0x8a,0x7d | $f960
-	dc.b	0x04,0x8a,0x7e,0x04,0x8a,0x7f,0x04,0x8a | $f968
-	dc.b	0x7c,0x04,0x8a,0x7d,0x04,0x8a,0x7e,0x04 | $f970
-	dc.b	0x8a,0x7f,0x04,0x8a,0x02,0x04,0x51,0x04 | $f978
-	dc.b	0x01,0x52,0x04,0x01,0x53,0x04,0x01,0x54 | $f980
-	dc.b	0x04,0x01,0x55,0x04,0x01,0x56,0x04,0x01 | $f988
-	dc.b	0x57,0x04,0x01,0x58,0x04,0x01,0x02,0x04 | $f990
-	dc.b	0x59,0x04,0x01,0x5a,0x04,0x01,0x5b,0x04 | $f998
-	dc.b	0x01,0x5c,0x04,0x01,0x5d,0x04,0x01,0x5e | $f9a0
-	dc.b	0x04,0x01,0x5f,0x04,0x01,0x60,0x04,0x01 | $f9a8
-	dc.b	0x02,0x04,0x51,0x04,0x02,0x52,0x04,0x02 | $f9b0
-	dc.b	0x53,0x04,0x02,0x54,0x04,0x02,0x55,0x04 | $f9b8
-	dc.b	0x02,0x56,0x04,0x02,0x57,0x04,0x02,0x58 | $f9c0
-	dc.b	0x04,0x02,0x02,0x04,0x59,0x04,0x02,0x5a | $f9c8
-	dc.b	0x04,0x02,0x5b,0x04,0x02,0x5c,0x04,0x02 | $f9d0
-	dc.b	0x5d,0x04,0x02,0x5e,0x04,0x02,0x5f,0x04 | $f9d8
-	dc.b	0x02,0x60,0x04,0x02 | $f9e0
+	.word	0xf822 | $f7c4
+	.word	0xf83c | $f7c6
+	.word	0xf88c | $f7c8
+	.word	0xf89a | $f7ca
+	.word	0xf8b6 | $f7cc
+	.word	0xf8c4 | $f7ce
+	.word	0xf8a8 | $f7d0
+	.word	0xf7f8 | $f7d2
+	.word	0xf806 | $f7d4
+	.word	0xf814 | $f7d6
+	.word	0xf857 | $f7d8
+	.word	0xf871 | $f7da
+	.word	0xffff | $f7dc
+	.word	0xffff | $f7de
+	.word	0xffff | $f7e0
+	.word	0xffff | $f7e2
+	.word	0xf8d8 | $f7e4
+	.word	0xf8fe | $f7e6
+	.word	0xf924 | $f7e8
+	.word	0xf950 | $f7ea
+	.word	0xf924 | $f7ec
+	.word	0xf950 | $f7ee
+	.word	0xf97c | $f7f0
+	.word	0xf996 | $f7f2
+	.word	0xf9b0 | $f7f4
+	.word	0xf9ca | $f7f6
+
 draw_something_f9r4:
 	lea	table_FA28(pc),a3                  	| [$f9e4: ld   iy,table_FA28]
 	clr.w	d3                               	| [$f9e8: ld   d,$00]

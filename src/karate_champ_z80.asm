@@ -10768,7 +10768,7 @@ B096: C3 00 E0    jp   $E000
 B099: C3 7E E1    jp   $E1DE
 B09C: C3 FB E1    jp   $E1FB
 B09F: C3 FB E1    jp   $E1FB
-B0A2: C3 57 FD    jp   $F75D
+B0A2: C3 57 FD    jp   animate_guided_character_F75D
 B0A5: C3 00 00    jp   $0000
 B0A8: C3 00 E0    jp   $E000
 B0AB: C3 00 E0    jp   $E000
@@ -12687,7 +12687,7 @@ E30C: D6 40       sub  $40
 E30E: 6F          ld   l,a
 E30F: DD 21 A0 6D ld   ix,unknown_C7A0
 E313: F1          pop  af
-E314: CD 57 FD    call $F75D
+E314: CD 57 FD    call animate_guided_character_F75D
 E317: FD E1       pop  iy
 E319: C9          ret
 table_E320:
@@ -12842,13 +12842,13 @@ E4FF: C5          push bc
 E500: 21 C4 C2    ld   hl,$6864			; immediate
 E503: DD 21 20 6D ld   ix,unknown_C780
 E507: 3E 09       ld   a,$03
-E509: CD 57 FD    call $F75D
+E509: CD 57 FD    call animate_guided_character_F75D
 E50C: 3E 10       ld   a,$10
 E50E: CD 5E BC    call suspend_this_task_B65E
 E511: 21 C4 C2    ld   hl,$6864		; immediate
 E514: DD 21 20 6D ld   ix,unknown_C780
 E518: 3E 0C       ld   a,$06
-E51A: CD 57 FD    call $F75D
+E51A: CD 57 FD    call animate_guided_character_F75D
 E51D: 3E 10       ld   a,$10
 E51F: CD 5E BC    call suspend_this_task_B65E
 E522: C1          pop  bc
@@ -12880,7 +12880,7 @@ E562: CB 5E       bit  3,(hl)
 E564: CA C3 E5    jp   z,$E569
 E567: C6 0A       add  a,$0A
 E569: E1          pop  hl
-E56A: CD 57 FD    call $F75D
+E56A: CD 57 FD    call animate_guided_character_F75D
 E56D: C9          ret
 
 E56E: 3E 01       ld   a,$01
@@ -13569,12 +13569,12 @@ ECC9: E1          pop  hl
 ECCA: 2C          inc  l
 ECCB: 10 FC       djnz $ECC3
 ECCD: DD 21 90 6D ld   ix,unknown_C730
-ECD1: 21 90 F5    ld   hl,$F530		; entrypoint
+ECD1: 21 90 F5    ld   hl,$F530		; X,Y
 ECD4: 3A 82 60    ld   a,(player_2_attack_flags_C028)
 ECD7: FE 1D       cp   $17
 ECD9: C2 7F E6    jp   nz,$ECDF
 ECDC: 21 84 F4    ld   hl,$F424
-ECDF: FD 21 A7 E7 ld   iy,name_registration_time_str_EDAD
+ECDF: FD 21 A7 E7 ld   iy,table_EDAD
 ECE3: 06 FF       ld   b,$FF
 ECE5: DD E5       push ix
 ECE7: E5          push hl
@@ -13594,7 +13594,7 @@ ED02: 57          ld   d,a
 ED03: C3 02 E7    jp   $ED08
 ED06: 16 08       ld   d,$02
 ED08: 7A          ld   a,d
-ED09: CD 57 FD    call $F75D
+ED09: CD 57 FD    call animate_guided_character_F75D
 ED0C: 3E 01       ld   a,$01
 ED0E: CD 5E BC    call suspend_this_task_B65E
 ED11: 06 06       ld   b,$0C
@@ -13662,20 +13662,17 @@ ED9C: DD 19       add  ix,de
 ED9E: FD 19       add  iy,de
 EDA0: 10 F8       djnz $ED94
 EDA2: C9          ret
+
 EDA3: 25          dec  h
 EDA4: 25          dec  h
 EDA5: FD 7E 00    ld   a,(iy+$00)
 EDA8: 85          add  a,l
 EDA9: 6F          ld   l,a
 EDAA: C3 E5 E6    jp   $ECE5
-name_registration_time_str_EDAD:
-	dc.b	0x69,0xe5,0xec,0xf9,0xfc,0xfe,0xfe,0xfe ; $edaa
-	dc.b	0xff,0xff,0xff,0xff,0xff,0x00,0xff,0x00 ; $edb2
-	dc.b	0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x00 ; $edba
-	dc.b	0x01,0x00,0x01,0x01,0x01,0x01,0x02,0x02 ; $edc2
-	dc.b	0x02,0x03,0x05,0x03,0x80,0xad,0xed ; $edca
-table_EDD1:
-	dc.b	0x04,0x01,0x17,0x70,0x0a,0x70,0x16,0x70 ; table_EDD1
+table_EDAD:
+%%DCB
+name_registration_time_str_EDD1:
+	dc.b	0x04,0x01,0x17,0x70,0x0a,0x70,0x16,0x70 ; name_registration_time_str_EDD1
 	dc.b	0x0e,0x70,0x3c,0x70,0x1b,0x70,0x0e,0x70 ; $edd9
 	dc.b	0x10,0x70,0x12,0x70,0x1c,0x70,0x1d,0x70 ; $ede1
 	dc.b	0x1b,0x70,0x0a,0x70,0x1d,0x70,0x12,0x70 ; $ede9
@@ -14323,7 +14320,7 @@ F650: DD 23       inc  ix
 F652: DD 23       inc  ix
 F654: DD 23       inc  ix
 F656: 10 F8       djnz $F64A
-F658: 21 71 E7    ld   hl,table_EDD1
+F658: 21 71 E7    ld   hl,name_registration_time_str_EDD1
 F65B: CD 31 B9    call display_multicolor_text_B391
 F65E: CD AE F1    call display_hiscores_F1AE
 F661: DD 21 02 6F ld   ix,unknown_CF08
@@ -14393,8 +14390,20 @@ table_F6F1:
 	dc.b	0x2f,0xb0,0x2f,0xb0,0x2f,0xb0,0x2f,0xb0 ; $f751
 	dc.b	0x2f,0xb0,0x00,0x01 ; $f759
 
-; < ix
-; < a
+; animate characters
+; used in the highscore menu (players+bull bounce)
+; also when a player wins and jumps in the air
+; < ix: sprite 4-byte data (0xC7xx)
+; < a: index
+;        Sprites
+;        -------
+;        Offset        Encoding
+;             0        YYYYYYYY
+;             1        TTTTTTTT
+;             2        FGGTCCCC
+;             3        XXXXXXXX (screen is flipped)
+
+animate_guided_character_F75D:
 F75D: FD 21 64 FD ld   iy,table_F7C4
 F761: 11 00 00    ld   de,$0000
 F764: 5F          ld   e,a
@@ -14413,12 +14422,14 @@ F77F: C5          push bc
 F780: 41          ld   b,c
 F781: E5          push hl
 F782: 7C          ld   a,h
+; stores Y position in sprite shadow ram
 F783: DD 77 00    ld   (ix+$00),a
 F786: FD 7E 00    ld   a,(iy+$00)
 F789: DD 77 01    ld   (ix+$01),a
 F78C: FD 7E 08    ld   a,(iy+$02)
 F78F: DD 77 08    ld   (ix+$02),a
 F792: 7D          ld   a,l
+; stores X position in sprite shadow ram
 F793: DD 77 09    ld   (ix+$03),a
 F796: FD 7E 01    ld   a,(iy+$01)
 F799: CB 27       sla  a
