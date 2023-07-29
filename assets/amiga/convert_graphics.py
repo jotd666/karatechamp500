@@ -282,7 +282,7 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
                 if blocks:
                     f.write(f"{name}_{i}:\n")
                     for lr in ["left","right"]:
-                        f.write(f"\t.word\t{name}_{lr}_{i}-{name}\n")
+                        f.write(f"\t.word\t{name}_{lr}_{i}-{name}_{i}\n")
 
                     for lr,block in zip(["left","right"],blocks):
                         f.write(f"{name}_{lr}_{i}:\n")

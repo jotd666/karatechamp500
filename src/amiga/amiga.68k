@@ -710,23 +710,79 @@ osd_break:
 osd_update_sprites:
 	*lea		test_sprites,a1
 	move.l	a0,0x108
-	move.l	a0,a6
+	move.l	a0,a6			| save sprite table in A6
 	move.w	#NB_TARGET_SPRITES-1,d7
+	moveq	#0,d0
+	moveq	#0,d1
+	* blit background on each sprite previous position
+	* TODO
+	
+	move.w	#NB_TARGET_SPRITES-1,d7
+	moveq	#0,d0
+	moveq	#0,d1
 	* for each sprite
 0:
-	tst.b	(a6)
-	beq.b	1f
+	* sprite Y
+	move.b	(a6),d0
+	jeq	1f
 	.ifne	OPT_ENABLE_LOGGING
 	lea		sprite_log_table,a1
 	move.l	a1,0x100
-	moveq	#0,d0
-	move.b	(1,a6),d0
-	lsl.w	#8,d0
-	move.b	(2,a6),d0
-	st.b	(a1,d0.l)
+	moveq	#0,d2
+	move.b	(1,a6),d2
+	lsl.w	#8,d2
+	move.b	(2,a6),d2
+	st.b	(a1,d2.l)
 	.endif
-	nop
-1:	
+	
+
+	* tile index
+	moveq	#0,d1
+	moveq	#0,d2
+	moveq	#0,d3
+	moveq	#0,d4
+	moveq	#0,d5
+	* tile code
+	move.b	(1,a6),d2
+	* tile color & attributes
+	move.b	(2,a6),d3
+	move.b	d3,d5
+	move.b	d3,d4
+	and.b	#0xF,d4		| color code
+	and.b	#0x60,d3
+	lsl.w	#4,d3		| sprite bank (0,1,2) * 512
+	and.b	#0x10,d5
+	lsl.w	#4,d5
+	add.w	d5,d2		| extended tile code
+	add.w	d3,d2		| add bank offset to tile code
+	* now D2 is tile code (0-15xx)
+	*     D3 is tile color "table" (0-31)
+	lea		sprite_table,a0
+	add.w	d2,d2
+	move.w	(a0,d2.w),d5		| offset for color table
+	beq.b	1f					| not found
+	add.w	d5,a0				| absolute pointer on color table for this sprite
+	add.w	d4,d4
+	move.w	(a0,d4.w),d5		| offset for bitplane list
+	beq.b	1f					| not found
+	add.w	d5,a0
+	* not done: check orientation, add 2 if mirror
+	*addq.w	#2,a0
+	add.w	(a0),a0				| make pointer absolute
+	* now A0 is a pointer on a list of 4 16x16 bitplanes + mask
+	* get coordinates (D0 is already loaded as X)
+	move.b	(3,a6),d1
+	moveq	#0,d2		| temp no flip
+	move.w	#16,d3		| height = 16
+* what: blits 16x?? data on fg planes, cookie cut
+* args:
+* < A0: data (16 pixels wide, 4+1 planes)
+* < D0: X
+* < D1: Y
+* < D2: bit 2: 0: direct, 1: flip
+* < D3: height	
+	bsr		blit_16x_bob
+1:
 	addq.w	#4,a6
 	dbf		d7,0b
 	rts
@@ -1422,12 +1478,13 @@ platform_init:
     move.w #0,fmode(a5)			
 	
 
-	* screen with pengo bg/fg tiles
-    **move.w #2<<4,bplcon1(a5)    | foreground tiles shifted by 2 pixels
     move.w #0,bplcon1(a5)    | foreground tiles
 	move.w	#0,d0
     move.w d0,bpl1mod(a5)
     move.w d0,bpl2mod(a5)
+	move.w d0,bltamod(a5)		|A modulo=bytes to skip between lines
+	move.w d0,bltbmod(a5)		|B modulo=bytes to skip between lines
+    move.l  #-1,bltafwm(a5)	| no mask on first & last word
 
 	* set other sprites to blank
 	move.l		#blank_sprite,d0
