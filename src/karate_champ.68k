@@ -328,7 +328,7 @@ l_0000:
 	lea		active_task_bit_table_C000,a0
 	jra	startup_B045                       	| [jp   startup_B045]
 l_0003:
-	jra	l_4153                             	| [$0003: jp   $4153]
+	jra	display_player_4153                             	| [$0003: jp   $4153]
 	
 	
 	
@@ -408,9 +408,9 @@ task_3a9c:
 	jbsr	clear_player_structure_partial_b012	| [$3a9f: call clear_player_structure_partial_b012]
 	jbsr	l_3c41                            	| [$3aa2: call $3C41]
 l_3aa5:
-	jbsr	l_3cb0                            	| [$3aa5: call $3CB0]
+	jbsr	init_title_screen_3cb0                            	| [$3aa5: call $3CB0]
 	jbsr	l_40b3                            	| [$3aa8: call $40B3]
-	jbsr	l_4153                            	| [$3aab: call $4153]
+	jbsr	display_player_4153                            	| [$3aab: call $4153]
 	move.b	background_and_state_bits_C911,d0	| [$3aae: ld   a,(background_and_state_bits_C911)]
 	and.b	#0x70,d0                         	| [$3ab1: and  $70]
 	cmp.b	#0x20,d0                         	| [$3ab3: cp   $20]
@@ -469,7 +469,7 @@ l_3ae4:
 	jbsr	l_4663                            	| [$3b1a: call $4663]
 	jbsr	l_409d                            	| [$3b1d: call $409D]
 	jbsr	l_40b3                            	| [$3b20: call $40B3]
-	jbsr	l_4153                            	| [$3b23: call $4153]
+	jbsr	display_player_4153                            	| [$3b23: call $4153]
 	jbsr	l_4256                            	| [$3b26: call $4256]
 	tst.b	d0                               	| [$3b29: and  a]
 	jeq	l_3bc7                             	| [$3b2a: jp   z,$3BC7]
@@ -659,13 +659,13 @@ l_3c5d:
 	move.w	#0x0004,d1                      	| [$3c68: ld   bc,$0004] 4
 	jbsr	ldir                              	| [$3c6b: ldir]
 	jbsr	l_40b3                            	| [$3c6d: call $40B3]
-	jbsr	l_4153                            	| [$3c70: call $4153]
+	jbsr	display_player_4153                            	| [$3c70: call $4153]
 	jbsr	player_management_routine_46FD    	| [$3c73: call player_management_routine_46FD]
 l_3c76:
 	jbsr	l_3ea7                            	| [$3c76: call $3EA7]
 	jbsr	l_409d                            	| [$3c79: call $409D]
 	jbsr	l_40b3                            	| [$3c7c: call $40B3]
-	jbsr	l_4153                            	| [$3c7f: call $4153]
+	jbsr	display_player_4153                            	| [$3c7f: call $4153]
 	jbsr	player_management_routine_46FD    	| [$3c82: call player_management_routine_46FD]
 	tst.b	d0                               	| [$3c85: and  a]
 	beq.b	0f
@@ -691,7 +691,7 @@ l_3c76:
 l_3ca7:
 	rts                                    	| [$3ca7: ret]
 	
-l_3cb0:
+init_title_screen_3cb0:
 	move.b	background_and_state_bits_C911,d0	| [$3cb0: ld   a,(background_and_state_bits_C911)]
 	and.b	#0x7F,d0                         	| [$3cb3: and  $7F]
 	cmp.b	#0x50,d0                         	| [$3cb5: cp   $50]
@@ -865,7 +865,6 @@ l_3ea7:
 										| [$3eb9: ld   l,(ix+$06)]
 										| [$3ebc: ld   h,(ix+$07)]
 	move.w	#0x0007,d3                      	| [$3ebf: ld   de,$0007] 7
-	jbsr		osd_break
 	move.b	(0x0b,a3),d0                    	| [$3ec2: ld   a,(iy+$0b)]
 	move.b	d0,d1                           	| [$3ec5: ld   b,a]
 l_3ec6:
@@ -1136,10 +1135,12 @@ l_4146:
 l_4152:
 	rts                                    	| [$4152: ret]
 
-l_4153:
+* < A3: C240 or C260 depending on player
+
+display_player_4153:
+	* given player struct in A3, return D5/D6 current frame
 	jbsr	get_current_frame_contents_478D   	| [$4153: call get_current_frame_contents_478D]
 
-	move.l	a0,-(sp)
 	movem.w	d5/d6,-(sp)                        	| [$4156: push hl]
 	                      	| [$4157: ld   de,$0200]
 											| [$415a: and  a]
@@ -1157,8 +1158,11 @@ l_4153:
 	add.w	d5,d5                           	| [$4167: add  hl,hl]
 	move.w	#0x088D,d3                      	| [$4168: ld   de,$088D] offset
 	add.w	d3,d5                            	| [$416b: add  hl,de]
-	move.w	d5,a0
 	* convert d5 to real pointer
+	swap	d5
+	clr.w	d5
+	swap	d5
+	move.l	d5,a0	| move.w gives negative address!
 	add.l	#game_mem,a0
 	move.b	(a0),d0                         	| [$416c: ld   a,(hl)]
 	btst.b	#7,(0x08,a3)                    	| [$416d: bit  7,(iy+$08)]
@@ -1199,8 +1203,8 @@ l_4176:
 	move.b	d0,(0x2b,a2)                    	| [$41cc: ld   (ix+$2b),a]
 	move.b	d0,(0x2f,a2)                    	| [$41cf: ld   (ix+$2f),a]
 	movem.w	(sp)+,d5/d6                        	| [$41d2: pop  hl]
-	move.l	(sp)+,a0
 	clr.b	d1                               	| [$41d3: ld   b,$00]
+	bsr		change_d5_d6_to_a0
 	move.b	(a0),d0                         	| [$41d5: ld   a,(hl)]
 	rol.b	#2,d0                            	| [$41d6: rlca] * 2
 	roxr.b	#1,d1                           	| [$41d8: rr   b]
@@ -1503,7 +1507,7 @@ l_4440:
 l_4443:
 	jbsr	l_409d                            	| [$4443: call $409D]
 	jbsr	l_40b3                            	| [$4446: call $40B3]
-	jbsr	l_4153                            	| [$4449: call $4153]
+	jbsr	display_player_4153                            	| [$4449: call $4153]
 l_444c:
 	jbsr	player_management_routine_46FD    	| [$444c: call player_management_routine_46FD]
 	cmp.b	#0x0D,d0                         	| [$444f: cp   $0D]
@@ -1519,7 +1523,7 @@ l_445d:
 	jbsr	l_4663                            	| [$4460: call $4663]
 	jbsr	l_409d                            	| [$4463: call $409D]
 	jbsr	l_40b3                            	| [$4466: call $40B3]
-	jbsr	l_4153                            	| [$4469: call $4153]
+	jbsr	display_player_4153                            	| [$4469: call $4153]
 l_446c:
 	jbsr	player_management_routine_46FD    	| [$446c: call player_management_routine_46FD]
 	cmp.b	#0x0D,d0                         	| [$446f: cp   $0D]
@@ -1549,7 +1553,7 @@ l_4495:
 	jbsr	l_3ea7                            	| [$4496: call $3EA7]
 	jbsr	l_4663                            	| [$4499: call $4663]
 	jbsr	l_40b3                            	| [$449c: call $40B3]
-	jbsr	l_4153                            	| [$449f: call $4153]
+	jbsr	display_player_4153                            	| [$449f: call $4153]
 	jbsr	player_management_routine_46FD    	| [$44a2: call player_management_routine_46FD]
 	tst.b	d0                               	| [$44a5: and  a]
 	beq.b	0f
@@ -1639,7 +1643,7 @@ l_451d:
 	move.b	d6,(0x07,a3)                    	| [$4529: ld   (iy+$07),l]
 	move.b	d5,(0x08,a3)                    	| [$452c: ld   (iy+$08),h]
 	jbsr	l_40b3                            	| [$452f: call $40B3]
-	jbsr	l_4153                            	| [$4532: call $4153]
+	jbsr	display_player_4153                            	| [$4532: call $4153]
 	rts                                    	| [$4535: ret]
 
 l_4536:
@@ -1942,8 +1946,8 @@ l_4785:
 	move.l	(sp)+,a3                        	| [$478a: pop  iy]
 	rts                                    	| [$478c: ret]
 	
-* < IY: pointer of frame
-* > HL: contents of frame (first 2 bytes)
+* < A3: pointer of frame
+* > D5/D6: contents of frame (first 2 bytes)
 get_current_frame_contents_478D:
 	bsr		load_a0_from_a3_structure_07_address_mask | [$478d: ld   l,(iy+$07)]
 													| [$4790: ld   h,(iy+$08)]

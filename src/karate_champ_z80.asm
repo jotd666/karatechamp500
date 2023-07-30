@@ -182,7 +182,7 @@
 
 
 0000: C3 45 B0    jp   startup_B045
-0003: C3 59 41    jp   $4153
+0003: C3 59 41    jp   display_player_4153
 	dc.b	0x69,0x53,0x41,0x00,0x00,0x00,0x00,0x00 ; $0003
 	dc.b	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 ; $000b
 	dc.b	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 ; $0013
@@ -1345,7 +1345,7 @@ table_183F:
 3AA2: CD 41 96    call $3C41
 3AA5: CD B0 96    call $3CB0
 3AA8: CD B9 40    call $40B3
-3AAB: CD 59 41    call $4153
+3AAB: CD 59 41    call display_player_4153
 3AAE: 3A 11 63    ld   a,(background_and_state_bits_C911)
 3AB1: E6 D0       and  $70
 3AB3: FE 80       cp   $20
@@ -1394,7 +1394,7 @@ table_183F:
 3B1A: CD C9 4C    call $4663
 3B1D: CD 37 40    call $409D
 3B20: CD B9 40    call $40B3
-3B23: CD 59 41    call $4153
+3B23: CD 59 41    call display_player_4153
 3B26: CD 5C 48    call $4256
 3B29: A7          and  a
 3B2A: CA 6D 9B    jp   z,$3BC7
@@ -1539,12 +1539,12 @@ table_183F:
 3C68: 01 04 00    ld   bc,$0004
 3C6B: ED B0       ldir
 3C6D: CD B9 40    call $40B3
-3C70: CD 59 41    call $4153
+3C70: CD 59 41    call display_player_4153
 3C73: CD F7 4C    call player_management_routine_46FD
 3C76: CD AD 9E    call $3EA7
 3C79: CD 37 40    call $409D
 3C7C: CD B9 40    call $40B3
-3C7F: CD 59 41    call $4153
+3C7F: CD 59 41    call display_player_4153
 3C82: CD F7 4C    call player_management_routine_46FD
 3C85: A7          and  a
 3C86: C4 D5 B0    call nz,display_error_text_B075
@@ -2029,6 +2029,8 @@ table_4019:
 4150: 0E 08       ld   c,$02
 4152: C9          ret
 
+; < A3: C240 or C260 depending on player
+display_player_4153:
 4153: CD 27 4D    call get_current_frame_contents_478D
 4156: E5          push hl
 4157: 11 00 08    ld   de,$0200
@@ -2346,7 +2348,7 @@ table_43C7:
 4440: CD 9C 45    call $4536
 4443: CD 37 40    call $409D
 4446: CD B9 40    call $40B3
-4449: CD 59 41    call $4153
+4449: CD 59 41    call display_player_4153
 444C: CD F7 4C    call player_management_routine_46FD
 444F: FE 07       cp   $0D
 4451: CA 46 44    jp   z,$444C
@@ -2358,7 +2360,7 @@ table_43C7:
 4460: CD C9 4C    call $4663
 4463: CD 37 40    call $409D
 4466: CD B9 40    call $40B3
-4469: CD 59 41    call $4153
+4469: CD 59 41    call display_player_4153
 446C: CD F7 4C    call player_management_routine_46FD
 446F: FE 07       cp   $0D
 4471: CA C6 44    jp   z,$446C
@@ -2381,7 +2383,7 @@ table_43C7:
 4496: CD AD 9E    call $3EA7
 4499: CD C9 4C    call $4663
 449C: CD B9 40    call $40B3
-449F: CD 59 41    call $4153
+449F: CD 59 41    call display_player_4153
 44A2: CD F7 4C    call player_management_routine_46FD
 44A5: A7          and  a
 44A6: C4 D5 B0    call nz,display_error_text_B075
@@ -2452,7 +2454,7 @@ table_43C7:
 4529: FD 75 0D    ld   (iy+$07),l
 452C: FD 74 02    ld   (iy+$08),h
 452F: CD B9 40    call $40B3
-4532: CD 59 41    call $4153
+4532: CD 59 41    call display_player_4153
 4535: C9          ret
 
 4536: DD 21 40 68 ld   ix,player_1_struct_C240

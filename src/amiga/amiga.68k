@@ -702,7 +702,7 @@ osd_break:
 	.endm
 	
 osd_update_sprites:
-	lea		test_sprites_title_xy,a0
+	*lea		test_sprites_title_xy,a0
 	move.l	a0,a6			| save sprite table in A6
 	move.w	#NB_TARGET_SPRITES-1,d7
 	lea		previous_sprites(pc),a4
