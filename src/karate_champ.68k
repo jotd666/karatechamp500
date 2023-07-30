@@ -263,6 +263,7 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address_mask:
 	
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS_MASK	a0,a3,07
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS_MASK	a1,a2,07
+	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS_MASK	a1,a3,07
 	
 load_address_of_current_player_move_byte_CF04:
 	moveq	#0,d5
@@ -362,7 +363,7 @@ task_address_table_0020:
 	
 * stubs
 task_illegal:
-	bsr		osd_break
+	jbsr		osd_break
 	illegal
 	nop
 	
@@ -377,7 +378,7 @@ task_illegal:
 l_\offset:
 task_\offset:
 	move.w	#0x\offset,d0
-	bsr		osd_break
+	jbsr		osd_break
 	trap	#0
 	.endm
 
@@ -786,11 +787,11 @@ l_3de3:
 	move.b	d0,d1                           	| [$3de3: ld   b,a]
 	addq.w	#1,a0                           	| [$3de4: inc  hl]
 
-	move.l	a3,-(sp)                        	| [$3de5: push iy]
+	movem.l	a3,-(sp)                        	| [$3de5: push iy]
 	move.w	#0x0040,d3                      	| [$3de7: ld   de,$0040] 64
 	add.w	d3,a3                            	| [$3dea: add  iy,de]
 	btst.b	#7,(0x08,a3)                    	| [$3dec: bit  7,(iy+$08)]
-	move.l	(sp)+,a3                        	| [$3df0: pop  iy]
+	movem.l	(sp)+,a3                        	| [$3df0: pop  iy]
 	jeq	l_3df6                             	| [$3df2: jp   z,$3DF6]
 	addq.w	#1,a0                           	| [$3df5: inc  hl]
 l_3df6:
@@ -856,7 +857,7 @@ l_3ea7:
 	jne	l_3f92                             	| [$3eab: jp   nz,$3F92]
 	bsr		load_a0_from_a3_structure_07_address_mask   	| [$3eae: ld   l,(iy+$07)]
 															| [$3eb1: ld   h,(iy+$08)]
-	bclr.b	#7,d5                           	| [$3eb4: res  7,h]
+												| [$3eb4: res  7,h]
 
 	move.l	a0,a2                        	| [$3eb6: push hl]
 											| [$3eb7: pop  ix]
@@ -864,6 +865,7 @@ l_3ea7:
 										| [$3eb9: ld   l,(ix+$06)]
 										| [$3ebc: ld   h,(ix+$07)]
 	move.w	#0x0007,d3                      	| [$3ebf: ld   de,$0007] 7
+	jbsr		osd_break
 	move.b	(0x0b,a3),d0                    	| [$3ec2: ld   a,(iy+$0b)]
 	move.b	d0,d1                           	| [$3ec5: ld   b,a]
 l_3ec6:
@@ -885,12 +887,12 @@ l_3ed4:
 	move.l	(sp)+,a0                        	| [$3ee4: pop  hl]
 	tst.b	d0                               	| [$3ee5: and  a]
 	jeq	l_3f34                             	| [$3ee6: jp   z,$3F34]
-	move.b	(0x07,a3),d4                    	| [$3ee9: ld   e,(iy+$07)]
-	move.b	(0x08,a3),d3                    	| [$3eec: ld   d,(iy+$08)]
-	bclr.b	#7,d3                           	| [$3eef: res  7,d]
-	movem.w	d3/d4,-(sp)                    	| [$3ef1: push de]
-	move.l	a1,-(sp)                        	| [$3ef1: push de]
-	move.l	(sp)+,a2                        	| [$3ef2: pop  ix]
+	bsr		load_a1_from_a3_structure_07_address_mask
+											| [$3ee9: ld   e,(iy+$07)]
+											| [$3eec: ld   d,(iy+$08)]
+											| [$3eef: res  7,d]
+	move.l	a1,a2                        	| [$3ef1: push de]
+											| [$3ef2: pop  ix]
 	move.b	(0x08,a2),d0                    	| [$3ef4: ld   a,(ix+$08)]
 	cmp.b	#0x20,d0                         	| [$3ef7: cp   $20]
 	jeq	l_3f34                             	| [$3ef9: jp   z,$3F34]
@@ -1062,6 +1064,7 @@ l_409d:
 l_40b2:
 	rts                                    	| [$40b2: ret]
 	
+* > A0:
 l_40b3:
 	move.b	background_and_state_bits_C911,d0	| [$40b3: ld   a,(background_and_state_bits_C911)]
 	bclr.b	#7,d0                           	| [$40b6: res  7,a]
@@ -1145,6 +1148,7 @@ l_4153:
 	jbsr	divide_hl_by_d_b003                            	| [$415f: call $B003]
 	tst.b	d0                               	| [$4162: and  a]
 	beq.b	0f
+	* error if there's a remainder in the division!
 	jbsr	display_error_text_B075           	| [$4163: call nz,display_error_text_B075]
 0:
 	bsr		change_d5_d6_to_d5_16
@@ -2246,7 +2250,7 @@ l_5287:
 	subq.b	#0x01,d0                        	| [$5304: sub  $01]
 *daa
 	move.b	d0,(a0)                         	| [$5307: ld   (hl),a]
-	jbsr	clear_C7xx_B01E                    	| [$5308: call $B01E]
+	jbsr	clear_sprite_shadow_ram_C7xx_B01E                    	| [$5308: call $B01E]
 	move.b	#0x01,d0                        	| [$530b: ld   a,$01]
 	jbsr	suspend_this_task_B05A            	| [$530d: call suspend_this_task_B05A]
 	move.w	#0x003C,d1                      	| [$5310: ld   bc,$003C] 60
@@ -2296,7 +2300,7 @@ l_53e4:
 	move.b	#0x02,d0                        	| [$53e9: ld   a,$02]
 	jbsr	resume_tasks_b015              	| [$53eb: call resume_tasks_b015]
 l_53ee:
-	jbsr	clear_C7xx_B01E                   	| [$53ee: call clear_C7xx_B01E]
+	jbsr	clear_sprite_shadow_ram_C7xx_B01E                   	| [$53ee: call clear_sprite_shadow_ram_C7xx_B01E]
 	move.b	#0x01,d0                        	| [$53f1: ld   a,$01]
 	jbsr	suspend_this_task_B05A                 	| [$53f3: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$53f6: and  a]
@@ -7166,7 +7170,7 @@ l_b018:
 fill_rectangle_B01B:
 	jra	fill_rectangle_B28E                             	| [$b01b: jp   $B28E]
 
-clear_C7xx_B01E:
+clear_sprite_shadow_ram_C7xx_B01E:
 	jra	clear_C7xx_B2B2                    	| [$b01e: jp   clear_C7xx_B2B2]
 clear_zone_B021:
 	jra	clear_zone_B2BD                    	| [$b021: jp   clear_zone_B2BD]
@@ -8030,6 +8034,11 @@ l_b4b8:
 *
 * then called when screen changes
 	* starts the task
+*	move.l	(a3),d7		| debug
+*	cmp.w	#0x3A9C,d7
+*	bne.b	0f
+*	jbsr		osd_break
+*0:
 	jmp	(a0)                               	| [$b502: jp   (hl)]
 
 
@@ -10249,7 +10258,7 @@ l_f185:
 	move.w	#0x20,d3     	| [$f188: ld   de,task_address_table_0020]
 l_f18b:
 	move.b	#0x90,d0                      	| [$f18b: ld   (hl),$90]
-	bsr		osd_w_colorram
+	jbsr		osd_w_colorram
 												| [$f18d: and  a]
 	sub.w	d3,d6								| [sbc  hl,de]
 	subq.b	#1,d1                           	| [...]
@@ -10263,7 +10272,7 @@ l_f18b:
 	move.w	#0x20,d3					     	| [$f19b: ld   de,task_address_table_0020]
 l_f19e:
 	moveq	#0,d0
-	bsr		osd_w_colorram						| [$f19e: ld   (hl),$00]
+	jbsr		osd_w_colorram						| [$f19e: ld   (hl),$00]
 	                               	| [$f1a0: and  a]
 	sub.w	d3,d6					| [sbc  hl,de]
 	subq.b	#1,d1                           	| [...]
@@ -10497,7 +10506,7 @@ l_f3c4:
 	move.w  #0x400,d3                      	| [$f3d1: ld   de,$0400]
 	add.w	d3,d6                            	| [$f3d4: add  hl,de]
 	move.w	(sp)+,d0                        	| [$f3d5: pop  af]
-	bsr		osd_w_colorram                         	| [$f3d6: ld   (hl),a]
+	jbsr		osd_w_colorram                         	| [$f3d6: ld   (hl),a]
 	move.b	d0,d1                           	| [$f3d7: ld   b,a]
 	move.b	temp_numeric_buffer_CF00,d0     	| [$f3d8: ld   a,(temp_numeric_buffer_CF00)]
 	cmp.b	#0x17,d0                         	| [$f3db: cp   $17]
@@ -10514,7 +10523,7 @@ l_f3e6:
 	move.w  #0xFFE0,d3                      	| [$f3ec: ld   de,$FFE0] immediate -32
 	add.w	d3,d6                            	| [$f3ef: add  hl,de]
 	move.b	d1,d0	                         	| [$f3f0: ld   (hl),b]
-	bsr		osd_w_colorram
+	jbsr		osd_w_colorram
 	rts                                    	| [$f3f1: ret]
 	rts                                    	| [$f3f2: ret]
 l_f3f3:
@@ -10538,17 +10547,17 @@ l_f3f3:
 	move.w  #0x400,d1                      	| [$f414: ld   bc,$0400]
 	move.b	unknown_CF02,d0                 	| [$f417: ld   a,(unknown_CF02)]
 	lsr.b	#4,d0                            	| [$f41a: srl  a] * 4
-	bsr		osd_w_videoram                    	| [$f422: ld   (ix+$00),a]
+	jbsr		osd_w_videoram                    	| [$f422: ld   (ix+$00),a]
 	move.b	unknown_CF02,d0                 	| [$f425: ld   a,(unknown_CF02)]
 	and.b	#0x0F,d0                         	| [$f428: and  $0F]
 	sub.w	#0x20,d6
-	bsr		osd_w_videoram						| [$f42a: ld   (ix-$20),a]
+	jbsr		osd_w_videoram						| [$f42a: ld   (ix-$20),a]
 	add.w	#0x20,d6
 	add.w	d1,d6                            	| [$f42d: add  ix,bc]
 	move.b	#0x98,d0                 	| [$f42f: ld   (ix+$00),$98]
-	bsr		osd_w_colorram
+	jbsr		osd_w_colorram
 	sub.w	#0x20,d6
-	bsr		osd_w_colorram
+	jbsr		osd_w_colorram
 	add.w	#0x20,d6						| [$f433: ld   (ix-$20),$98]
 	lea	unknown_CF02,a0                	| [$f437: ld   hl,unknown_CF02]
 	move.b	(a0)+,d0                         	| [$f43a: ld   a,(hl)]
@@ -10674,11 +10683,11 @@ l_F530:
 											| [$f534: and  a]
 	sub.w	d3,d6							| [sbc  hl,de]
 	move.b	#0x3C,d0                      	| [$f537: ld   (hl),$3C]
-	bsr		osd_w_videoram
+	jbsr		osd_w_videoram
 	move.w  #0x400,d3                      	| [$f539: ld   de,$0400]
 	add.w	d3,d6                            	| [$f53c: add  hl,de]
 	move.b	#0xB0,d0                      	| [$f53d: ld   (hl),$B0]
-	bsr		osd_w_colorram
+	jbsr		osd_w_colorram
 	trap	#13
 	move.l	unknown_pointer_CF06,a0             	| [$f53f: ld   hl,(unknown_pointer_CF06)]
 	move.b	unknown_CF05,d0                 	| [$f542: ld   a,(unknown_CF05)]
@@ -11015,11 +11024,11 @@ l_fa06:
 	movem.w	d5/d6,-(sp)                        	| [$fa07: push hl]
 	jbsr	compute_screen_address_from_XY_B2F6	| [$fa08: call compute_screen_address_from_XY_B2F6]
 	move.b	(a3),d0                    	| [$fa0b: ld   a,(iy+$00)]
-	bsr		osd_w_videoram                         	| [$fa0e: ld   (hl),a]
+	jbsr		osd_w_videoram                         	| [$fa0e: ld   (hl),a]
 	                      	| [$fa0f: ld   de,$0400]
 	add.w	#0x400,d6                            	| [$fa12: add  hl,de]
 	move.b	(0x01,a3),d0                    	| [$fa13: ld   a,(iy+$01)]
-	bsr		osd_w_colorram                         	| [$fa16: ld   (hl),a]
+	jbsr		osd_w_colorram                         	| [$fa16: ld   (hl),a]
 	movem.w	(sp)+,d5/d6                        	| [$fa17: pop  hl]
 	movem.w	(sp)+,d1/d2                    	| [$fa18: pop  bc]
 	addq.b	#1,d5                           	| [$fa19: inc  h]

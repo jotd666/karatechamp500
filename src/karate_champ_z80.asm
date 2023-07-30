@@ -3824,7 +3824,7 @@ task_5250:
 5304: D6 01       sub  $01
 5306: 27          daa
 5307: 77          ld   (hl),a
-5308: CD 1E B0    call clear_C7xx_B01E
+5308: CD 1E B0    call clear_sprite_shadow_ram_C7xx_B01E
 530B: 3E 01       ld   a,$01
 530D: CD 5A B0    call suspend_this_task_B05A
 5310: 01 96 00    ld   bc,$003C
@@ -3890,7 +3890,7 @@ task_53d2:
 53E6: CD D8 B0    call play_sound_B072
 53E9: 3E 08       ld   a,$02
 53EB: CD 15 B0    call resume_tasks_b015
-53EE: CD 1E B0    call clear_C7xx_B01E
+53EE: CD 1E B0    call clear_sprite_shadow_ram_C7xx_B01E
 53F1: 3E 01       ld   a,$01
 53F3: CD 5A B0    call suspend_this_task_B05A
 53F6: A7          and  a
@@ -10703,7 +10703,7 @@ B015: C3 D1 B1    jp   resume_tasks_b171
 B018: C3 AB B1    jp   $B1AB
 fill_rectangle_B01B:
 B01B: C3 2E B8    jp   fill_rectangle_B28E
-clear_C7xx_B01E:
+clear_sprite_shadow_ram_C7xx_B01E:
 B01E: C3 B8 B8    jp   clear_C7xx_B2B2
 clear_zone_B021:
 B021: C3 B7 B8    jp   clear_zone_B2BD
@@ -11489,6 +11489,13 @@ B4FF: CD E2 BB    call enable_interrupts_BBE2
 ; $B09F
 ;
 ; then called when screen changes
+; 544F
+; 6491
+; 7C5D
+; 605E
+; 755B
+; 7657
+; 3A9C
 
 ; and start the task
 B502: E9          jp   (hl)
