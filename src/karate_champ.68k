@@ -161,7 +161,7 @@
 * - blocking moves: maintaned as long as the opponent is performing
 *   an attack move with a matching attack height
 
-* I should get more info about player_2_attack_flags_C028 what does the values mean (09,0A...)
+* I should get more info about current_task_index_C028 what does the values mean (09,0A...)
 * probably related to animation frames not to A.I. so less interesting
 
 * VS Version Info:
@@ -403,6 +403,7 @@ task_\offset:
 	taskstub	47d6   
 	taskstub	50f2   
  
+* one task per player
 task_3a9c:
 	jbsr	load_iy_with_player_structure_B04B	| [$3a9c: call load_iy_with_player_structure_B04B]
 	jbsr	clear_player_structure_partial_b012	| [$3a9f: call clear_player_structure_partial_b012]
@@ -410,6 +411,7 @@ task_3a9c:
 l_3aa5:
 	jbsr	init_title_screen_3cb0                            	| [$3aa5: call $3CB0]
 	jbsr	l_40b3                            	| [$3aa8: call $40B3]
+	* initial display of white/red CPU player
 	jbsr	display_player_4153                            	| [$3aab: call $4153]
 	move.b	background_and_state_bits_C911,d0	| [$3aae: ld   a,(background_and_state_bits_C911)]
 	and.b	#0x70,d0                         	| [$3ab1: and  $70]
@@ -434,7 +436,7 @@ l_3ad4:
 
 	move.l	a3,-(sp)                        	| [$3ad4: push iy]
 	move.b	#0x0C,d1                        	| [$3ad6: ld   b,$0C]
-	move.b	player_2_attack_flags_C028,d0   	| [$3ad8: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$3ad8: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$3adb: cp   $0A]
 	move.b	#0x08,d0                        	| [$3add: ld   a,$08]
 	jeq	l_3ae4                             	| [$3adf: jp   z,$3AE4]
@@ -464,13 +466,14 @@ l_3ae4:
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$3b11: call nz,display_error_text_B075]
 0:
-	jbsr	l_3ea7                            	| [$3b14: call $3EA7]
+	jbsr	handle_player_movement_3ea7                            	| [$3b14: call $3EA7]
 	jbsr	l_479a                            	| [$3b17: call $479A]
 	jbsr	l_4663                            	| [$3b1a: call $4663]
 	jbsr	l_409d                            	| [$3b1d: call $409D]
 	jbsr	l_40b3                            	| [$3b20: call $40B3]
+	* subsequent displays of white/red CPU player
 	jbsr	display_player_4153                            	| [$3b23: call $4153]
-	jbsr	l_4256                            	| [$3b26: call $4256]
+	jbsr	test_player_hits_4256                            	| [$3b26: call $4256]
 	tst.b	d0                               	| [$3b29: and  a]
 	jeq	l_3bc7                             	| [$3b2a: jp   z,$3BC7]
 
@@ -489,13 +492,15 @@ l_3ae4:
 	move.l	(sp)+,a0                        	| [$3b3d: pop  hl]
 	move.l	(sp)+,a3                        	| [$3b3e: pop  iy]
 	move.b	d0,d1                           	| [$3b40: ld   b,a]
-	move.b	player_2_attack_flags_C028,d0   	| [$3b41: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$3b41: ld   a,(current_task_index_C028)]
+	* switch 0xA and 0xB (players)
 	cmp.b	#0x0A,d0                         	| [$3b44: cp   $0A]
-	move.b	#0x0B,d0                        	| [$3b46: ld   a,$0B]
 	jeq	l_3b4d                             	| [$3b48: jp   z,$3B4D]
 	move.b	#0x0A,d0                        	| [$3b4b: ld   a,$0A]
+	bra.b	0f
 l_3b4d:
-
+	move.b	#0x0B,d0                        	| [$3b46: ld   a,$0B]
+0:
 	move.l	a0,-(sp)                        	| [$3b4d: push hl]
 	movem.w	d1/d2,-(sp)                    	| [$3b4e: push bc]
 
@@ -537,7 +542,7 @@ l_3b4d:
 	move.l	(sp)+,a3                        	| [$3b8b: pop  iy]
 	move.l	(sp)+,a0                        	| [$3b8d: pop  hl]
 	lea	players_type_human_or_cpu_flags_C02D,a2	| [$3b8e: ld   ix,players_type_human_or_cpu_flags_C02D]
-	move.b	player_2_attack_flags_C028,d0   	| [$3b92: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$3b92: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$3b95: cp   $0A]
 	jne	l_3ba4                             	| [$3b97: jp   nz,$3BA4]
 	btst.b	#2,(0x00,a2)                    	| [$3b9a: bit  2,(ix+$00)]
@@ -641,7 +646,7 @@ l_3c41:
 	cmp.b	#0x01,d0                         	| [$3c47: cp   $01]
 	jne	l_3ca7                             	| [$3c49: jp   nz,$3CA7]
 	lea	game_mem+0x3CA8,a2                  	| [$3c4c: ld   ix,table_3CA8]
-	move.b	player_2_attack_flags_C028,d0   	| [$3c50: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$3c50: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$3c53: cp   $0A]
 	jeq	l_3c5d                             	| [$3c55: jp   z,$3C5D]
 	move.w	#0x0004,d3                      	| [$3c58: ld   de,$0004] 4
@@ -662,7 +667,7 @@ l_3c5d:
 	jbsr	display_player_4153                            	| [$3c70: call $4153]
 	jbsr	player_management_routine_46FD    	| [$3c73: call player_management_routine_46FD]
 l_3c76:
-	jbsr	l_3ea7                            	| [$3c76: call $3EA7]
+	jbsr	handle_player_movement_3ea7                            	| [$3c76: call $3EA7]
 	jbsr	l_409d                            	| [$3c79: call $409D]
 	jbsr	l_40b3                            	| [$3c7c: call $40B3]
 	jbsr	display_player_4153                            	| [$3c7f: call $4153]
@@ -701,7 +706,7 @@ init_title_screen_3cb0:
 * one title screen remaining. Others are leftovers from first version where
 * there were more demos in attract mode.
 	lea	game_mem+0x3D17,a0                  	| [$3cbc: ld   hl,table_3D17]
-	move.b	player_2_attack_flags_C028,d0   	| [$3cbf: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$3cbf: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$3cc2: cp   $0A]
 	jeq	l_3cca                             	| [$3cc4: jp   z,$3CCA]
 	lea	game_mem+0x3D27,a0                  	| [$3cc7: ld   hl,table_3D27]
@@ -724,7 +729,7 @@ l_3cd7:
 * init player X with $30 coord (+$10)
 l_3ce6:
 	jbsr	init_player_data_3D00             	| [$3ce6: call init_player_data_3D00]
-	move.b	player_2_attack_flags_C028,d0   	| [$3ce9: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$3ce9: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$3cec: cp   $0A]
 	jeq	l_3cfd                             	| [$3cee: jp   z,$3CFD]
 * player 2: symmetrize
@@ -760,7 +765,7 @@ init_player_data_3D00:
 * probably move related, but not A.I. related (player movement)
 l_3db7:
 	jbsr	load_iy_with_player_structure_B04B	| [$3db7: call load_iy_with_player_structure_B04B]
-	move.b	player_2_attack_flags_C028,d0   	| [$3dba: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$3dba: ld   a,(current_task_index_C028)]
 	cmp.b	#0x08,d0                         	| [$3dbd: cp   $08]
 	jne	l_3dc8                             	| [$3dbf: jp   nz,$3DC8]
 	jbsr	read_p1_controls_B0B7             	| [$3dc2: call read_p1_controls_B0B7]
@@ -851,7 +856,7 @@ l_3e86:
 l_3e94:
 	rts                                    	| [$3e94: ret]
 
-l_3ea7:
+handle_player_movement_3ea7:
 	jbsr	l_3e43                            	| [$3ea7: call $3E43]
 	tst.b	d0                               	| [$3eaa: and  a]
 	jne	l_3f92                             	| [$3eab: jp   nz,$3F92]
@@ -905,7 +910,7 @@ l_3ed4:
 	subq.b	#1,d1                           	| [$3f07: dec  b]
 	jne	l_3f34                             	| [$3f08: jp   nz,$3F34]
 	lea	player_1_struct_C240,a2        	| [$3f0b: ld   ix,player_1_struct_C240]
-	move.b	player_2_attack_flags_C028,d0   	| [$3f0f: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$3f0f: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$3f12: cp   $0A]
 	jne	l_3f1b                             	| [$3f14: jp   nz,$3F1B]
 	lea	player_2_struct_C260,a2        	| [$3f17: ld   ix,player_2_struct_C260]
@@ -939,7 +944,7 @@ l_3f4a:
 	bclr.b	#7,d3                           	| [$3f4f: res  7,h]
 	move.w	d3,-(sp)
 	bsr		change_d3_d4_to_d3_16
-	move.w	d3,a1
+	move.l	d3,a1
 	move.w	(sp)+,d3
 	add.l	#game_mem,a1
 	move.l	a1,a0                        	| [$3f4d: push de]
@@ -1075,14 +1080,14 @@ l_40b3:
 	and.b	#0xF0,d0                         	| [$40c6: and  $F0]
 	cmp.b	#0x10,d0                         	| [$40c8: cp   $10]
 	jeq	l_4146                             	| [$40ca: jp   z,$4146]
-	move.b	player_2_attack_flags_C028,d0   	| [$40cd: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$40cd: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0B,d0                         	| [$40d0: cp   $0B]
 	jeq	l_4146                             	| [$40d2: jp   z,$4146]
 	lea	unknown_C74C,a2                	| [$40d5: ld   ix,unknown_C74C]
 	jra	l_4146                             	| [$40d9: jp   $4146]
 l_40dc:
 	lea	unknown_C74C,a2                	| [$40dc: ld   ix,unknown_C74C]
-	move.b	player_2_attack_flags_C028,d0   	| [$40e0: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$40e0: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0B,d0                         	| [$40e3: cp   $0B]
 	jeq	l_4146                             	| [$40e5: jp   z,$4146]
 	lea	unknown_C71C,a2                	| [$40e8: ld   ix,unknown_C71C]
@@ -1128,7 +1133,7 @@ l_4132:
 	move.l	(sp)+,a2                        	| [$4144: pop  ix]
 l_4146:
 	move.b	#0x01,d2                        	| [$4146: ld   c,$01]
-	move.b	player_2_attack_flags_C028,d0   	| [$4148: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$4148: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$414b: cp   $0A]
 	jeq	l_4152                             	| [$414d: jp   z,$4152]
 	move.b	#0x02,d2                        	| [$4150: ld   c,$02]
@@ -1283,11 +1288,12 @@ l_424e:
 	rts                                    	| [$4255: ret]
 	
 
-l_4256:
+test_player_hits_4256:
 	move.b	background_and_state_bits_C911,d0	| [$4256: ld   a,(background_and_state_bits_C911)]
 	bclr.b	#7,d0                           	| [$4259: res  7,a]
 	cmp.b	#0x10,d0                         	| [$425b: cp   $10]
 	jcs	l_4264                             	| [$425d: jp   c,$4264]
+	* we're in demo mode: no collision test
 	clr.b	d0                               	| [$4260: xor  a]
 	jra	l_43b6                             	| [$4261: jp   $43B6]
 l_4264:
@@ -1335,7 +1341,7 @@ l_42a3:
 	* backup in temp buffer for later
 	move.l	a3,unknown_CF08                 	| [$42a9: ld   (unknown_CF08),iy]
 	lea	player_2_struct_C260,a3        	| [$42ad: ld   iy,player_2_struct_C260]
-	move.b	player_2_attack_flags_C028,d0   	| [$42b1: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$42b1: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$42b4: cp   $0A]
 	jeq	l_42bd                             	| [$42b6: jp   z,$42BD]
 	lea	player_1_struct_C240,a3        	| [$42b9: ld   iy,player_1_struct_C240]
@@ -1476,7 +1482,7 @@ l_4405:
 
 	move.l	a3,-(sp)                        	| [$4405: push iy]
 	lea	player_1_struct_C240,a3        	| [$4407: ld   iy,player_1_struct_C240]
-	move.b	player_2_attack_flags_C028,d0   	| [$440b: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$440b: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0B,d0                         	| [$440e: cp   $0B]
 	jeq	l_4417                             	| [$4410: jp   z,$4417]
 	lea	player_2_struct_C260,a3        	| [$4413: ld   iy,player_2_struct_C260]
@@ -1519,7 +1525,7 @@ l_444c:
 	jbsr	display_error_text_B075           	| [$445a: call nz,display_error_text_B075]
 0:
 l_445d:
-	jbsr	l_3ea7                            	| [$445d: call $3EA7]
+	jbsr	handle_player_movement_3ea7                            	| [$445d: call $3EA7]
 	jbsr	l_4663                            	| [$4460: call $4663]
 	jbsr	l_409d                            	| [$4463: call $409D]
 	jbsr	l_40b3                            	| [$4466: call $40B3]
@@ -1550,7 +1556,7 @@ l_4487:
 	move.w	#0x0A89,d1                      	| [$4492: ld   bc,$0A89]
 l_4495:
 	movem.w	d1/d2,-(sp)                    	| [$4495: push bc]
-	jbsr	l_3ea7                            	| [$4496: call $3EA7]
+	jbsr	handle_player_movement_3ea7                            	| [$4496: call $3EA7]
 	jbsr	l_4663                            	| [$4499: call $4663]
 	jbsr	l_40b3                            	| [$449c: call $40B3]
 	jbsr	display_player_4153                            	| [$449f: call $4153]
@@ -1599,7 +1605,7 @@ l_44dd:
 	sub.b	d1,d0                            	| [$44e2: sub  b]
 	move.b	d0,d6                           	| [$44e3: ld   l,a]
 	move.b	#0x16,d1                        	| [$44e4: ld   b,$16]
-	move.b	player_2_attack_flags_C028,d0   	| [$44e6: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$44e6: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$44e9: cp   $0A]
 	jeq	l_44f0                             	| [$44eb: jp   z,$44F0]
 	move.b	#0x18,d1                        	| [$44ee: ld   b,$18]
@@ -1615,7 +1621,7 @@ l_44f0:
 
 	move.l	a2,-(sp)                        	| [$44fd: push ix]
 	move.b	#0x17,d1                        	| [$44ff: ld   b,$17]
-	move.b	player_2_attack_flags_C028,d0   	| [$4501: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$4501: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$4504: cp   $0A]
 	jeq	l_450b                             	| [$4506: jp   z,$450B]
 	move.b	#0x19,d1                        	| [$4509: ld   b,$19]
@@ -1648,7 +1654,7 @@ l_451d:
 
 l_4536:
 	lea	player_1_struct_C240,a2        	| [$4536: ld   ix,player_1_struct_C240]
-	move.b	player_2_attack_flags_C028,d0   	| [$453a: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$453a: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$453d: cp   $0A]
 	jne	l_4546                             	| [$453f: jp   nz,$4546]
 	lea	player_2_struct_C260,a2        	| [$4542: ld   ix,player_2_struct_C260]
@@ -1788,7 +1794,7 @@ l_4682:
 	cmp.b	(0x0a,a2),d0                     	| [$4698: cp   (ix+$0a)]
 	jne	l_46d6                             	| [$469b: jp   nz,$46D6]
 	lea	player_2_struct_C260,a2        	| [$469e: ld   ix,player_2_struct_C260]
-	move.b	player_2_attack_flags_C028,d0   	| [$46a2: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$46a2: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$46a5: cp   $0A]
 	jeq	l_46ae                             	| [$46a7: jp   z,$46AE]
 	lea	player_1_struct_C240,a2        	| [$46aa: ld   ix,player_1_struct_C240]
@@ -1862,7 +1868,7 @@ player_management_routine_46FD:
 *
 
 	lea	players_type_human_or_cpu_flags_C02D,a0	| [$471c: ld   hl,players_type_human_or_cpu_flags_C02D]
-	move.b	player_2_attack_flags_C028,d0   	| [$471f: ld   a,(player_2_attack_flags_C028)] loads player Y, 0A: ground, 0B: preparing to jump
+	move.b	current_task_index_C028,d0   	| [$471f: ld   a,(current_task_index_C028)] loads player Y, 0A: ground, 0B: preparing to jump
 	btst.b	#2,(a0)                         	| [$4722: bit  2,(hl)] is player 2 human?
 	jeq	l_4734                             	| [$4724: jp   z,$4734]
 * player 2 is CPU
@@ -1961,7 +1967,7 @@ get_current_frame_contents_478D:
 
 l_479a:
 	nop                                    	| [$479a: nop]
-	move.b	player_2_attack_flags_C028,d0   	| [$479b: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$479b: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$479e: cp   $0A]
 	jeq	l_47a8                             	| [$47a0: jp   z,$47A8]
 	cmp.b	#0x0B,d0                         	| [$47a3: cp   $0B]
@@ -5401,7 +5407,7 @@ move_human_player_A34D:
 	clr.b	d0                               	| [$a352: ld   a,$00]
 	jne	l_a37a                             	| [$a354: jp   nz,$A37A] special screens, don't move human player
 	lea	players_type_human_or_cpu_flags_C02D,a0	| [$a357: ld   hl,players_type_human_or_cpu_flags_C02D]
-	move.b	player_2_attack_flags_C028,d0   	| [$a35a: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$a35a: ld   a,(current_task_index_C028)]
 	cmp.b	#0x09,d0                         	| [$a35d: cp   $09]
 	clr.b	d0                               	| [$a35f: ld   a,$00]
 	jne	l_a36c                             	| [$a361: jp   nz,$A36C]
@@ -5525,7 +5531,7 @@ l_a409:
 * called after a non-attacking move (walk, sommersault, turn back...)
 * but can also be called after deciding an attack...
 cpu_move_done_A410:
-	move.b	player_2_attack_flags_C028,d0   	| [$a410: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$a410: ld   a,(current_task_index_C028)]
 	cmp.b	#0x09,d0                         	| [$a413: cp   $09]
 	move.b	#0x0B,d0                        	| [$a415: ld   a,$0B]
 	jeq	l_a41c                             	| [$a417: jp   z,$A41C]
@@ -5548,7 +5554,7 @@ update_players_struct_C2xx_A428:
 	exg		d5,d6
 	move.w	unknown_C267,d3             	| [$a433: ld   de,(unknown_C267)] load animation/position of player 2
 	move.w	unknown_C269,d5             	| [$a437: ld   hl,(unknown_C269)] load xy for player 2
-	move.b	player_2_attack_flags_C028,d0   	| [$a43a: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$a43a: ld   a,(current_task_index_C028)]
 	cmp.b	#0x09,d0                         	| [$a43d: cp   $09]
 	jeq	l_a443                             	| [$a43f: jp   z,$A443]
 	exg		d3,d4
@@ -5592,7 +5598,7 @@ l_a443:
 	move.b	d0,(0x0d,a3)                    	| [$a47d: ld   (iy+$0d),a]
 l_a480:
 	lea	unknown_C26B,a0                	| [$a480: ld   hl,unknown_C26B]
-	move.b	player_2_attack_flags_C028,d0   	| [$a483: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$a483: ld   a,(current_task_index_C028)]
 	cmp.b	#0x09,d0                         	| [$a486: cp   $09]
 	jeq	l_a48e                             	| [$a488: jp   z,$A48E]
 	lea	current_move_C24B,a0           	| [$a48b: ld   hl,current_move_C24B]
@@ -7022,7 +7028,7 @@ l_ad16:
 let_opponent_react_AD19:
 * load proper opponent structure
 	lea	player_1_struct_C240,a3        	| [$ad19: ld   iy,player_1_struct_C240]
-	move.b	player_2_attack_flags_C028,d0   	| [$ad1d: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$ad1d: ld   a,(current_task_index_C028)]
 	cmp.b	#0x09,d0                         	| [$ad20: cp   $09]
 	jeq	l_ad29                             	| [$ad22: jp   z,$AD29]
 	lea	player_2_struct_C260,a3        	| [$ad25: ld   iy,player_2_struct_C260]
@@ -7407,7 +7413,7 @@ l_b15b:
 * same start as load_iy_with_player_structure_B574 except that here we multiply
 * and add 7 as offset... it really seems that 2 programmers were competing here...
 clear_player_structure_partial_b15c:
-	move.b	player_2_attack_flags_C028,d0   	| [$b15c: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$b15c: ld   a,(current_task_index_C028)]
 	move.b	d0,d3                           	| [$b15f: ld   d,a]
 	move.b	#0x20,d4                        	| [$b160: ld   e,$20]
 	jbsr	multiply_de_B0C3                  	| [$b162: call multiply_de_B0C3]
@@ -7481,7 +7487,7 @@ l_b1ab:
 	jne	l_b1de                             	| [$b1be: jp   nz,$B1DE]
 	jra	l_b1da                             	| [$b1c1: jp   $B1DA]
 l_b1c4:
-	move.b	player_2_attack_flags_C028,d0   	| [$b1c4: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$b1c4: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$b1c7: cp   $0A]
 	jeq	l_b1de                             	| [$b1c9: jp   z,$B1DE]
 	cmp.b	#0x0B,d0                         	| [$b1cc: cp   $0B]
@@ -7998,7 +8004,7 @@ l_b4b8:
 	move.b	(0x01,a2),d0                    	| [$b4d3: ld   a,(ix+$01)]
 	add.b	d4,d0                            	| [$b4d6: add  a,e]
 	move.b	d0,d4                           	| [$b4d7: ld   e,a]
-	move.b	d0,player_2_attack_flags_C028   	| [$b4d8: ld   (player_2_attack_flags_C028),a]
+	move.b	d0,current_task_index_C028   	| [$b4d8: ld   (current_task_index_C028),a]
 	move.b	d1,d0                           	| [$b4db: ld   a,b]
 	move.b	(a0),d7
 	eor.b	d7,d0                            	| [$b4dc: xor  (hl)]
@@ -8092,7 +8098,7 @@ l_b52d:
 	move.b	(0x01,a2),d0                    	| [$b548: ld   a,(ix+$01)]
 	add.b	d4,d0                            	| [$b54b: add  a,e]
 	move.b	d0,d4                           	| [$b54c: ld   e,a]
-	move.b	d0,player_2_attack_flags_C028   	| [$b54d: ld   (player_2_attack_flags_C028),a]
+	move.b	d0,current_task_index_C028   	| [$b54d: ld   (current_task_index_C028),a]
 	move.b	d1,d0                           	| [$b550: ld   a,b]
 	move.b	(a0),d7
 	eor.b	d7,d0                    	      	| [$b551: xor  (hl)]
@@ -8131,10 +8137,10 @@ l_b52d:
 	* returns with stack properly set: returns to stack & resumes it
 	rts                                    	| [$b573: ret]
 
-* load iy with task structure
+* load iy with task/player structure depending on the active task
 load_iy_with_player_structure_B574:
 	moveq	#0,d0
-	move.b	player_2_attack_flags_C028,d0   	| [$b574: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$b574: ld   a,(current_task_index_C028)]
 	lea	task_struct_C100,a3            	| [$b577: ld   iy,task_struct_C100]
 									| [$b57b: ld   b,a]
 	* game uses 2x3 right 8-bit rotations with carry, which is equivalent to
@@ -8168,7 +8174,7 @@ load_struct_C100_from_A_index_B58E:
 	
 task_yield_B5A5:
 	jbsr	disable_interrupts_BBE2           	| [$b5a5: call disable_interrupts_BBE2]
-	move.b	player_2_attack_flags_C028,d0   	| [$b5a8: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$b5a8: ld   a,(current_task_index_C028)]
 	lea	active_task_bit_table_C000,a0  	| [$b5ab: ld   hl,active_task_bit_table_C000]
 	move.b	d0,d2                           	| [$b5ae: ld   c,a]
 	clr.w	d1                               	| [$b5af: ld   b,$00]
@@ -8311,7 +8317,7 @@ l_b658:
 suspend_this_task_B65E:
 	jbsr	disable_interrupts_BBE2           	| [$b65e: call disable_interrupts_BBE2]
 	move.w	d0,-(sp)                        	| [$b661: push af]
-	move.b	player_2_attack_flags_C028,d0   	| [$b662: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$b662: ld   a,(current_task_index_C028)]
 	lea	unknown_C012,a0                	| [$b665: ld   hl,unknown_C012]
 	move.b	d0,d2                           	| [$b668: ld   c,a]
 	clr.w	d1                               	| [$b669: ld   b,$00]
@@ -8328,7 +8334,7 @@ suspend_this_task_B65E:
 	move.b	(a2),d0                    	| [$b67f: ld   a,(ix+$00)]
 	or.b	(a0),d0                           	| [$b682: or   (hl)]
 	move.b	d0,(a0)                         	| [$b683: ld   (hl),a]
-	move.b	player_2_attack_flags_C028,d0   	| [$b684: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$b684: ld   a,(current_task_index_C028)]
 	* original code starts from C100 and assumes each task struct has 0x20 size
 	lea	task_struct_C100,a3                	| [$b687: ld   iy,task_struct_C100]
 	move.b	d0,d1                           	| [$b68b: ld   b,a]
@@ -8435,7 +8441,7 @@ l_b6f9:
 	move.b	d2,d1
 	add.w	d1,a3                            	| [$b711: add  iy,bc]
 
-	move.b	player_2_attack_flags_C028,d0   	| [$b713: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$b713: ld   a,(current_task_index_C028)]
 	move.b	d0,(0x05,a3)                    	| [$b716: ld   (iy+$05),a]
 	movem.w	(sp)+,d1/d2                    	| [$b719: pop  bc]
 	move.b	d1,(0x06,a3)                    	| [$b71a: ld   (iy+$06),b]
@@ -8632,7 +8638,7 @@ task_stack_buffer_table_B825:
 	.long	unknown_C010                           	|  $b869
 	.long	unknown_C018                           	|  $b86b
 	.long	unknown_C020                           	|  $b86d
-	.long	player_2_attack_flags_C028                           	|  $b86f
+	.long	current_task_index_C028                           	|  $b86f
 	.long	dip_switches_copy_C030                          	|  $b871
 	.long	unknown_C038                           	|  $b873
 
@@ -9005,13 +9011,13 @@ l_e125:
 
 	move.l	a2,-(sp)                        	| [$e15b: push ix]
 	lea	referee_x_pos_C700,a2          	| [$e15d: ld   ix,referee_x_pos_C700]
-	move.b	player_2_attack_flags_C028,d0   	| [$e161: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$e161: ld   a,(current_task_index_C028)]
 	cmp.b	#0x02,d0                         	| [$e164: cp   $02]
 	jeq	l_e16d                             	| [$e166: jp   z,$E16D]
 	lea	unknown_C730,a2                	| [$e169: ld   ix,unknown_C730]
 l_e16d:
 	move.b	#0x01,d2                        	| [$e16d: ld   c,$01]
-	move.b	player_2_attack_flags_C028,d0   	| [$e16f: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$e16f: ld   a,(current_task_index_C028)]
 	cmp.b	#0x02,d0                         	| [$e172: cp   $02]
 	jeq	l_e179                             	| [$e174: jp   z,$E179]
 	move.b	#0x02,d2                        	| [$e177: ld   c,$02]
@@ -9089,7 +9095,7 @@ l_e1fb:
 	lsl.w	#2,d1                            	| [$e202: sla  c]
 	lea	address_table_E228(pc),a2          	| [$e204: ld   ix,address_table_E228]
 	add.w	d1,a2                            	| [$e208: add  ix,bc]
-	move.b	player_2_attack_flags_C028,d0   	| [$e20a: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$e20a: ld   a,(current_task_index_C028)]
 	clr.w	d1                      	| [$e20d: ld   bc,$0000] 0
 	cmp.b	#0x16,d0                         	| [$e210: cp   $16]
 	jeq	l_e218                             	| [$e212: jp   z,$E218]
@@ -9951,7 +9957,7 @@ l_ec47:
 l_ec89:
 	move.b	#0x18,d1                        	| [$ec89: ld   b,$18]
 	lea	unknown_C760,a2                	| [$ec8b: ld   ix,unknown_C760]
-	move.b	player_2_attack_flags_C028,d0   	| [$ec8f: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$ec8f: ld   a,(current_task_index_C028)]
 	cmp.b	#0x17,d0                         	| [$ec92: cp   $17]
 	jne	l_ec9d                             	| [$ec94: jp   nz,$EC9D]
 	move.b	#0x30,d1                        	| [$ec97: ld   b,$30]
@@ -9990,7 +9996,7 @@ l_ecc3:
 l_ecd1:
 	move.b	#0xF5,d5
 	move.b	#0x30,d6                      	| [$ecd1: ld   hl,$F530]
-	move.b	player_2_attack_flags_C028,d0   	| [$ecd4: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$ecd4: ld   a,(current_task_index_C028)]
 	cmp.b	#0x17,d0                         	| [$ecd7: cp   $17]
 	jne	l_ecdf                             	| [$ecd9: jp   nz,$ECDF]
 	move.b	#0XF4,d5
@@ -10006,7 +10012,7 @@ l_ece5:
 	movem.w	d1/d2,-(sp)                    	| [$ecea: push bc]
 
 	move.l	a2,-(sp)                        	| [$eceb: push ix]
-	move.b	player_2_attack_flags_C028,d0   	| [$eced: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$eced: ld   a,(current_task_index_C028)]
 	cmp.b	#0x17,d0                         	| [$ecf0: cp   $17]
 	jne	l_ed06                             	| [$ecf2: jp   nz,$ED06]
 	move.b	periodic_counter_8bit_C02B,d0   	| [$ecf5: ld   a,(periodic_counter_8bit_C02B)]
@@ -10049,7 +10055,7 @@ l_ed18:
 										| [$ed39: pop  iy]
 	subq.b	#1,d1                           	| [$ed3b: dec  b]
 	jne	l_eda3                             	| [$ed3c: jp   nz,$EDA3]
-	move.b	player_2_attack_flags_C028,d0   	| [$ed3f: ld   a,(player_2_attack_flags_C028)]
+	move.b	current_task_index_C028,d0   	| [$ed3f: ld   a,(current_task_index_C028)]
 	cmp.b	#0x17,d0                         	| [$ed42: cp   $17]
 	jne	l_ed7f                             	| [$ed44: jp   nz,$ED7F]
 	lea	unknown_C730,a2                	| [$ed47: ld   ix,unknown_C730]

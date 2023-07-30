@@ -143,7 +143,7 @@
 ; - blocking moves: maintaned as long as the opponent is performing
 ;   an attack move with a matching attack height
 
-; I should get more info about player_2_attack_flags_C028 what does the values mean (09,0A...)
+; I should get more info about current_task_index_C028 what does the values mean (09,0A...)
 ; probably related to animation frames not to A.I. so less interesting
 
 ; VS Version Info:
@@ -1364,7 +1364,7 @@ table_183F:
 3AD1: C4 D5 B0    call nz,display_error_text_B075
 3AD4: FD E5       push iy
 3AD6: 06 06       ld   b,$0C
-3AD8: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+3AD8: 3A 82 60    ld   a,(current_task_index_C028)
 3ADB: FE 0A       cp   $0A
 3ADD: 3E 02       ld   a,$08
 3ADF: CA E4 9A    jp   z,$3AE4
@@ -1389,13 +1389,13 @@ table_183F:
 3B0C: CA F8 9B    jp   z,$3BF2
 3B0F: FE 07       cp   $0D
 3B11: C4 D5 B0    call nz,display_error_text_B075
-3B14: CD AD 9E    call $3EA7
+3B14: CD AD 9E    call handle_player_movement_3ea7
 3B17: CD 3A 4D    call $479A
 3B1A: CD C9 4C    call $4663
 3B1D: CD 37 40    call $409D
 3B20: CD B9 40    call $40B3
 3B23: CD 59 41    call display_player_4153
-3B26: CD 5C 48    call $4256
+3B26: CD 5C 48    call test_player_hits_4256
 3B29: A7          and  a
 3B2A: CA 6D 9B    jp   z,$3BC7
 3B2D: FD E5       push iy
@@ -1410,7 +1410,7 @@ table_183F:
 3B3D: E1          pop  hl
 3B3E: FD E1       pop  iy
 3B40: 47          ld   b,a
-3B41: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+3B41: 3A 82 60    ld   a,(current_task_index_C028)
 3B44: FE 0A       cp   $0A
 3B46: 3E 0B       ld   a,$0B
 3B48: CA 47 9B    jp   z,$3B4D
@@ -1446,7 +1446,7 @@ table_183F:
 3B8B: FD E1       pop  iy
 3B8D: E1          pop  hl
 3B8E: DD 21 87 60 ld   ix,players_type_human_or_cpu_flags_C02D
-3B92: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+3B92: 3A 82 60    ld   a,(current_task_index_C028)
 3B95: FE 0A       cp   $0A
 3B97: C2 A4 9B    jp   nz,$3BA4
 3B9A: DD CB 00 5C bit  2,(ix+$00)
@@ -1524,7 +1524,7 @@ table_183F:
 3C47: FE 01       cp   $01
 3C49: C2 AD 96    jp   nz,$3CA7
 3C4C: DD 21 A2 96 ld   ix,table_3CA8
-3C50: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+3C50: 3A 82 60    ld   a,(current_task_index_C028)
 3C53: FE 0A       cp   $0A
 3C55: CA 57 96    jp   z,$3C5D
 3C58: 11 04 00    ld   de,$0004
@@ -1541,7 +1541,7 @@ table_183F:
 3C6D: CD B9 40    call $40B3
 3C70: CD 59 41    call display_player_4153
 3C73: CD F7 4C    call player_management_routine_46FD
-3C76: CD AD 9E    call $3EA7
+3C76: CD AD 9E    call handle_player_movement_3ea7
 3C79: CD 37 40    call $409D
 3C7C: CD B9 40    call $40B3
 3C7F: CD 59 41    call display_player_4153
@@ -1573,7 +1573,7 @@ table_3CA8:
 ; one title screen remaining. Others are leftovers from first version where
 ; there were more demos in attract mode.
 3CBC: 21 1D 97    ld   hl,table_3D17
-3CBF: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+3CBF: 3A 82 60    ld   a,(current_task_index_C028)
 3CC2: FE 0A       cp   $0A
 3CC4: CA 6A 96    jp   z,$3CCA
 3CC7: 21 8D 97    ld   hl,table_3D27
@@ -1591,7 +1591,7 @@ table_3CA8:
 3CE4: D6 80       sub  $20
 ; init player X with $30 coord (+$10)
 3CE6: CD 00 97    call init_player_data_3D00
-3CE9: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+3CE9: 3A 82 60    ld   a,(current_task_index_C028)
 3CEC: FE 0A       cp   $0A
 3CEE: CA F7 96    jp   z,$3CFD
 ; player 2: symmetrize
@@ -1655,7 +1655,7 @@ table_3D77:
 
 ; probably move related, but not A.I. related (player movement)
 3DB7: CD 4B B0 	  call load_iy_with_player_structure_B04B
-3DBA: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+3DBA: 3A 82 60    ld   a,(current_task_index_C028)
 3DBD: FE 02       cp   $08
 3DBF: C2 62 97    jp   nz,$3DC8
 3DC2: CD BD B0    call read_p1_controls_B0B7
@@ -1733,6 +1733,7 @@ table_3DF8:
 table_3E97:
 	dc.b	0xc2,0x19,0xdd,0x19,0xf8,0x19,0x13,0x1a ; table_3E97
 	dc.b	0x2e,0x1a,0x49,0x1a,0x33,0x1b,0xff,0xff ; $3e9f
+handle_player_movement_3ea7:
 3EA7: CD 49 9E    call $3E43
 3EAA: A7          and  a
 3EAB: C2 38 9F    jp   nz,$3F92
@@ -1780,7 +1781,7 @@ table_3E97:
 3F07: 05          dec  b
 3F08: C2 94 9F    jp   nz,$3F34
 3F0B: DD 21 40 68 ld   ix,player_1_struct_C240
-3F0F: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+3F0F: 3A 82 60    ld   a,(current_task_index_C028)
 3F12: FE 0A       cp   $0A
 3F14: C2 1B 9F    jp   nz,$3F1B
 3F17: DD 21 C0 68 ld   ix,player_2_struct_C260
@@ -1975,13 +1976,13 @@ table_4019:
 40C6: E6 F0       and  $F0
 40C8: FE 10       cp   $10
 40CA: CA 4C 41    jp   z,$4146
-40CD: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+40CD: 3A 82 60    ld   a,(current_task_index_C028)
 40D0: FE 0B       cp   $0B
 40D2: CA 4C 41    jp   z,$4146
 40D5: DD 21 46 6D ld   ix,unknown_C74C
 40D9: C3 4C 41    jp   $4146
 40DC: DD 21 46 6D ld   ix,unknown_C74C
-40E0: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+40E0: 3A 82 60    ld   a,(current_task_index_C028)
 40E3: FE 0B       cp   $0B
 40E5: CA 4C 41    jp   z,$4146
 40E8: DD 21 16 6D ld   ix,unknown_C71C
@@ -2023,7 +2024,7 @@ table_4019:
 4141: CD 43 48    call $4249
 4144: DD E1       pop  ix
 4146: 0E 01       ld   c,$01
-4148: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+4148: 3A 82 60    ld   a,(current_task_index_C028)
 414B: FE 0A       cp   $0A
 414D: CA 58 41    jp   z,$4152
 4150: 0E 08       ld   c,$02
@@ -2154,6 +2155,7 @@ display_player_4153:
 4253: 10 F3       djnz $424E
 4255: C9          ret
 
+test_player_hits_4256:
 4256: 3A 11 63    ld   a,(background_and_state_bits_C911)
 4259: CB BF       res  7,a
 425B: FE 10       cp   $10
@@ -2193,7 +2195,7 @@ display_player_4153:
 42A8: E5          push hl
 42A9: FD 22 02 6F ld   (unknown_CF08),iy
 42AD: FD 21 C0 68 ld   iy,player_2_struct_C260
-42B1: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+42B1: 3A 82 60    ld   a,(current_task_index_C028)
 42B4: FE 0A       cp   $0A
 42B6: CA B7 48    jp   z,$42BD
 42B9: FD 21 40 68 ld   iy,player_1_struct_C240
@@ -2324,7 +2326,7 @@ table_43C7:
 	dc.b	0xd2,0x0c,0x03,0x04,0xff,0xff ; $43ff
 4405: FD E5       push iy
 4407: FD 21 40 68 ld   iy,player_1_struct_C240
-440B: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+440B: 3A 82 60    ld   a,(current_task_index_C028)
 440E: FE 0B       cp   $0B
 4410: CA 1D 44    jp   z,$4417
 4413: FD 21 C0 68 ld   iy,player_2_struct_C260
@@ -2356,7 +2358,7 @@ table_43C7:
 4456: CA 57 44    jp   z,$445D
 4459: A7          and  a
 445A: C4 D5 B0    call nz,display_error_text_B075
-445D: CD AD 9E    call $3EA7
+445D: CD AD 9E    call handle_player_movement_3ea7
 4460: CD C9 4C    call $4663
 4463: CD 37 40    call $409D
 4466: CD B9 40    call $40B3
@@ -2380,7 +2382,7 @@ table_43C7:
 448E: FD 36 0B 08 ld   (iy+$0b),$02
 4492: 01 23 0A    ld   bc,$0A89
 4495: C5          push bc
-4496: CD AD 9E    call $3EA7
+4496: CD AD 9E    call handle_player_movement_3ea7
 4499: CD C9 4C    call $4663
 449C: CD B9 40    call $40B3
 449F: CD 59 41    call display_player_4153
@@ -2419,7 +2421,7 @@ table_43C7:
 44E2: 90          sub  b
 44E3: 6F          ld   l,a
 44E4: 06 1C       ld   b,$16
-44E6: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+44E6: 3A 82 60    ld   a,(current_task_index_C028)
 44E9: FE 0A       cp   $0A
 44EB: CA F0 44    jp   z,$44F0
 44EE: 06 12       ld   b,$18
@@ -2432,7 +2434,7 @@ table_43C7:
 44FC: E5          push hl
 44FD: DD E5       push ix
 44FF: 06 1D       ld   b,$17
-4501: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+4501: 3A 82 60    ld   a,(current_task_index_C028)
 4504: FE 0A       cp   $0A
 4506: CA 0B 45    jp   z,$450B
 4509: 06 13       ld   b,$19
@@ -2458,7 +2460,7 @@ table_43C7:
 4535: C9          ret
 
 4536: DD 21 40 68 ld   ix,player_1_struct_C240
-453A: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+453A: 3A 82 60    ld   a,(current_task_index_C028)
 453D: FE 0A       cp   $0A
 453F: C2 4C 45    jp   nz,$4546
 4542: DD 21 C0 68 ld   ix,player_2_struct_C260
@@ -2592,7 +2594,7 @@ table_4653:
 4698: DD BE 0A    cp   (ix+$0a)
 469B: C2 7C 4C    jp   nz,$46D6
 469E: DD 21 C0 68 ld   ix,player_2_struct_C260
-46A2: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+46A2: 3A 82 60    ld   a,(current_task_index_C028)
 46A5: FE 0A       cp   $0A
 46A7: CA AE 4C    jp   z,$46AE
 46AA: DD 21 40 68 ld   ix,player_1_struct_C240
@@ -2661,7 +2663,7 @@ player_management_routine_46FD:
 ;
 
 471C: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
-471F: 3A 82 60    ld   a,(player_2_attack_flags_C028)	; loads player Y, 0A: ground, 0B: preparing to jump
+471F: 3A 82 60    ld   a,(current_task_index_C028)	; loads player Y, 0A: ground, 0B: preparing to jump
 4722: CB 56       bit  2,(hl)	; is player 2 human?
 4724: CA 94 4D    jp   z,$4734
 ; player 2 is CPU
@@ -2744,7 +2746,7 @@ get_current_frame_contents_478D:
 
 
 479A: 00          nop
-479B: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+479B: 3A 82 60    ld   a,(current_task_index_C028)
 479E: FE 0A       cp   $0A
 47A0: CA A2 4D    jp   z,$47A8
 47A3: FE 0B       cp   $0B
@@ -2847,7 +2849,7 @@ get_current_frame_contents_478D:
 487F: CA 22 42    jp   z,$4888
 4882: CD 15 4B    call $4B15
 4885: C3 53 42    jp   $4859
-4888: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+4888: 3A 82 60    ld   a,(current_task_index_C028)
 488B: FE 10       cp   $10
 488D: DA A2 42    jp   c,$48A8
 4890: 3E 04       ld   a,$04
@@ -2918,7 +2920,7 @@ get_current_frame_contents_478D:
 4923: FD 77 02    ld   (iy+$08),a
 4926: DD 7E 08    ld   a,(ix+$02)
 4929: FD 77 07    ld   (iy+$0d),a
-492C: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+492C: 3A 82 60    ld   a,(current_task_index_C028)
 492F: D6 10       sub  $10
 4931: 87          add  a,a
 4932: 4F          ld   c,a
@@ -3021,7 +3023,7 @@ table_4960:
 4A00: 01 04 00    ld   bc,$0004
 4A03: DD 09       add  ix,bc
 4A05: C3 37 43    jp   $499D
-4A08: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+4A08: 3A 82 60    ld   a,(current_task_index_C028)
 4A0B: FE 14       cp   $14
 4A0D: C2 71 4A    jp   nz,$4AD1
 4A10: FD CB 02 DE bit  7,(iy+$08)
@@ -3161,7 +3163,7 @@ table_4B79:
 4B9B: 3E 08       ld   a,$02
 4B9D: C3 FB 4B    jp   $4BFB
 4BA0: CD 65 46    call $4CC5
-4BA3: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+4BA3: 3A 82 60    ld   a,(current_task_index_C028)
 4BA6: FE 14       cp   $14
 4BA8: C2 E6 4B    jp   nz,$4BEC
 4BAB: FD 7E 03    ld   a,(iy+$09)
@@ -3266,7 +3268,7 @@ table_4C3F:
 4C99: 87          add  a,a
 4C9A: DD 77 01    ld   (ix+$01),a
 4C9D: DD 77 09    ld   (ix+$03),a
-4CA0: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+4CA0: 3A 82 60    ld   a,(current_task_index_C028)
 4CA3: FE 14       cp   $14
 4CA5: C2 B6 46    jp   nz,$4CBC
 4CA8: DD 7E 00    ld   a,(ix+$00)
@@ -9018,7 +9020,7 @@ A350: CB 7F       bit  7,a
 A352: 3E 00       ld   a,$00
 A354: C2 DA A9    jp   nz,$A37A		; special screens, don't move human player
 A357: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
-A35A: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+A35A: 3A 82 60    ld   a,(current_task_index_C028)
 A35D: FE 03       cp   $09
 A35F: 3E 00       ld   a,$00
 A361: C2 C6 A9    jp   nz,$A36C
@@ -9130,7 +9132,7 @@ A40D: C3 30 A9    jp   fight_mainloop_A390
 ; called after a non-attacking move (walk, sommersault, turn back...)
 ; but can also be called after deciding an attack...
 cpu_move_done_A410:
-A410: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+A410: 3A 82 60    ld   a,(current_task_index_C028)
 A413: FE 03       cp   $09
 A415: 3E 0B       ld   a,$0B
 A417: CA 16 A4    jp   z,$A41C
@@ -9149,7 +9151,7 @@ A42F: 2A 43 68    ld   hl,(unknown_C249)		; load xy for player 1
 A432: D9          exx  ; EXX exchanges BC, DE, and HL with shadow registers with BC', DE', and HL'.
 A433: ED 5B CD 68 ld   de,(unknown_C267)		; load animation/position of player 2
 A437: 2A C3 68    ld   hl,(unknown_C269)		; load xy for player 2
-A43A: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+A43A: 3A 82 60    ld   a,(current_task_index_C028)
 A43D: FE 03       cp   $09
 A43F: CA 49 A4    jp   z,$A443
 A442: D9          exx	; depending on the configuration (which is the human opponent), swap values
@@ -9179,7 +9181,7 @@ A479: FD 7E 07    ld   a,(iy+$0d)
 A47C: 2F          cpl
 A47D: FD 77 07    ld   (iy+$0d),a
 A480: 21 CB 68    ld   hl,unknown_C26B
-A483: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+A483: 3A 82 60    ld   a,(current_task_index_C028)
 A486: FE 03       cp   $09
 A488: CA 2E A4    jp   z,$A48E
 A48B: 21 4B 68    ld   hl,current_move_C24B
@@ -10526,7 +10528,7 @@ AD16: C9          ret
 let_opponent_react_AD19:
 ; load proper opponent structure
 AD19: FD 21 40 68 ld   iy,player_1_struct_C240
-AD1D: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+AD1D: 3A 82 60    ld   a,(current_task_index_C028)
 AD20: FE 03       cp   $09
 AD22: CA 83 A7    jp   z,$AD29
 AD25: FD 21 C0 68 ld   iy,player_2_struct_C260
@@ -10915,7 +10917,7 @@ B15B: C9          ret
 * of shifting
 * and add 7 as offset... it really seems that 2 programmers were competing here...
 
-B15C: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+B15C: 3A 82 60    ld   a,(current_task_index_C028)
 B15F: 57          ld   d,a
 B160: 1E 80       ld   e,$20
 B162: CD 69 B0    call multiply_de_B0C3
@@ -10974,7 +10976,7 @@ B1B9: CA 64 B1    jp   z,$B1C4
 B1BC: CB 57       bit  2,a
 B1BE: C2 7E B1    jp   nz,$B1DE
 B1C1: C3 7A B1    jp   $B1DA
-B1C4: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+B1C4: 3A 82 60    ld   a,(current_task_index_C028)
 B1C7: FE 0A       cp   $0A
 B1C9: CA 7E B1    jp   z,$B1DE
 B1CC: FE 0B       cp   $0B
@@ -11457,7 +11459,7 @@ B4D0: DD 46 00    ld   b,(ix+$00)
 B4D3: DD 7E 01    ld   a,(ix+$01)
 B4D6: 83          add  a,e
 B4D7: 5F          ld   e,a
-B4D8: 32 82 60    ld   (player_2_attack_flags_C028),a
+B4D8: 32 82 60    ld   (current_task_index_C028),a
 B4DB: 78          ld   a,b
 B4DC: AE          xor  (hl)
 B4DD: 77          ld   (hl),a
@@ -11541,7 +11543,7 @@ B545: DD 46 00    ld   b,(ix+$00)
 B548: DD 7E 01    ld   a,(ix+$01)
 B54B: 83          add  a,e
 B54C: 5F          ld   e,a
-B54D: 32 82 60    ld   (player_2_attack_flags_C028),a
+B54D: 32 82 60    ld   (current_task_index_C028),a
 B550: 78          ld   a,b
 B551: AE          xor  (hl)
 B552: 77          ld   (hl),a
@@ -11571,7 +11573,7 @@ B573: C9          ret
 
 ; load iy with player structure
 load_iy_with_player_structure_B574:
-B574: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+B574: 3A 82 60    ld   a,(current_task_index_C028)
 B577: FD 21 00 61 ld   iy,task_struct_C100
 B57B: 47          ld   b,a
 B57C: 0E 00       ld   c,$00
@@ -11601,7 +11603,7 @@ B5A4: C9          ret
 
 task_yield_B5A5:
 B5A5: CD E8 BB    call disable_interrupts_BBE2
-B5A8: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+B5A8: 3A 82 60    ld   a,(current_task_index_C028)
 B5AB: 21 00 60    ld   hl,active_task_bit_table_C000
 B5AE: 4F          ld   c,a
 B5AF: 06 00       ld   b,$00
@@ -11728,7 +11730,7 @@ B65D: C9          ret
 suspend_this_task_B65E:
 B65E: CD E8 BB    call disable_interrupts_BBE2
 B661: F5          push af
-B662: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+B662: 3A 82 60    ld   a,(current_task_index_C028)
 B665: 21 18 60    ld   hl,unknown_C012
 B668: 4F          ld   c,a
 B669: 06 00       ld   b,$00
@@ -11747,7 +11749,7 @@ B67D: DD 19       add  ix,de
 B67F: DD 7E 00    ld   a,(ix+$00)
 B682: B6          or   (hl)
 B683: 77          ld   (hl),a
-B684: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+B684: 3A 82 60    ld   a,(current_task_index_C028)
 B687: FD 21 00 61 ld   iy,task_struct_C100
 B68B: 47          ld   b,a
 B68C: 0E 00       ld   c,$00
@@ -11831,7 +11833,7 @@ B70B: CB 19       rr   c
 B70D: CB 18       rr   b
 B70F: CB 19       rr   c
 B711: FD 09       add  iy,bc
-B713: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+B713: 3A 82 60    ld   a,(current_task_index_C028)
 B716: FD 77 05    ld   (iy+$05),a
 B719: C1          pop  bc
 B71A: FD 70 0C    ld   (iy+$06),b
@@ -12025,7 +12027,7 @@ task_stack_buffer_table_B825:
 	dc.w	$c010 ; $b869
 	dc.w	$c018 ; $b86b
 	dc.w	$c020 ; $b86d
-	dc.w	player_2_attack_flags_C028 ; $b86f
+	dc.w	current_task_index_C028 ; $b86f
 	dc.w	dip_switches_copy_C030 ; $b871
 	dc.w	$c038 ; $b873
 
@@ -12496,12 +12498,12 @@ E156: FD 77 0A    ld   (iy+$0a),a
 E159: FD E5       push iy
 E15B: DD E5       push ix
 E15D: DD 21 00 6D ld   ix,referee_x_pos_C700
-E161: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+E161: 3A 82 60    ld   a,(current_task_index_C028)
 E164: FE 08       cp   $02
 E166: CA C7 E1    jp   z,$E16D
 E169: DD 21 90 6D ld   ix,unknown_C730
 E16D: 0E 01       ld   c,$01
-E16F: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+E16F: 3A 82 60    ld   a,(current_task_index_C028)
 E172: FE 08       cp   $02
 E174: CA D3 E1    jp   z,$E179
 E177: 0E 08       ld   c,$02
@@ -12569,7 +12571,7 @@ E201: 4F          ld   c,a
 E202: CB 21       sla  c
 E204: DD 21 82 E8 ld   ix,address_table_E228
 E208: DD 09       add  ix,bc
-E20A: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+E20A: 3A 82 60    ld   a,(current_task_index_C028)
 E20D: 01 00 00    ld   bc,$0000
 E210: FE 1C       cp   $16
 E212: CA 12 E8    jp   z,$E218
@@ -13553,7 +13555,7 @@ EC86: 10 B6       djnz $EC44
 EC88: C9          ret
 EC89: 06 12       ld   b,$18
 EC8B: DD 21 C0 6D ld   ix,unknown_C760
-EC8F: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+EC8F: 3A 82 60    ld   a,(current_task_index_C028)
 EC92: FE 1D       cp   $17
 EC94: C2 37 E6    jp   nz,$EC9D
 EC97: 06 90       ld   b,$30
@@ -13584,7 +13586,7 @@ ECCA: 2C          inc  l
 ECCB: 10 FC       djnz $ECC3
 ECCD: DD 21 90 6D ld   ix,unknown_C730
 ECD1: 21 90 F5    ld   hl,$F530		; X,Y
-ECD4: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+ECD4: 3A 82 60    ld   a,(current_task_index_C028)
 ECD7: FE 1D       cp   $17
 ECD9: C2 7F E6    jp   nz,$ECDF
 ECDC: 21 84 F4    ld   hl,$F424
@@ -13595,7 +13597,7 @@ ECE7: E5          push hl
 ECE8: FD E5       push iy
 ECEA: C5          push bc
 ECEB: DD E5       push ix
-ECED: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+ECED: 3A 82 60    ld   a,(current_task_index_C028)
 ECF0: FE 1D       cp   $17
 ECF2: C2 0C E7    jp   nz,$ED06
 ECF5: 3A 8B 60    ld   a,(periodic_counter_8bit_C02B)
@@ -13632,7 +13634,7 @@ ED38: D5          push de
 ED39: FD E1       pop  iy
 ED3B: 05          dec  b
 ED3C: C2 A9 E7    jp   nz,$EDA3
-ED3F: 3A 82 60    ld   a,(player_2_attack_flags_C028)
+ED3F: 3A 82 60    ld   a,(current_task_index_C028)
 ED42: FE 1D       cp   $17
 ED44: C2 DF E7    jp   nz,$ED7F
 ED47: DD 21 90 6D ld   ix,unknown_C730

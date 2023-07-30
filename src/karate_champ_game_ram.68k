@@ -82,7 +82,7 @@
 	.global	unknown_C020
 	.global	unknown_C025
 	.global	unknown_C026
-	.global	player_2_attack_flags_C028
+	.global	current_task_index_C028
 	.global	unknown_C02C
 	.global	dip_switches_copy_C030
 	.global	unknown_C031
@@ -206,7 +206,7 @@ unknown_C025:
 	ds.b	1
 unknown_C026:
 	ds.b	2
-player_2_attack_flags_C028:
+current_task_index_C028:
 	ds.b	1
 nb_tasks_to_start_C029:
 	ds.b	1
