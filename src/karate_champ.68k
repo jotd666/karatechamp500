@@ -1142,7 +1142,7 @@ l_4153:
 											| [$415a: and  a]
 	sub.w	#2,d5								| [sbc  hl,de]  MSB
 	move.b	#0x0D,d3                        	| [$415d: ld   d,$0D]
-	jbsr	l_b003                            	| [$415f: call $B003]
+	jbsr	divide_hl_by_d_b003                            	| [$415f: call $B003]
 	tst.b	d0                               	| [$4162: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$4163: call nz,display_error_text_B075]
@@ -1227,39 +1227,39 @@ l_4201:
 	jne	l_4201                             	| [$4208: djnz $4201]
 	jra	l_4248                             	| [$420a: jp   $4248]
 l_420d:
-	move.b	(a0),d3                         	| [$420d: ld   d,(hl)]
+	move.b	(a0)+,d3                         	| [$420d: ld   d,(hl)]
 	move.b	d3,(0x0d,a2)                    	| [$420e: ld   (ix+$0d),d]
-	addq.w	#1,a0                           	| [$4211: inc  hl]
-	move.b	(a0),d3                         	| [$4212: ld   d,(hl)]
+	                           	| [$4211: inc  hl]
+	move.b	(a0)+,d3                         	| [$4212: ld   d,(hl)]
 	move.b	d3,(0x09,a2)                    	| [$4213: ld   (ix+$09),d]
-	addq.w	#1,a0                           	| [$4216: inc  hl]
-	move.b	(a0),d3                         	| [$4217: ld   d,(hl)]
+	                           	| [$4216: inc  hl]
+	move.b	(a0)+,d3                         	| [$4217: ld   d,(hl)]
 	move.b	d3,(0x05,a2)                    	| [$4218: ld   (ix+$05),d]
-	addq.w	#1,a0                           	| [$421b: inc  hl]
-	move.b	(a0),d3                         	| [$421c: ld   d,(hl)]
+	                           	| [$421b: inc  hl]
+	move.b	(a0)+,d3                         	| [$421c: ld   d,(hl)]
 	move.b	d3,(0x01,a2)                    	| [$421d: ld   (ix+$01),d]
-	addq.w	#1,a0                           	| [$4220: inc  hl]
-	move.b	(a0),d3                         	| [$4221: ld   d,(hl)]
+	                           	| [$4220: inc  hl]
+	move.b	(a0)+,d3                         	| [$4221: ld   d,(hl)]
 	move.b	d3,(0x1d,a2)                    	| [$4222: ld   (ix+$1d),d]
-	addq.w	#1,a0                           	| [$4225: inc  hl]
-	move.b	(a0),d3                         	| [$4226: ld   d,(hl)]
+	                           	| [$4225: inc  hl]
+	move.b	(a0)+,d3                         	| [$4226: ld   d,(hl)]
 	move.b	d3,(0x19,a2)                    	| [$4227: ld   (ix+$19),d]
-	addq.w	#1,a0                           	| [$422a: inc  hl]
-	move.b	(a0),d3                         	| [$422b: ld   d,(hl)]
+	                           	| [$422a: inc  hl]
+	move.b	(a0)+,d3                         	| [$422b: ld   d,(hl)]
 	move.b	d3,(0x15,a2)                    	| [$422c: ld   (ix+$15),d]
-	addq.w	#1,a0                           	| [$422f: inc  hl]
-	move.b	(a0),d3                         	| [$4230: ld   d,(hl)]
+	                           	| [$422f: inc  hl]
+	move.b	(a0)+,d3                         	| [$4230: ld   d,(hl)]
 	move.b	d3,(0x11,a2)                    	| [$4231: ld   (ix+$11),d]
-	addq.w	#1,a0                           	| [$4234: inc  hl]
-	move.b	(a0),d3                         	| [$4235: ld   d,(hl)]
+	                           	| [$4234: inc  hl]
+	move.b	(a0)+,d3                         	| [$4235: ld   d,(hl)]
 	move.b	d3,(0x2d,a2)                    	| [$4236: ld   (ix+$2d),d]
-	addq.w	#1,a0                           	| [$4239: inc  hl]
-	move.b	(a0),d3                         	| [$423a: ld   d,(hl)]
+	                           	| [$4239: inc  hl]
+	move.b	(a0)+,d3                         	| [$423a: ld   d,(hl)]
 	move.b	d3,(0x29,a2)                    	| [$423b: ld   (ix+$29),d]
-	addq.w	#1,a0                           	| [$423e: inc  hl]
-	move.b	(a0),d3                         	| [$423f: ld   d,(hl)]
+	                           	| [$423e: inc  hl]
+	move.b	(a0)+,d3                         	| [$423f: ld   d,(hl)]
 	move.b	d3,(0x25,a2)                    	| [$4240: ld   (ix+$25),d]
-	addq.w	#1,a0                           	| [$4243: inc  hl]
+	                           	| [$4243: inc  hl]
 	move.b	(a0),d3                         	| [$4244: ld   d,(hl)]
 	move.b	d3,(0x21,a2)                    	| [$4245: ld   (ix+$21),d]
 l_4248:
@@ -1339,7 +1339,7 @@ l_42bd:
 	              	| [$42c7: and  a]
 					| [sbc  hl,de]
 	move.b	#0x0D,d3                        	| [$42ca: ld   d,$0D]
-	jbsr	l_b003                            	| [$42cc: call $B003]
+	jbsr	divide_hl_by_d_b003                            	| [$42cc: call $B003]
 	tst.b	d0                               	| [$42cf: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$42d0: call nz,display_error_text_B075]
@@ -1736,7 +1736,7 @@ l_45ff:
 	                              	| [$4605: and  a]
 	sub.w	#2,d5					| sbc  hl,bc
 	move.b	#0x0D,d3                        	| [$4608: ld   d,$0D]
-	jbsr	l_b003                            	| [$460a: call $B003]
+	jbsr	divide_hl_by_d_b003                            	| [$460a: call $B003]
 	tst.b	d0                               	| [$460d: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$460e: call nz,display_error_text_B075]
@@ -7140,8 +7140,8 @@ l_ae1f:
 multiply_de_b000:
 	jra	multiply_de_B0C3                   	| [$b000: jp   multiply_de_B0C3]
 
-l_b003:
-	jra	l_b0db                             	| [$b003: jp   $B0DB]
+divide_hl_by_d_b003:
+	jra	divide_hl_by_d_b0db                             	| [$b003: jp   $B0DB]
 
 random_B006:
 	jra	random_B0EE                        	| [$b006: jp   random_B0EE]
@@ -7277,7 +7277,11 @@ multiply_de_B0C3:
 	mulu	d4,d3
 	rts                                    	| [$b0da: ret]
 
-l_b0db:
+* > d5/d6: input
+* > d3.b: divisor
+* > d5/d6: result
+* > d0: quotient?
+divide_hl_by_d_b0db:
 	clr.b	d0                               	| [$b0db: xor  a]
 	move.b	#0x10,d1                        	| [$b0dc: ld   b,$10]
 l_b0de:

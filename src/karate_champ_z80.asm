@@ -2035,7 +2035,7 @@ table_4019:
 415A: A7          and  a
 415B: ED 52       sbc  hl,de
 415D: 16 07       ld   d,$0D
-415F: CD 09 B0    call $B003
+415F: CD 09 B0    call divide_hl_by_d_b003
 4162: A7          and  a
 4163: C4 D5 B0    call nz,display_error_text_B075
 4166: 29          add  hl,hl
@@ -2201,7 +2201,7 @@ table_4019:
 42C7: A7          and  a
 42C8: ED 52       sbc  hl,de
 42CA: 16 07       ld   d,$0D
-42CC: CD 09 B0    call $B003
+42CC: CD 09 B0    call divide_hl_by_d_b003
 42CF: A7          and  a
 42D0: C4 D5 B0    call nz,display_error_text_B075
 42D3: 29          add  hl,hl
@@ -2541,7 +2541,7 @@ table_45F9:
 4605: A7          and  a
 4606: ED 42       sbc  hl,bc
 4608: 16 07       ld   d,$0D
-460A: CD 09 B0    call $B003
+460A: CD 09 B0    call divide_hl_by_d_b003
 460D: A7          and  a
 460E: C4 D5 B0    call nz,display_error_text_B075
 4611: 29          add  hl,hl
@@ -3299,7 +3299,7 @@ table_4CBD:
 4CEF: A7          and  a
 4CF0: ED 52       sbc  hl,de
 4CF2: 16 07       ld   d,$0D
-4CF4: CD 09 B0    call $B003
+4CF4: CD 09 B0    call divide_hl_by_d_b003
 4CF7: A7          and  a
 4CF8: C4 D5 B0    call nz,display_error_text_B075
 4CFB: 29          add  hl,hl
@@ -10687,7 +10687,8 @@ AE1F:
 ; doesn't help a lot when reversing...
 multiply_de_B000:
 B000: C3 69 B0    jp   multiply_de_B0C3
-B003: C3 7B B0    jp   $B0DB
+divide_hl_by_d_b003:
+B003: C3 7B B0    jp   divide_hl_by_d_b0db
 random_B006:
 B006: C3 EE B0    jp   random_B0EE
 B009: C3 FF B0    jp   check_hl_in_ix_list_B0FF
@@ -10805,7 +10806,11 @@ B0D5: 3D          dec  a
 B0D6: C2 6B B0    jp   nz,$B0CB
 B0D9: EB          ex   de,hl
 B0DA: C9          ret
-
+; > d5/d6: input
+; > d3.b: divisor
+; > d5/d6: result
+; > d0: quotient?
+divide_hl_by_d_b0db:
 B0DB: AF          xor  a
 B0DC: 06 10       ld   b,$10
 B0DE: CB 25       sla  l
