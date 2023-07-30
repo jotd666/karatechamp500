@@ -202,6 +202,7 @@
     .global karate_champ_irq
     .global karate_champ_reset
 
+	.include	"karate_champ.inc"
 	.ifdef	__amiga__
 	.include "karate_champ_ram.68k"
 	.align	2
@@ -270,6 +271,12 @@ load_address_of_current_player_move_byte_CF04:
 	add.l	d5,a0
 	rts
 	
+store_address_of_current_player_move_byte_CF04:
+	move.l	a0,d5
+	sub.l	#game_mem,d5
+	move.w	d5,address_of_current_player_move_byte_CF04
+	rts
+	
 load_a1_from_a0:
 	moveq.l	#0,d5
 	move.b	(1,a0),d5
@@ -277,6 +284,12 @@ load_a1_from_a0:
 	move.b	(a0),d5
 	add.l	#game_mem,d5
 	move.l	d5,a1
+	rts
+
+change_d5_d6_to_a0:
+	bsr		change_d5_d6_to_d5_16
+	lea		game_mem,a0
+	add.l	d5,a0
 	rts
 	
 change_d5_d6_to_d5_16:
@@ -6639,27 +6652,28 @@ select_cpu_attack_AB2E:
 	addq.w	#1,a0                           	| [$ab35: inc  hl]
 	move.b	(a0),d0                         	| [$ab36: ld   a,(hl)] get value in C26C: facing configuration/rough distance 0-4
 	add.b	d0,d0                            	| [$ab37: add  a,a]
-	move.b	d0,d2                           	| [$ab38: ld   c,a]
-	clr.b	d1                               	| [$ab39: ld   b,$00]
+	clr.w	d1                               	| [$ab39: ld   b,$00]
+	move.b	d0,d1                           	| [$ab38: ld   c,a]
+	add.w	d1,d1
 	add.w	d1,a2                            	| [$ab3b: add  ix,bc]
-  ^^^^ review
-	move.b	(0x00,a2),d6                    	| [$ab3d: ld   l,(ix+$00)]
-	move.b	(0x01,a2),d5                    	| [$ab40: ld   h,(ix+$01)]
+	
+	move.l	(a2),a0                    	| [$ab3d: ld   l,(ix+$00)]
 * get msb of 16 bit counter for randomness
-	move.w	periodic_counter_16bit_C02E,a1	| [$ab43: ld   de,(periodic_counter_16bit_C02E)]
-	move.b	(a0),d4                         	| [$ab47: ld   e,(hl)] pick a number 0-value of hl (not included)
-	addq.w	#1,a0                           	| [$ab48: inc  hl] skip number of values
+* random_B006 needs D3 and D4 (D4 is max value)
+	move.w	periodic_counter_16bit_C02E,d3	| [$ab43: ld   de,(periodic_counter_16bit_C02E)]
+	SWAP_WORD	d3
+	move.b	(a0)+,d4                         	| [$ab47: ld   e,(hl)] pick a number 0-value of hl (not included)
+											| [$ab48: inc  hl] skip number of values
 
 	move.l	a0,-(sp)                        	| [$ab49: push hl]
 	jbsr	random_B006                       	| [$ab4a: call random_B006]
 	move.l	(sp)+,a0                        	| [$ab4d: pop  hl]
-	clr.b	d1                               	| [$ab4e: ld   b,$00]
-	move.b	d0,d2                           	| [$ab50: ld   c,a]
+	clr.w	d1                               	| [$ab4e: ld   b,$00]
+	move.b	d0,d1                           	| [$ab50: ld   c,a]
 	add.w	d1,a0                            	| [$ab51: add  hl,bc]
-  ^^^^ review
-* gets CPU move to make
+    * gets CPU move to make
 	move.b	(a0),d0                         	| [$ab52: ld   a,(hl)]
-	move.w	address_of_current_player_move_byte_CF04,a0	| [$ab53: ld   hl,(address_of_current_player_move_byte_CF04)]
+	bsr		store_address_of_current_player_move_byte_CF04	| [$ab53: ld   hl,(address_of_current_player_move_byte_CF04)]
 * gives attack order to the CPU
 * only attack moves (not walk moves) are given here
 	move.b	d0,(a0)                         	| [$ab56: ld   (hl),a]
@@ -6684,21 +6698,21 @@ master_cpu_move_table_AB58:
 move_list_far_away_AB62:
  * 13 moves: back, jbk, footsweep, front kick/punch, back round, lunge, jsk, round, lunge, lunge, revpunch, lowk
  * the move doesn't really matter as it cannot connect (too far)
-	dc.b	0x0d,0x05,0x08,0x09,0x0a,0x0b,0x0c,0x0d ; move_list_far_away_AB62
-	dc.b	0x0e,0x0f,0x10,0x11,0x13,0x14 ; $ab6a
+	dc.b	0x0d,0x05,0x08,0x09,0x0a,0x0b,0x0c,0x0d | move_list_far_away_AB62
+	dc.b	0x0e,0x0f,0x10,0x11,0x13,0x14 | $ab6a
  * lunge backroundkick lungemedium jsk 0E(???) round lunge, lunge, revpunch, lowkick
 move_list_facing_mid_range_AB70:
-	dc.b	0x0a,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f,0x10 ; move_list_facing_mid_range_AB70
-	dc.b	0x11,0x13,0x14 ; $ab78
+	dc.b	0x0a,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f,0x10 | move_list_facing_mid_range_AB70
+	dc.b	0x11,0x13,0x14 | $ab78
  * front kick, back round, lungemedium, jsk, round, lunge, revpunch, lowkick
 move_list_facing_close_range_AB7B:
  * small reverse, back round, lungemediumj sk,...
-	dc.b	0x08,0x0a,0x0b,0x0c,0x0d,0x0f,0x10,0x13 ; move_list_facing_close_range_AB7B
-	dc.b	0x14 ; $ab83
+	dc.b	0x08,0x0a,0x0b,0x0c,0x0d,0x0f,0x10,0x13 | move_list_facing_close_range_AB7B
+	dc.b	0x14 | $ab83
  * list of only reverse attacks (mostly defensive, cpu turns its back on the opponent)
  * back kick jbk foot sweep back
 move_list_turning_back_AB84:
-	dc.b	0x03,0x05,0x08,0x09 ; move_list_turning_back_AB84
+	dc.b	0x03,0x05,0x08,0x09 | move_list_turning_back_AB84
 
 perform_jumping_side_kick_if_level_2_AB88:
 	move.b	computer_skill_C910,d0          	| [$ab88: ld   a,(computer_skill_C910)]
@@ -6751,13 +6765,15 @@ perform_foot_sweep_back_ABBB:
 
 * computer is jumping
 handle_cpu_land_from_jump_ABCC:
-	move.b	(0x07,a3),d6                    	| [$abcc: ld   l,(iy+$07)]
+
 	move.b	(0x08,a3),d5                    	| [$abcf: ld   h,(iy+$08)]
-	lea	l_0B73(pc),a1                      	| [$abd2: ld   de,$0B73] jump frame
-	tst.b	d0                               	| [$abd5: and  a]
-sbc  hl,de
+	lsl.w	#8,d5
+	move.b	(0x07,a3),d5                    	| [$abcc: ld   l,(iy+$07)]
+											| [$abd2: ld   de,$0B73] jump frame
+											| [$abd5: and  a]
+	cmp.w	#0xB73,d5						| [sbc  hl,de]
 	jne	l_abe0                             	| [$abd8: jp   nz,$ABE0]
-	move.w	address_of_current_player_move_byte_CF04,a0	| [$abdb: ld   hl,(address_of_current_player_move_byte_CF04)]
+	bsr   load_address_of_current_player_move_byte_CF04  | [$abdb: ld   hl,(address_of_current_player_move_byte_CF04)]
 * land if reaches a given point
 	clr.b	(a0)                             	| [$abde: ld   (hl),$00]
 l_abe0:
@@ -6787,7 +6803,7 @@ l_abfc:
 * it will stop blocking as soon as the current opponent blow
 * doesn't match the current computer block
 computer_completed_a_blocking_move_ABFF:
-	lea	block_key_table_AC83(pc),a2        	| [$abff: ld   ix,block_key_table_AC83]
+	lea	game_mem+0xAC83,a2        	| [$abff: ld   ix,block_key_table_AC83]
 	move.b	(0x07,a3),d4                    	| [$ac03: ld   e,(iy+$07)]
 	move.b	(0x08,a3),d3                    	| [$ac06: ld   d,(iy+$08)]
 * look for de (computer current block frame) in key/value table
@@ -6797,9 +6813,12 @@ computer_completed_a_blocking_move_ABFF:
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$ac0d: call nz,display_error_text_B075]
 0:
-
-	move.l	a0,-(sp)                        	| [$ac10: push hl]
-	move.l	(sp)+,a2                        	| [$ac11: pop  ix]
+	* table returns a pointer D5/D6 on 16-bit ROM
+	* convert to a pointer
+	* so we can read from
+	bsr		change_d5_d6_to_a0
+	move.l	a0,a2                        	| [$ac10: push hl]
+											| [$ac11: pop  ix]
 * ix contains the corresponding pointer
 * now load opponent frame
 	move.b	(0x0b,a3),d6                    	| [$ac13: ld   l,(iy+$0b)]
@@ -6809,7 +6828,7 @@ computer_completed_a_blocking_move_ABFF:
 	jbsr	check_hl_in_ix_list_B009          	| [$ac1b: call check_hl_in_ix_list_B009]
 	tst.b	d0                               	| [$ac1e: and  a]
 	jeq	l_ac3e                             	| [$ac1f: jp   z,$AC3E] opponent doesn't perform one of the moves
-	move.w	address_of_current_player_move_byte_CF04,a0	| [$ac22: ld   hl,(address_of_current_player_move_byte_CF04)]
+	bsr		load_address_of_current_player_move_byte_CF04	| [$ac22: ld   hl,(address_of_current_player_move_byte_CF04)]
 	clr.b	(a0)                             	| [$ac25: ld   (hl),$00]
 	lea	counter_attack_time_table_AE17(pc),a0	| [$ac27: ld   hl,counter_attack_time_table_AE17]
 	jbsr	let_opponent_react_depending_on_skill_level_ACCE	| [$ac2a: call let_opponent_react_depending_on_skill_level_ACCE]
@@ -6829,7 +6848,7 @@ computer_completed_a_blocking_move_ABFF:
 * looks very redundant (and in a lot of other parts of the code it's
 * also done that way)
 l_ac3e:
-	lea	block_key_table_ACAD(pc),a2        	| [$ac3e: ld   ix,block_key_table_ACAD]
+	lea		game_mem+0xACAD,a2        	| [$ac3e: ld   ix,block_key_table_ACAD]
 	move.b	(0x07,a3),d4                    	| [$ac42: ld   e,(iy+$07)]
 	move.b	(0x08,a3),d3                    	| [$ac45: ld   d,(iy+$08)]
 	jbsr	key_value_linear_search_B00C      	| [$ac48: call key_value_linear_search_B00C]
@@ -6868,37 +6887,37 @@ l_ac80:
 	jra	cpu_move_done_A410                 	| [$ac80: jp   cpu_move_done_A410]
 
 
-block_key_table_AC83:
-	.long	l_1a88,table_AC91                	|  high block
-	.long	l_1ad0,table_AC9D                	|  medium block
-	.long	l_1b18,table_ACA3                	|  low block
-	.long	l_ffff
+*block_key_table_AC83:
+*	.long	l_1a88,table_AC91                	|  high block
+*	.long	l_1ad0,table_AC9D                	|  medium block
+*	.long	l_1b18,table_ACA3                	|  low block
+*	.long	-1
 * hitting points of high techniques
-	                  brkick (and next frame)    jskick (and landing)
+*        brkick (and next frame)    jskick (and landing)
 table_AC91:
-  dc.b	50 0D     24 0F                           17 10
+*	.byte	0X5,0x0D,0x24,0x0F,0x17,0x10
     *      lpunch 600      lpunch 1000
-      dc.b  76 11            EB 11 FF FF
+*    .byte  0x76,0x11,0xEB,0x11,0xFF,0xFF
 * hitting points of medium techniques
-table_AC9D:
-	.byte	0XB8,0x0E,0x99,0x0F,0xFF,0xFF
+*table_AC9D:
+*	.byte	0XB8,0x0E,0x99,0x0F,0xFF,0xFF
 * hitting points of low techniques
-table_ACA3:
-	.byte	0xC9,0x0C,0xDB,0x0C,0x55,0x0E,0xDE,0x12,0xFF,0xFF
+*table_ACA3:
+*	.byte	0xC9,0x0C,0xDB,0x0C,0x55,0x0E,0xDE,0x12,0xFF,0xFF
+*	.align	2
+*block_key_table_ACAD:
+*	.long	l_1a88,high_attacks_ACBB         	|  high block
+*	.long	l_1ad0,medium_attacks_ACC1       	|  medium block
+*	.long	l_1b18,low_attacks_ACC4          	|  low block
+*	.long	-1
+*high_attacks_ACBB:
+*	.byte	0x82,0x86,0x88,0x8B,0x8C,0xFF | jskick brkick jbkick lp600 lp1000
+*medium_attacks_ACC1:
+*	.byte	0x85,0x87,0xFF | weak reverse, lunge punch 400
+*low_attacks_ACC4:
+*	.byte	0x81,0x84,0x8D,0xFF  | back kick, front kick, revpunch 800
+
 	.align	2
-block_key_table_ACAD:
-	.long	l_1a88,high_attacks_ACBB         	|  high block
-	.long	l_1ad0,medium_attacks_ACC1       	|  medium block
-	.long	l_1b18,low_attacks_ACC4          	|  low block
-	.long	l_ffff
-high_attacks_ACBB:
-	.byte	0x82,0x86,0x88,0x8B,0x8C,0xFF | jskick brkick jbkick lp600 lp1000
-medium_attacks_ACC1:
-	.byte	0x85,0x87,0xFF | weak reverse, lunge punch 400
-low_attacks_ACC4:
-	.byte	0x81,0x84,0x8D,0xFF  | back kick, front kick, revpunch 800
-
-
 
 l_acc8:
 	jra	cpu_move_done_A410                 	| [$acc8: jp   cpu_move_done_A410]
@@ -6908,12 +6927,12 @@ l_accb:
 * blocks a given number of frames (depending on table and level) during which
 * the opponent has time to pre-react before the computed already decided
 * attack is launched
-* < hl pointer on a 4 pointer table containing each $20 values of data; each
+* < a0 pointer on a 4 pointer table containing each $20 values of data; each
 * table corresponds to a difficulty setting (4 total)
 * if upper-hard championship level >= 16: no time for player to react just before
 * an attack
-* > a: $00: attacks
-* > a: $09: doesn't attack
+* > d0: $00: attacks
+* > d0: $09: doesn't attack
 let_opponent_react_depending_on_skill_level_ACCE:
 	move.b	computer_skill_C910,d0          	| [$acce: ld   a,(computer_skill_C910)]
 	cmp.b	#0x10,d0                         	| [$acd1: cp   $10]
@@ -6930,23 +6949,23 @@ let_opponent_react_depending_on_skill_level_ACCE:
 * a = 2: difficulty: medium
 * a = 4: difficulty: hard
 * a = 6: difficulty: hardest
-	clr.b	d1                               	| [$ace3: ld   b,$00]
-	move.b	d0,d2                           	| [$ace5: ld   c,a]
+	clr.w	d1                               	| [$ace3: ld   b,$00]
+	move.b	d0,d1                           	| [$ace5: ld   c,a]
+	add.w	d1,d1		| 4 byte pointer
 	add.w	d1,a0                            	| [$ace6: add  hl,bc]
-  ^^^^ review
-	move.b	(a0),d4                         	| [$ace7: ld   e,(hl)]
-	addq.w	#1,a0                           	| [$ace8: inc  hl]
-	move.b	(a0),d3                         	| [$ace9: ld   d,(hl)]
+
+	move.l	(a0),a1                         	| [$ace7: ld   e,(hl)]
+												| [$ace9: ld   d,(hl)]
 * proper table (matching skill level) is loaded in de
 * one of the table addresses is $AD8F for instance
 * check skill level again
 	move.b	computer_skill_C910,d0          	| [$acea: ld   a,(computer_skill_C910)]
 	asl.b	#1,d0                            	| [$aced: sla  a] times 2
-	move.b	d0,d6                           	| [$acef: ld   l,a]
-	clr.b	d5                               	| [$acf0: ld   h,$00]
+	clr.w	d5                               	| [$acf0: ld   h,$00]
+	move.b	d0,d5                           	| [$acef: ld   l,a]
 * offset for the byte value in the table
-	add.w	d3,a0                            	| [$acf2: add  hl,de]
-  ^^^^ review
+	add.w	d5,a1                            	| [$acf2: add  hl,de]
+	move.l	a1,a0		| we need a pointer on A0 in the end
 * check those mysterious C148, C147 values that look = 0
 * everywhere in the code it seems that the only thing that is done with
 * them is that they're set to 0 so the code below is useless
@@ -6962,11 +6981,10 @@ l_acff:
 	move.b	(a0),d0                         	| [$acff: ld   a,(hl)]
 	move.b	d0,d1                           	| [$ad00: ld   b,a]
 	tst.b	d0                               	| [$ad01: and  a]
-	REVIEW FLAGS
-	clr.b	d0                               	| [$ad02: ld   a,$00] return value if a<=0
+	| setting D0 now would break flags										| [$ad02: ld   a,$00] return value if a<=0
 	jeq	l_ad16                             	| [$ad04: jp   z,$AD16] if a=0, exit, attack immediately
 	jmi	l_ad16                             	| [$ad07: jp   m,$AD16] if a<0 exit, attack immediately
-* a was strictly positive
+* D0 is strictly positive
 	move.b	d1,d0                           	| [$ad0a: ld   a,b] restore read value of a (number of waiting frames)
 											| [$ad0b: and  a]
 	bne.b	0f
@@ -6977,7 +6995,9 @@ l_acff:
 * this can block cpu moves up to 1/2 second at low skill level
 	jbsr	let_opponent_react_AD19           	| [$ad11: call let_opponent_react_AD19]
 	move.l	(sp)+,a3                        	| [$ad14: pop  iy]
+	rts
 l_ad16:
+	clr.b	d0
 	rts                                    	| [$ad16: ret]
 
 
@@ -7242,6 +7262,9 @@ read_p2_controls_B0BA:
 disable_interrupts_B0BD:
 	jra		disable_interrupts_BBE2
 
+enable_interrupts_b0c0:
+	jra	enable_interrupts_BBE2             	| [$b0c0: jp   enable_interrupts_BBE2]
+
 * > d3: term 1
 * > d4: term 2
 * > d3.w: product
@@ -7323,7 +7346,7 @@ l_b123:
 
 * another search routine (key value)
 * < d3/d4: word to look for
-* < ix: table to look into
+* < a2: table to look into
 * > a=0 found
 * > if found loads hl with the word after
 * the value of de found in ix list
@@ -10021,7 +10044,9 @@ l_ed50:
 	subq.b	#1,d1                           	| [...]
 	jne	l_ed50                             	| [$ed56: djnz $ED50]
 l_ed58:
+	.ifeq	OPT_SKIP_INTRO_SCREEN
 	move.b	#0x03,d1                        	| [$ed58: ld   b,$03]
+* menu mainloop
 l_ed5a:
 	movem.w	d1/d2,-(sp)                    	| [$ed5a: push bc]
 	move.b	#0x0A,d5
@@ -10039,6 +10064,8 @@ l_ed5a:
 	movem.w	(sp)+,d1/d2                    	| [$ed75: pop  bc]
 	subq.b	#1,d1                           	| [...]
 	jne	l_ed5a                             	| [$ed76: djnz $ED5A]
+	.endif
+	* end of bouncing characters / highscore screen
 	move.b	#0x01,d0                        	| [$ed78: ld   a,$01]
 	move.b	#0x01,d1                        	| [$ed7a: ld   b,$01]
 	jbsr	task_manipulation_B6AE            	| [$ed7c: call task_manipulation_B6AE]

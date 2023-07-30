@@ -9,18 +9,13 @@
     OPT_DISABLE_SPRITES=0
    
 	* cheats to test game
-    * score is decimal format
+    * score is BCD format
 	* all options must be zeroed for release
     OPT_START_SCORE=0
-	OPT_SKIP_THANKS_SCREEN=0
+	OPT_SKIP_INTRO_SCREEN=1
 	OPT_SKIP_TITLE_SCREEN=0
-	OPT_SKIP_ICE_PACK_SCREEN=0
 	OPT_SKIP_GAME_DEMO=0
-	OPT_ONLY_ONE_LIFE=0
-	* test mode: only first snobee is active
-	OPT_ONLY_ONE_SNOBEE=0
-	* make diamonds almost grouped
-	OPT_ALMOST_GROUP_DIAMONDS=0
+
 ***
 *** end of BUILD OPTIONS
 ***
