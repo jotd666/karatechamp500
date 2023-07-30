@@ -761,8 +761,10 @@ osd_update_sprites:
 	move.b	(1,a6),d2
 	* tile color & attributes
 	move.b	(2,a6),d3
+	* dispatch the value into several registers
 	move.b	d3,d5
 	move.b	d3,d4
+	move.b	d3,d6
 	and.b	#0xF,d4		| color code
 	and.b	#0x60,d3
 	lsl.w	#4,d3		| sprite bank (0,1,2) * 512
@@ -782,8 +784,13 @@ osd_update_sprites:
 	beq.b	1f					| not found
 	add.w	d5,a0
 	* not done: check orientation, add 2 if mirror
-	*addq.w	#2,a0
+	btst	#7,d6
+	beq.b	3f
+	add.w	(2,a0),a0				| make pointer absolute
+	bra.b	4f
+3:
 	add.w	(a0),a0				| make pointer absolute
+4:
 	* now A0 is a pointer on a list of 4 16x16 bitplanes + mask
 	* get coordinates (D0 is already loaded as X)
 	CONVERT_XY
