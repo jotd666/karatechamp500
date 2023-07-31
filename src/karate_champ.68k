@@ -3517,6 +3517,7 @@ l_6500:
 	lsr.b	#4,d0                            	| [$6514: srl  a] * 4
 	and.b	#0x0F,d0                         	| [$651c: and  $0F]
 	move.b	d0,d5                           	| [$651e: ld   l,a] update LSB
+	* store as little endian
 	SWAP_WORD	D5
 	move.w	d5,unknown_CF02                 	| [$651f: ld   (unknown_CF02),hl]
 	SWAP_WORD	D5
@@ -5636,18 +5637,18 @@ l_a480:
 l_a48e:
 	jbsr	store_address_of_current_player_move_byte_CF04	| [$a48e: ld   (address_of_current_player_move_byte_CF04),hl]
 	addq.w	#1,a0                           	| [$a491: inc  hl]
-	jbsr	l_a496                            	| [$a492: call $A496]
+	jbsr	compute_attack_disntace_a496                            	| [$a492: call $A496]
 	rts                                    	| [$a495: ret]
 
 * sets attack distance (0,1,2)
-l_a496:
-
+compute_attack_disntace_a496:
 	move.l	a0,-(sp)                        	| [$a496: push hl]
 	clr.b	(a0)                             	| [$a497: ld   (hl),$00]
 	move.b	#0x09,(0x0f,a3)                 	| [$a499: ld   (iy+$0f),$09]
 	lea	temp_numeric_buffer_CF00,a2    	| [$a49d: ld   ix,temp_numeric_buffer_CF00]
-	move.w	#0xA539,d5                   	| [$a4a1: ld   hl,($A539)]
-	move.b	d5,unknown_CF02                 	| [$a4a4: ld   (unknown_CF02),hl]
+	move.w	#0x39A5,d5                   	| [$a4a1: ld   hl,($A539)]
+	* I don't think that this is useful. Storing A539 as little endian in CF02...
+	move.w	d5,unknown_CF02                 	| [$a4a4: ld   (unknown_CF02),hl]
 	lea	table_A529(pc),a0                  	| [$a4a7: ld   hl,table_A529]
 	move.b	(0x0d,a3),d3                    	| [$a4aa: ld   d,(iy+$0d)]
 	move.b	(0x0e,a3),d4                    	| [$a4ad: ld   e,(iy+$0e)]
@@ -5662,12 +5663,12 @@ l_a4b0:
 	jra	l_a4b0                             	| [$a4c0: jp   $A4B0]
 l_a4c3:
 	move.b	(0x09,a3),d0                    	| [$a4c3: ld   a,(iy+$09)]
-	add.b	(a0),d0                          	| [$a4c6: add  a,(hl)]
+	add.b	(a0)+,d0                          	| [$a4c6: add  a,(hl)]
 	move.b	d0,(0x00,a2)                    	| [$a4c7: ld   (ix+$00),a]
-	addq.w	#1,a0                           	| [$a4ca: inc  hl]
-	move.b	(a0),d0                         	| [$a4cb: ld   a,(hl)]
+	                           	| [$a4ca: inc  hl]
+	move.b	(a0)+,d0                         	| [$a4cb: ld   a,(hl)]
 	move.b	d0,(0x01,a2)                    	| [$a4cc: ld   (ix+$01),a]
-	addq.w	#1,a0                           	| [$a4cf: inc  hl]
+	                           	| [$a4cf: inc  hl]
 	jbsr	is_point_in_rectangle_B042        	| [$a4d0: call is_point_in_rectangle_B042]
 	tst.b	d0                               	| [$a4d3: and  a]
 	jeq	l_a4b0                             	| [$a4d4: jp   z,$A4B0]
@@ -5731,6 +5732,7 @@ table_A529:
 maybe_attack_opponent_A53B:
 	lea	table_A54F(pc),a2                  	| [$a53b: ld   ix,table_A54F]
 	clr.w	d1                               	| [$a53f: ld   b,$00]
+	* distance
 	move.b	(0x0f,a3),d1                    	| [$a541: ld   c,(iy+$0f)] iy = C220: algebraic distance index (0-8 + facing direction bit 7)
 	asl.b	#1,d1                            	| [$a544: sla  c] times 2 (and gets rid of the direction bit)
 	add.w	d1,d1								| once more for long!
