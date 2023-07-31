@@ -5259,7 +5259,7 @@ table_602E:
 60EA: 78          ld   a,b
 60EB: A7          and  a
 60EC: C2 15 C1    jp   nz,$6115
-60EF: 3A CB 68    ld   a,(unknown_C26B)
+60EF: 3A CB 68    ld   a,(current_move_p2_C26B)
 60F2: A7          and  a
 60F3: C2 CC C1    jp   nz,$6166
 60F6: FD 7E 03    ld   a,(iy+$09)
@@ -5300,7 +5300,7 @@ table_602E:
 614E: 3E 08       ld   a,$02
 6150: CD 12 B0    call $B018
 6153: 3E 00       ld   a,$00
-6155: 32 CB 68    ld   (unknown_C26B),a
+6155: 32 CB 68    ld   (current_move_p2_C26B),a
 6158: CD 90 C8    call $6230
 615B: FD 21 80 68 ld   iy,unknown_C220
 615F: FD 7E 0A    ld   a,(iy+$0a)
@@ -5330,7 +5330,7 @@ table_602E:
 6197: FE 06       cp   $0C
 6199: C4 D5 B0    call nz,display_error_text_B075
 619C: CD BD 97    call $3DB7
-619F: 32 CB 68    ld   (unknown_C26B),a
+619F: 32 CB 68    ld   (current_move_p2_C26B),a
 61A2: AF          xor  a
 61A3: 32 C6 68    ld   (unknown_C26C),a
 61A6: 3E 0B       ld   a,$0B
@@ -5393,7 +5393,7 @@ display_practice_technique_name_61EC:
 6212: CB 5E       bit  3,(hl)
 6214: C2 1A C8    jp   nz,$621A
 ; computer is showing the moves: load technique in player 2 structure
-6217: 32 CB 68    ld   (unknown_C26B),a
+6217: 32 CB 68    ld   (current_move_p2_C26B),a
 621A: DD E5       push ix
 621C: DD 7E 01    ld   a,(ix+$01)
 621F: CD 5E C8    call $625E
@@ -7203,7 +7203,7 @@ table_75C1:
 table_7652:
 	dc.b	0x17,0x0c,0x13,0x0c,0xff ; table_7652
 7657: 3E 00       ld   a,$00
-7659: 32 CB 68    ld   (unknown_C26B),a
+7659: 32 CB 68    ld   (current_move_p2_C26B),a
 765C: 3A 11 63    ld   a,(background_and_state_bits_C911)
 765F: CB BF       res  7,a
 7661: FE 10       cp   $10
@@ -7270,7 +7270,7 @@ table_76BD:
 76DD: C1          pop  bc
 76DE: DD E1       pop  ix
 76E0: DD 7E 00    ld   a,(ix+$00)
-76E3: 32 CB 68    ld   (unknown_C26B),a
+76E3: 32 CB 68    ld   (current_move_p2_C26B),a
 76E6: 05          dec  b
 76E7: CA FB DC    jp   z,$76FB
 76EA: DD E5       push ix
@@ -7309,7 +7309,7 @@ table_7727:
 7736: FE 06       cp   $0C
 7738: C4 D5 B0    call nz,display_error_text_B075
 773B: CD BD 97    call $3DB7
-773E: 32 CB 68    ld   (unknown_C26B),a
+773E: 32 CB 68    ld   (current_move_p2_C26B),a
 7741: AF          xor  a
 7742: 32 C6 68    ld   (unknown_C26C),a
 7745: 3E 0B       ld   a,$0B
@@ -9186,7 +9186,7 @@ A476: FD 77 06    ld   (iy+$0c),a
 A479: FD 7E 07    ld   a,(iy+$0d)
 A47C: 2F          cpl
 A47D: FD 77 07    ld   (iy+$0d),a
-A480: 21 CB 68    ld   hl,unknown_C26B
+A480: 21 CB 68    ld   hl,current_move_p2_C26B
 A483: 3A 82 60    ld   a,(current_task_index_C028)
 A486: FE 03       cp   $09
 A488: CA 2E A4    jp   z,$A48E

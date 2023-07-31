@@ -49,7 +49,7 @@ ONE_TICK = 1
 	.endif
 
 	.else
-OPT_ENABLE_LOGGING = 0
+OPT_ENABLE_LOGGING = 1
 OPT_ENABLE_PROFILING = 0
 * set to higher values than 1 to speed game up
 ONE_TICK = 1
@@ -777,11 +777,11 @@ osd_update_sprites:
 	lea		sprite_table,a0
 	add.w	d2,d2
 	move.w	(a0,d2.w),d5		| offset for color table
-	beq.b	1f					| not found
+	beq.b	12f					| not found
 	add.w	d5,a0				| absolute pointer on color table for this sprite
 	add.w	d4,d4
 	move.w	(a0,d4.w),d5		| offset for bitplane list
-	beq.b	1f					| not found
+	beq.b	12f					| not found
 	add.w	d5,a0
 	* not done: check orientation, add 2 if mirror
 	btst	#7,d6
@@ -803,7 +803,11 @@ osd_update_sprites:
 	addq.w	#4,a6
 	dbf		d7,0b
 	rts
-
+12:
+	.ifne	OPT_ENABLE_LOGGING
+	move.w	#0xF00,0xDFF180
+	.endif
+	bra.b	1b
 
 
 previous_sprites:
@@ -1710,7 +1714,7 @@ update_bg_tile:
 	* then run the compute_used_cluts.py program again
 	
 	lea		tile_log_table,a0
-	move.l	a0,0x100
+	move.l	a0,0x104
 	movem.l	d0-d1,-(a7)
 	and.l	#0xFFFF,d0
 	lsl.w	#8,d0

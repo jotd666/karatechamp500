@@ -1,4 +1,4 @@
-import json,os,collections
+import json,os,collections,copy
 
 dump_dir = r"C:\Users\Public\Documents\Amiga Files\WinUAE"
 clut_tile_dump = os.path.join(dump_dir,"used_tiles")
@@ -34,6 +34,7 @@ alpha_clut = {0,
 for k in range(10+26+1):
     used_cluts["tiles"][k].update(alpha_clut)
 
+used_cluts_copy = copy.deepcopy(used_cluts)
 
 for tile_index in range(256):
     offset = tile_index*256
@@ -43,6 +44,8 @@ for tile_index in range(256):
             tile_code =  tile_index + ((clut_index & 7) << 8);
             used_cluts["tiles"][tile_code].add(color_code)
 
+nb_updates = 0
+
 for sprite_index in range(256):
     offset = sprite_index*256
     for attr in range(256):
@@ -50,10 +53,17 @@ for sprite_index in range(256):
             color_code = attr& 0xF
             bank = ((attr & 0x60) >> 5)
             tile_code = sprite_index + ((attr & 0x10) << 4) +  bank*512
+            if tile_code not in used_cluts["sprites"]:
+                nb_updates+=1
+                print(hex(sprite_index),hex(attr))
+            elif color_code not in used_cluts["sprites"][tile_code]:
+                nb_updates+=1
             used_cluts["sprites"][tile_code].add(color_code)
 
 for k in ["tiles","sprites"]:
     used_cluts[k] = {k:sorted(v) for k,v in sorted(used_cluts[k].items())}
 
+if used_cluts_copy != used_cluts:
+    print("clut data was updated!")
 with open(rw_json,"w") as f:
    json.dump(used_cluts,f,indent=2)

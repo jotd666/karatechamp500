@@ -123,7 +123,7 @@
 	.global	unknown_C24C
 	.global	unknown_C267
 	.global	unknown_C269
-	.global	unknown_C26B
+	.global	current_move_p2_C26B
 	.global	unknown_C26C
 	.global	unknown_C387
 	.global	unknown_C701
@@ -345,7 +345,7 @@ unknown_C267:
 	ds.b	2
 unknown_C269:
 	ds.b	2
-unknown_C26B:
+current_move_p2_C26B:
 	ds.b	1
 unknown_C26C:
 	ds.b	20

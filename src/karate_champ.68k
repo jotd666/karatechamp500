@@ -266,16 +266,23 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address_mask:
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS_MASK	a1,a3,07
 	
 load_address_of_current_player_move_byte_CF04:
-	moveq	#0,d5
-	move.w	address_of_current_player_move_byte_CF04,d5
-	lea		game_mem,a0
-	add.l	d5,a0
+	moveq	#0,d7
+	move.w	address_of_current_player_move_byte_CF04,d7
+	lea		current_move_C24B,a0
+	add.l	d7,a0
 	rts
 	
 store_address_of_current_player_move_byte_CF04:
-	move.l	a0,d5
-	sub.l	#game_mem,d5
-	move.w	d5,address_of_current_player_move_byte_CF04
+	move.l	a0,d7
+	sub.l	#current_move_C24B,d7
+	beq.b	0f
+	cmp.w	#0x20,d7
+	beq.b	0f
+	* sanity, can't be anything else
+	illegal
+	illegal
+0:
+	move.w	d7,address_of_current_player_move_byte_CF04	
 	rts
 	
 load_a1_from_a0:
@@ -908,7 +915,6 @@ l_3ed4:
 	move.b	(0x07,a3),d6                    	| [$3ed9: ld   l,(iy+$07)]
 	move.b	(0x08,a3),d5                    	| [$3edc: ld   h,(iy+$08)]
 	bclr.b	#7,d5                           	| [$3edf: res  7,h]
-	jbsr	osd_break
 	jbsr	check_hl_in_ix_list_B009          	| [$3ee1: call check_hl_in_ix_list_B009]
 	movem.l	(sp)+,a0                        	| [$3ee4: pop  hl]
 	tst.b	d0                               	| [$3ee5: and  a]
@@ -949,6 +955,11 @@ l_3f1b:
 	jra	l_3f92                             	| [$3f31: jp   $3F92]
 
 l_3f34:
+* check later
+*	jbsr	osd_break
+*	move.l	a0,d7
+*	sub.l	#game_mem,d7
+	
 	move.b	(0x0c,a3),d0                    	| [$3f34: ld   a,(iy+$0c)]
 	addq.w	#1,a0                           	| [$3f37: inc  hl]
 	tst.b	d0                               	| [$3f38: and  a]
@@ -977,7 +988,7 @@ l_3f4a:
 	move.b	(0x08,a3),d0                    	| [$3f54: ld   a,(iy+$08)]
 	eor.b	d3,d0                            	| [$3f57: xor  d]
 	jmi	l_3f76                             	| [$3f58: jp   m,$3F76]
-	* new movement is computed
+	* new movement is computed, store it
 	bsr		store_a0_in_a3_structure_07_address      	| [$3f5b: ld   (iy+$07),l]
 										| [$3f5e: ld   (iy+$08),h]
 	move.b	(0x09,a3),d0                    	| [$3f61: ld   a,(iy+$09)]
@@ -3086,7 +3097,7 @@ l_60e6:
 	move.b	d1,d0                           	| [$60ea: ld   a,b]
 	tst.b	d0                               	| [$60eb: and  a]
 	jne	l_6115                             	| [$60ec: jp   nz,$6115]
-	move.b	unknown_C26B,d0                 	| [$60ef: ld   a,(unknown_C26B)]
+	move.b	current_move_p2_C26B,d0                 	| [$60ef: ld   a,(current_move_p2_C26B)]
 	tst.b	d0                               	| [$60f2: and  a]
 	jne	l_6166                             	| [$60f3: jp   nz,$6166]
 	move.b	(0x09,a3),d0                    	| [$60f6: ld   a,(iy+$09)]
@@ -3138,7 +3149,7 @@ l_6117:
 	jbsr	l_b018                            	| [$6150: call $B018]
 l_6153:
 	clr.b	d0                               	| [$6153: ld   a,$00]
-	move.b	d0,unknown_C26B                 	| [$6155: ld   (unknown_C26B),a]
+	move.b	d0,current_move_p2_C26B                 	| [$6155: ld   (current_move_p2_C26B),a]
 	jbsr	l_6230                            	| [$6158: call $6230]
 	lea	unknown_C220,a3                	| [$615b: ld   iy,unknown_C220]
 	move.b	(0x0a,a3),d0                    	| [$615f: ld   a,(iy+$0a)]
@@ -3177,7 +3188,7 @@ l_6189:
 	jbsr	display_error_text_B075           	| [$6199: call nz,display_error_text_B075]
 0:
 	jbsr	l_3db7                            	| [$619c: call $3DB7]
-	move.b	d0,unknown_C26B                 	| [$619f: ld   (unknown_C26B),a]
+	move.b	d0,current_move_p2_C26B                 	| [$619f: ld   (current_move_p2_C26B),a]
 	clr.b	d0                               	| [$61a2: xor  a]
 	move.b	d0,unknown_C26C                 	| [$61a3: ld   (unknown_C26C),a]
 	move.b	#0x0B,d0                        	| [$61a6: ld   a,$0B]
@@ -3244,7 +3255,7 @@ display_practice_technique_name_61EC:
 	btst.b	#3,(a0)                         	| [$6212: bit  3,(hl)]
 	jne	l_621a                             	| [$6214: jp   nz,$621A]
 * computer is showing the moves: load technique in player 2 structure
-	move.b	d0,unknown_C26B                 	| [$6217: ld   (unknown_C26B),a]
+	move.b	d0,current_move_p2_C26B                 	| [$6217: ld   (current_move_p2_C26B),a]
 l_621a:
 	move.l	a2,-(sp)                        	| [$621a: push ix]
 	move.b	(0x01,a2),d0                    	| [$621c: ld   a,(ix+$01)]
@@ -3499,7 +3510,9 @@ l_6500:
 	move.b	d3,d5                           	| [$650f: ld   h,d] MSB
 	lsl.w	#8,d5
 	move.b	d0,d5                           	| [$650e: ld   l,a] LSB
-	move.w	d5,address_of_current_player_move_byte_CF04    | [$6510: ld   (address_of_current_player_move_byte_CF04),hl]
+	move.l	d5,a0
+	add.l	#game_mem,a0
+	bsr		store_address_of_current_player_move_byte_CF04    | [$6510: ld   (address_of_current_player_move_byte_CF04),hl]
 	move.b	d1,d0                           	| [$6513: ld   a,b]
 	lsr.b	#4,d0                            	| [$6514: srl  a] * 4
 	and.b	#0x0F,d0                         	| [$651c: and  $0F]
@@ -3869,7 +3882,7 @@ table_7652:
 
 task_7657:
 	clr.b	d0                               	| [$7657: ld   a,$00]
-	move.b	d0,unknown_C26B                 	| [$7659: ld   (unknown_C26B),a]
+	move.b	d0,current_move_p2_C26B                 	| [$7659: ld   (current_move_p2_C26B),a]
 	move.b	background_and_state_bits_C911,d0	| [$765c: ld   a,(background_and_state_bits_C911)]
 	bclr.b	#7,d0                           	| [$765f: res  7,a]
 	cmp.b	#0x10,d0                         	| [$7661: cp   $10]
@@ -3940,7 +3953,7 @@ l_772c:
 	jbsr	display_error_text_B075           	| [$7738: call nz,display_error_text_B075]
 0:
 	jbsr	l_3db7                            	| [$773b: call $3DB7]
-	move.b	d0,unknown_C26B                 	| [$773e: ld   (unknown_C26B),a]
+	move.b	d0,current_move_p2_C26B                 	| [$773e: ld   (current_move_p2_C26B),a]
 	clr.b	d0                               	| [$7741: xor  a]
 	move.b	d0,unknown_C26C                 	| [$7742: ld   (unknown_C26C),a]
 	move.b	#0x0B,d0                        	| [$7745: ld   a,$0B]
@@ -5438,7 +5451,7 @@ l_a36c:
 l_a371:
 	jbsr	l_3db7                            	| [$a371: call $3DB7]
 * player (human) technique
-	move.w	address_of_current_player_move_byte_CF04,a0	| [$a374: ld   hl,(address_of_current_player_move_byte_CF04)]
+	bsr		load_address_of_current_player_move_byte_CF04	| [$a374: ld   hl,(address_of_current_player_move_byte_CF04)]
 * player 1: hl = C24B
 	move.b	d0,(a0)                         	| [$a377: ld   (hl),a]
 	st.b	d0                                	| [$a378: ld   a,$FF]
@@ -5615,7 +5628,7 @@ l_a443:
 	not.b	d0                               	| [$a47c: cpl]
 	move.b	d0,(0x0d,a3)                    	| [$a47d: ld   (iy+$0d),a]
 l_a480:
-	lea	unknown_C26B,a0                	| [$a480: ld   hl,unknown_C26B]
+	lea	current_move_p2_C26B,a0                	| [$a480: ld   hl,current_move_p2_C26B]
 	move.b	current_task_index_C028,d0   	| [$a483: ld   a,(current_task_index_C028)]
 	cmp.b	#0x09,d0                         	| [$a486: cp   $09]
 	jeq	l_a48e                             	| [$a488: jp   z,$A48E]
@@ -5717,7 +5730,7 @@ table_A529:
 *
 maybe_attack_opponent_A53B:
 	lea	table_A54F(pc),a2                  	| [$a53b: ld   ix,table_A54F]
-	clr.b	d1                               	| [$a53f: ld   b,$00]
+	clr.w	d1                               	| [$a53f: ld   b,$00]
 	move.b	(0x0f,a3),d1                    	| [$a541: ld   c,(iy+$0f)] iy = C220: algebraic distance index (0-8 + facing direction bit 7)
 	asl.b	#1,d1                            	| [$a544: sla  c] times 2 (and gets rid of the direction bit)
 	add.w	d1,d1								| once more for long!
@@ -5782,7 +5795,7 @@ jump_to_routine_from_table_A59D:
 * a is the index of the routine in selected computer_ai_jump_table
 * it cannot be 0
 	add.b	d0,d0                            	| [$a5a4: add  a,a]
-	clr.b	d1                               	| [$a5a5: ld   b,$00]
+	clr.w	d1                               	| [$a5a5: ld   b,$00]
 	move.b	d0,d1                           	| [$a5a7: ld   c,a]
 	add.w	d1,d1
 	add.w	d1,a2                            	| [$a5a8: add  ix,bc]
@@ -5969,7 +5982,7 @@ classify_opponent_move_start_A665:
 move_found_A6D3:
 	rts
 
-* move forward with a special case TODO
+* move forward with a special case
 cpu_move_forward_towards_enemy_far_away_A6D4:
 	jbsr   load_address_of_current_player_move_byte_CF04	| [$a6d4: ld   hl,(address_of_current_player_move_byte_CF04)]
 * here writes to C26B (if player 2 CPU) to tell CPU to walk forward
