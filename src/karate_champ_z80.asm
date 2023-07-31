@@ -1392,7 +1392,7 @@ table_183F:
 3B14: CD AD 9E    call handle_player_movement_3ea7
 3B17: CD 3A 4D    call $479A
 3B1A: CD C9 4C    call $4663
-3B1D: CD 37 40    call $409D
+3B1D: CD 37 40    call check_if_move_warrants_a_kiai_409d
 3B20: CD B9 40    call $40B3
 3B23: CD 59 41    call display_player_4153
 3B26: CD 5C 48    call test_player_hits_4256
@@ -1542,7 +1542,7 @@ table_183F:
 3C70: CD 59 41    call display_player_4153
 3C73: CD F7 4C    call player_management_routine_46FD
 3C76: CD AD 9E    call handle_player_movement_3ea7
-3C79: CD 37 40    call $409D
+3C79: CD 37 40    call check_if_move_warrants_a_kiai_409d
 3C7C: CD B9 40    call $40B3
 3C7F: CD 59 41    call display_player_4153
 3C82: CD F7 4C    call player_management_routine_46FD
@@ -1696,10 +1696,13 @@ table_3DF8:
 	dc.b	0x15,0x16,0x18,0x16,0x15,0x48,0x17,0x17 ; $3e38
 	dc.b	0x88,0x18,0x18 ; $3e40
 
-3E43: DD 21 3D 9E ld   ix,table_3E97
+handle_player_hit_sequence_3e43:
+3E43: DD 21 3D 9E ld   ix,hit_movement_table_3E97
 3E47: FD 6E 0D    ld   l,(iy+$07)
 3E4A: FD 66 02    ld   h,(iy+$08)
 3E4D: CB BC       res  7,h
+* check if current player move (falling when struck
+* from a blow) is in a table
 3E4F: CD 03 B0    call check_hl_in_ix_list_B009
 3E52: A7          and  a
 3E53: CA D7 9E    jp   z,$3E7D
@@ -1719,6 +1722,7 @@ table_3DF8:
 3E74: DA 2C 9E    jp   c,$3E86
 3E77: DD 7E 09    ld   a,(ix+$03)
 3E7A: FD 77 0A    ld   (iy+$0a),a
+* resuming: player not in the process of being hit
 3E7D: FD 36 14 00 ld   (iy+$14),$00
 3E81: 3E 00       ld   a,$00
 3E83: C3 34 9E    jp   $3E94
@@ -1734,7 +1738,7 @@ table_3E97:
 	dc.b	0xc2,0x19,0xdd,0x19,0xf8,0x19,0x13,0x1a ; table_3E97
 	dc.b	0x2e,0x1a,0x49,0x1a,0x33,0x1b,0xff,0xff ; $3e9f
 handle_player_movement_3ea7:
-3EA7: CD 49 9E    call $3E43
+3EA7: CD 49 9E    call handle_player_hit_sequence_3e43
 3EAA: A7          and  a
 3EAB: C2 38 9F    jp   nz,$3F92
 3EAE: FD 6E 0D    ld   l,(iy+$07)
@@ -1955,6 +1959,8 @@ table_4019:
 	dc.b	0x00,0x00,0x27,0x02,0x04,0x00,0xf2,0x04 ; $4089
 	dc.b	0xfe,0x00,0x1e,0x03,0x02,0x00,0x34,0x02 ; $4091
 	dc.b	0xf9,0x00,0xff,0xff ; $4099
+
+check_if_move_warrants_a_kiai_409d:
 409D: FD 6E 0D    ld   l,(iy+$07)
 40A0: FD 66 02    ld   h,(iy+$08)
 40A3: CB BC       res  7,h
@@ -2348,7 +2354,7 @@ table_43C7:
 443A: CD 70 45    call $45D0
 443D: C3 49 44    jp   $4443
 4440: CD 9C 45    call $4536
-4443: CD 37 40    call $409D
+4443: CD 37 40    call check_if_move_warrants_a_kiai_409d
 4446: CD B9 40    call $40B3
 4449: CD 59 41    call display_player_4153
 444C: CD F7 4C    call player_management_routine_46FD
@@ -2360,7 +2366,7 @@ table_43C7:
 445A: C4 D5 B0    call nz,display_error_text_B075
 445D: CD AD 9E    call handle_player_movement_3ea7
 4460: CD C9 4C    call $4663
-4463: CD 37 40    call $409D
+4463: CD 37 40    call check_if_move_warrants_a_kiai_409d
 4466: CD B9 40    call $40B3
 4469: CD 59 41    call display_player_4153
 446C: CD F7 4C    call player_management_routine_46FD

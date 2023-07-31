@@ -287,6 +287,14 @@ load_a1_from_a0:
 	move.l	d5,a1
 	rts
 
+change_d5_w_to_a0:
+	swap	d5
+	clr.w	d5
+	swap	d5
+	move.l	d5,a0	| move.w gives negative address!
+	add.l	#game_mem,a0
+	rts
+	
 change_d5_d6_to_a0:
 	bsr		change_d5_d6_to_d5_16
 	lea		game_mem,a0
@@ -328,7 +336,7 @@ l_0000:
 	lea		active_task_bit_table_C000,a0
 	jra	startup_B045                       	| [jp   startup_B045]
 l_0003:
-	jra	display_player_4153                             	| [$0003: jp   $4153]
+	jra	display_player_sprite_4153                             	| [$0003: jp   $4153]
 	
 	
 	
@@ -412,7 +420,7 @@ l_3aa5:
 	jbsr	init_title_screen_3cb0                            	| [$3aa5: call $3CB0]
 	jbsr	l_40b3                            	| [$3aa8: call $40B3]
 	* initial display of white/red CPU player
-	jbsr	display_player_4153                            	| [$3aab: call $4153]
+	jbsr	display_player_sprite_4153                            	| [$3aab: call $4153]
 	move.b	background_and_state_bits_C911,d0	| [$3aae: ld   a,(background_and_state_bits_C911)]
 	and.b	#0x70,d0                         	| [$3ab1: and  $70]
 	cmp.b	#0x20,d0                         	| [$3ab3: cp   $20]
@@ -438,10 +446,12 @@ l_3ad4:
 	move.b	#0x0C,d1                        	| [$3ad6: ld   b,$0C]
 	move.b	current_task_index_C028,d0   	| [$3ad8: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$3adb: cp   $0A]
-	move.b	#0x08,d0                        	| [$3add: ld   a,$08]
 	jeq	l_3ae4                             	| [$3adf: jp   z,$3AE4]
 	move.b	#0x09,d0                        	| [$3ae2: ld   a,$09]
+	bra.b	0f
 l_3ae4:
+	move.b	#0x08,d0                        	| [$3add: ld   a,$08]
+0:
 	jbsr	task_manipulation_B05D            	| [$3ae4: call task_manipulation_B05D]
 	tst.b	d0                               	| [$3ae7: and  a]
 	beq.b	0f
@@ -469,14 +479,16 @@ l_3ae4:
 	jbsr	handle_player_movement_3ea7                            	| [$3b14: call $3EA7]
 	jbsr	l_479a                            	| [$3b17: call $479A]
 	jbsr	l_4663                            	| [$3b1a: call $4663]
-	jbsr	l_409d                            	| [$3b1d: call $409D]
+	jbsr	check_if_move_warrants_a_kiai_409d                            	| [$3b1d: call $409D]
 	jbsr	l_40b3                            	| [$3b20: call $40B3]
 	* subsequent displays of white/red CPU player
-	jbsr	display_player_4153                            	| [$3b23: call $4153]
+	jbsr	display_player_sprite_4153                            	| [$3b23: call $4153]
 	jbsr	test_player_hits_4256                            	| [$3b26: call $4256]
 	tst.b	d0                               	| [$3b29: and  a]
 	jeq	l_3bc7                             	| [$3b2a: jp   z,$3BC7]
 
+	* this part is only activated when a player is hit
+	
 	move.l	a3,-(sp)                        	| [$3b2d: push iy]
 
 	move.l	a0,-(sp)                        	| [$3b2f: push hl]
@@ -556,6 +568,8 @@ l_3ba4:
 	btst.b	#3,(0x00,a2)                    	| [$3ba9: bit  3,(ix+$00)]
 	jeq	l_3c15                             	| [$3bad: jp   z,$3C15]
 l_3bb0:
+	* PROBLEM HERE A0 -> D5, we'll see later
+	jbsr	osd_break
 	move.b	d5,d1                           	| [$3bb0: ld   b,h]
 	move.b	#0x04,d0                        	| [$3bb1: ld   a,$04]
 	movem.w	d1/d2,-(sp)                    	| [$3bb3: push bc]
@@ -664,13 +678,13 @@ l_3c5d:
 	move.w	#0x0004,d1                      	| [$3c68: ld   bc,$0004] 4
 	jbsr	ldir                              	| [$3c6b: ldir]
 	jbsr	l_40b3                            	| [$3c6d: call $40B3]
-	jbsr	display_player_4153                            	| [$3c70: call $4153]
+	jbsr	display_player_sprite_4153                            	| [$3c70: call $4153]
 	jbsr	player_management_routine_46FD    	| [$3c73: call player_management_routine_46FD]
 l_3c76:
 	jbsr	handle_player_movement_3ea7                            	| [$3c76: call $3EA7]
-	jbsr	l_409d                            	| [$3c79: call $409D]
+	jbsr	check_if_move_warrants_a_kiai_409d                            	| [$3c79: call $409D]
 	jbsr	l_40b3                            	| [$3c7c: call $40B3]
-	jbsr	display_player_4153                            	| [$3c7f: call $4153]
+	jbsr	display_player_sprite_4153                            	| [$3c7f: call $4153]
 	jbsr	player_management_routine_46FD    	| [$3c82: call player_management_routine_46FD]
 	tst.b	d0                               	| [$3c85: and  a]
 	beq.b	0f
@@ -817,14 +831,19 @@ table_3DF8:
 	dc.b	0x88,0x18,0x18 | $3e40
 	.align	2
 
-l_3e43:
+handle_player_hit_sequence_3e43:
+	* check if current player move (falling when struck
+	* from a blow) is in a table
 	lea	game_mem+0x3E97,a2                  	| [$3e43: ld   ix,table_3E97]
-	bsr		load_a0_from_a3_structure_07_address_mask                    	| [$3e47: ld   l,(iy+$07)]
-											| [$3e4a: ld   h,(iy+$08)]
-											| [$3e4d: res  7,h]
+	*bsr		load_a0_from_a3_structure_07_address_mask: here we don't care about pointer
+	move.b	(0x07,a3),d6                    	| [$3e47: ld   l,(iy+$07)]
+	move.b	(0x08,a3),d5                    	| [$3e4a: ld   h,(iy+$08)]
+	bclr.b	#7,d5                           	| [$3e4d: res  7,h]
+
 	jbsr	check_hl_in_ix_list_B009          	| [$3e4f: call check_hl_in_ix_list_B009]
 	tst.b	d0                               	| [$3e52: and  a]
 	jeq	l_3e7d                             	| [$3e53: jp   z,$3E7D]
+	* it's in the table
 	lea	game_mem+0x3D37,a2                  	| [$3e56: ld   ix,table_3D37]
 	move.b	background_and_state_bits_C911,d0	| [$3e5a: ld   a,(background_and_state_bits_C911)]
 	and.b	#0x7F,d0                         	| [$3e5d: and  $7F]
@@ -857,9 +876,10 @@ l_3e94:
 	rts                                    	| [$3e94: ret]
 
 handle_player_movement_3ea7:
-	jbsr	l_3e43                            	| [$3ea7: call $3E43]
+	jbsr	handle_player_hit_sequence_3e43                            	| [$3ea7: call $3E43]
 	tst.b	d0                               	| [$3eaa: and  a]
 	jne	l_3f92                             	| [$3eab: jp   nz,$3F92]
+	* load current move pointer/structure
 	bsr		load_a0_from_a3_structure_07_address_mask   	| [$3eae: ld   l,(iy+$07)]
 															| [$3eb1: ld   h,(iy+$08)]
 												| [$3eb4: res  7,h]
@@ -882,13 +902,15 @@ l_3ec6:
 	jra	l_3ec6                             	| [$3ed1: jp   $3EC6]
 l_3ed4:
 
-	move.l	a0,-(sp)                        	| [$3ed4: push hl]
+	movem.l	a0,-(sp)                        	| [$3ed4: push hl]
 	lea	walk_frames_list_AA3B(pc),a2       	| [$3ed5: ld   ix,walk_frames_list_AA3B]
-	bsr		load_a0_from_a3_structure_07_address_mask                    	| [$3ed9: ld   l,(iy+$07)]
-													| [$3edc: ld   h,(iy+$08)]
-													| [$3edf: res  7,h]
+	*bsr		load_a0_from_a3_structure_07_address_mask           	| we don't need the pointer
+	move.b	(0x07,a3),d6                    	| [$3ed9: ld   l,(iy+$07)]
+	move.b	(0x08,a3),d5                    	| [$3edc: ld   h,(iy+$08)]
+	bclr.b	#7,d5                           	| [$3edf: res  7,h]
+	jbsr	osd_break
 	jbsr	check_hl_in_ix_list_B009          	| [$3ee1: call check_hl_in_ix_list_B009]
-	move.l	(sp)+,a0                        	| [$3ee4: pop  hl]
+	movem.l	(sp)+,a0                        	| [$3ee4: pop  hl]
 	tst.b	d0                               	| [$3ee5: and  a]
 	jeq	l_3f34                             	| [$3ee6: jp   z,$3F34]
 	bsr		load_a1_from_a3_structure_07_address_mask
@@ -955,6 +977,7 @@ l_3f4a:
 	move.b	(0x08,a3),d0                    	| [$3f54: ld   a,(iy+$08)]
 	eor.b	d3,d0                            	| [$3f57: xor  d]
 	jmi	l_3f76                             	| [$3f58: jp   m,$3F76]
+	* new movement is computed
 	bsr		store_a0_in_a3_structure_07_address      	| [$3f5b: ld   (iy+$07),l]
 										| [$3f5e: ld   (iy+$08),h]
 	move.b	(0x09,a3),d0                    	| [$3f61: ld   a,(iy+$09)]
@@ -1020,9 +1043,7 @@ l_3f93:
 	move.b	(0x05,a2),d3                    	| [$3fe5: ld   d,(ix+$05)]
 
 	move.l	a2,-(sp)                        	| [$3fe8: push ix]
-	bsr		change_d5_d6_to_d5_16
-	move.l	d5,a0
-	add.l	#game_mem,a0
+	bsr		change_d5_d6_to_a0
 	addq.w	#2,a0                           	| [$3fea: inc  hl] * 2
 	move.b	(a0)+,d2                         	| [$3fec: ld   c,(hl)]
 												| [$3fed: inc  hl]
@@ -1055,12 +1076,12 @@ l_400a:
 	move.b	d0,(0x0a,a3)                    	| [$4015: ld   (iy+$0a),a]
 	rts                                    	| [$4018: ret]
 
-l_409d:
+check_if_move_warrants_a_kiai_409d:
 	bsr		load_a0_from_a3_structure_07_address_mask	| [$409d: ld   l,(iy+$07)]
 	                	| [$40a0: ld   h,(iy+$08)]
 	                	| [$40a3: res  7,h]
-	move.w	#0x0004,d3                      	| [$40a5: ld   de,$0004] 4
-	add.w	d3,a0                            	| [$40a8: add  hl,de]
+									| [$40a5: ld   de,$0004] 4
+	addq.w	#4,a0                            	| [$40a8: add  hl,de]
  	move.b	(a0),d0                         	| [$40a9: ld   a,(hl)]
 	and.b	#0x7F,d0                         	| [$40aa: and  $7F]
 	jeq	l_40b2                             	| [$40ac: jp   z,$40B2]
@@ -1142,7 +1163,7 @@ l_4152:
 
 * < A3: C240 or C260 depending on player
 
-display_player_4153:
+display_player_sprite_4153:
 	* given player struct in A3, return D5/D6 current frame
 	jbsr	get_current_frame_contents_478D   	| [$4153: call get_current_frame_contents_478D]
 
@@ -1164,11 +1185,8 @@ display_player_4153:
 	move.w	#0x088D,d3                      	| [$4168: ld   de,$088D] offset
 	add.w	d3,d5                            	| [$416b: add  hl,de]
 	* convert d5 to real pointer
-	swap	d5
-	clr.w	d5
-	swap	d5
-	move.l	d5,a0	| move.w gives negative address!
-	add.l	#game_mem,a0
+	bsr		change_d5_w_to_a0
+	
 	move.b	(a0),d0                         	| [$416c: ld   a,(hl)]
 	btst.b	#7,(0x08,a3)                    	| [$416d: bit  7,(iy+$08)]
 	jeq	l_4176                             	| [$4171: jp   z,$4176]
@@ -1511,9 +1529,9 @@ l_4422:
 l_4440:
 	jbsr	l_4536                            	| [$4440: call $4536]
 l_4443:
-	jbsr	l_409d                            	| [$4443: call $409D]
+	jbsr	check_if_move_warrants_a_kiai_409d                            	| [$4443: call $409D]
 	jbsr	l_40b3                            	| [$4446: call $40B3]
-	jbsr	display_player_4153                            	| [$4449: call $4153]
+	jbsr	display_player_sprite_4153                            	| [$4449: call $4153]
 l_444c:
 	jbsr	player_management_routine_46FD    	| [$444c: call player_management_routine_46FD]
 	cmp.b	#0x0D,d0                         	| [$444f: cp   $0D]
@@ -1527,9 +1545,9 @@ l_444c:
 l_445d:
 	jbsr	handle_player_movement_3ea7                            	| [$445d: call $3EA7]
 	jbsr	l_4663                            	| [$4460: call $4663]
-	jbsr	l_409d                            	| [$4463: call $409D]
+	jbsr	check_if_move_warrants_a_kiai_409d                            	| [$4463: call $409D]
 	jbsr	l_40b3                            	| [$4466: call $40B3]
-	jbsr	display_player_4153                            	| [$4469: call $4153]
+	jbsr	display_player_sprite_4153                            	| [$4469: call $4153]
 l_446c:
 	jbsr	player_management_routine_46FD    	| [$446c: call player_management_routine_46FD]
 	cmp.b	#0x0D,d0                         	| [$446f: cp   $0D]
@@ -1559,7 +1577,7 @@ l_4495:
 	jbsr	handle_player_movement_3ea7                            	| [$4496: call $3EA7]
 	jbsr	l_4663                            	| [$4499: call $4663]
 	jbsr	l_40b3                            	| [$449c: call $40B3]
-	jbsr	display_player_4153                            	| [$449f: call $4153]
+	jbsr	display_player_sprite_4153                            	| [$449f: call $4153]
 	jbsr	player_management_routine_46FD    	| [$44a2: call player_management_routine_46FD]
 	tst.b	d0                               	| [$44a5: and  a]
 	beq.b	0f
@@ -1649,7 +1667,7 @@ l_451d:
 	move.b	d6,(0x07,a3)                    	| [$4529: ld   (iy+$07),l]
 	move.b	d5,(0x08,a3)                    	| [$452c: ld   (iy+$08),h]
 	jbsr	l_40b3                            	| [$452f: call $40B3]
-	jbsr	display_player_4153                            	| [$4532: call $4153]
+	jbsr	display_player_sprite_4153                            	| [$4532: call $4153]
 	rts                                    	| [$4535: ret]
 
 l_4536:
@@ -7160,11 +7178,7 @@ divide_hl_by_d_b003:
 random_B006:
 	jra	random_B0EE                        	| [$b006: jp   random_B0EE]
 
-check_hl_in_ix_list_B009:
-	jra	check_hl_in_ix_list_B0FF           	| [$b009: jp   check_hl_in_ix_list_B0FF]
 
-key_value_linear_search_B00C:
-	jra	key_value_linear_search_B124       	| [$b00c: jp   key_value_linear_search_B124]
 table_linear_search_B00F:
 	jra	table_linear_search_B148           	| [$b00f: jp   table_linear_search_B148]
 
@@ -7335,7 +7349,7 @@ l_b0fc:
 * < ix: table like walk_frames_list_AA3B, jump_frames_list_AA4D... 2 value list ending with FF FF
 * < hl: frame word
 * > a 0 or $FF depending on value in hl & 0x7FFF found in list pointed in ix
-
+check_hl_in_ix_list_B009:
 check_hl_in_ix_list_B0FF:
 * heavily simplified thanks to cmp.b dx,dy (no value change)
 l_b101:
@@ -7368,7 +7382,7 @@ l_b123:
 * > a=0 found
 * > if found loads hl with the word after
 * the value of de found in ix list
-
+key_value_linear_search_B00C:
 key_value_linear_search_B124:
 	moveq	#0x0004,d1                      	| [$b124: ld   bc,$0004] 4
 l_b127:
