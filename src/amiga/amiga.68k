@@ -742,7 +742,7 @@ osd_update_sprites:
 10:
 	.ifne	OPT_ENABLE_LOGGING
 	lea		sprite_log_table,a1
-	move.l	a1,0x100
+	*move.l	a1,0x100
 	moveq	#0,d2
 	move.b	(1,a6),d2
 	lsl.w	#8,d2
@@ -783,7 +783,7 @@ osd_update_sprites:
 	move.w	(a0,d4.w),d5		| offset for bitplane list
 	beq.b	12f					| not found
 	add.w	d5,a0
-	* not done: check orientation, add 2 if mirror
+	* check orientation, add 2 if mirror
 	btst	#7,d6
 	beq.b	3f
 	add.w	(2,a0),a0				| make pointer absolute
@@ -795,7 +795,7 @@ osd_update_sprites:
 	* get coordinates (D0 is already loaded as X)
 	CONVERT_XY
 	
-	moveq	#0,d2		| temp no flip
+	moveq	#0,d2		| no v flip
 	move.w	#16,d3		| height = 16
 
 	bsr		blit_16x_bob
@@ -1373,25 +1373,74 @@ store_system:
 	move.l	d0,system_vbr
 1:
 	
-*	move.w	AttnFlags(a6),d0
-*	btst	#AFB_68020,d0
-*	bne.b	1f
-*	* no whdload, no 68020: assume slow
-*	* if running on PiStorm, well, too bad use whdload
-*	st.b	slow_machine
-*1:
 	lea	_custom,a6
 	move.w	intenar(a6),old_intena
 	move.w	dmaconr(a6),old_dmacon
 	lea		old_sysvectors,a0
 	move.l	system_vbr(pc),a1
+	move.l	(0x8,a1),(a0)+
+	move.l	(0xC,a1),(a0)+
+	move.l	(0x10,a1),(a0)+
+	move.l	(0x14,a1),(a0)+
+	move.l	(0x28,a1),(a0)+
+	move.l	(0x2C,a1),(a0)+
+	move.l	(0x30,a1),(a0)+
 	move.l	(0x64,a1),(a0)+
 	move.l	(0x68,a1),(a0)+
 	move.l	(0x6c,a1),(a0)+
 	move.l	(0x70,a1),(a0)+
 	move.l	(0x74,a1),(a0)+
 	move.l	(0x78,a1),(a0)+
+	
+	lea		trap_handlers(pc),a0
+	* install trap handlers
+	move.l	(a0)+,(0x8,a1)
+	move.l	(a0)+,(0xC,a1)
+	move.l	(a0)+,(0x10,a1)
+	move.l	(a0)+,(0x14,a1)
+	move.l	(a0)+,(0x28,a1)
+	move.l	(a0)+,(0x2C,a1)
+	move.l	(a0)+,(0x30,a1)
 	rts
+
+trap_handlers:
+	.long	exc_handler_08
+	.long	exc_handler_0C
+	.long	exc_handler_10
+	.long	exc_handler_14
+	.long	exc_handler_28
+	.long	exc_handler_2C
+	.long	exc_handler_30
+
+
+exc_handler_08:
+	move	#8,d7
+	bra.b	exc_loop
+exc_handler_0C:
+	move	#12,d7
+	bra.b	exc_loop
+exc_handler_10:
+	move	#0x10,d7
+	bra.b	exc_loop
+exc_handler_14:
+	move	#0X14,d7
+	bra.b	exc_loop
+exc_handler_28:
+	move	#0X28,d7
+	bra.b	exc_loop
+exc_handler_2C:
+	move	#0x2C,d7
+	bra.b	exc_loop
+exc_handler_30:
+	move	#0x30,d7
+exc_loop:
+	move.w	d7,0x60.W
+	move.w	#0xF0F,_custom+color
+	bra.b	exc_loop
+
+
+
+
 
 restore_system:
 	lea	_custom,a6
@@ -1400,6 +1449,13 @@ restore_system:
 	move.w	#0x4000,intena(a6)	| ints off
 	lea		old_sysvectors,a0
 	move.l	system_vbr(pc),a1
+	move.l	(a0)+,(0x8,a1)
+	move.l	(a0)+,(0xC,a1)
+	move.l	(a0)+,(0x10,a1)
+	move.l	(a0)+,(0x14,a1)
+	move.l	(a0)+,(0x28,a1)
+	move.l	(a0)+,(0x2C,a1)
+	move.l	(a0)+,(0x30,a1)
 	move.l	(a0)+,(0x0064,a1)
 	move.l	(a0)+,(0x0068,a1)
 	move.l	(a0)+,(0x006c,a1)
@@ -2182,7 +2238,7 @@ old_intena:
 old_dmacon:
 	.long	0
 old_sysvectors:
-	ds.l	8
+	ds.l	16
 old_vbr:
 	.long	0
 old_syscoplist:
