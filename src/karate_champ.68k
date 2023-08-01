@@ -5644,17 +5644,22 @@ l_a48e:
 compute_attack_disntace_a496:
 	move.l	a0,-(sp)                        	| [$a496: push hl]
 	clr.b	(a0)                             	| [$a497: ld   (hl),$00]
+	* load distance with max val plus 1
 	move.b	#0x09,(0x0f,a3)                 	| [$a499: ld   (iy+$0f),$09]
 	lea	temp_numeric_buffer_CF00,a2    	| [$a49d: ld   ix,temp_numeric_buffer_CF00]
-	move.w	#0x39A5,d5                   	| [$a4a1: ld   hl,($A539)]
-	* I don't think that this is useful. Storing A539 as little endian in CF02...
-	move.w	d5,unknown_CF02                 	| [$a4a4: ld   (unknown_CF02),hl]
+	                  	| [$a4a1: ld   hl,($A539)]
+	* I don't think that this is useful. Storing contents of A539 in CF02...
+	* A539 is in ROM and contains 00,FF
+	move.b	#0x00,unknown_CF02                 	| [$a4a4: ld   (unknown_CF02),hl]
+	move.b	#0xFF,unknown_CF03                 	| [$a4a4: ld   (unknown_CF02),hl]
 	lea	table_A529(pc),a0                  	| [$a4a7: ld   hl,table_A529]
 	move.b	(0x0d,a3),d3                    	| [$a4aa: ld   d,(iy+$0d)]
 	move.b	(0x0e,a3),d4                    	| [$a4ad: ld   e,(iy+$0e)]
 l_a4b0:
 	clr.b	d0                               	| [$a4b0: xor  a]
+	* decrease distance
 	subq.b	#1,(0x0f,a3)                    	| [$a4b1: dec  (iy+$0f)]
+	* if zero, closest => quit
 	jeq	l_a4e5                             	| [$a4b4: jp   z,$A4E5]
 	jbsr	l_a50a                            	| [$a4b7: call $A50A]
 	tst.b	d0                               	| [$a4ba: and  a]
@@ -5701,7 +5706,6 @@ l_a50a:
 	tst.b	d0                               	| [$a50b: and  a]
 	jmi	l_a51a                             	| [$a50c: jp   m,$A51A]
 	add.b	(0x09,a3),d0                     	| [$a50f: add  a,(iy+$09)]
-	clr.b	d0                               	| [$a512: ld   a,$00]
 	jcc	l_a528                             	| [$a514: jp   nc,$A528]
 	jra	l_a526                             	| [$a517: jp   $A526]
 l_a51a:
@@ -5709,11 +5713,12 @@ l_a51a:
 	move.b	d0,d1                           	| [$a51c: ld   b,a]
 	move.b	(0x09,a3),d0                    	| [$a51d: ld   a,(iy+$09)]
 	sub.b	d1,d0                            	| [$a520: sub  b]
-	clr.b	d0                               	| [$a521: ld   a,$00]
 	jcc	l_a528                             	| [$a523: jp   nc,$A528]
 l_a526:
 	st.b	d0                                	| [$a526: ld   a,$FF]
+	rts
 l_a528:
+	clr.b	d0                               	| [$a512: ld   a,$00]
 	rts                                    	| [$a528: ret]
 
 table_A529:
@@ -6695,7 +6700,7 @@ identify_opponent_current_move_AB1D:
 select_cpu_attack_AB2E:
 	lea	master_cpu_move_table_AB58(pc),a2  	| [$ab2e: ld   ix,master_cpu_move_table_AB58] table of pointers of move tables
 * choose the proper move list depending on facing & distance
-	move.w	address_of_current_player_move_byte_CF04,a0	| [$ab32: ld   hl,(address_of_current_player_move_byte_CF04)] <= C26B
+	bsr  load_address_of_current_player_move_byte_CF04	| [$ab32: ld   hl,(address_of_current_player_move_byte_CF04)] <= C26B
 	addq.w	#1,a0                           	| [$ab35: inc  hl]
 	move.b	(a0),d0                         	| [$ab36: ld   a,(hl)] get value in C26C: facing configuration/rough distance 0-4
 	add.b	d0,d0                            	| [$ab37: add  a,a]
@@ -6720,7 +6725,7 @@ select_cpu_attack_AB2E:
 	add.w	d1,a0                            	| [$ab51: add  hl,bc]
     * gets CPU move to make
 	move.b	(a0),d0                         	| [$ab52: ld   a,(hl)]
-	bsr		store_address_of_current_player_move_byte_CF04	| [$ab53: ld   hl,(address_of_current_player_move_byte_CF04)]
+	bsr		load_address_of_current_player_move_byte_CF04	| [$ab53: ld   hl,(address_of_current_player_move_byte_CF04)]
 * gives attack order to the CPU
 * only attack moves (not walk moves) are given here
 	move.b	d0,(a0)                         	| [$ab56: ld   (hl),a]
@@ -6767,7 +6772,7 @@ perform_jumping_side_kick_if_level_2_AB88:
 	clr.b	d0                               	| [$ab8d: ld   a,$00]
 	jcs	l_ab98                             	| [$ab8f: jp   c,$AB98]
 * if level >= 1, perform jumping side kick, else do nothing
-	move.w	address_of_current_player_move_byte_CF04,a0	| [$ab92: ld   hl,(address_of_current_player_move_byte_CF04)]
+	bsr  load_address_of_current_player_move_byte_CF04	| [$ab92: ld   hl,(address_of_current_player_move_byte_CF04)]
 	move.b	#0x0D,d0                        	| [$ab95: ld   a,$0D]
 	move.b	d0,(a0)                         	| [$ab97: ld   (hl),a]
 l_ab98:
@@ -6780,7 +6785,7 @@ perform_foot_sweep_if_level_3_AB99:
 	clr.b	d0                               	| [$ab9e: ld   a,$00]
 	jcs	l_aba9                             	| [$aba0: jp   c,$ABA9]
 * if level >= 2 perform a foot sweep
-	move.w	address_of_current_player_move_byte_CF04,a0	| [$aba3: ld   hl,(address_of_current_player_move_byte_CF04)]
+	bsr  load_address_of_current_player_move_byte_CF04	| [$aba3: ld   hl,(address_of_current_player_move_byte_CF04)]
 	move.b	#0x0E,d0                        	| [$aba6: ld   a,$0E]
 	move.b	d0,(a0)                         	| [$aba8: ld   (hl),a]
 l_aba9:
@@ -6794,7 +6799,7 @@ perform_jumping_back_kick_ABAA:
 *ABAD: FE 00       cp   $00
 *ABAF: 3E 00       ld   a,$00
 *ABB1: DA BA AB    jp   c,$ABBA
-	move.w	address_of_current_player_move_byte_CF04,a0	| [$abb4: ld   hl,(address_of_current_player_move_byte_CF04)]
+	bsr  load_address_of_current_player_move_byte_CF04	| [$abb4: ld   hl,(address_of_current_player_move_byte_CF04)]
 	move.b	#0x08,d0                        	| [$abb7: ld   a,$08]
 	move.b	d0,(a0)                         	| [$abb9: ld   (hl),a]
 	rts                                    	| [$abba: ret]
@@ -6805,7 +6810,7 @@ perform_foot_sweep_back_ABBB:
 *ABBE: FE 00       cp   $00
 *ABC0: 3E 00       ld   a,$00
 *ABC2: DA 6B AB    jp   c,$ABCB
-	move.w	address_of_current_player_move_byte_CF04,a0	| [$abc5: ld   hl,(address_of_current_player_move_byte_CF04)]
+	bsr  load_address_of_current_player_move_byte_CF04	| [$abc5: ld   hl,(address_of_current_player_move_byte_CF04)]
 	move.b	#0x09,d0                        	| [$abc8: ld   a,$09]
 	move.b	d0,(a0)                         	| [$abca: ld   (hl),a]
 	rts                                    	| [$abcb: ret]
@@ -6829,7 +6834,7 @@ l_abe0:
 * computer just tried to hit player but failed
 * now wait for player response (or not, if skill level is high enough)
 full_blown_hit_ABE3:
-	move.w	address_of_current_player_move_byte_CF04,a0	| [$abe3: ld   hl,(address_of_current_player_move_byte_CF04)]
+	bsr  load_address_of_current_player_move_byte_CF04	| [$abe3: ld   hl,(address_of_current_player_move_byte_CF04)]
 * tell CPU to stop moving / stand guard
 	clr.b	(a0)                             	| [$abe6: ld   (hl),$00]
 	lea	counter_attack_time_table_ADEF(pc),a0	| [$abe8: ld   hl,counter_attack_time_table_ADEF]
@@ -6918,7 +6923,7 @@ l_ac3e:
 * if opponent is performing a move matching the block
 	jne	l_ac80                             	| [$ac64: jp   nz,$AC80]
 * move not found: stand guard, wait for opponent reaction
-	move.w	address_of_current_player_move_byte_CF04,a0	| [$ac67: ld   hl,(address_of_current_player_move_byte_CF04)]
+	bsr  load_address_of_current_player_move_byte_CF04	| [$ac67: ld   hl,(address_of_current_player_move_byte_CF04)]
 	clr.b	(a0)                             	| [$ac6a: ld   (hl),$00]
 	lea	counter_attack_time_table_AE17(pc),a0	| [$ac6c: ld   hl,counter_attack_time_table_AE17]
 	jbsr	let_opponent_react_depending_on_skill_level_ACCE	| [$ac6f: call let_opponent_react_depending_on_skill_level_ACCE]

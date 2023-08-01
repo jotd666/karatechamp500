@@ -1714,7 +1714,7 @@ update_bg_tile:
 	* then run the compute_used_cluts.py program again
 	
 	lea		tile_log_table,a0
-	move.l	a0,0x104
+	*move.l	a0,0x104
 	movem.l	d0-d1,-(a7)
 	and.l	#0xFFFF,d0
 	lsl.w	#8,d0
