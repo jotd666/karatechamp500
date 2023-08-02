@@ -604,10 +604,10 @@ _vblank:
 	btst	#5,d0
 	beq.b		1f
 
-	move.l	_joypad_state(pc),d1
+	move.l	_joypad_state_p1(pc),d1
 	moveq	#1,d0
 	jsr	_read_joystick
-	move.l	d0,_joypad_state
+	move.l	d0,_joypad_state_p1
 	
 	* CD32 "play" is disabled but it's free to read
 	* 3rd button on a Sega 3-button so 3rd button is pause
@@ -625,6 +625,11 @@ _vblank:
 	bne.b	13f
 	bsr		osd_sound_stop
 13:
+
+	moveq	#0,d0
+	jsr	_read_joystick
+	move.l	d0,_joypad_state_p2
+
 	* ack vbl twice (040/pistorm bug)
 	move.w	#0x20,(intreq,a5)
 	move.w	#0x20,(intreq,a5)	
@@ -1435,6 +1440,7 @@ exc_handler_30:
 	move	#0x30,d7
 exc_loop:
 	move.w	d7,0x60.W
+	move.w	#0x2700,SR
 	move.w	#0xF0F,_custom+color
 	bra.b	exc_loop
 
@@ -1758,7 +1764,18 @@ osd_w_colorram:
 * other rows use a X/Y transposed system like Galaxian or Xevious!
 *
 update_bg_tile:
-
+	* get current level
+	moveq	#0,d2
+	move.b	background_and_state_bits_C911,d2
+	and.b	#0xF,d2
+	cmp.b	current_background,d2
+	beq.b	0f
+	move.b	d2,current_background
+	lea 	per_level_palette_table(pc),a0
+	add.w	d2,d2
+	add.w	(a0,d2.w),a0	| pointer on palette
+	*bsr		set_palette
+0:	
 	* compute Y
 	and.w	#0xFF,d0	| mask up to 255
 	and.w	#0xFF,d1	| mask up to 255
@@ -1954,10 +1971,7 @@ osd_read_dipswitches:
 	rts
 	
 * reads most inputs in one call
-* bits 0-8     coins
-* bits 16-24   start buttons
-* bits 24-28   joystick directions
-* bit 31       joystick fire
+* bits 
 osd_read_inputs:
 	bsr		handle_keyboard
 	moveq	#-1,d0
@@ -1966,20 +1980,26 @@ osd_read_inputs:
 	lea		keyboard_table(pc),a0
 	tst.b	(5,a0)		| "5" key like in MAME
 	beq.b	0f
-	bclr	#1,d0
+	bclr	#16,d0
 0:
 	tst.b	(6,a0)		| "6" key like in MAME
 	beq.b	0f
-	bclr	#2,d0
+	bclr	#1+16,d0
 0:	
 	tst.b	(1,a0)		| "1" key like in MAME
 	beq.b	0f
-	bclr	#2,d0
+	bclr	#2+16,d0
 0:
 	tst.b	(2,a0)		| "2" key like in MAME
 	beq.b	0f
-	bclr	#3,d0
-0:	
+	bclr	#3+16,d0
+0:
+	move.l	_joypad_state_p2,d1
+	bsr		check_joy
+	lsl.w	#8,d0
+	move.l	_joypad_state_p1,d1
+	bsr		check_joy
+	
 	.ifdef	ZZZZZ
 	tst.b	(0x4F,a0)		| "<-" key
 	beq.b	0f
@@ -2057,7 +2077,40 @@ osd_read_inputs:
 	rts
 	
 
-
+check_joy:
+	btst	#JPB_BTN_RIGHT,d1
+	beq.b	0f
+	bclr	#0,d0
+0:
+	btst	#JPB_BTN_LEFT,d1
+	beq.b	0f
+	bclr	#1,d0
+0:
+	btst	#JPB_BTN_UP,d1
+	beq.b	0f
+	bclr	#2,d0
+0:
+	btst	#JPB_BTN_DOWN,d1
+	beq.b	0f
+	bclr	#3,d0
+0:
+	btst	#JPB_BTN_YEL,d1		| left
+	beq.b	0f
+	bclr	#4,d0
+0:
+	btst	#JPB_BTN_RED,d1		| right
+	beq.b	0f
+	bclr	#5,d0
+0:
+	btst	#JPB_BTN_BLU,d1		| up
+	beq.b	0f
+	bclr	#6,d0
+0:
+	btst	#JPB_BTN_GRN,d1		| down
+	beq.b	0f
+	bclr	#7,d0
+0:
+	rts
 		
 osd_read_high_scores:
 	movem.l	d0-d7/a0-a6,-(a7)
@@ -2312,9 +2365,13 @@ vbl_counter:
 	.word	0
 _resload:
 	.long	0
-_joypad_state:
+_joypad_state_p1:
 	.long	0
-_previous_joypad_state:
+_previous_joypad_state_p1:
+	.long	0
+_joypad_state_p2:
+	.long	0
+_previous_joypad_state_p2:
 	.long	0
 _gfxbase:
 	.long	0
@@ -2346,6 +2403,8 @@ music_muted:
 	.byte	0
 cheat_used:
 	.byte	0
+current_background:
+	.byte	0xFF
 dosname:
 	.ascii	"dos.library"
 	.byte	0
@@ -2364,9 +2423,30 @@ _end_of_ng_code:
 	.align 2
 palette:
 	.include "palette.68k"
-	* sprites "individual" 4-color palettes
+palette_level_4:
+palette_level_2:
+palette_level_3:
+palette_level_1:
 
-	*.include "palette_cluts.68k"
+
+per_level_palette_table:
+	dc.w	palette_level_4-per_level_palette_table
+	dc.w	palette-per_level_palette_table
+	dc.w	palette_level_3-per_level_palette_table
+	dc.w	palette_level_3-per_level_palette_table
+	dc.w	palette_level_2-per_level_palette_table
+	dc.w	palette-per_level_palette_table
+	dc.w	palette-per_level_palette_table
+	dc.w	palette_level_1-per_level_palette_table
+	dc.w	palette-per_level_palette_table
+	dc.w	palette-per_level_palette_table
+	dc.w	palette-per_level_palette_table
+	dc.w	palette-per_level_palette_table
+	dc.w	palette-per_level_palette_table
+	dc.w	palette-per_level_palette_table
+	dc.w	palette-per_level_palette_table
+	dc.w	palette-per_level_palette_table
+	dc.w	palette-per_level_palette_table
 	
 	
 	* on amiga, this file is included in pengo.68k file

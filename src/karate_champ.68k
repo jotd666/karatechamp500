@@ -803,8 +803,9 @@ l_3dc8:
 0:
 	jbsr	read_p2_controls_B0BA             	| [$3dcd: call read_p2_controls_B0BA]
 l_3dd0:
+	* look for joystick combination in move table
 	move.b	#0x19,d1                        	| [$3dd0: ld   b,$19]
-	lea	table_3DF8(pc),a0                  	| [$3dd2: ld   hl,table_3DF8]
+	lea	joy_combo_table_3DF8(pc),a0                  	| [$3dd2: ld   hl,joy_combo_table_3DF8]
 	move.w	#0x0003,d3                      	| [$3dd5: ld   de,$0003] 3
 l_3dd8:
 	cmp.b	(a0),d0                          	| [$3dd8: cp   (hl)]
@@ -830,8 +831,8 @@ l_3df6:
 l_3df7:
 	rts                                    	| [$3df7: ret]
 
-table_3DF8:
-	dc.b	0x00,0x00,0x00,0x20,0x01,0x02,0x10,0x02 | table_3DF8
+joy_combo_table_3DF8:
+	dc.b	0x00,0x00,0x00,0x20,0x01,0x02,0x10,0x02 | joy_combo_table_3DF8
 	dc.b	0x01,0x40,0x03,0x03,0x80,0x04,0x04,0x02 | $3e00
 	dc.b	0x05,0x0a,0x22,0x06,0x0c,0x12,0x07,0x0b | $3e08
 	dc.b	0x42,0x08,0x0d,0x82,0x09,0x0e,0x01,0x0a | $3e10
@@ -2285,8 +2286,8 @@ l_5287:
 	bset.b	#2,(a0)                         	| [$52fe: set  2,(hl)]
 	lea	nb_credits_minus_one_C024,a0   	| [$5300: ld   hl,nb_credits_minus_one_C024]
 	move.b	(a0),d0                         	| [$5303: ld   a,(hl)]
-	subq.b	#0x01,d0                        	| [$5304: sub  $01]
-*daa
+	moveq	#1,d7
+	sbcd.b	d7,d0                        	| [$5304: sub  $01]
 	move.b	d0,(a0)                         	| [$5307: ld   (hl),a]
 	jbsr	clear_sprite_shadow_ram_C7xx_B01E                    	| [$5308: call $B01E]
 	move.b	#0x01,d0                        	| [$530b: ld   a,$01]
@@ -2314,8 +2315,8 @@ l_531b:
 	bset.b	#3,(a0)                         	| [$5340: set  3,(hl)]
 	lea	nb_credits_minus_one_C024,a0   	| [$5342: ld   hl,nb_credits_minus_one_C024]
 	move.b	(a0),d0                         	| [$5345: ld   a,(hl)]
-	subq.b	#0x01,d0                        	| [$5346: sub  $01]
-*daa
+	moveq	#1,d7
+	sbcd.b	d7,d0                        	| [$5346: sub  $01]
 	move.b	d0,(a0)                         	| [$5349: ld   (hl),a]
 	jra	l_5266                             	| [$534a: jp   $5266]
 
@@ -2592,8 +2593,8 @@ l_55a9:
 	jeq	l_5614                             	| [$55ce: jp   z,$5614]
 l_55d1:
 	move.b	match_timer_C167,d0             	| [$55d1: ld   a,(match_timer_C167)]
-	subq.b	#0x01,d0                        	| [$55d4: sub  $01]
-*daa
+	moveq	#1,d7
+	sbcd.b	d7,d0                        	| [$55d4: sub  $01]
 	move.b	d0,match_timer_C167             	| [$55d7: ld   (match_timer_C167),a]
 	jbsr	l_64fb                            	| [$55da: call $64FB]
 	move.b	#0x08,d0                        	| [$55dd: ld   a,$08]
@@ -2669,9 +2670,8 @@ l_5650:
 	jeq	l_56bb                             	| [$5675: jp   z,$56BB]
 l_5678:
 	move.b	match_timer_C167,d0             	| [$5678: ld   a,(match_timer_C167)]
-	subq.b	#0x01,d0                        	| [$567b: sub  $01]
-*daa
-	move.b	d0,match_timer_C167             	| [$567e: ld   (match_timer_C167),a]
+	moveq	#1,d7
+	sbcd.b	d7,d0                        	| [$567b: sub  $01]	move.b	d0,match_timer_C167             	| [$567e: ld   (match_timer_C167),a]
 	jbsr	l_64fb                            	| [$5681: call $64FB]
 	move.b	#0x08,d0                        	| [$5684: ld   a,$08]
 	jbsr	play_sound_B072                   	| [$5686: call play_sound_B072]
@@ -3115,7 +3115,6 @@ l_5fba:
 * within this B05A call the computer performs the current technique
 * animation
 * all tasks are activated in turn
-	jbsr	osd_break
 	jbsr	suspend_this_task_B05A            	| [$5fbc: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$5fbf: and  a]
 	jne	l_5fd1                             	| [$5fc0: jp   nz,$5FD1]
@@ -3601,12 +3600,12 @@ l_64bd:
 	jbsr	display_error_text_B075           	| [$64c8: call nz,display_error_text_B075]
 0:
 	move.b	match_timer_C167,d0             	| [$64cb: ld   a,(match_timer_C167)]
-	subq.b	#0x01,d0                        	| [$64ce: sub  $01]
-*daa
+	moveq	#1,d7
+	sbcd.b	d7,d0                        	| [$64ce: sub  $01]
 	move.b	d0,match_timer_C167             	| [$64d1: ld   (match_timer_C167),a]
 	move.b	unknown_C168,d0                 	| [$64d4: ld   a,(unknown_C168)]
-*	subx.b	#0x00,d0                        	| [$64d7: sbc  a,$00]
-*daa
+	moveq	#0,d7
+	sbcd.b	d7,d0                        	| [$64d7: sbc  a,$00]
 	move.b	d0,unknown_C168                 	| [$64da: ld   (unknown_C168),a]
 	cmp.b	#0x99,d0                         	| [$64dd: cp   $99]
 	jeq	l_64e8                             	| [$64df: jp   z,$64E8]
@@ -4399,10 +4398,9 @@ display_credits_7C1C:
 	move.w	#0x1C1F,temp_numeric_buffer_CF00     	| [$7c27: ld   (temp_numeric_buffer_CF00),hl]
 * at least during "press 1P button" screen
 * check number of credits, maybe to display them
-* as there's a "daa" instruction (bcd conversion)
 	move.b	nb_credits_minus_one_C024,d0    	| [$7c2a: ld   a,(nb_credits_minus_one_C024)]
-	addq.b	#0x01,d0                        	| [$7c2d: add  a,$01]
-**daa
+	moveq	#1,d7
+	abcd	d7,d0                        	| [$7c2d: add  a,$01]
 	move.b	d0,d1                           	| [$7c30: ld   b,a]
 	lea	temp_numeric_buffer_CF00,a2    	| [$7c31: ld   ix,temp_numeric_buffer_CF00]
 	and.b	#0x0F,d0                         	| [$7c35: and  $0F]
@@ -7423,10 +7421,16 @@ is_title_screen_demo_mode_B0B1:
 	jra	is_title_screen_demo_mode_B27E     	| [$b0b1: jp   is_title_screen_demo_mode_B27E]
 
 read_p1_controls_B0B7:
-*	jra	read_p1_controls_BBA8              	| [$b0b7: jp   read_p1_controls_BBA8]
+	jbsr	osd_read_inputs
+	bra.b	rpc_bbaf
+	
 read_p2_controls_B0BA:
-*	jra	read_p2_controls_BBAD              	| [$b0ba: jp   read_p2_controls_BBAD]
-	trap	#1
+	jbsr	osd_read_inputs
+	lsr.w	#8,d0
+rpc_bbaf:
+	not.b	d0                               	| [$bbaf: cpl]
+	rol.b	#4,d0                            	| [$bbb0: rlca] * 4
+	rts
 	
 disable_interrupts_B0BD:
 	jra		disable_interrupts_BBE2
@@ -7658,12 +7662,12 @@ l_b1da:
 	lea	unknown_C0D0,a2                	| [$b1da: ld   ix,unknown_C0D0]
 l_b1de:
 	move.w	(sp)+,d0                        	| [$b1de: pop  af]
-	add.b	(0x01,a2),d0                     	| [$b1df: add  a,(ix+$01)]
-*daa
+	move.b	(0x01,a2),d7
+	abcd	d7,d0                     	| [$b1df: add  a,(ix+$01)]
 	move.b	d0,(0x01,a2)                    	| [$b1e3: ld   (ix+$01),a]
-	move.b	(0x00,a2),d0                    	| [$b1e6: ld   a,(ix+$00)]
-*adc  a,$00
-*daa
+	move.b	(0x00,a2),d0
+	moveq	#0,d7
+	abcd	d7,d0                    	| [$b1e6: ld   a,(ix+$00)]
 	move.b	d0,(0x00,a2)                    	| [$b1ec: ld   (ix+$00),a]
 	move.w	#0xC0,d5		             	| [$b1ef: ld   hl,(unknown_C0C0)]
 	move.w	#0xC0,d6		             	| [$b1ef: ld   hl,(unknown_C0C0)]
@@ -8208,11 +8212,11 @@ l_b4b8:
 *
 * then called when screen changes
 	* starts the task
-	move.l	(a3),d7		| debug
-	cmp.w	#0x3A9C,d7
-	bne.b	0f
-	jbsr		osd_break
-0:
+*	move.l	(a3),d7		| debug
+*	cmp.w	#0x3A9C,d7
+*	bne.b	0f
+*	jbsr		osd_break
+*0:
 	jmp	(a0)                               	| [$b502: jp   (hl)]
 
 
@@ -8925,8 +8929,8 @@ l_bae6:
 	tst.b	d0                               	| [$bae6: and  a]
 	jne	l_bafa                             	| [$bae7: jp   nz,$BAFA]
 	move.b	(0x00,a2),d0                    	| [$baea: ld   a,(ix+$00)]
-	addq.b	#0x01,d0                        	| [$baed: add  a,$01]
-**daa
+	moveq	#1,d7
+	abcd	d7,d0                        	| [$baed: add  a,$01]
 	move.b	d0,(0x00,a2)                    	| [$baf0: ld   (ix+$00),a]
 	subq.b	#1,(a0)                         	| [$baf3: dec  (hl)]
 	beq.b	0f
@@ -8939,7 +8943,6 @@ l_bafa:
 	move.b	(0x00,a2),d0                    	| [$baff: ld   a,(ix+$00)]
 	moveq	#2,d7
 	abcd	d7,d0                        	| [$bb02: add  a,$02]
-**daa
 	move.b	d0,(0x00,a2)                    	| [$bb05: ld   (ix+$00),a]
 	subq.b	#1,(a0)                         	| [$bb08: dec  (hl)]
 	beq.b	0f
@@ -8955,7 +8958,6 @@ l_bb0f:
 	move.b	(0x00,a2),d0                    	| [$bb1a: ld   a,(ix+$00)]
 	moveq	#1,d7
 	abcd	d7,d0                        	| [$bb1d: add  a,$01]
-**daa
 	move.b	d0,(0x00,a2)                    	| [$bb20: ld   (ix+$00),a]
 	subq.b	#2,(a0)                         	| [$bb23: dec  (hl)] * 2
 	beq.b	0f
@@ -8969,7 +8971,6 @@ l_bb2b:
 	move.b	(0x00,a2),d0                    	| [$bb31: ld   a,(ix+$00)]
 	moveq	#1,d7
 	abcd	d7,d0                        	| [$bb34: add  a,$01]
-**daa
 	move.b	d0,(0x00,a2)                    	| [$bb37: ld   (ix+$00),a]
 	subq.b	#3,(a0)                         	| [$bb3a: dec  (hl)] * 3
 	beq.b	0f
@@ -9006,6 +9007,7 @@ set_normal_screen_bb72:
 check_coin_ports_BB82:
 	movem.w	d1/d2,-(sp)                    	| [$bb82: push bc]                       	| [$bb82: push bc]
 	jbsr	osd_read_inputs
+	swap	d0
 	not.b	d0                               	| [$bb85: cpl]
 * only 4 first bits are used
 *	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
@@ -10802,13 +10804,13 @@ l_f3f3:
 	move.b	#0x01,d0                        	| [$f3f3: ld   a,$01]
 	jbsr	suspend_this_task_B65E            	| [$f3f5: call suspend_this_task_B65E]
 	move.b	unknown_CF03,d0                 	| [$f3f8: ld   a,(unknown_CF03)]
-	subq.b	#0x01,d0                        	| [$f3fb: sub  $01]
+	moveq	#1,d7
+	sbcd.b	d7,d0                        	| [$f3fb: sub  $01]
 * part needs rewriting
-*daa
 	move.b	d0,unknown_CF03                 	| [$f3fe: ld   (unknown_CF03),a]
 	move.b	unknown_CF02,d0                 	| [$f401: ld   a,(unknown_CF02)]
-	*subx.b	#0x00,d0                        	| [$f404: sbc  a,$00]
-*daa
+	clr.b	d7
+	sbcd.b	d7,d0                        	| [$f404: sbc  a,$00]
 	move.b	d0,unknown_CF02                 	| [$f407: ld   (unknown_CF02),a]
 	move.b	#0x18,d5                        	| [$f40a: ld   h,$18]
 	move.b	#0x03,d6                        	| [$f40c: ld   l,$03]
@@ -11044,12 +11046,13 @@ l_f5d2:
 	movem.w	d1/d2,-(sp)                    	| [$f5d4: push bc]
 	jbsr	suspend_this_task_B65E            	| [$f5d5: call suspend_this_task_B65E]
 	move.b	unknown_CF03,d0                 	| [$f5d8: ld   a,(unknown_CF03)]
-	subq.b	#0x01,d0                        	| [$f5db: sub  $01]
-*daa
+	moveq	#1,d7
+	sbcd.b	d7,d0                        	| [$f5db: sub  $01]
 	move.b	d0,unknown_CF03                 	| [$f5de: ld   (unknown_CF03),a]
 	move.b	unknown_CF02,d0                 	| [$f5e1: ld   a,(unknown_CF02)]
-	*subx.b	#0x00,d0                        	| [$f5e4: sbc  a,$00]
-*daa
+	clr.b	d7
+	sbcd.b	d7,d0                        	| [$f5e4: sbc  a,$00]
+
 	move.b	d0,unknown_CF02                 	| [$f5e7: ld   (unknown_CF02),a]
 	move.b	#0x18,d5                        	| [$f5ea: ld   h,$18]
 	move.b	#0x03,d6                        	| [$f5ec: ld   l,$03]
