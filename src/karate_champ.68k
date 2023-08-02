@@ -406,7 +406,6 @@ task_\offset:
 	taskstub	b0b4
 	taskstub	5925
 	taskstub	b078	
-	taskstub	5f2a
 	taskstub	5bf4
 	taskstub	b08d
 	taskstub	5836
@@ -3029,6 +3028,128 @@ l_5be2:
 	move.b	d0,(0x04,a2)                    	| [$5bf0: ld   (ix+$04),a]
 	rts                                    	| [$5bf3: ret]
 	
+l_5f2a:
+	move.w	#0xA431,d1                      	| [$5f2a: ld   bc,$A431]
+	jbsr	fill_video_and_attribute_memory_B030	| [$5f2d: call fill_video_and_attribute_memory_B030]
+	lea	game_mem+0x83e9,a0                  	| [$5f30: ld   hl,table_83e9]
+	jbsr	display_multicolor_text_B03C      	| [$5f33: call display_multicolor_text_B03C]
+	lea	game_mem+0xa260,a0                  	| [$5f36: ld   hl,table_a260]
+	jbsr	display_multicolor_text_B03C      	| [$5f39: call display_multicolor_text_B03C]
+	lea	game_mem+0x7D36,a0                  	| [$5f3c: ld   hl,table_7D36]
+	jbsr	display_multicolor_text_B03C      	| [$5f3f: call display_multicolor_text_B03C]
+	jbsr	display_players_rank_B0B4         	| [$5f42: call display_players_rank_B0B4]
+	jbsr	l_7ad6                            	| [$5f45: call $7AD6]
+	clr.b	d0                               	| [$5f48: ld   a,$00]
+	jbsr	l_b018                            	| [$5f4a: call $B018]
+	lea	game_mem+0x600C,a0                  	| [$5f4d: ld   hl,table_600C]
+	jbsr	display_multicolor_text_B03C      	| [$5f50: call display_multicolor_text_B03C]
+	lea	game_mem+0x602E,a0                  	| [$5f53: ld   hl,table_602E]
+	move.b	#0xA8,d3                        	| [$5f56: ld   d,$A8]
+	jbsr	display_text_B039                 	| [$5f58: call display_text_B039]
+	jbsr	check_coin_ports_B069             	| [$5f5b: call check_coin_ports_B069]
+	and.b	#0x0C,d0                         	| [$5f5e: and  $0C]
+	move.b	d0,unknown_C14F                 	| [$5f60: ld   (unknown_C14F),a]
+	move.b	#0x46,d1                        	| [$5f63: ld   b,$46]
+l_5f65:
+	movem.w	d1/d2,-(sp)                    	| [$5f65: push bc]
+	move.b	#0x03,d0                        	| [$5f66: ld   a,$03]
+	jbsr	suspend_this_task_B05A            	| [$5f68: call suspend_this_task_B05A]
+	tst.b	d0                               	| [$5f6b: and  a]
+	beq.b	0f
+	jbsr	display_error_text_B075           	| [$5f6c: call nz,display_error_text_B075]
+0:
+	jbsr	check_coin_ports_B069             	| [$5f6f: call check_coin_ports_B069]
+	and.b	#0x0C,d0                         	| [$5f72: and  $0C]
+	movem.w	(sp)+,d1/d2                    	| [$5f74: pop  bc]
+	jne	l_5ff8                             	| [$5f75: jp   nz,$5FF8]
+	move.b	d0,unknown_C14F                 	| [$5f78: ld   (unknown_C14F),a]
+l_5f7b:
+	subq.b	#1,d1                           	| [...]
+	jne	l_5f65                             	| [$5f7b: djnz $5F65]
+	move.b	#0x06,d1
+	move.b	#0x13,d2                      	| [$5f7d: ld   bc,$0613]
+	move.b	#0xa0,d3
+	move.b	#0x3d,d4                      	| [$5f80: ld   de,$a03d]
+	move.b	#0X18,d5
+	move.b	#0x0E,d6                      	| [$5f83: ld   hl,$180E]
+	jbsr	fill_rectangle_B01B               	| [$5f86: call fill_rectangle_B01B]
+	move.b	#0x04,d0                        	| [$5f89: ld   a,$04]
+	jbsr	schedule_task_to_start_B057       	| [$5f8b: call schedule_task_to_start_B057]
+	move.b	#0x0A,d0                        	| [$5f8e: ld   a,$0A]
+	jbsr	schedule_task_to_start_B057       	| [$5f90: call schedule_task_to_start_B057]
+	tst.b	d0                               	| [$5f93: and  a]
+	beq.b	0f
+	jbsr	display_error_text_B075           	| [$5f94: call nz,display_error_text_B075]
+0:
+	move.b	#0x0B,d0                        	| [$5f97: ld   a,$0B]
+	jbsr	schedule_task_to_start_B057       	| [$5f99: call schedule_task_to_start_B057]
+	tst.b	d0                               	| [$5f9c: and  a]
+	beq.b	0f
+	jbsr	display_error_text_B075           	| [$5f9d: call nz,display_error_text_B075]
+0:
+	move.b	#0x08,d0                        	| [$5fa0: ld   a,$08]
+	jbsr	schedule_task_to_start_B057       	| [$5fa2: call schedule_task_to_start_B057]
+	tst.b	d0                               	| [$5fa5: and  a]
+	beq.b	0f
+	jbsr	display_error_text_B075           	| [$5fa6: call nz,display_error_text_B075]
+0:
+	move.b	#0x09,d0                        	| [$5fa9: ld   a,$09]
+	jbsr	schedule_task_to_start_B057       	| [$5fab: call schedule_task_to_start_B057]
+	tst.b	d0                               	| [$5fae: and  a]
+	beq.b	0f
+	jbsr	display_error_text_B075           	| [$5faf: call nz,display_error_text_B075]
+0:
+	jbsr	check_coin_ports_B069             	| [$5fb2: call check_coin_ports_B069]
+	and.b	#0x0C,d0                         	| [$5fb5: and  $0C]
+	move.b	d0,unknown_C14F                 	| [$5fb7: ld   (unknown_C14F),a]
+l_5fba:
+	move.b	#0x03,d0                        	| [$5fba: ld   a,$03]
+* within this B05A call the computer performs the current technique
+* animation
+	jbsr	suspend_this_task_B05A            	| [$5fbc: call suspend_this_task_B05A]
+	tst.b	d0                               	| [$5fbf: and  a]
+	jne	l_5fd1                             	| [$5fc0: jp   nz,$5FD1]
+	jbsr	check_coin_ports_B069             	| [$5fc3: call check_coin_ports_B069]
+	and.b	#0x0C,d0                         	| [$5fc6: and  $0C]
+	jne	l_6002                             	| [$5fc8: jp   nz,$6002]
+	move.b	d0,unknown_C14F                 	| [$5fcb: ld   (unknown_C14F),a]
+	jra	l_5fba                             	| [$5fce: jp   $5FBA]
+l_5fd1:
+	move.b	#0x64,d0                        	| [$5fd1: ld   a,$64]
+	jbsr	suspend_this_task_B05A            	| [$5fd3: call suspend_this_task_B05A]
+	move.b	#0x0F,d0                        	| [$5fd6: ld   a,$0F]
+	move.b	#0x20,d1                        	| [$5fd8: ld   b,$20]
+	jbsr	task_manipulation_B05D            	| [$5fda: call task_manipulation_B05D]
+	tst.b	d0                               	| [$5fdd: and  a]
+	beq.b	0f
+	jbsr	display_error_text_B075           	| [$5fde: call nz,display_error_text_B075]
+0:
+	move.b	#0x78,d0                        	| [$5fe1: ld   a,$78]
+	jbsr	suspend_this_task_B05A            	| [$5fe3: call suspend_this_task_B05A]
+	tst.b	d0                               	| [$5fe6: and  a]
+	beq.b	0f
+	jbsr	display_error_text_B075           	| [$5fe7: call nz,display_error_text_B075]
+0:
+l_5fea:
+	move.b	#0x01,d0                        	| [$5fea: ld   a,$01]
+	move.b	#0x01,d1                        	| [$5fec: ld   b,$01]
+	jbsr	task_manipulation_B05D            	| [$5fee: call task_manipulation_B05D]
+	tst.b	d0                               	| [$5ff1: and  a]
+	beq.b	0f
+	jbsr	display_error_text_B075           	| [$5ff2: call nz,display_error_text_B075]
+0:
+	jbsr	task_yield_B051                   	| [$5ff5: call task_yield_B051]
+l_5ff8:
+	move.b	unknown_C14F,d0                 	| [$5ff8: ld   a,(unknown_C14F)]
+	tst.b	d0                               	| [$5ffb: and  a]
+	jeq	l_5fea                             	| [$5ffc: jp   z,$5FEA]
+	jra	l_5f7b                             	| [$5fff: jp   $5F7B]
+l_6002:
+	move.b	unknown_C14F,d0                 	| [$6002: ld   a,(unknown_C14F)]
+	tst.b	d0                               	| [$6005: and  a]
+	jeq	l_5fea                             	| [$6006: jp   z,$5FEA]
+	jra	l_5fba                             	| [$6009: jp   $5FBA]
+
 
 l_606a:
 	lea	unknown_C220,a3                	| [$606a: ld   iy,unknown_C220]
@@ -7208,8 +7329,6 @@ resume_tasks_b015:
 l_b018:
 	jra	l_b1ab                             	| [$b018: jp   $B1AB]
 
-fill_rectangle_B01B:
-	jra	fill_rectangle_B28E                             	| [$b01b: jp   $B28E]
 
 clear_sprite_shadow_ram_C7xx_B01E:
 	jra	clear_C7xx_B2B2                    	| [$b01e: jp   clear_C7xx_B2B2]
@@ -7630,6 +7749,7 @@ l_b28b:
 * < D1/D2: number of row/colums
 * < D3/D4: D=character, E=attribute
 * < D5/D6: start coords X,Y
+fill_rectangle_B01B:
 fill_rectangle_B28E:
 	movem.w	d1/d2,-(sp)                    	| [$b28e: push bc]
 
@@ -11279,6 +11399,7 @@ l_fa68:
 	dc.b	0x5f,0x42,0x62,0x62,0x60,0xb2,0x5d,0x42 | $fc70
 	dc.b	0x60,0x62,0x5d,0x62,0x60,0x42 | $fc78
 	.align	2
+display_players_rank_B0B4:
 display_players_rank_FD44:
 	move.b	#0x04,d4                        	| [$fd44: ld   e,$04]
 	move.b	#0x90,d3                        	| [$fd46: ld   d,$90]

@@ -742,7 +742,7 @@ osd_update_sprites:
 10:
 	.ifne	OPT_ENABLE_LOGGING
 	lea		sprite_log_table,a1
-	*move.l	a1,0x100
+	move.l	a1,0x100
 	moveq	#0,d2
 	move.b	(1,a6),d2
 	lsl.w	#8,d2
@@ -1770,7 +1770,7 @@ update_bg_tile:
 	* then run the compute_used_cluts.py program again
 	
 	lea		tile_log_table,a0
-	*move.l	a0,0x104
+	move.l	a0,0x104
 	movem.l	d0-d1,-(a7)
 	and.l	#0xFFFF,d0
 	lsl.w	#8,d0
