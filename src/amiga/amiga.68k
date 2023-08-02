@@ -1947,11 +1947,10 @@ set_bg_bitplanes:
 osd_debug_hook:
 	rts
 	
-* 9000 bits in d0.0-7
-* 9040 bits in D0:8-15
-
+	
 osd_read_dipswitches:
-	move.w	dip_switches(pc),d0
+	moveq	#-1,d0
+	*bclr	#7,d0	| free play
 	rts
 	
 * reads most inputs in one call
@@ -1967,20 +1966,21 @@ osd_read_inputs:
 	lea		keyboard_table(pc),a0
 	tst.b	(5,a0)		| "5" key like in MAME
 	beq.b	0f
-	bclr	#6,d0
+	bclr	#1,d0
 0:
 	tst.b	(6,a0)		| "6" key like in MAME
 	beq.b	0f
-	bclr	#6,d0
+	bclr	#2,d0
 0:	
 	tst.b	(1,a0)		| "1" key like in MAME
 	beq.b	0f
-	bclr	#5+16,d0
+	bclr	#2,d0
 0:
 	tst.b	(2,a0)		| "2" key like in MAME
 	beq.b	0f
-	bclr	#6+16,d0
+	bclr	#3,d0
 0:	
+	.ifdef	ZZZZZ
 	tst.b	(0x4F,a0)		| "<-" key
 	beq.b	0f
 	bclr	#26,d0
@@ -2051,7 +2051,8 @@ osd_read_inputs:
 0:
 	move.l	(a7)+,d2
 3:
-
+	.endif
+	
 	movem.l	(a7)+,a0/d1
 	rts
 	

@@ -2235,6 +2235,7 @@ l_5266:
 	move.b	dip_switches_copy_C030,d0       	| [$527a: ld   a,(dip_switches_copy_C030)]
 	btst.b	#7,d0                           	| [$527d: bit  7,a] free play bit
 	jeq	l_5287                             	| [$527f: jp   z,$5287]
+	* free play
 	move.b	#0x03,d0                        	| [$5282: ld   a,$03]
 	move.b	d0,nb_credits_minus_one_C024    	| [$5284: ld   (nb_credits_minus_one_C024),a]
 l_5287:
@@ -8386,7 +8387,6 @@ suspend_this_task_B65E:
 	* get current stack (rather stack offset so we fit in 16 bits) 
 	* to store it in the task structure
 	                      	                   | [$b6a1: ld   hl,$0000] 0
-											   FUCKKK
 	move.l	sp,d0                            	| [$b6a4: add  hl,sp]
 	sub.l	#stack_bottom_C400,d0
 	move.w	d0,(a3)           | [$b6a5: ld   (iy+$00),l]
@@ -8740,8 +8740,105 @@ table_B87D:
 	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba75
 
 manage_coin_inserted_BA7D:
-	* dummy
-	rts
+	lea	nb_credits_minus_one_C024,a2   	| [$ba7d: ld   ix,nb_credits_minus_one_C024]
+	jbsr	check_coin_ports_BB82             	| [$ba81: call check_coin_ports_BB82]
+	and.b	#0xC0,d0                         	| [$ba84: and  $C0]
+	move.b	d0,d1                           	| [$ba86: ld   b,a]
+	jeq	l_bacd                             	| [$ba87: jp   z,$BACD]
+	btst.b	#7,d0                           	| [$ba8a: bit  7,a]
+	jeq	l_baa9                             	| [$ba8c: jp   z,$BAA9]
+	btst.b	#7,(0x03,a2)                    	| [$ba8f: bit  7,(ix+$03)]
+	jne	l_baa9                             	| [$ba93: jp   nz,$BAA9]
+	addq.b	#1,(0x01,a2)                    	| [$ba96: inc  (ix+$01)]
+	move.b	#0x20,d0                        	| [$ba99: ld   a,$20]
+	jbsr	stop_sound_BBDF                   	| [$ba9b: call stop_sound_BBDF]
+	move.b	dip_switches_copy_C030,d0       	| [$ba9e: ld   a,(dip_switches_copy_C030)]
+	and.b	#0x03,d0                         	| [$baa1: and  $03]
+	lea	unknown_C025,a0                	| [$baa3: ld   hl,unknown_C025]
+	jbsr	l_bae6                            	| [$baa6: call $BAE6]
+l_baa9:
+	move.b	d1,d0                           	| [$baa9: ld   a,b]
+	btst.b	#6,d0                           	| [$baaa: bit  6,a]
+	jeq	l_bacd                             	| [$baac: jp   z,$BACD]
+	btst.b	#6,(0x03,a2)                    	| [$baaf: bit  6,(ix+$03)]
+	jne	l_bacd                             	| [$bab3: jp   nz,$BACD]
+	addq.b	#1,(0x02,a2)                    	| [$bab6: inc  (ix+$02)]
+	move.b	#0x20,d0                        	| [$bab9: ld   a,$20]
+	jbsr	stop_sound_BBDF                   	| [$babb: call stop_sound_BBDF]
+	move.b	dip_switches_copy_C030,d0       	| [$babe: ld   a,(dip_switches_copy_C030)]
+	lsr.b	#2,d0                            	| [$bac1: srl  a] * 2
+	and.b	#0x03,d0                         	| [$bac5: and  $03]
+	lea	unknown_C026,a0                	| [$bac7: ld   hl,unknown_C026]
+	jbsr	l_bae6                            	| [$baca: call $BAE6]
+l_bacd:
+	move.b	d1,(0x03,a2)                    	| [$bacd: ld   (ix+$03),b]
+	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$bad0: ld   a,(players_type_human_or_cpu_flags_C02D)]
+	and.b	#0x03,d0                         	| [$bad3: and  $03]
+	jne	l_bae5                             	| [$bad5: jp   nz,$BAE5]
+	move.b	nb_credits_minus_one_C024,d0    	| [$bad8: ld   a,(nb_credits_minus_one_C024)]
+	tst.b	d0                               	| [$badb: and  a]
+	jeq	l_bae5                             	| [$badc: jp   z,$BAE5]
+	clr.b	d0                               	| [$badf: xor  a]
+	move.b	#0x06,d1                        	| [$bae0: ld   b,$06]
+	jbsr	task_manipulation_B6AE            	| [$bae2: call task_manipulation_B6AE]
+l_bae5:
+	rts                                    	| [$bae5: ret]
+l_bae6:
+	tst.b	d0                               	| [$bae6: and  a]
+	jne	l_bafa                             	| [$bae7: jp   nz,$BAFA]
+	move.b	(0x00,a2),d0                    	| [$baea: ld   a,(ix+$00)]
+	addq.b	#0x01,d0                        	| [$baed: add  a,$01]
+**daa
+	move.b	d0,(0x00,a2)                    	| [$baf0: ld   (ix+$00),a]
+	subq.b	#1,(a0)                         	| [$baf3: dec  (hl)]
+	beq.b	0f
+	jbsr	display_error_text_B186           	| [$baf4: call nz,display_error_text_B186]
+0:
+	jra	l_bb40                             	| [$baf7: jp   $BB40]
+l_bafa:
+	cmp.b	#0x01,d0                         	| [$bafa: cp   $01]
+	jne	l_bb0f                             	| [$bafc: jp   nz,$BB0F]
+	move.b	(0x00,a2),d0                    	| [$baff: ld   a,(ix+$00)]
+	moveq	#2,d7
+	abcd	d7,d0                        	| [$bb02: add  a,$02]
+**daa
+	move.b	d0,(0x00,a2)                    	| [$bb05: ld   (ix+$00),a]
+	subq.b	#1,(a0)                         	| [$bb08: dec  (hl)]
+	beq.b	0f
+	jbsr	display_error_text_B186           	| [$bb09: call nz,display_error_text_B186]
+0:
+	jra	l_bb40                             	| [$bb0c: jp   $BB40]
+l_bb0f:
+	cmp.b	#0x02,d0                         	| [$bb0f: cp   $02]
+	jne	l_bb2b                             	| [$bb11: jp   nz,$BB2B]
+	move.b	(a0),d0                         	| [$bb14: ld   a,(hl)]
+	cmp.b	#0x02,d0                         	| [$bb15: cp   $02]
+	jcs	l_bb40                             	| [$bb17: jp   c,$BB40]
+	move.b	(0x00,a2),d0                    	| [$bb1a: ld   a,(ix+$00)]
+	moveq	#1,d7
+	abcd	d7,d0                        	| [$bb1d: add  a,$01]
+**daa
+	move.b	d0,(0x00,a2)                    	| [$bb20: ld   (ix+$00),a]
+	subq.b	#2,(a0)                         	| [$bb23: dec  (hl)] * 2
+	beq.b	0f
+	jbsr	display_error_text_B186           	| [$bb25: call nz,display_error_text_B186]
+0:
+	jra	l_bb40                             	| [$bb28: jp   $BB40]
+l_bb2b:
+	move.b	(a0),d0                         	| [$bb2b: ld   a,(hl)]
+	cmp.b	#0x03,d0                         	| [$bb2c: cp   $03]
+	jcs	l_bb40                             	| [$bb2e: jp   c,$BB40]
+	move.b	(0x00,a2),d0                    	| [$bb31: ld   a,(ix+$00)]
+	moveq	#1,d7
+	abcd	d7,d0                        	| [$bb34: add  a,$01]
+**daa
+	move.b	d0,(0x00,a2)                    	| [$bb37: ld   (ix+$00),a]
+	subq.b	#3,(a0)                         	| [$bb3a: dec  (hl)] * 3
+	beq.b	0f
+	jbsr	display_error_text_B186           	| [$bb3d: call nz,display_error_text_B186]
+0:
+l_bb40:
+	rts                                    	| [$bb40: ret]
 	
 init_ram_BB41:
 * clear video ram
@@ -8770,8 +8867,7 @@ set_normal_screen_bb72:
 * read system port
 check_coin_ports_BB82:
 	movem.w	d1/d2,-(sp)                    	| [$bb82: push bc]                       	| [$bb82: push bc]
-*in   a,($80)
-	moveq	#0,d0		| temp!!
+	jbsr	osd_read_inputs
 	not.b	d0                               	| [$bb85: cpl]
 * only 4 first bits are used
 *	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
@@ -8788,8 +8884,7 @@ check_coin_ports_BB82:
 	rts                                    	| [$bb91: ret]
 
 get_dip_switches_BB92:
-	moveq	#0,d0
-	*in   a,($C0)
+	jbsr	osd_read_dipswitches
 	not.b	d0                               	| [$bb94: cpl] invert bits (active low logic)
 	rts                                    	| [$bb95: ret]
 
@@ -8814,8 +8909,8 @@ play_sound_BBB5:
 	and.b	#0x03,d0                         	| [$bbc1: and  $03]
 	jeq	l_bbdd                             	| [$bbc3: jp   z,$BBDD] both players are CPU: demo: exit
 l_bbc6:
-	move.w	(sp)+,d0                        	| [$bbc6: pop  af]
-	move.w	d0,-(sp)                        	| [$bbc7: push af]
+	move.w	(sp),d0                        	| [$bbc6: pop  af]
+	                        	| [$bbc7: push af]
 	cmp.b	#0x80,d0                         	| [$bbc8: cp   $80]
 	jne	l_bbda                             	| [$bbca: jp   nz,$BBDA]
 	clr.b	d0                               	| [$bbcd: ld   a,$00]
@@ -8823,8 +8918,8 @@ l_bbc6:
 	move.b	#0x01,d0                        	| [$bbd1: ld   a,$01]
 *out  ($02),a
 	jra	l_bbdd                             	| [$bbd5: jp   $BBDD]
-	move.w	(sp)+,d0                        	| [$bbd8: pop  af]
-	move.w	d0,-(sp)                        	| [$bbd9: push af]
+	move.w	(sp),d0                        	| [$bbd8: pop  af]
+	                        	| [$bbd9: push af]
 l_bbda:
 	jbsr	stop_sound_BBDF                   	| [$bbda: call stop_sound_BBDF]
 l_bbdd:
