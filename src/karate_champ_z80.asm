@@ -4043,7 +4043,7 @@ jump_table_547B:
 	.word	$78EA
 	.word	$B078
 	.word	$B07B
-	.word	$5F2A
+	.word	practice_screen_5f2a
 	.word	$5BF4
 	.word	$5836
 	.word	display_error_text_B075
@@ -5073,6 +5073,7 @@ table_5F00:
 5F28: 77          ld   (hl),a
 5F29: C9          ret
 
+practice_screen_5f2a:
 5F2A: 01 91 A4    ld   bc,$A431
 5F2D: CD 90 B0    call fill_video_and_attribute_memory_B030
 5F30: 21 E3 29    ld   hl,table_83e9

@@ -2497,7 +2497,7 @@ jump_table_547B:
 	.long	l_78ea
 	.long	l_b078
 	.long	l_b07b
-	.long	l_5f2a
+	.long	practice_screen_5f2a
 	.long	l_5bf4
 	.long	l_5836
 	.long	display_error_text_B075
@@ -3028,7 +3028,8 @@ l_5be2:
 	move.b	d0,(0x04,a2)                    	| [$5bf0: ld   (ix+$04),a]
 	rts                                    	| [$5bf3: ret]
 	
-l_5f2a:
+	
+practice_screen_5f2a:
 	move.w	#0xA431,d1                      	| [$5f2a: ld   bc,$A431]
 	jbsr	fill_video_and_attribute_memory_B030	| [$5f2d: call fill_video_and_attribute_memory_B030]
 	lea	game_mem+0x83e9,a0                  	| [$5f30: ld   hl,table_83e9]
@@ -3050,6 +3051,8 @@ l_5f2a:
 	and.b	#0x0C,d0                         	| [$5f5e: and  $0C]
 	move.b	d0,unknown_C14F                 	| [$5f60: ld   (unknown_C14F),a]
 	move.b	#0x46,d1                        	| [$5f63: ld   b,$46]
+	* loop which checks for player start button pressed
+	* to skip practice
 l_5f65:
 	movem.w	d1/d2,-(sp)                    	| [$5f65: push bc]
 	move.b	#0x03,d0                        	| [$5f66: ld   a,$03]
@@ -3059,6 +3062,7 @@ l_5f65:
 	jbsr	display_error_text_B075           	| [$5f6c: call nz,display_error_text_B075]
 0:
 	jbsr	check_coin_ports_B069             	| [$5f6f: call check_coin_ports_B069]
+	* a good idea would be to also check fire button
 	and.b	#0x0C,d0                         	| [$5f72: and  $0C]
 	movem.w	(sp)+,d1/d2                    	| [$5f74: pop  bc]
 	jne	l_5ff8                             	| [$5f75: jp   nz,$5FF8]
@@ -3066,6 +3070,8 @@ l_5f65:
 l_5f7b:
 	subq.b	#1,d1                           	| [...]
 	jne	l_5f65                             	| [$5f7b: djnz $5F65]
+
+	* timeout, now proceed to practice
 	move.b	#0x06,d1
 	move.b	#0x13,d2                      	| [$5f7d: ld   bc,$0613]
 	move.b	#0xa0,d3
@@ -3087,12 +3093,14 @@ l_5f7b:
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$5f9d: call nz,display_error_text_B075]
 0:
+	* player 1/computer task
 	move.b	#0x08,d0                        	| [$5fa0: ld   a,$08]
 	jbsr	schedule_task_to_start_B057       	| [$5fa2: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5fa5: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$5fa6: call nz,display_error_text_B075]
 0:
+	* player 2/computer task
 	move.b	#0x09,d0                        	| [$5fa9: ld   a,$09]
 	jbsr	schedule_task_to_start_B057       	| [$5fab: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5fae: and  a]
@@ -3106,6 +3114,8 @@ l_5fba:
 	move.b	#0x03,d0                        	| [$5fba: ld   a,$03]
 * within this B05A call the computer performs the current technique
 * animation
+* all tasks are activated in turn
+	jbsr	osd_break
 	jbsr	suspend_this_task_B05A            	| [$5fbc: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$5fbf: and  a]
 	jne	l_5fd1                             	| [$5fc0: jp   nz,$5FD1]
@@ -3921,12 +3931,14 @@ table_75C1:
 l_75cd:
 	clr.b	d0                               	| [$75cd: ld   a,$00]
 	jbsr	suspend_this_task_B05A            	| [$75cf: call suspend_this_task_B05A]
+	* reached when practice starts
 	cmp.b	#0x09,d0                         	| [$75d2: cp   $09]
 	jeq	l_75cd                             	| [$75d4: jp   z,$75CD]
 	cmp.b	#0x0C,d0                         	| [$75d7: cp   $0C]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$75d9: call nz,display_error_text_B075]
 0:
+	* crashes!!!!! FUCK FUCK
 	jbsr	l_3db7                            	| [$75dc: call $3DB7]
 	move.b	d0,current_move_C24B            	| [$75df: ld   (current_move_C24B),a]
 	clr.b	d0                               	| [$75e2: xor  a]
@@ -3982,7 +3994,7 @@ l_7626:
 	addq.w	#2,a2                           	| [$7635: inc  ix] * 2
 	move.b	(a2),d0                    	| [$7639: ld   a,(ix+$00)]
 	cmp.b	#0xFF,d0                         	| [$763c: cp   $FF]
-	bne	0f
+	bne.b	0f
 	jbsr	l_764a                            	| [$763e: call z,$764A]
 0:
 
@@ -4289,7 +4301,7 @@ l_7ac1:
 	bne.b	0f
 	rts                                    	| [$7ac6: ret  z]
 0:
-	subq.b	#1,a0                           	| [$7ac7: dec  hl]
+	subq.w	#1,a0                           	| [$7ac7: dec  hl]
 
 	move.l	a0,-(sp)                        	| [$7ac8: push hl]
 	
@@ -8176,7 +8188,7 @@ l_b4b8:
 	move.l	(4,a3),a0                    	| [$b4f9: ld   l,(iy+$00)]
 										| [$b4fc: ld   h,(iy+$01)]
 	jbsr	enable_interrupts_BBE2            	| [$b4ff: call enable_interrupts_BBE2]
-* called several times at startup
+* startup call sequence:
 * $5250
 * $53D2
 * $544F
@@ -8187,13 +8199,20 @@ l_b4b8:
 * $B09C
 * $B09F
 *
+* practice call sequence (after "press start to skip" timeout)
+* $6529
+* $755B
+* $7657
+* $3A9C
+* $3A9C
+*
 * then called when screen changes
 	* starts the task
-*	move.l	(a3),d7		| debug
-*	cmp.w	#0x3A9C,d7
-*	bne.b	0f
-*	jbsr		osd_break
-*0:
+	move.l	(a3),d7		| debug
+	cmp.w	#0x3A9C,d7
+	bne.b	0f
+	jbsr		osd_break
+0:
 	jmp	(a0)                               	| [$b502: jp   (hl)]
 
 
@@ -8243,7 +8262,6 @@ l_b52d:
 	move.b	(0x01,a2),d0                    	| [$b548: ld   a,(ix+$01)]
 	add.b	d4,d0                            	| [$b54b: add  a,e]
 	move.b	d0,d4                           	| [$b54c: ld   e,a]
-	move.b	d0,0x200
 	move.b	d0,current_task_index_C028   	| [$b54d: ld   (current_task_index_C028),a]
 	move.b	d1,d0                           	| [$b550: ld   a,b]
 	move.b	(a0),d7
