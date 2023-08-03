@@ -3766,6 +3766,7 @@ table_5245:
 task_5250:
 5250: 3E 00       ld   a,$00
 5252: DD 21 00 63 ld   ix,map_index_C900
+; set background pic index (level 1)
 5256: DD 77 00    ld   (ix+$00),a
 5259: 21 66 59    ld   hl,table_53CC
 525C: DD 75 08    ld   (ix+$02),l
@@ -3905,6 +3906,7 @@ task_53d2:
 53F3: CD 5A B0    call suspend_this_task_B05A
 53F6: A7          and  a
 53F7: C4 D5 B0    call nz,display_error_text_B075
+; clear screen
 53FA: 01 96 00    ld   bc,$003C
 53FD: CD 90 B0    call fill_video_and_attribute_memory_B030
 5400: 21 02 63    ld   hl,unknown_C908
@@ -3941,7 +3943,7 @@ task_53d2:
 5448: 47          ld   b,a
 5449: CD 57 B0    call task_manipulation_B05D
 544C: CD 51 B0    call task_yield_B051
-544F: CD 23 DA    call $7A89
+544F: CD 23 DA    call display_background_picture_7A89
 5452: CD 7C DA    call $7AD6
 5455: CD B1 B0    call is_title_screen_demo_mode_B0B1
 5458: A7          and  a
@@ -3992,22 +3994,22 @@ jump_table_547B:
 	.word	$0000
 	.word	$0000
 	.word	$0000
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
-	.word	$58C7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
+	.word	start_round_58c7
 	.word	$58FF
 	.word	$58FF
 	.word	$58FF
@@ -4469,6 +4471,7 @@ jump_table_547B:
 58C0: A7          and  a
 58C1: C4 D5 B0    call nz,display_error_text_B075
 58C4: CD 51 B0    call task_yield_B051
+start_round_58c7:
 58C7: 3E 09       ld   a,$03
 58C9: CD D8 B0    call play_sound_B072
 58CC: 3E 0A       ld   a,$0A
@@ -4631,7 +4634,7 @@ jump_table_547B:
 5A3C: DD 74 09    ld   (ix+$03),h
 5A3F: C3 43 5A    jp   $5A49
 5A42: DD 21 00 63 ld   ix,map_index_C900
-5A46: CD A1 5B    call $5BA1
+5A46: CD A1 5B    call init_level_params_5BA1
 5A49: 21 6C 59    ld   hl,table_53C6
 5A4C: C1          pop  bc
 5A4D: DD 21 02 63 ld   ix,unknown_C908
@@ -4663,7 +4666,7 @@ jump_table_547B:
 5A93: DD 74 09    ld   (ix+$03),h
 5A96: C3 A0 5A    jp   $5AA0
 5A99: DD 21 02 63 ld   ix,unknown_C908
-5A9D: CD A1 5B    call $5BA1
+5A9D: CD A1 5B    call init_level_params_5BA1
 5AA0: 21 6C 59    ld   hl,table_53C6
 5AA3: C1          pop  bc
 5AA4: DD 21 00 63 ld   ix,map_index_C900
@@ -4706,7 +4709,7 @@ jump_table_547B:
 5B06: FE 55       cp   $55
 5B08: CA 0F 5B    jp   z,$5B0F
 5B0B: DD 21 02 63 ld   ix,unknown_C908
-5B0F: CD A1 5B    call $5BA1
+5B0F: CD A1 5B    call init_level_params_5BA1
 5B12: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5B15: E6 0F       and  $0F
 5B17: FE 0F       cp   $0F
@@ -4740,12 +4743,12 @@ jump_table_547B:
 5B5F: CB 57       bit  2,a
 5B61: CA CB 5B    jp   z,$5B6B
 5B64: DD 21 00 63 ld   ix,map_index_C900
-5B68: CD A1 5B    call $5BA1
+5B68: CD A1 5B    call init_level_params_5BA1
 5B6B: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5B6E: CB 5F       bit  3,a
 5B70: CA DA 5B    jp   z,return_zero_in_A_5B7A
 5B73: DD 21 02 63 ld   ix,unknown_C908
-5B77: CD A1 5B    call $5BA1
+5B77: CD A1 5B    call init_level_params_5BA1
 return_zero_in_A_5B7A:
 5B7A: 3E 00       ld   a,$00
 5B7C: C9          ret
@@ -4763,6 +4766,8 @@ return_zero_in_A_5B7A:
 5B9A: DD 75 08    ld   (ix+$02),l
 5B9D: DD 74 09    ld   (ix+$03),h
 5BA0: C9          ret
+
+init_level_params_5BA1:
 5BA1: 3A 11 63    ld   a,(background_and_state_bits_C911)
 5BA4: CB 7F       bit  7,a
 5BA6: CA 6A 5B    jp   z,$5BCA
@@ -4784,6 +4789,7 @@ return_zero_in_A_5B7A:
 5BC3: DD 75 08    ld   (ix+$02),l
 5BC6: DD 74 09    ld   (ix+$03),h
 5BC9: C9          ret
+
 5BCA: DD 6E 08    ld   l,(ix+$02)
 5BCD: DD 66 09    ld   h,(ix+$03)
 5BD0: 01 01 00    ld   bc,$0001
@@ -5726,8 +5732,11 @@ table_65FB:
 	dc.b	0x30,0x05,0xf6,0x30,0x06,0xf7,0x30,0x07 ; $660b
 	dc.b	0xf8,0x30,0x08,0xf9,0x30,0x09,0xfa,0x30 ; $6613
 	dc.b	0x0a,0xe0,0x40,0x0b,0xe1,0x40,0x0c,0x67 ; $661b
-	dc.b	0x4d,0x7a,0x67,0xf5,0x69,0x67,0xee,0x69 ; $6623
-	dc.b	0x67,0x6b,0x6a,0x9a,0x00,0xc7 ; $662b
+6622: CD 47 DA    call $7A4D                                          
+6625: CD F5 C3    call $69F5                                          
+6628: CD EE C3    call $69EE                                          
+662B: CD CB CA    call $6A6B                                          
+662E: 3A 00 6D    ld   a,($C700)                                      
 6631: 32 EA 61    ld   (unknown_C1EA),a
 6634: 3A 09 6D    ld   a,(unknown_C703)
 6637: 32 EB 61    ld   (unknown_C1EB),a
@@ -6625,7 +6634,7 @@ table_6f56:
 7052: FD 71 17    ld   (iy+$1d),c
 7055: FD 70 1E    ld   (iy+$1e),b
 7058: C1          pop  bc
-7059: DD 21 60 61 ld   ix,unknown_C1C0
+7059: DD 21 60 61 ld   ix,task_struct_C1C0
 705D: DD 71 0D    ld   (ix+$07),c
 7060: DD 71 0B    ld   (ix+$0b),c
 7063: 3E 08       ld   a,$02
@@ -6789,7 +6798,7 @@ table_6f56:
 720C: FD 71 05    ld   (iy+$05),c
 720F: FD 70 0C    ld   (iy+$06),b
 7212: 0C          inc  c
-7213: DD 21 60 61 ld   ix,unknown_C1C0
+7213: DD 21 60 61 ld   ix,task_struct_C1C0
 7217: DD 71 03    ld   (ix+$09),c
 721A: E5          push hl
 721B: 7C          ld   a,h
@@ -6916,7 +6925,7 @@ table_6f56:
 7340: CD 5A B0    call suspend_this_task_B05A
 7343: A7          and  a
 7344: C4 D5 B0    call nz,display_error_text_B075
-7347: DD 21 60 61 ld   ix,unknown_C1C0
+7347: DD 21 60 61 ld   ix,task_struct_C1C0
 734B: DD 7E 03    ld   a,(ix+$09)
 734E: 32 D7 6D    ld   (unknown_C77D),a
 7351: C1          pop  bc
@@ -7557,6 +7566,7 @@ or_50_to_C7BE_7A58:
 7A86: 10 EC       djnz $7A6E
 7A88: C9          ret
 
+display_background_picture_7A89:
 7A89: DD 21 18 DB ld   ix,table_7B12
 7A8D: 3A 11 63    ld   a,(background_and_state_bits_C911)
 7A90: CB BF       res  7,a

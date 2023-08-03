@@ -158,7 +158,6 @@ w\@:
 		.global osd_w_colorram
 		.global osd_r_videoram
 		.global osd_r_colorram
-		.global osd_set_bank_selectors
 		.global osd_update_sprites
 		.global osd_read_dipswitches
 		.global osd_small_wait
@@ -375,6 +374,9 @@ _user:
 *	sne		invincible_flag
 *	btst	#1,cheat_flags
 *	sne		infinite_lives_flag
+	
+	* doesn't work!!!
+	move.b	#1,start_level
 	
 	jsr	 _detect_controller_types 
 

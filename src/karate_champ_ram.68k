@@ -4,6 +4,7 @@
 	.global	stack_top
 	.global	stack_bottom
 	.global invincible_flag
+	.global start_level
 	.global vb_ticks_count
 	
 	.ifdef	__amiga__
@@ -53,6 +54,8 @@ high_score_beaten:
 invincible_flag:
 	.byte	0
 infinite_lives_flag:
+	.byte	0
+start_level:
 	.byte	0
 
 vb_ticks_count:
