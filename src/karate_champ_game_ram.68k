@@ -10,7 +10,8 @@
 	.global	nb_credits_minus_one_C024
 	.global	periodic_counter_16bit_C02E
 	.global	periodic_counter_8bit_C02B
-	.global	player_2_points_C91A
+	.global	player_1_points_C91A
+	.global	player_2_points_C91C
 	.global	players_type_human_or_cpu_flags_C02D
 	.global	referee_walk_direction_C1E9
 	.global	task_struct_C100
@@ -550,10 +551,13 @@ unknown_C918:
 	ds.b	1
 unknown_C919:
 	ds.b	1
-player_2_points_C91A:
+	.align	2
+player_1_points_C91A:
 	ds.b	1
 unknown_C91B:
-	ds.b	2
+	ds.b	1
+player_2_points_C91C:
+	ds.b	1
 unknown_C91D:
 	ds.b	800
 unknown_CC3D:

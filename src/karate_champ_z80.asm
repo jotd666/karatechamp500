@@ -5759,7 +5759,7 @@ table_65FB:
 6664: A7          and  a
 6665: C4 D5 B0    call nz,display_error_text_B075
 6668: 01 09 08    ld   bc,$0203
-666B: FD 21 E0 61 ld   iy,unknown_C1E0
+666B: FD 21 E0 61 ld   iy,task_struct_C1E0
 666F: FD 7E 0A    ld   a,(iy+$0a)
 6672: C6 10       add  a,$10
 6674: 57          ld   d,a
@@ -5834,7 +5834,7 @@ table_65FB:
 670C: 3E 01       ld   a,$01
 670E: CD 85 CA    call $6A25
 6711: 01 05 08    ld   bc,$0205
-6714: FD 21 E0 61 ld   iy,unknown_C1E0
+6714: FD 21 E0 61 ld   iy,task_struct_C1E0
 6718: FD 7E 0A    ld   a,(iy+$0a)
 671B: C6 10       add  a,$10
 671D: 57          ld   d,a
@@ -5865,7 +5865,7 @@ table_65FB:
 6758: 3E 96       ld   a,$3C
 675A: CD 5A B0    call suspend_this_task_B05A
 675D: 01 0D 08    ld   bc,$0207
-6760: FD 21 E0 61 ld   iy,unknown_C1E0
+6760: FD 21 E0 61 ld   iy,task_struct_C1E0
 6764: FD 7E 0A    ld   a,(iy+$0a)
 6767: C6 10       add  a,$10
 6769: 57          ld   d,a
@@ -5972,7 +5972,7 @@ table_65FB:
 6853: 78          ld   a,b
 6854: FE 0A       cp   $0A
 6856: C2 A8 C2    jp   nz,$68A2
-6859: FD 21 E0 61 ld   iy,unknown_C1E0
+6859: FD 21 E0 61 ld   iy,task_struct_C1E0
 685D: FD 6E 0D    ld   l,(iy+$07)
 6860: FD 66 02    ld   h,(iy+$08)
 6863: CD EC C6    call display_scoring_technique_6CE6
@@ -6000,7 +6000,7 @@ table_65FB:
 6899: CD 51 B0    call task_yield_B051
 689C: 32 1A 63    ld   (player_1_points_C91A),a
 689F: C3 53 C3    jp   $6959
-68A2: FD 21 E0 61 ld   iy,unknown_C1E0
+68A2: FD 21 E0 61 ld   iy,task_struct_C1E0
 68A6: FD 6E 0D    ld   l,(iy+$07)
 68A9: FD 66 02    ld   h,(iy+$08)
 68AC: CD EC C6    call display_scoring_technique_6CE6
@@ -6040,7 +6040,7 @@ table_65FB:
 68FE: 78          ld   a,b
 68FF: FE 0A       cp   $0A
 6901: C2 90 C3    jp   nz,$6930
-6904: FD 21 E0 61 ld   iy,unknown_C1E0
+6904: FD 21 E0 61 ld   iy,task_struct_C1E0
 6908: FD 6E 0D    ld   l,(iy+$07)
 690B: FD 66 02    ld   h,(iy+$08)
 690E: CD EC C6    call display_scoring_technique_6CE6
@@ -6056,7 +6056,7 @@ table_65FB:
 6927: C3 CE C2    jp   $686E
 692A: 32 1B 63    ld   (unknown_C91B),a
 692D: C3 53 C3    jp   $6959
-6930: FD 21 E0 61 ld   iy,unknown_C1E0
+6930: FD 21 E0 61 ld   iy,task_struct_C1E0
 6934: FD 6E 0D    ld   l,(iy+$07)
 6937: FD 66 02    ld   h,(iy+$08)
 693A: CD EC C6    call display_scoring_technique_6CE6
@@ -6244,7 +6244,7 @@ referee_start_position_table_6AE1:
 6B1A: EE 20       xor  $80
 6B1C: 32 0A 6D    ld   (unknown_C70A),a
 6B1F: C9          ret
-6B20: FD 21 E0 61 ld   iy,unknown_C1E0
+6B20: FD 21 E0 61 ld   iy,task_struct_C1E0
 6B24: 3A 00 6D    ld   a,(referee_x_pos_C700)
 6B27: FD BE 06    cp   (iy+$0c)		; min referee x
 6B2A: D2 99 CB    jp   nc,$6B33
@@ -6371,7 +6371,7 @@ table_6C59:
 	dc.b	0x0d,0x06,0xd0,0xfe,0x05,0x07,0xe6,0xe7 ; $6c69
 	dc.b	0xe8,0xe8,0xe8,0xe8,0xe8,0xe9,0xea,0xff ; $6c71
 6C79: 01 0B 08    ld   bc,$020B
-6C7C: FD 21 E0 61 ld   iy,unknown_C1E0
+6C7C: FD 21 E0 61 ld   iy,task_struct_C1E0
 6C80: FD 7E 0A    ld   a,(iy+$0a)
 6C83: C6 10       add  a,$10
 6C85: 57          ld   d,a
@@ -6395,7 +6395,7 @@ table_6C59:
 6CAE: 32 BE 6D    ld   (unknown_C7BE),a
 6CB1: C9          ret
 6CB2: 01 07 08    ld   bc,$020D
-6CB5: FD 21 E0 61 ld   iy,unknown_C1E0
+6CB5: FD 21 E0 61 ld   iy,task_struct_C1E0
 6CB9: FD 7E 0A    ld   a,(iy+$0a)
 6CBC: D6 80       sub  $20
 6CBE: 57          ld   d,a
