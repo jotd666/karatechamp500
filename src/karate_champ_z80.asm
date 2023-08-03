@@ -10806,7 +10806,7 @@ B0BA: C3 A7 BB    jp   read_p2_controls_BBAD
 disable_interrupts_B0BD:
 B0BD: C3 E8 BB    jp   disable_interrupts_BBE2
 enable_interrupts_b0c0:
-B0C0: C3 E2 BB    jp   enable_interrupts_BBE2
+B0C0: C3 E2 BB    jp   enable_interrupts_BBE8
 
 
 ; > d: term 1
@@ -11424,12 +11424,12 @@ B47F: CD B7 B8    call clear_zone_B2BD
 B482: CD 41 BB    call init_ram_BB41
 B485: 3E FF       ld   a,$FF
 B487: 32 86 60    ld   (unknown_C02C),a
-B48A: CD E2 BB    call enable_interrupts_BBE2
+B48A: CD E2 BB    call enable_interrupts_BBE8
 
 ; this is called by most routines that want to yield control to this mainloop
 jump_to_mainloop_B48D:
 B48D: 31 00 6F    ld   sp,temp_numeric_buffer_CF00			; pops all calls
-B490: CD E2 BB    call enable_interrupts_BBE2
+B490: CD E2 BB    call enable_interrupts_BBE8
 ; loop until one of the 2 timers/counters is nonzero
 ; jump at different locations
 scheduler_loop_b493:
@@ -11497,7 +11497,7 @@ B4F7: FD 19       add  iy,de
 ; get entrypoint address
 B4F9: FD 6E 00    ld   l,(iy+$00)
 B4FC: FD 66 01    ld   h,(iy+$01)
-B4FF: CD E2 BB    call enable_interrupts_BBE2
+B4FF: CD E2 BB    call enable_interrupts_BBE8
 ; called several times at startup
 ; $5250
 ; $53D2
@@ -11585,7 +11585,7 @@ B56A: 23          inc  hl
 B56B: 7E          ld   a,(hl)
 B56C: 21 8A 60    ld   hl,nb_suspended_tasks_C02A
 B56F: 35          dec  (hl)
-B570: CD E2 BB    call enable_interrupts_BBE2
+B570: CD E2 BB    call enable_interrupts_BBE8
 B573: C9          ret
 
 ; load iy with player structure
@@ -11676,7 +11676,7 @@ B5FD: AE          xor  (hl)
 B5FE: 77          ld   (hl),a
 B5FF: 21 83 60    ld   hl,nb_tasks_to_start_C029
 B602: 35          dec  (hl)
-B603: CD E2 BB    call enable_interrupts_BBE2
+B603: CD E2 BB    call enable_interrupts_BBE8
 B606: C9          ret
 
 B607: 19          add  hl,de
@@ -11688,14 +11688,14 @@ B60E: AE          xor  (hl)
 B60F: 77          ld   (hl),a
 B610: 21 8A 60    ld   hl,nb_suspended_tasks_C02A
 B613: 35          dec  (hl)
-B614: CD E2 BB    call enable_interrupts_BBE2
+B614: CD E2 BB    call enable_interrupts_BBE8
 B617: C9          ret
 
 B618: 19          add  hl,de
 B619: 78          ld   a,b
 B61A: AE          xor  (hl)
 B61B: 77          ld   (hl),a
-B61C: CD E2 BB    call enable_interrupts_BBE2
+B61C: CD E2 BB    call enable_interrupts_BBE8
 B61F: C9          ret
 
 ; < A: bit to set
@@ -11735,10 +11735,10 @@ B64E: 77          ld   (hl),a
 B64F: 21 83 60    ld   hl,nb_tasks_to_start_C029
 B652: 34          inc  (hl)		; increment timer
 B653: AF          xor  a
-B654: CD E2 BB    call enable_interrupts_BBE2
+B654: CD E2 BB    call enable_interrupts_BBE8
 B657: C9          ret
 B658: 3E FF       ld   a,$FF
-B65A: CD E2 BB    call enable_interrupts_BBE2
+B65A: CD E2 BB    call enable_interrupts_BBE8
 B65D: C9          ret
 
 ; < a: probably? number of frames to wait until next frame
@@ -11857,14 +11857,14 @@ B71A: FD 70 0C    ld   (iy+$06),b
 B71D: 21 8A 60    ld   hl,nb_suspended_tasks_C02A
 B720: 34          inc  (hl)
 B721: AF          xor  a
-B722: CD E2 BB    call enable_interrupts_BBE2
+B722: CD E2 BB    call enable_interrupts_BBE8
 B725: C9          ret
 
 B726: E1          pop  hl
 B727: F1          pop  af
 B728: C1          pop  bc
 B729: 3E FF       ld   a,$FF
-B72B: CD E2 BB    call enable_interrupts_BBE2
+B72B: CD E2 BB    call enable_interrupts_BBE8
 B72E: C9          ret
 
 ; main interrupt (vblank) routine, called every 1/60s
@@ -11904,7 +11904,7 @@ B772: FD E1       pop  iy
 B774: DD E1       pop  ix
 B776: D9          exx
 B777: 08          ex   af,af'
-B778: CD E2 BB    call enable_interrupts_BBE2
+B778: CD E2 BB    call enable_interrupts_BBE8
 B77B: ED 45       retn
 
 B77D: 7E          ld   a,(hl)
@@ -12346,7 +12346,7 @@ BBE4: D3 01       out  ($01),a
 BBE6: F1          pop  af
 BBE7: C9          ret
 
-enable_interrupts_BBE2:
+enable_interrupts_BBE8:
 BBE8: F5          push af
 BBE9: 3E 01       ld   a,$01
 BBEB: D3 01       out  ($01),a

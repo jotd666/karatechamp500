@@ -1,4 +1,4 @@
-# Pengo (68K)
+# Karate Champ (68K)
 
 This is a transcode from the original arcade game Z80 to 68K assembly.
 
@@ -16,10 +16,6 @@ This is a transcode from the original arcade game Z80 to 68K assembly.
 
 #### NEO GEO
 
-- tested & playable w/sound on MVS,NGCDZ (MAME only)
-- TBD: display masking top/bottom
-- WIP: sound (partial, glitches)
-- TBD: non-tate mode?
 
 ### FEATURES:
 
@@ -88,10 +84,10 @@ This is a transcode from the original arcade game Z80 to 68K assembly.
 
 - make -f makefile.ng OUTPUT={cart|cd} MAMEDIR={mamedir} install
   - (mamedir defaults to '.')
-- paste pengo.xml into MAME's hash/neogeo.xml file
+- paste kchampvs.xml into MAME's hash/neogeo.xml file
 
 #### To run in MAME:
 
 - cart : 'mame neogeo pengo'
-- cd : 'mame neocdz -cdrom roms/neocdz/pengo.iso'
+- cd : 'mame neocdz -cdrom roms/neocdz/kchampvs.iso'
   

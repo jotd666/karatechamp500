@@ -2002,6 +2002,10 @@ osd_read_inputs:
 	move.l	_joypad_state_p1,d1
 	bsr		check_joy
 	
+	movem.l	(a7)+,a0/d1
+	rts
+
+
 	.ifdef	ZZZZZ
 	tst.b	(0x4F,a0)		| "<-" key
 	beq.b	0f

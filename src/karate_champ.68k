@@ -2255,8 +2255,8 @@ l_5287:
 	jeq	task_5250                             	| [$5298: jp   z,$5250]
 	lea	map_index_C900,a2              	| [$529b: ld   ix,map_index_C900]
 	lea	unknown_C908,a3                	| [$529f: ld   iy,unknown_C908]
-	clr.b	d0                               	| [$52a3: ld   a,$00]
-	move.b	start_level,(0x00,a2)                    	| [$52a5: ld   (ix+$00),a]
+	move.b	start_level,d0                               	| [$52a3: ld   a,$00]
+	move.b	d0,(0x00,a2)                    	| [$52a5: ld   (ix+$00),a]
 	move.b	d0,(0x00,a3)                    	| [$52a8: ld   (iy+$00),a]
 	lea	game_mem+0x534d,a0                  	| [$52ab: ld   hl,table_534d]
 	move.b	(a0),d0                         	| [$52ae: ld   a,(hl)]
@@ -2275,7 +2275,7 @@ l_5287:
 	move.b	d0,(0x06,a3)                    	| [$52d2: ld   (iy+$06),a]
 	move.b	d0,(0x07,a2)                    	| [$52d5: ld   (ix+$07),a]
 	move.b	d0,(0x07,a3)                    	| [$52d8: ld   (iy+$07),a]
-	move.b	d0,level_number_C0DC            	| [$52db: ld   (level_number_C0DC),a]
+	move.b	start_level,level_number_C0DC            	| [$52db: ld   (level_number_C0DC),a]
 	move.b	d0,unknown_C0DD                 	| [$52de: ld   (unknown_C0DD),a]
 	move.b	d0,unknown_C0DE                 	| [$52e1: ld   (unknown_C0DE),a]
 	move.b	d0,unknown_C0DF                 	| [$52e4: ld   (unknown_C0DF),a]
@@ -2300,11 +2300,13 @@ l_5287:
 	jbsr	fill_video_and_attribute_memory_B030                    	| [$5313: call $B030]
 	move.b	#0x80,d0                        	| [$5316: ld   a,$80]
 	jbsr	play_sound_B072                   	| [$5318: call play_sound_B072]
+	* check for 1P or 2P press
 l_531b:
-	jbsr	disable_interrupts_B0BD                            	| [$531b: call $B0C0]
+	jbsr	enable_interrupts_b0c0                            	| [$531b: call enable_interrupts_b0c0]
 	jbsr	display_start_message_7b92                           	| [$531e: call $7B92]
 	jbsr	display_credits_7C1C                            	| [$5321: call $7C1C]
 	jbsr	check_coin_ports_B069                            	| [$5324: call $B069]
+	* check 1P start
 	btst.b	#2,d0                           	| [$5327: bit  2,a]
 	jne	l_5266                             	| [$5329: jp   nz,$5266]
 	move.b	nb_credits_minus_one_C024,d0    	| [$532c: ld   a,(nb_credits_minus_one_C024)]
@@ -7826,10 +7828,6 @@ startup_B045:
 	jra	startup_B469                       	| [$b045: jp   startup_B469]
 
 
-periodic_interrupt_B048:
-	jra	on_periodic_interrupt_B72F         	| [$b048: jp   on_periodic_interrupt_B72F]
-
-
 resume_task_B054:
 	jra	resume_task_B5CD                	| [$b054: jp   resume_task_B5CD]
 
@@ -7847,8 +7845,6 @@ task_manipulation_B05D:
 
 set_normal_screen_b060:
 	jra	set_normal_screen_bb72                             	| [$b060: jp   $BB72]
-check_coin_ports_B069:
-	jra	check_coin_ports_BB82              	| [$b069: jp   check_coin_ports_BB82]
 
 play_sound_B072:
 	jbsr	osd_sound_start
@@ -7897,11 +7893,6 @@ rpc_bbaf:
 	rol.b	#4,d0                            	| [$bbb0: rlca] * 4
 	rts
 	
-disable_interrupts_B0BD:
-	jra		disable_interrupts_BBE2
-
-enable_interrupts_b0c0:
-	jra	enable_interrupts_BBE2             	| [$b0c0: jp   enable_interrupts_BBE2]
 
 * > d3: term 1
 * > d4: term 2
@@ -8563,12 +8554,12 @@ startup_B469:
 	jbsr	init_ram_BB41                     	| [$b482: call init_ram_BB41]
 	st.b	d0                                	| [$b485: ld   a,$FF]
 	move.b	d0,unknown_C02C                 	| [$b487: ld   (unknown_C02C),a]
-	jbsr	enable_interrupts_BBE2            	| [$b48a: call enable_interrupts_BBE2]
+	jbsr	enable_interrupts_BBE8            	| [$b48a: call enable_interrupts_BBE8]
 
 * this is called by most routines that want to yield control to this mainloop
 jump_to_mainloop_B48D:
 	lea		stack_top_CF00,sp			| ld   sp,stack_top_CF00			| set stack
-	jbsr	enable_interrupts_BBE2            	| [$b490: call enable_interrupts_BBE2]
+	jbsr	enable_interrupts_BBE8            	| [$b490: call enable_interrupts_BBE8]
 
 * main "task" scheduler
 * loop until one of the 2 timers/counters is nonzero
@@ -8654,7 +8645,7 @@ l_b4b8:
 
 	move.l	(4,a3),a0                    	| [$b4f9: ld   l,(iy+$00)]
 										| [$b4fc: ld   h,(iy+$01)]
-	jbsr	enable_interrupts_BBE2            	| [$b4ff: call enable_interrupts_BBE2]
+	jbsr	enable_interrupts_BBE8            	| [$b4ff: call enable_interrupts_BBE8]
 * startup call sequence:
 * $5250
 * $53D2
@@ -8764,7 +8755,7 @@ l_b52d:
 	move.b	(a0),d0                         	| [$b56b: ld   a,(hl)]
 	lea	nb_suspended_tasks_C02A,a0                	| [$b56c: ld   hl,nb_suspended_tasks_C02A]
 	subq.b	#1,(a0)                         	| [$b56f: dec  (hl)]
-	jbsr	enable_interrupts_BBE2            	| [$b570: call enable_interrupts_BBE2]
+	jbsr	enable_interrupts_BBE8            	| [$b570: call enable_interrupts_BBE8]
 	* returns with stack properly set: returns to stack & resumes it
 	rts                                    	| [$b573: ret]
 
@@ -8872,7 +8863,7 @@ resume_task_B5CD:
 	move.b	d0,(a0)                         	| [$b5fe: ld   (hl),a]
 	lea	nb_tasks_to_start_C029,a0      	| [$b5ff: ld   hl,nb_tasks_to_start_C029]
 	subq.b	#1,(a0)                         	| [$b602: dec  (hl)]
-	jbsr	enable_interrupts_BBE2            	| [$b603: call enable_interrupts_BBE2]
+	jbsr	enable_interrupts_BBE8            	| [$b603: call enable_interrupts_BBE8]
 	rts                                    	| [$b606: ret]
 
 l_b607:
@@ -8886,7 +8877,7 @@ l_b607:
 	move.b	d0,(a0)                         	| [$b60f: ld   (hl),a]
 	lea	nb_suspended_tasks_C02A,a0     	| [$b610: ld   hl,nb_suspended_tasks_C02A]
 	subq.b	#1,(a0)                         	| [$b613: dec  (hl)]
-	jbsr	enable_interrupts_BBE2            	| [$b614: call enable_interrupts_BBE2]
+	jbsr	enable_interrupts_BBE8            	| [$b614: call enable_interrupts_BBE8]
 	rts                                    	| [$b617: ret]
 
 l_b618:
@@ -8895,7 +8886,7 @@ l_b618:
 	move.b	(a0),d7
 	eor.b	d7,d0                            	| [$b60e: xor  (hl)]
 	move.b	d0,(a0)                         	| [$b61b: ld   (hl),a]
-	jbsr	enable_interrupts_BBE2            	| [$b61c: call enable_interrupts_BBE2]
+	jbsr	enable_interrupts_BBE8            	| [$b61c: call enable_interrupts_BBE8]
 	rts                                    	| [$b61f: ret]
 
 * < A: task index to schedule for start
@@ -8936,11 +8927,11 @@ schedule_task_to_start_B620:
 	lea	nb_tasks_to_start_C029,a0      	| [$b64f: ld   hl,nb_tasks_to_start_C029]
 	addq.b	#1,(a0)                         	| [$b652: inc  (hl)] increment timer
 	clr.b	d0                               	| [$b653: xor  a]
-	jbsr	enable_interrupts_BBE2            	| [$b654: call enable_interrupts_BBE2]
+	jbsr	enable_interrupts_BBE8            	| [$b654: call enable_interrupts_BBE8]
 	rts                                    	| [$b657: ret]
 l_b658:
 	st.b	d0                                	| [$b658: ld   a,$FF]
-	jbsr	enable_interrupts_BBE2            	| [$b65a: call enable_interrupts_BBE2]
+	jbsr	enable_interrupts_BBE8            	| [$b65a: call enable_interrupts_BBE8]
 	rts                                    	| [$b65d: ret]
 
 * < a: time to suspend??
@@ -9081,7 +9072,7 @@ l_b6f9:
 	lea	nb_suspended_tasks_C02A,a0     	| [$b71d: ld   hl,nb_suspended_tasks_C02A]
 	addq.b	#1,(a0)                         	| [$b720: inc  (hl)]
 	clr.b	d0                               	| [$b721: xor  a]
-	jbsr	enable_interrupts_BBE2            	| [$b722: call enable_interrupts_BBE2]
+	jbsr	enable_interrupts_BBE8            	| [$b722: call enable_interrupts_BBE8]
 	rts           
 
 l_b726:
@@ -9089,7 +9080,7 @@ l_b726:
 	move.w	(sp)+,d0                        	| [$b727: pop  af]
 	movem.w	(sp)+,d1/d2                    	| [$b728: pop  bc]
 	st.b	d0                                	| [$b729: ld   a,$FF]
-	jbsr	enable_interrupts_BBE2            	| [$b72b: call enable_interrupts_BBE2]
+	jbsr	enable_interrupts_BBE8            	| [$b72b: call enable_interrupts_BBE8]
 	rts                                    	| [$b72e: ret]
 	
 * main interrupt (vblank) routine, called every 1/60s
@@ -9122,7 +9113,7 @@ on_periodic_interrupt_B72F:
 	jbsr	l_b77d                            	| [$b76a: call $B77D]
 	move.b	#0x18,d2                        	| [$b76d: ld   c,$18]
 	jbsr	l_b77d                            	| [$b76f: call $B77D]
-	*jbsr	enable_interrupts_BBE2            	| [$b778: call enable_interrupts_BBE2]
+	*jbsr	enable_interrupts_BBE8            	| [$b778: call enable_interrupts_BBE8]
 	rts
 
 l_b77d:
@@ -9183,14 +9174,14 @@ l_b795:
 	move.b	d0,(a0)                         	| [$b7d1: ld   (hl),a]
 
 	move.l	a0,-(sp)                        	| [$b7d2: push hl]
-	movem.w	d1/d2,-(sp)                    	| [$b7d3: push bc]
+	                    	| [$b7d3: push bc]
 	                        	| [$b7d4: ld   c,$06]
 												| [$b7d6: and  a] clear carry
 	subq.w	#6,a0						| [sbc  hl,bc] B=0, C=6
 	move.b	(a2),d0                    	| [$b7d9: ld   a,(ix+$00)]
 	or.b	(a0),d0                           	| [$b7dc: or   (hl)]
 	move.b	d0,(a0)                         	| [$b7dd: ld   (hl),a]
-	movem.w	(sp)+,d1/d2                    	| [$b7de: pop  bc]
+	                    	| [$b7de: pop  bc]
 	move.l	(sp)+,a0                        	| [$b7df: pop  hl]
 l_b7e0:
 	move.w	(sp)+,d0                        	| [$b7e0: pop  af]
@@ -9381,7 +9372,7 @@ l_bacd:
 	and.b	#0x03,d0                         	| [$bad3: and  $03]
 	jne	l_bae5                             	| [$bad5: jp   nz,$BAE5]
 	move.b	nb_credits_minus_one_C024,d0    	| [$bad8: ld   a,(nb_credits_minus_one_C024)]
-	tst.b	d0                               	| [$badb: and  a]
+												| [$badb: and  a]
 	jeq	l_bae5                             	| [$badc: jp   z,$BAE5]
 	clr.b	d0                               	| [$badf: xor  a]
 	move.b	#0x06,d1                        	| [$bae0: ld   b,$06]
@@ -9389,6 +9380,7 @@ l_bacd:
 l_bae5:
 	rts                                    	| [$bae5: ret]
 l_bae6:
+	* one credit per coin
 	tst.b	d0                               	| [$bae6: and  a]
 	jne	l_bafa                             	| [$bae7: jp   nz,$BAFA]
 	move.b	(0x00,a2),d0                    	| [$baea: ld   a,(ix+$00)]
@@ -9400,6 +9392,7 @@ l_bae6:
 	jbsr	display_error_text_B186           	| [$baf4: call nz,display_error_text_B186]
 0:
 	jra	l_bb40                             	| [$baf7: jp   $BB40]
+	* 2 credit per coin
 l_bafa:
 	cmp.b	#0x01,d0                         	| [$bafa: cp   $01]
 	jne	l_bb0f                             	| [$bafc: jp   nz,$BB0F]
@@ -9467,6 +9460,7 @@ set_normal_screen_bb72:
 	rts
 
 * read system port
+check_coin_ports_B069:
 check_coin_ports_BB82:
 	movem.w	d1/d2,-(sp)                    	| [$bb82: push bc]                       	| [$bb82: push bc]
 	jbsr	osd_read_inputs
@@ -9495,11 +9489,12 @@ read_current_player_controls_BB96:
 	moveq	#0,d0
 	rts
 	
+disable_interrupts_B0BD:
 disable_interrupts_BBE2:
 	jbsr		osd_disable_vblank_interrupt
 	rts
-	
-enable_interrupts_BBE2:
+enable_interrupts_b0c0:	
+enable_interrupts_BBE8:
 	jbsr		osd_enable_vblank_interrupt
 	rts
 
