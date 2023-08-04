@@ -49,7 +49,7 @@ ONE_TICK = 1
 	.endif
 
 	.else
-OPT_ENABLE_LOGGING = 1
+OPT_ENABLE_LOGGING = 0
 OPT_ENABLE_PROFILING = 0
 * set to higher values than 1 to speed game up
 ONE_TICK = 1
@@ -817,8 +817,6 @@ osd_update_sprites:
 	bra.b	1b
 
 
-previous_sprites:
-	ds.w	NB_TARGET_SPRITES
 
 ** test sprites for title screen (2 guys fighting)
 test_sprites_title_xy:
@@ -1222,14 +1220,7 @@ alloc_sprite:
 	illegal
 	rts
 	
-* this enables alternate bank selectors
-* (only for ice-pack screen)
 
-osd_set_bank_selectors:
-	move.b	d0,alternate_bank_selectors
-	* alternate bank: enable dynamic sprites
-	bsr		load_palette_in_copperlist
-	rts
 	
 osd_sound_enable:	
 	rts
@@ -1562,6 +1553,7 @@ platform_init:
 	dbf		d1,0b
 	
 	bsr		set_bg_bitplanes
+	lea		palette(pc),a0		| base palette
 	bsr		load_palette_in_copperlist
 	
 	* set copperlist
@@ -1613,12 +1605,6 @@ platform_init:
 	
 load_palette_in_copperlist:
 	movem.l	d0-d1/a0-a1,-(a7)
-	lea		palette,a0
-	tst.b	alternate_bank_selectors
-	beq.b	0f
-	* alternate palette
-	add.w	#32,a0
-0:
 	move.w	#TOTAL_NB_COLORS-1,d0
 	lea		copperlist_colors+2,a1
 1:
@@ -1768,15 +1754,15 @@ osd_w_colorram:
 update_bg_tile:
 	* get current level
 	moveq	#0,d2
-	move.b	background_and_state_bits_C911,d2
-	and.b	#0xF,d2
+	* not working!!
+	move.b	map_index_C900,d2
 	cmp.b	current_background,d2
 	beq.b	0f
 	move.b	d2,current_background
-	lea 	per_level_palette_table(pc),a0
-	add.w	d2,d2
-	add.w	(a0,d2.w),a0	| pointer on palette
-	*bsr		set_palette
+	lea 	palette(pc),a0
+	lsl.w	#5,d2
+	add.w	d2,a0
+	bsr		load_palette_in_copperlist
 0:	
 	* compute Y
 	and.w	#0xFF,d0	| mask up to 255
@@ -2352,6 +2338,9 @@ host_sprites:
 keyboard_table:
 	ds.b	0x100
 
+
+previous_sprites:
+	ds.w	NB_TARGET_SPRITES
 	
 pause_flag:
 	dc.w	0

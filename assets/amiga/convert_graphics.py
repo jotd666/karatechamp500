@@ -137,9 +137,11 @@ palette_256_rounded = [bitplanelib.round_color(x,0xF0) for x in palette_256]
 
 clut_table = [palette_256_rounded[i:i+4] for i in range(0,256,4)]
 
+
 # dump base palette
 with open(os.path.join(src_dir,"palette.68k"),"w") as f:
-    bitplanelib.palette_dump(palette_16,f,pformat=bitplanelib.PALETTE_FORMAT_ASMGNU)
+    for c in palettes_to_try:
+        bitplanelib.palette_dump(c,f,pformat=bitplanelib.PALETTE_FORMAT_ASMGNU)
 
 
 character_codes_list = list()

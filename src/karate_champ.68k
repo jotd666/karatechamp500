@@ -259,10 +259,11 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address_mask:
 
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS a0,a2,00
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS a0,a3,00
+	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS a0,a3,02
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS a0,a3,1b
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS a0,a2,02
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS a0,a2,06
-	
+
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS_MASK	a0,a3,07
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS_MASK	a1,a2,07
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS_MASK	a1,a3,07
@@ -366,7 +367,7 @@ task_address_table_0020:
 	.long	0x544f,task_544f                           	|  $0024
 	.long	0x6491,task_6491                           	|  $0026
 	.long	0x6529,task_6529                           	|  $0028
-	.long	0x7c5d,task_7c5d                           	|  $002a
+	.long	0x7c5d,handle_1up_2up_flashing_7c5d                           	|  $002a
 	.long	0x6f89,task_6f89                           	|  $002c
 	.long	0x6622,task_6622                           	|  $002e
 	.long	0x755b,task_755b                           	|  $0030
@@ -3568,8 +3569,8 @@ l_62a7:
 	lea	table_62D6,a2                  	| [$62ba: ld   ix,table_62D6]
 l_62be:
 	add.w	d1,a2                            	| [$62be: add  ix,bc]
-	move.b	(0x00,a2),d6                    	| [$62c0: ld   l,(ix+$00)]
-	move.b	(0x01,a2),d5                    	| [$62c3: ld   h,(ix+$01)]
+	bsr		load_a0_from_a2_structure_02_address                    	| [$62c0: ld   l,(ix+$00)]
+											| [$62c3: ld   h,(ix+$01)]
 	jbsr	display_multicolor_text_B03C      	| [$62c6: call display_multicolor_text_B03C]
 	rts                                    	| [$62c9: ret]
 table_62CE:
@@ -5912,7 +5913,7 @@ credit_text_7C54:
 	dc.b	0xff | $7c5c
 	.align	2
 	
-task_7c5d:
+handle_1up_2up_flashing_7c5d:
 	move.b	background_and_state_bits_C911,d0	| [$7c5d: ld   a,(background_and_state_bits_C911)]
 	cmp.b	#0x54,d0                         	| [$7c60: cp   $54]
 	move.b	#0x02,d0                        	| [$7c62: ld   a,$02]
@@ -5929,18 +5930,18 @@ task_7c5d:
 l_7c78:
 	subq.b	#1,d0                           	| [$7c78: dec  a]
 	add.b	d0,d0                            	| [$7c79: add  a,a]
-	add.b	d0,d0                            	| [$7c79: add  a,a]
 	clr.w	d1                               	| [$7c7b: ld   b,$00]
 	move.b	d0,d1                           	| [$7c7a: ld   c,a]
-	lea	table_7D06(pc),a2                  	| [$7c7d: ld   ix,table_7D06]
+	* 1UP/2UP flashing
+	lea	game_mem+0x7D06,a2                  	| [$7c7d: ld   ix,table_7D06]
 	add.w	d1,a2                            	| [$7c81: add  ix,bc]
 
-	move.l	(0x00,a2),a0                    	| [$7c83: ld   l,(ix+$00)]
+	bsr		load_a0_from_a2_structure_00_address       	| [$7c83: ld   l,(ix+$00)]
 										| [$7c86: ld   h,(ix+$01)]
 
 	move.l	a0,-(sp)                        	| [$7c89: push hl]
 											| [$7c8a: ld   bc,$0004] 4
-	addq.w	#8,a0                            	| [$7c8d: add  hl,bc]
+	addq.w	#4,a0                            	| [$7c8d: add  hl,bc]
 
 	move.l	a0,a3                        	| [$7c8e: push hl]
 										| [$7c8f: pop  iy]
@@ -5949,7 +5950,7 @@ l_7c78:
 	btst.b	#2,d0                           	| [$7c95: bit  2,a]
 	jne	l_7c9e                             	| [$7c97: jp   nz,$7C9E]
 											| [$7c9a: ld   bc,$0004] 4
-	addq.w	#8,a0                            	| [$7c9d: add  hl,bc]
+	addq.w	#4,a0                            	| [$7c9d: add  hl,bc]
   
 l_7c9e:
 
@@ -5960,15 +5961,15 @@ l_7ca1:
 	move.l	a2,-(sp)                        	| [$7ca1: push ix]
 
 	move.l	a3,-(sp)                        	| [$7ca3: push iy]
-	move.b	(0x00,a2),d6                    	| [$7ca5: ld   l,(ix+$00)]
-	move.b	(0x01,a2),d5                    	| [$7ca8: ld   h,(ix+$01)]
+	bsr		load_a0_from_a2_structure_00_address                    	| [$7ca5: ld   l,(ix+$00)]
+	                    	| [$7ca8: ld   h,(ix+$01)]
 	jbsr	display_multicolor_text_B03C      	| [$7cab: call display_multicolor_text_B03C]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$7cae: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	and.b	#0x0C,d0                         	| [$7cb1: and  $0C]
 	cmp.b	#0x0C,d0                         	| [$7cb3: cp   $0C]
 	jne	l_7cc1                             	| [$7cb5: jp   nz,$7CC1]
-	move.b	(0x00,a3),d6                    	| [$7cb8: ld   l,(iy+$00)]
-	move.b	(0x01,a3),d5                    	| [$7cbb: ld   h,(iy+$01)]
+	bsr		load_a0_from_a3_structure_00_address                    	| [$7cb8: ld   l,(iy+$00)]
+										| [$7cbb: ld   h,(iy+$01)]
 	jbsr	display_multicolor_text_B03C      	| [$7cbe: call display_multicolor_text_B03C]
 l_7cc1:
 	move.b	#0x28,d0                        	| [$7cc1: ld   a,$28]
@@ -5981,15 +5982,13 @@ l_7cc1:
 	move.l	a2,-(sp)                        	| [$7cce: push ix]
 
 	move.l	a3,-(sp)                        	| [$7cd0: push iy]
-	move.b	(0x02,a2),d6                    	| [$7cd2: ld   l,(ix+$02)]
-	move.b	(0x03,a2),d5                    	| [$7cd5: ld   h,(ix+$03)]
+	bsr		load_a0_from_a2_structure_02_address  	| [$7cd2: ld   l,(ix+$02)]
 	jbsr	display_multicolor_text_B03C      	| [$7cd8: call display_multicolor_text_B03C]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$7cdb: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	and.b	#0x0C,d0                         	| [$7cde: and  $0C]
 	cmp.b	#0x0C,d0                         	| [$7ce0: cp   $0C]
 	jne	l_7cee                             	| [$7ce2: jp   nz,$7CEE]
-	move.b	(0x02,a3),d6                    	| [$7ce5: ld   l,(iy+$02)]
-	move.b	(0x03,a3),d5                    	| [$7ce8: ld   h,(iy+$03)]
+	bsr		load_a0_from_a3_structure_02_address                    	| [$7ce5: ld   l,(iy+$02)]
 	jbsr	display_multicolor_text_B03C      	| [$7ceb: call display_multicolor_text_B03C]
 l_7cee:
 	move.b	#0x28,d0                        	| [$7cee: ld   a,$28]
@@ -6004,28 +6003,6 @@ l_7cfa:
 	jbsr	suspend_this_task_B05A            	| [$7cfe: call suspend_this_task_B05A]
 	move.l	(sp)+,a2                        	| [$7d01: pop  ix]
 	jra	l_7ca1                             	| [$7d03: jp   $7CA1]
-table_7D06:
-	.long	table_7d0a                       	|  $7d06
-	.long	table_7d0a                       	|  $7d08
-table_7d0a:
-	.long	table_7d12                       	|  $7d0a
-	.long	table_7d1b                       	|  $7d0c
-	.long	table_7d24                       	|  $7d0e
-	.long	table_7d2d                       	|  $7d10
-table_7d12:
- * 1UP
-	dc.b	0x14,0x03,0x01,0x98,0x1e,0x98,0x19,0x98 | $7d12
-	dc.b	0xff | $7d1a
-table_7d1b:
-	dc.b	0x14,0x03,0x3c,0x98,0x3c,0x98,0x3c,0x98 | $7d1b
-	dc.b	0xff | $7d23
-table_7d24:
- * 2UP
-	dc.b	0x14,0x05,0x02,0x98,0x1e,0x98,0x19,0x98 | $7d24
-	dc.b	0xff | $7d2c
-table_7d2d:
-	dc.b	0x14,0x05,0x3c,0x98,0x3c,0x98,0x3c,0x98 | $7d2d
-	dc.b	0xff | $7d35
 
 
 move_human_player_A34D:
