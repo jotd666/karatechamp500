@@ -30,7 +30,7 @@
 * C910: skill level (see below)
 * background_and_state_bits_C911: background+state bits
 
-* C028: attack flags (red player/red cpu), can be 08,09,0A TODO figure out when????
+* C028: task index (red player/red cpu), can be 08,09, or other
 
 * nb_credits_minus_one_C024: 0 when no credit, then if coin is inserted, set to 1, then
 * immediately decreased, while showing "press 1P button" screen
@@ -5793,9 +5793,9 @@ l_7a98:
 	bne.b	0f
 	rts                                    	| [$7aad: ret  z]
 0:
-	move.b	(0x00,a2),d2                    	| [$7aae: ld   c,(ix+$00)]
 	move.b	(0x01,a2),d1                    	| [$7ab1: ld   b,(ix+$01)]
-
+	lsl.w	#8,d1
+	move.b	(0x00,a2),d1                    	| [$7aae: ld   c,(ix+$00)]
 	move.l	a2,-(sp)                        	| [$7ab4: push ix]
 	jbsr	fill_video_and_attribute_memory_B030	| [$7ab6: call fill_video_and_attribute_memory_B030]
 	move.l	(sp)+,a2                        	| [$7ab9: pop  ix]
@@ -7812,8 +7812,6 @@ clear_sprite_shadow_ram_C7xx_B01E:
 clear_zone_B021:
 	jra	clear_zone_B2BD                    	| [$b021: jp   clear_zone_B2BD]
 
-fill_video_and_attribute_memory_B030:
-	jra	fill_video_and_attribute_memory_B316	| [$b030: jp   fill_video_and_attribute_memory_B316]
 
 display_text_B039:
 	jra	display_text_B357                  	| [$b039: jp   display_text_B357]
@@ -7840,8 +7838,6 @@ load_struct_C100_from_A_index_B04E:
 task_yield_B051:
 	jra		task_yield_B5A5
 	
-task_manipulation_B05D:
-	jra	task_manipulation_B6AE             	| [$b05d: jp   task_manipulation_B6AE]
 
 set_normal_screen_b060:
 	jra	set_normal_screen_bb72                             	| [$b060: jp   $BB72]
@@ -8320,7 +8316,7 @@ compute_screen_address_from_XY_B2F6:
 
 * fill video & attribute memory with an uniform value
 * < d1.W: what to set in attribute memory / what to set in video memory
-
+fill_video_and_attribute_memory_B030:
 fill_video_and_attribute_memory_B316:
 	move.w	#0xD000,d4                      	| [$b316: ld   hl,$D000]
 	move.w	#0xD400,d5                      	| [$b316: ld   hl,$D000]
@@ -8998,6 +8994,7 @@ control_screen_flip_BB6F:
 * < D0: ??
 * < D1: user parameter: when task is resumed, D0 is set to this value
 * > D0 0 or FF
+task_manipulation_B05D:
 task_manipulation_B6AE:
 	jbsr	disable_interrupts_BBE2           	| [$b6ae: call disable_interrupts_BBE2]
 	movem.w	d1/d2,-(sp)                    	| [$b6b1: push bc]
@@ -9052,6 +9049,7 @@ l_b6f9:
 	move.b	d0,(a0)                         	| [$b6fb: ld   (hl),a]
 	move.w	(sp)+,d0                        	| [$b6fc: pop  af]
 	lea	task_struct_C100,a3                	| [$b6fd: ld   iy,task_struct_C100]
+	clr.w	d1
 	move.b	d0,d1                           	| [$b701: ld   b,a]
 	clr.b	d2                               	| [$b702: ld   c,$00]
 	tst.b	d0                               	| [$b704: and  a]
@@ -9140,6 +9138,7 @@ l_b795:
 	move.b	d2,d0                           	| [$b79a: ld   a,c]
 	add.b	d4,d0                            	| [$b79b: add  a,e]
 	movem.w	d1/d2,-(sp)                    	| [$b79c: push bc]
+	moveq	#0,d1
 	move.b	d0,d1                           	| [$b79d: ld   b,a]
 	move.b	d3,d2                           	| [$b79e: ld   c,d]
 	tst.b	d0                               	| [$b79f: and  a]

@@ -9,7 +9,6 @@ import collections
 this_dir = os.path.dirname(__file__)
 src_dir = os.path.join(this_dir,"../../src/amiga")
 ripped_tiles_dir = os.path.join(this_dir,"../tiles")
-dump_dir = os.path.join(this_dir,"dumps")
 
 NB_POSSIBLE_SPRITES = 1536  #64+64 alternate
 
@@ -27,6 +26,19 @@ else:
 
 dump_tiles = False
 dump_sprites = True
+
+if dump_tiles or dump_sprites:
+    dump_dir = os.path.join(this_dir,"dumps")
+    if not os.path.exists(dump_dir):
+        os.mkdir(dump_dir)
+    if dump_tiles:
+        tile_dump_dir = os.path.join(dump_dir,"tiles")
+        if not os.path.exists(tile_dump_dir):
+            os.mkdir(tile_dump_dir)
+    if dump_sprites:
+        sprite_dump_dir = os.path.join(dump_dir,"sprites")
+        if not os.path.exists(sprite_dump_dir):
+            os.mkdir(sprite_dump_dir)
 
 def dump_asm_bytes(*args,**kwargs):
     bitplanelib.dump_asm_bytes(*args,**kwargs,mit_format=True)
@@ -164,7 +176,7 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
 
             if dump_tiles:
                 scaled = ImageOps.scale(img,5,0)
-                scaled.save(os.path.join(dump_dir,f"char_{k:02}_{cidx}.png"))
+                scaled.save(os.path.join(tile_dump_dir,f"char_{k:02}_{cidx}.png"))
         else:
             character_codes.append(None)
     character_codes_list.append(character_codes)
@@ -210,7 +222,7 @@ for k,chardat in enumerate(block_dict["sprite"]["data"]):
 
             if dump_sprites:
                 scaled = ImageOps.scale(img,5,0)
-                scaled.save(os.path.join(dump_dir,f"sprite_{k:02}_{cidx}.png"))
+                scaled.save(os.path.join(sprite_dump_dir,f"sprite_{k:02}_{cidx}.png"))
         else:
             sprite_codes.append(None)
     if any(sprite_codes):
