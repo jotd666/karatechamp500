@@ -1369,7 +1369,7 @@ table_183F:
 3ADD: 3E 02       ld   a,$08
 3ADF: CA E4 9A    jp   z,$3AE4
 3AE2: 3E 03       ld   a,$09
-3AE4: CD 57 B0    call task_manipulation_B05D
+3AE4: CD 57 B0    call set_next_task_B05D
 3AE7: A7          and  a
 3AE8: C4 D5 B0    call nz,display_error_text_B075
 3AEB: AF          xor  a
@@ -1403,7 +1403,7 @@ table_183F:
 3B30: F5          push af
 3B31: 3E 09       ld   a,$03
 3B33: 06 03       ld   b,$09
-3B35: CD 57 B0    call task_manipulation_B05D
+3B35: CD 57 B0    call set_next_task_B05D
 3B38: A7          and  a
 3B39: C4 D5 B0    call nz,display_error_text_B075
 3B3C: F1          pop  af
@@ -1418,17 +1418,17 @@ table_183F:
 3B4D: E5          push hl
 3B4E: C5          push bc
 3B4F: FD E5       push iy
-3B51: CD 57 B0    call task_manipulation_B05D
+3B51: CD 57 B0    call set_next_task_B05D
 3B54: A7          and  a
 3B55: C4 D5 B0    call nz,display_error_text_B075
 3B58: 3E 02       ld   a,$08
 3B5A: 06 03       ld   b,$09
-3B5C: CD 57 B0    call task_manipulation_B05D
+3B5C: CD 57 B0    call set_next_task_B05D
 3B5F: A7          and  a
 3B60: C4 D5 B0    call nz,display_error_text_B075
 3B63: 3E 03       ld   a,$09
 3B65: 06 03       ld   b,$09
-3B67: CD 57 B0    call task_manipulation_B05D
+3B67: CD 57 B0    call set_next_task_B05D
 3B6A: A7          and  a
 3B6B: C4 D5 B0    call nz,display_error_text_B075
 3B6E: FD E1       pop  iy
@@ -1440,7 +1440,7 @@ table_183F:
 3B7F: C1          pop  bc
 3B80: 3E 0D       ld   a,$07
 3B82: FD E5       push iy
-3B84: CD 57 B0    call task_manipulation_B05D
+3B84: CD 57 B0    call set_next_task_B05D
 3B87: A7          and  a
 3B88: C4 D5 B0    call nz,display_error_text_B075
 3B8B: FD E1       pop  iy
@@ -1460,7 +1460,7 @@ table_183F:
 3BB1: 3E 04       ld   a,$04
 3BB3: C5          push bc
 3BB4: FD E5       push iy
-3BB6: CD 57 B0    call task_manipulation_B05D
+3BB6: CD 57 B0    call set_next_task_B05D
 3BB9: A7          and  a
 3BBA: C4 D5 B0    call nz,display_error_text_B075
 3BBD: FD E1       pop  iy
@@ -1491,12 +1491,12 @@ table_183F:
 3BFB: FD E5       push iy
 3BFD: 3E 03       ld   a,$09
 3BFF: 06 03       ld   b,$09
-3C01: CD 57 B0    call task_manipulation_B05D
+3C01: CD 57 B0    call set_next_task_B05D
 3C04: A7          and  a
 3C05: C4 D5 B0    call nz,display_error_text_B075
 3C08: 3E 02       ld   a,$08
 3C0A: 06 03       ld   b,$09
-3C0C: CD 57 B0    call task_manipulation_B05D
+3C0C: CD 57 B0    call set_next_task_B05D
 3C0F: A7          and  a
 3C10: C4 D5 B0    call nz,display_error_text_B075
 3C13: FD E1       pop  iy
@@ -2818,12 +2818,12 @@ get_current_frame_contents_478D:
 4826: C2 8B 42    jp   nz,$482B
 4829: 3E 0B       ld   a,$0B
 482B: 06 09       ld   b,$03
-482D: CD 57 B0    call task_manipulation_B05D
+482D: CD 57 B0    call set_next_task_B05D
 4830: A7          and  a
 4831: C4 D5 B0    call nz,display_error_text_B075
 4834: 3E 08       ld   a,$02
 4836: 06 09       ld   b,$03
-4838: CD 57 B0    call task_manipulation_B05D
+4838: CD 57 B0    call set_next_task_B05D
 483B: A7          and  a
 483C: C4 D5 B0    call nz,display_error_text_B075
 483F: FD E1       pop  iy
@@ -2861,7 +2861,7 @@ get_current_frame_contents_478D:
 4890: 3E 04       ld   a,$04
 4892: 06 08       ld   b,$02
 4894: FD E5       push iy
-4896: CD 57 B0    call task_manipulation_B05D
+4896: CD 57 B0    call set_next_task_B05D
 4899: FD E1       pop  iy
 489B: A7          and  a
 489C: C2 D5 B0    jp   nz,display_error_text_B075
@@ -3415,7 +3415,7 @@ table_4D74:
 4DD2: C4 D5 B0    call nz,display_error_text_B075
 4DD5: 3E 0F       ld   a,$0F
 4DD7: 06 80       ld   b,$20
-4DD9: CD 57 B0    call task_manipulation_B05D
+4DD9: CD 57 B0    call set_next_task_B05D
 4DDC: A7          and  a
 4DDD: C4 D5 B0    call nz,display_error_text_B075
 4DE0: FD E1       pop  iy
@@ -3427,7 +3427,7 @@ table_4D74:
 4DED: FD E1       pop  iy
 4DEF: 3E 01       ld   a,$01
 4DF1: 06 01       ld   b,$01
-4DF3: CD 57 B0    call task_manipulation_B05D
+4DF3: CD 57 B0    call set_next_task_B05D
 4DF6: A7          and  a
 4DF7: C4 D5 B0    call nz,display_error_text_B075
 4DFA: CD 51 B0    call task_yield_B051
@@ -3686,12 +3686,12 @@ table_5040:
 518D: C2 31 51    jp   nz,$5191
 5190: 3C          inc  a
 5191: 06 10       ld   b,$10
-5193: CD 57 B0    call task_manipulation_B05D
+5193: CD 57 B0    call set_next_task_B05D
 5196: A7          and  a
 5197: C4 D5 B0    call nz,display_error_text_B075
 519A: 3E 08       ld   a,$02
 519C: 06 10       ld   b,$10
-519E: CD 57 B0    call task_manipulation_B05D
+519E: CD 57 B0    call set_next_task_B05D
 51A1: A7          and  a
 51A2: C4 D5 B0    call nz,display_error_text_B075
 51A5: FD E1       pop  iy
@@ -3723,7 +3723,7 @@ table_5040:
 51EA: FD 96 19    sub  (iy+$13)
 51ED: 47          ld   b,a
 51EE: 3E 04       ld   a,$04
-51F0: CD 57 B0    call task_manipulation_B05D
+51F0: CD 57 B0    call set_next_task_B05D
 51F3: FD E1       pop  iy
 51F5: 3E 04       ld   a,$04
 51F7: FD 96 19    sub  (iy+$13)
@@ -3742,14 +3742,14 @@ table_5040:
 5215: C2 F6 50    jp   nz,$50FC
 5218: 3E 08       ld   a,$02
 521A: 06 01       ld   b,$01
-521C: CD 57 B0    call task_manipulation_B05D
+521C: CD 57 B0    call set_next_task_B05D
 521F: 3E 0A       ld   a,$0A
 5221: 06 11       ld   b,$11
 5223: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
 5226: CB 56       bit  2,(hl)
 5228: C2 86 58    jp   nz,$522C
 522B: 3C          inc  a
-522C: CD 57 B0    call task_manipulation_B05D
+522C: CD 57 B0    call set_next_task_B05D
 522F: A7          and  a
 5230: C4 D5 B0    call nz,display_error_text_B075
 5233: C3 48 58    jp   $5242
@@ -3941,7 +3941,7 @@ task_53d2:
 5443: CA E4 59    jp   z,$53E4
 5446: 3E 00       ld   a,$00
 5448: 47          ld   b,a
-5449: CD 57 B0    call task_manipulation_B05D
+5449: CD 57 B0    call set_next_task_B05D
 544C: CD 51 B0    call task_yield_B051
 544F: CD 23 DA    call display_background_picture_7A89
 5452: CD 7C DA    call $7AD6
@@ -4084,19 +4084,19 @@ jump_table_547B:
 556F: C2 36 55    jp   nz,$559C
 5572: 3E 0A       ld   a,$0A
 5574: 06 02       ld   b,$08
-5576: CD 57 B0    call task_manipulation_B05D
+5576: CD 57 B0    call set_next_task_B05D
 5579: 3E 0B       ld   a,$0B
 557B: 06 02       ld   b,$08
-557D: CD 57 B0    call task_manipulation_B05D
+557D: CD 57 B0    call set_next_task_B05D
 5580: 3E 02       ld   a,$08
 5582: 06 03       ld   b,$09
-5584: CD 57 B0    call task_manipulation_B05D
+5584: CD 57 B0    call set_next_task_B05D
 5587: 3E 03       ld   a,$09
 5589: 06 03       ld   b,$09
-558B: CD 57 B0    call task_manipulation_B05D
+558B: CD 57 B0    call set_next_task_B05D
 558E: 3E 0D       ld   a,$07
 5590: 06 02       ld   b,$08
-5592: CD 57 B0    call task_manipulation_B05D
+5592: CD 57 B0    call set_next_task_B05D
 5595: A7          and  a
 5596: C4 D5 B0    call nz,display_error_text_B075
 5599: C3 C2 55    jp   $5568
@@ -4169,7 +4169,7 @@ jump_table_547B:
 5640: CD 5A B0    call suspend_this_task_B05A
 5643: 3E 01       ld   a,$01
 5645: 47          ld   b,a
-5646: CD 57 B0    call task_manipulation_B05D
+5646: CD 57 B0    call set_next_task_B05D
 5649: A7          and  a
 564A: C4 D5 B0    call nz,display_error_text_B075
 564D: CD 51 B0    call task_yield_B051
@@ -4237,7 +4237,7 @@ jump_table_547B:
 56E7: CD 5A B0    call suspend_this_task_B05A
 56EA: 3E 01       ld   a,$01
 56EC: 06 08       ld   b,$02
-56EE: CD 57 B0    call task_manipulation_B05D
+56EE: CD 57 B0    call set_next_task_B05D
 56F1: A7          and  a
 56F2: C4 D5 B0    call nz,display_error_text_B075
 56F5: CD 51 B0    call task_yield_B051
@@ -4370,7 +4370,7 @@ jump_table_547B:
 57DC: C4 D5 B0    call nz,display_error_text_B075
 57DF: 3E 01       ld   a,$01
 57E1: 47          ld   b,a
-57E2: CD 57 B0    call task_manipulation_B05D
+57E2: CD 57 B0    call set_next_task_B05D
 57E5: A7          and  a
 57E6: C4 D5 B0    call nz,display_error_text_B075
 57E9: CD 51 B0    call task_yield_B051
@@ -4393,7 +4393,7 @@ jump_table_547B:
 5812: C4 D5 B0    call nz,display_error_text_B075
 5815: 3E 0F       ld   a,$0F
 5817: 06 80       ld   b,$20
-5819: CD 57 B0    call task_manipulation_B05D
+5819: CD 57 B0    call set_next_task_B05D
 581C: A7          and  a
 581D: C4 D5 B0    call nz,display_error_text_B075
 5820: 3E 28       ld   a,$82
@@ -4402,7 +4402,7 @@ jump_table_547B:
 5826: C4 D5 B0    call nz,display_error_text_B075
 5829: 3E 01       ld   a,$01
 582B: 47          ld   b,a
-582C: CD 57 B0    call task_manipulation_B05D
+582C: CD 57 B0    call set_next_task_B05D
 582F: A7          and  a
 5830: C4 D5 B0    call nz,display_error_text_B075
 5833: CD 51 B0    call task_yield_B051
@@ -4467,7 +4467,7 @@ jump_table_547B:
 58B7: CB DE       set  3,(hl)
 58B9: 3E 01       ld   a,$01
 58BB: 06 01       ld   b,$01
-58BD: CD 57 B0    call task_manipulation_B05D
+58BD: CD 57 B0    call set_next_task_B05D
 58C0: A7          and  a
 58C1: C4 D5 B0    call nz,display_error_text_B075
 58C4: CD 51 B0    call task_yield_B051
@@ -4494,7 +4494,7 @@ start_round_58c7:
 58F0: 10 F9       djnz $58E5
 58F2: 3E 01       ld   a,$01
 58F4: 47          ld   b,a
-58F5: CD 57 B0    call task_manipulation_B05D
+58F5: CD 57 B0    call set_next_task_B05D
 58F8: A7          and  a
 58F9: C4 D5 B0    call nz,display_error_text_B075
 58FC: CD 51 B0    call task_yield_B051
@@ -4512,7 +4512,7 @@ start_round_58c7:
 5916: 10 F9       djnz $590B
 5918: 3E 01       ld   a,$01
 591A: 47          ld   b,a
-591B: CD 57 B0    call task_manipulation_B05D
+591B: CD 57 B0    call set_next_task_B05D
 591E: A7          and  a
 591F: C4 D5 B0    call nz,display_error_text_B075
 5922: CD 51 B0    call task_yield_B051
@@ -4546,7 +4546,7 @@ start_round_58c7:
 5964: C4 D5 B0    call nz,display_error_text_B075
 5967: 3E 01       ld   a,$01
 5969: 47          ld   b,a
-596A: CD 57 B0    call task_manipulation_B05D
+596A: CD 57 B0    call set_next_task_B05D
 596D: A7          and  a
 596E: C4 D5 B0    call nz,display_error_text_B075
 5971: CD 51 B0    call task_yield_B051
@@ -4820,7 +4820,7 @@ init_level_params_5BA1:
 5C02: C2 0F 56    jp   nz,$5C0F
 5C05: 3E 01       ld   a,$01
 5C07: 06 01       ld   b,$01
-5C09: CD 57 B0    call task_manipulation_B05D
+5C09: CD 57 B0    call set_next_task_B05D
 5C0C: CD 51 B0    call task_yield_B051
 5C0F: 01 9E A0    ld   bc,$A03E
 5C12: CD 90 B0    call fill_video_and_attribute_memory_B030
@@ -4915,7 +4915,7 @@ init_level_params_5BA1:
 5CED: C4 D5 B0    call nz,display_error_text_B075
 5CF0: 3E 01       ld   a,$01
 5CF2: 06 01       ld   b,$01
-5CF4: CD 57 B0    call task_manipulation_B05D
+5CF4: CD 57 B0    call set_next_task_B05D
 5CF7: CD 51 B0    call task_yield_B051
 table_5CFA:
 	dc.b	0x07,0x13,0x05,0x98,0x00,0x98,0x00,0x98 ; table_5CFA
@@ -5152,7 +5152,7 @@ practice_screen_5f2a:
 5FD3: CD 5A B0    call suspend_this_task_B05A
 5FD6: 3E 0F       ld   a,$0F
 5FD8: 06 80       ld   b,$20
-5FDA: CD 57 B0    call task_manipulation_B05D
+5FDA: CD 57 B0    call set_next_task_B05D
 5FDD: A7          and  a
 5FDE: C4 D5 B0    call nz,display_error_text_B075
 5FE1: 3E D2       ld   a,$78
@@ -5161,7 +5161,7 @@ practice_screen_5f2a:
 5FE7: C4 D5 B0    call nz,display_error_text_B075
 5FEA: 3E 01       ld   a,$01
 5FEC: 06 01       ld   b,$01
-5FEE: CD 57 B0    call task_manipulation_B05D
+5FEE: CD 57 B0    call set_next_task_B05D
 5FF1: A7          and  a
 5FF2: C4 D5 B0    call nz,display_error_text_B075
 5FF5: CD 51 B0    call task_yield_B051
@@ -5303,7 +5303,7 @@ table_602E:
 6144: FD 34 0B    inc  (iy+$0b)
 6147: 3E 04       ld   a,$04
 6149: 06 08       ld   b,$02
-614B: CD 57 B0    call task_manipulation_B05D
+614B: CD 57 B0    call set_next_task_B05D
 614E: 3E 08       ld   a,$02
 6150: CD 12 B0    call $B018
 6153: 3E 00       ld   a,$00
@@ -5315,16 +5315,16 @@ table_602E:
 6163: CA D4 C1    jp   z,$6174
 6166: 3E 0B       ld   a,$0B
 6168: 06 07       ld   b,$0D
-616A: CD 57 B0    call task_manipulation_B05D
+616A: CD 57 B0    call set_next_task_B05D
 616D: A7          and  a
 616E: C4 D5 B0    call nz,display_error_text_B075
 6171: C3 3C C0    jp   $6096
 6174: 3E 0B       ld   a,$0B
 6176: 06 07       ld   b,$0D
-6178: CD 57 B0    call task_manipulation_B05D
+6178: CD 57 B0    call set_next_task_B05D
 617B: 3E 08       ld   a,$02
 617D: 06 0F       ld   b,$0F
-617F: CD 57 B0    call task_manipulation_B05D
+617F: CD 57 B0    call set_next_task_B05D
 6182: A7          and  a
 6183: C4 D5 B0    call nz,display_error_text_B075
 6186: C3 3C C0    jp   $6096
@@ -5342,7 +5342,7 @@ table_602E:
 61A3: 32 C6 68    ld   (unknown_C26C),a
 61A6: 3E 0B       ld   a,$0B
 61A8: 06 07       ld   b,$0D
-61AA: CD 57 B0    call task_manipulation_B05D
+61AA: CD 57 B0    call set_next_task_B05D
 61AD: A7          and  a
 61AE: C4 D5 B0    call nz,display_error_text_B075
 61B1: C3 23 C1    jp   $6189
@@ -5366,7 +5366,7 @@ table_602E:
 61DF: C3 23 C1    jp   $6189
 61E2: 3E 08       ld   a,$02
 61E4: 06 0F       ld   b,$0F
-61E6: CD 57 B0    call task_manipulation_B05D
+61E6: CD 57 B0    call set_next_task_B05D
 61E9: C3 23 C1    jp   $6189
 
 
@@ -5617,7 +5617,7 @@ table_6473:
 64EA: 32 CD 61    ld   (match_timer_C167),a
 64ED: 3E 08       ld   a,$02
 64EF: 06 02       ld   b,$08
-64F1: CD 57 B0    call task_manipulation_B05D
+64F1: CD 57 B0    call set_next_task_B05D
 64F4: A7          and  a
 64F5: C4 D5 B0    call nz,display_error_text_B075
 64F8: CD 51 B0    call task_yield_B051
@@ -5783,7 +5783,7 @@ table_65FB:
 669D: CD D8 B0    call play_sound_B072
 66A0: 3E 09       ld   a,$03
 66A2: 06 0A       ld   b,$0A
-66A4: CD 57 B0    call task_manipulation_B05D
+66A4: CD 57 B0    call set_next_task_B05D
 66A7: A7          and  a
 66A8: C4 D5 B0    call nz,display_error_text_B075
 66AB: 3E 96       ld   a,$3C
@@ -5797,12 +5797,12 @@ table_65FB:
 66B8: C2 00 CD    jp   nz,$6700
 66BB: 3E 0A       ld   a,$0A
 66BD: 06 0A       ld   b,$0A
-66BF: CD 57 B0    call task_manipulation_B05D
+66BF: CD 57 B0    call set_next_task_B05D
 66C2: A7          and  a
 66C3: C4 D5 B0    call nz,display_error_text_B075
 66C6: 3E 0B       ld   a,$0B
 66C8: 06 0A       ld   b,$0A
-66CA: CD 57 B0    call task_manipulation_B05D
+66CA: CD 57 B0    call set_next_task_B05D
 66CD: A7          and  a
 66CE: C4 D5 B0    call nz,display_error_text_B075
 66D1: 3A 00 6D    ld   a,(referee_x_pos_C700)
@@ -5910,15 +5910,15 @@ table_65FB:
 67C7: CD 5A B0    call suspend_this_task_B05A
 67CA: 3E 0B       ld   a,$0B
 67CC: 06 18       ld   b,$12
-67CE: CD 57 B0    call task_manipulation_B05D
+67CE: CD 57 B0    call set_next_task_B05D
 67D1: 3E 0A       ld   a,$0A
 67D3: 06 19       ld   b,$13
-67D5: CD 57 B0    call task_manipulation_B05D
+67D5: CD 57 B0    call set_next_task_B05D
 67D8: 3E 62       ld   a,$C8
 67DA: CD 5A B0    call suspend_this_task_B05A
 67DD: 3E 08       ld   a,$02
 67DF: 47          ld   b,a
-67E0: CD 57 B0    call task_manipulation_B05D
+67E0: CD 57 B0    call set_next_task_B05D
 67E3: A7          and  a
 67E4: C4 D5 B0    call nz,display_error_text_B075
 67E7: CD 51 B0    call task_yield_B051
@@ -5931,15 +5931,15 @@ table_65FB:
 67F9: CD 5A B0    call suspend_this_task_B05A
 67FC: 3E 0A       ld   a,$0A
 67FE: 06 18       ld   b,$12
-6800: CD 57 B0    call task_manipulation_B05D
+6800: CD 57 B0    call set_next_task_B05D
 6803: 3E 0B       ld   a,$0B
 6805: 06 19       ld   b,$13
-6807: CD 57 B0    call task_manipulation_B05D
+6807: CD 57 B0    call set_next_task_B05D
 680A: 3E 62       ld   a,$C8
 680C: CD 5A B0    call suspend_this_task_B05A
 680F: 3E 08       ld   a,$02
 6811: 06 01       ld   b,$01
-6813: CD 57 B0    call task_manipulation_B05D
+6813: CD 57 B0    call set_next_task_B05D
 6816: A7          and  a
 6817: C4 D5 B0    call nz,display_error_text_B075
 681A: CD 51 B0    call task_yield_B051
@@ -5951,7 +5951,7 @@ table_65FB:
 6825: C4 D5 B0    call nz,display_error_text_B075
 6828: 3E 0F       ld   a,$0F
 682A: 06 03       ld   b,$09
-682C: CD 57 B0    call task_manipulation_B05D
+682C: CD 57 B0    call set_next_task_B05D
 682F: C1          pop  bc
 6830: F1          pop  af
 6831: C5          push bc
@@ -5964,7 +5964,7 @@ table_65FB:
 6841: CD D8 B0    call play_sound_B072
 6844: 3E 09       ld   a,$03
 6846: 06 03       ld   b,$09
-6848: CD 57 B0    call task_manipulation_B05D
+6848: CD 57 B0    call set_next_task_B05D
 684B: A7          and  a
 684C: C4 D5 B0    call nz,display_error_text_B075
 684F: CD 86 C6    call clear_text_6C2C
@@ -5987,12 +5987,12 @@ table_65FB:
 687A: CD 97 CB    call $6B3D
 687D: 3E 0A       ld   a,$0A
 687F: 06 18       ld   b,$12
-6881: CD 57 B0    call task_manipulation_B05D
+6881: CD 57 B0    call set_next_task_B05D
 6884: 3E C4       ld   a,$64
 6886: CD 5A B0    call suspend_this_task_B05A
 6889: 3E 08       ld   a,$02
 688B: 06 01       ld   b,$01
-688D: CD 57 B0    call task_manipulation_B05D
+688D: CD 57 B0    call set_next_task_B05D
 6890: A7          and  a
 6891: C4 D5 B0    call nz,display_error_text_B075
 6894: 3E 09       ld   a,$03
@@ -6015,12 +6015,12 @@ table_65FB:
 68C3: CD DD CB    call $6B77
 68C6: 3E 0B       ld   a,$0B
 68C8: 06 18       ld   b,$12
-68CA: CD 57 B0    call task_manipulation_B05D
+68CA: CD 57 B0    call set_next_task_B05D
 68CD: 3E 62       ld   a,$C8
 68CF: CD 5A B0    call suspend_this_task_B05A
 68D2: 3E 08       ld   a,$02
 68D4: 47          ld   b,a
-68D5: CD 57 B0    call task_manipulation_B05D
+68D5: CD 57 B0    call set_next_task_B05D
 68D8: A7          and  a
 68D9: C4 D5 B0    call nz,display_error_text_B075
 68DC: 3E 09       ld   a,$03
@@ -6032,7 +6032,7 @@ table_65FB:
 68EC: CD D8 B0    call play_sound_B072
 68EF: 3E 09       ld   a,$03
 68F1: 06 03       ld   b,$09
-68F3: CD 57 B0    call task_manipulation_B05D
+68F3: CD 57 B0    call set_next_task_B05D
 68F6: A7          and  a
 68F7: C4 D5 B0    call nz,display_error_text_B075
 68FA: CD 86 C6    call clear_text_6C2C
@@ -6082,12 +6082,12 @@ table_65FB:
 696D: C4 D5 B0    call nz,display_error_text_B075
 6970: 3E 0A       ld   a,$0A
 6972: 06 00       ld   b,$00
-6974: CD 57 B0    call task_manipulation_B05D
+6974: CD 57 B0    call set_next_task_B05D
 6977: A7          and  a
 6978: C4 D5 B0    call nz,display_error_text_B075
 697B: 3E 0B       ld   a,$0B
 697D: 06 00       ld   b,$00
-697F: CD 57 B0    call task_manipulation_B05D
+697F: CD 57 B0    call set_next_task_B05D
 6982: A7          and  a
 6983: C4 D5 B0    call nz,display_error_text_B075
 6986: CD CB CA    call $6A6B
@@ -7165,7 +7165,7 @@ table_75C1:
 75E3: 32 46 68    ld   (unknown_C24C),a
 75E6: 3E 0A       ld   a,$0A
 75E8: 06 07       ld   b,$0D
-75EA: CD 57 B0    call task_manipulation_B05D
+75EA: CD 57 B0    call set_next_task_B05D
 75ED: A7          and  a
 75EE: C4 D5 B0    call nz,display_error_text_B075
 75F1: C3 67 D5    jp   $75CD
@@ -7187,14 +7187,14 @@ table_75C1:
 7617: C5          push bc
 7618: 3E 0A       ld   a,$0A
 761A: 06 07       ld   b,$0D
-761C: CD 57 B0    call task_manipulation_B05D
+761C: CD 57 B0    call set_next_task_B05D
 761F: A7          and  a
 7620: C4 D5 B0    call nz,display_error_text_B075
 7623: C3 FE D5    jp   $75FE
 7626: DD E5       push ix
 7628: 3E 0A       ld   a,$0A
 762A: 06 07       ld   b,$0D
-762C: CD 57 B0    call task_manipulation_B05D
+762C: CD 57 B0    call set_next_task_B05D
 762F: A7          and  a
 7630: C4 D5 B0    call nz,display_error_text_B075
 7633: DD E1       pop  ix
@@ -7287,14 +7287,14 @@ table_76BD:
 76EC: C5          push bc
 76ED: 3E 0B       ld   a,$0B
 76EF: 06 07       ld   b,$0D
-76F1: CD 57 B0    call task_manipulation_B05D
+76F1: CD 57 B0    call set_next_task_B05D
 76F4: A7          and  a
 76F5: C4 D5 B0    call nz,display_error_text_B075
 76F8: C3 79 DC    jp   $76D3
 76FB: DD E5       push ix
 76FD: 3E 0B       ld   a,$0B
 76FF: 06 07       ld   b,$0D
-7701: CD 57 B0    call task_manipulation_B05D
+7701: CD 57 B0    call set_next_task_B05D
 7704: A7          and  a
 7705: C4 D5 B0    call nz,display_error_text_B075
 7708: DD E1       pop  ix
@@ -7324,7 +7324,7 @@ table_7727:
 7742: 32 C6 68    ld   (unknown_C26C),a
 7745: 3E 0B       ld   a,$0B
 7747: 06 07       ld   b,$0D
-7749: CD 57 B0    call task_manipulation_B05D
+7749: CD 57 B0    call set_next_task_B05D
 774C: A7          and  a
 774D: C4 D5 B0    call nz,display_error_text_B075
 7750: C3 86 DD    jp   $772C
@@ -7444,7 +7444,7 @@ table_78b7:
 794D: CD 54 B0    call resume_task_B054
 7950: 3E 01       ld   a,$01
 7952: 47          ld   b,a
-7953: CD 57 B0    call task_manipulation_B05D
+7953: CD 57 B0    call set_next_task_B05D
 7956: A7          and  a
 7957: C4 D5 B0    call nz,display_error_text_B075
 795A: CD 51 B0    call task_yield_B051
@@ -9155,7 +9155,7 @@ A415: 3E 0B       ld   a,$0B
 A417: CA 16 A4    jp   z,$A41C
 A41A: 3E 0A       ld   a,$0A
 A41C: 06 07       ld   b,$0D
-A41E: CD 57 B0    call task_manipulation_B05D
+A41E: CD 57 B0    call set_next_task_B05D
 A421: A7          and  a
 A422: C4 D5 B0    call nz,display_error_text_B075
 A425: C3 DB A9    jp   fight_mainloop_A37B
@@ -10762,8 +10762,8 @@ schedule_task_to_start_B057:
 B057: C3 80 BC    jp   schedule_task_to_start_B620
 suspend_this_task_B05A:
 B05A: C3 5E BC    jp   suspend_this_task_B65E
-task_manipulation_B05D:
-B05D: C3 AE BC    jp   task_manipulation_B6AE
+set_next_task_B05D:
+B05D: C3 AE BC    jp   set_next_task_B6AE
 set_normal_screen_b060:
 B060: C3 D8 BB    jp   set_normal_screen_bb72
 B063: C3 DA BB    jp   $BB7A
@@ -11791,7 +11791,7 @@ B6A8: FD 74 01    ld   (iy+$01),h
 B6AB: C3 27 B4    jp   jump_to_mainloop_B48D
 
 ; seems to suspend and also resume a task...
-task_manipulation_B6AE:
+set_next_task_B6AE:
 B6AE: CD E8 BB    call disable_interrupts_BBE2
 B6B1: C5          push bc
 B6B2: F5          push af
@@ -12156,7 +12156,7 @@ BADB: A7          and  a
 BADC: CA E5 BA    jp   z,$BAE5
 BADF: AF          xor  a
 BAE0: 06 0C       ld   b,$06
-BAE2: CD AE BC    call task_manipulation_B6AE
+BAE2: CD AE BC    call set_next_task_B6AE
 BAE5: C9          ret
 BAE6: A7          and  a
 BAE7: C2 FA BA    jp   nz,$BAFA
@@ -12371,7 +12371,7 @@ E012: FE 09       cp   $03
 E014: C2 81 E0    jp   nz,$E021
 E017: 3E 01       ld   a,$01
 E019: 06 01       ld   b,$01
-E01B: CD AE BC    call task_manipulation_B6AE
+E01B: CD AE BC    call set_next_task_B6AE
 E01E: CD A5 B5    call task_yield_B5A5
 
 E021: 3E 04       ld   a,$04
@@ -12396,16 +12396,16 @@ E047: F1          pop  af
 E048: 47          ld   b,a
 E049: F5          push af
 E04A: 3E 15       ld   a,$15
-E04C: CD AE BC    call task_manipulation_B6AE
+E04C: CD AE BC    call set_next_task_B6AE
 E04F: F1          pop  af
 E050: 47          ld   b,a
 E051: F5          push af
 E052: 3E 1C       ld   a,$16
-E054: CD AE BC    call task_manipulation_B6AE
+E054: CD AE BC    call set_next_task_B6AE
 E057: F1          pop  af
 E058: 47          ld   b,a
 E059: 3E 1D       ld   a,$17
-E05B: CD AE BC    call task_manipulation_B6AE
+E05B: CD AE BC    call set_next_task_B6AE
 E05E: CD D4 B5    call load_iy_with_player_structure_B574
 E061: E1          pop  hl
 E062: FD 36 17 00 ld   (iy+$1d),$00
@@ -12468,7 +12468,7 @@ E0E6: DD 7E 01    ld   a,(ix+$01)
 E0E9: DD 46 08    ld   b,(ix+$02)
 E0EC: DD E5       push ix
 E0EE: FD E5       push iy
-E0F0: CD AE BC    call task_manipulation_B6AE
+E0F0: CD AE BC    call set_next_task_B6AE
 E0F3: FD E1       pop  iy
 E0F5: DD E1       pop  ix
 E0F7: 01 09 00    ld   bc,$0003
@@ -12656,7 +12656,7 @@ E27E: C8          ret  z
 E27F: FD E5       push iy
 E281: 3E 0F       ld   a,$0F
 E283: 06 01       ld   b,$01
-E285: CD AE BC    call task_manipulation_B6AE
+E285: CD AE BC    call set_next_task_B6AE
 E288: FD E1       pop  iy
 E28A: 3E 09       ld   a,$03
 E28C: CD 00 E9    call $E300
@@ -12756,7 +12756,7 @@ E366: C1          pop  bc
 E367: 10 64       djnz $E32D
 E369: 3E 01       ld   a,$01
 E36B: 06 01       ld   b,$01
-E36D: CD AE BC    call task_manipulation_B6AE
+E36D: CD AE BC    call set_next_task_B6AE
 E370: CD A5 B5    call task_yield_B5A5
 table_E373:
 	dc.b	0x08,0x1d,0x0c,0xa0,0x11,0xa0,0x0a,0xa0 ; table_E373
@@ -12893,12 +12893,12 @@ E52D: 3E 01       ld   a,$01
 E52F: CD 5E BC    call suspend_this_task_B65E
 E532: 3E 0C       ld   a,$06
 E534: 06 0C       ld   b,$06
-E536: CD AE BC    call task_manipulation_B6AE
+E536: CD AE BC    call set_next_task_B6AE
 E539: 3E 20       ld   a,$80
 E53B: CD 5E BC    call suspend_this_task_B65E
 E53E: 3E 01       ld   a,$01
 E540: 06 01       ld   b,$01
-E542: CD AE BC    call task_manipulation_B6AE
+E542: CD AE BC    call set_next_task_B6AE
 E545: CD A5 B5    call task_yield_B5A5
 table_E548:
 	dc.b	0x0c,0x19,0xee,0xa3,0x3d,0xa0,0x3d,0xa0 ; table_E548
@@ -12982,7 +12982,7 @@ E5F8: DA 7E E5    jp   c,$E5DE
 E5FB: FD 46 01    ld   b,(iy+$01)
 E5FE: C5          push bc
 E5FF: 3E 1C       ld   a,$16
-E601: CD AE BC    call task_manipulation_B6AE
+E601: CD AE BC    call set_next_task_B6AE
 E604: 3E 08       ld   a,$02
 E606: CD 2E B5    call load_struct_C100_from_A_index_B58E
 E609: FD 36 03 62 ld   (iy+$09),$C8
@@ -12997,7 +12997,7 @@ E61B: 3E 40       ld   a,$40
 E61D: CD 5E BC    call suspend_this_task_B65E
 E620: C1          pop  bc
 E621: 3E 04       ld   a,$04
-E623: CD AE BC    call task_manipulation_B6AE
+E623: CD AE BC    call set_next_task_B6AE
 E626: 3E 00       ld   a,$00
 E628: CD 5E BC    call suspend_this_task_B65E
 perfect_text_E62B:
@@ -13143,12 +13143,12 @@ E7B8: F1          pop  af
 E7B9: CD AB B1    call $B1AB
 E7BC: 3E 0C       ld   a,$06
 E7BE: 06 0C       ld   b,$06
-E7C0: CD AE BC    call task_manipulation_B6AE
+E7C0: CD AE BC    call set_next_task_B6AE
 E7C3: 3E 20       ld   a,$80
 E7C5: CD 5E BC    call suspend_this_task_B65E
 E7C8: 3E 01       ld   a,$01
 E7CA: 06 01       ld   b,$01
-E7CC: CD AE BC    call task_manipulation_B6AE
+E7CC: CD AE BC    call set_next_task_B6AE
 E7CF: CD A5 B5    call task_yield_B5A5
 E7D2: CD 64 F7    call clear_score_text_FDC4
 E7D5: CD 44 F7    call display_players_rank_FD44
@@ -13316,7 +13316,7 @@ E920: CD FF EB    call $EBFF
 E923: FD E1       pop  iy
 E925: FD 46 08    ld   b,(iy+$02)
 E928: 3E 1D       ld   a,$17
-E92A: CD AE BC    call task_manipulation_B6AE
+E92A: CD AE BC    call set_next_task_B6AE
 E92D: CD A5 B5    call task_yield_B5A5
 table_E92E:
 	dc.b	0xa5,0xb5 ; $e92e
@@ -13359,7 +13359,7 @@ E97F: 21 8B EC    ld   hl,perfect_text_E62B
 E982: CD 31 B9    call display_multicolor_text_B391
 E985: 3E 0F       ld   a,$0F
 E987: 06 80       ld   b,$20
-E989: CD AE BC    call task_manipulation_B6AE
+E989: CD AE BC    call set_next_task_B6AE
 E98C: A7          and  a
 E98D: C4 2C B1    call nz,display_error_text_B186
 E990: 06 0B       ld   b,$0B
@@ -13371,7 +13371,7 @@ E999: FD 36 03 62 ld   (iy+$09),$C8
 E99D: FD 36 0A 60 ld   (iy+$0a),$C0
 E9A1: 3E 04       ld   a,$04
 E9A3: C5          push bc
-E9A4: CD AE BC    call task_manipulation_B6AE
+E9A4: CD AE BC    call set_next_task_B6AE
 E9A7: C1          pop  bc
 E9A8: 78          ld   a,b
 E9A9: FE 0B       cp   $0B
@@ -13382,7 +13382,7 @@ E9B3: 3E 20       ld   a,$80
 E9B5: CD 5E BC    call suspend_this_task_B65E
 E9B8: 3E 01       ld   a,$01
 E9BA: 06 01       ld   b,$01
-E9BC: CD AE BC    call task_manipulation_B6AE
+E9BC: CD AE BC    call set_next_task_B6AE
 E9BF: CD A5 B5    call task_yield_B5A5
 
 
@@ -13676,7 +13676,7 @@ ED75: C1          pop  bc
 ED76: 10 E8       djnz $ED5A
 ED78: 3E 01       ld   a,$01
 ED7A: 06 01       ld   b,$01
-ED7C: CD AE BC    call task_manipulation_B6AE
+ED7C: CD AE BC    call set_next_task_B6AE
 ED7F: CD A5 B5    call task_yield_B5A5
 
 display_upper_cyan_part_ed82:
@@ -13990,7 +13990,7 @@ F320: 10 ED       djnz $F309
 F322: E1          pop  hl
 F323: 3E 01       ld   a,$01
 F325: 06 01       ld   b,$01
-F327: CD AE BC    call task_manipulation_B6AE
+F327: CD AE BC    call set_next_task_B6AE
 F32A: CD A5 B5    call task_yield_B5A5
 F32D: 3E 0C       ld   a,$06
 F32F: 90          sub  b
@@ -13999,7 +13999,7 @@ F331: FD E5       push iy
 F333: DD E5       push ix
 F335: 47          ld   b,a
 F336: 3E 1C       ld   a,$16
-F338: CD AE BC    call task_manipulation_B6AE
+F338: CD AE BC    call set_next_task_B6AE
 F33B: DD E1       pop  ix
 F33D: FD E1       pop  iy
 F33F: C1          pop  bc
@@ -14398,7 +14398,7 @@ F6D6: 3E 90       ld   a,$30
 F6D8: CD 5E BC    call suspend_this_task_B65E
 F6DB: 3E 01       ld   a,$01
 F6DD: 06 01       ld   b,$01
-F6DF: CD AE BC    call task_manipulation_B6AE
+F6DF: CD AE BC    call set_next_task_B6AE
 F6E2: CD A5 B5    call task_yield_B5A5
 ; copy contents of ROM in $C040
 init_C040_F6E5:

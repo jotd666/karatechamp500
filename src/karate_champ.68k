@@ -372,8 +372,8 @@ task_address_table_0020:
 	.long	0x6622,task_6622                           	|  $002e
 	.long	0x755b,task_755b                           	|  $0030
 	.long	0x7657,task_7657                           	|  $0032
-	.long	0x3a9c,task_3a9c                           	|  $0034
-	.long	0x3a9c,task_3a9c                           	|  $0036
+	.long	0x3a9c,player_task_3a9c                           	|  $0034
+	.long	0x3a9c,player_task_3a9c                           	|  $0036
 	.long	0x0000,task_illegal
 	.long	0x0000,task_illegal
 	.long	0x0000,task_illegal
@@ -424,7 +424,7 @@ task_\offset:
 	taskstub	50f2   
  
 * one task per player
-task_3a9c:
+player_task_3a9c:
 	jbsr	load_iy_with_player_structure_B04B	| [$3a9c: call load_iy_with_player_structure_B04B]
 	jbsr	clear_player_structure_partial_b012	| [$3a9f: call clear_player_structure_partial_b012]
 	jbsr	l_3c41                            	| [$3aa2: call $3C41]
@@ -432,6 +432,7 @@ l_3aa5:
 	jbsr	init_title_screen_3cb0                            	| [$3aa5: call $3CB0]
 	jbsr	l_40b3                            	| [$3aa8: call $40B3]
 	* initial display of white/red CPU player
+	* "fork" task depending on the player
 	jbsr	display_player_sprite_4153                            	| [$3aab: call $4153]
 	move.b	background_and_state_bits_C911,d0	| [$3aae: ld   a,(background_and_state_bits_C911)]
 	and.b	#0x70,d0                         	| [$3ab1: and  $70]
@@ -446,6 +447,7 @@ l_3aa5:
 	move.l	a3,-(sp)                        	| [$3ac3: push iy]
 	jbsr	suspend_this_task_B05A            	| [$3ac5: call suspend_this_task_B05A]
 	move.l	(sp)+,a3                        	| [$3ac8: pop  iy]
+	* check task ID when it resumes
 	cmp.b	#0x08,d0                         	| [$3aca: cp   $08]
 	jeq	l_3bf8                             	| [$3acc: jp   z,$3BF8]
 	cmp.b	#0x0A,d0                         	| [$3acf: cp   $0A]
@@ -464,7 +466,7 @@ l_3ad4:
 l_3ae4:
 	move.b	#0x08,d0                        	| [$3add: ld   a,$08]
 0:
-	jbsr	task_manipulation_B05D            	| [$3ae4: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$3ae4: call set_next_task_B05D]
 	tst.b	d0                               	| [$3ae7: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$3ae8: call nz,display_error_text_B075]
@@ -488,6 +490,8 @@ l_3ae4:
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$3b11: call nz,display_error_text_B075]
 0:
+	move.b	current_task_index_C028,0X108
+	
 	jbsr	handle_player_movement_3ea7                            	| [$3b14: call $3EA7]
 	jbsr	l_479a                            	| [$3b17: call $479A]
 	jbsr	l_4663                            	| [$3b1a: call $4663]
@@ -507,7 +511,7 @@ l_3ae4:
 	move.w	d0,-(sp)                        	| [$3b30: push af]
 	move.b	#0x03,d0                        	| [$3b31: ld   a,$03]
 	move.b	#0x09,d1                        	| [$3b33: ld   b,$09]
-	jbsr	task_manipulation_B05D            	| [$3b35: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$3b35: call set_next_task_B05D]
 	tst.b	d0                               	| [$3b38: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$3b39: call nz,display_error_text_B075]
@@ -529,21 +533,21 @@ l_3b4d:
 	movem.w	d1/d2,-(sp)                    	| [$3b4e: push bc]
 
 	move.l	a3,-(sp)                        	| [$3b4f: push iy]
-	jbsr	task_manipulation_B05D            	| [$3b51: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$3b51: call set_next_task_B05D]
 	tst.b	d0                               	| [$3b54: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$3b55: call nz,display_error_text_B075]
 0:
 	move.b	#0x08,d0                        	| [$3b58: ld   a,$08]
 	move.b	#0x09,d1                        	| [$3b5a: ld   b,$09]
-	jbsr	task_manipulation_B05D            	| [$3b5c: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$3b5c: call set_next_task_B05D]
 	tst.b	d0                               	| [$3b5f: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$3b60: call nz,display_error_text_B075]
 0:
 	move.b	#0x09,d0                        	| [$3b63: ld   a,$09]
 	move.b	#0x09,d1                        	| [$3b65: ld   b,$09]
-	jbsr	task_manipulation_B05D            	| [$3b67: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$3b67: call set_next_task_B05D]
 	tst.b	d0                               	| [$3b6a: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$3b6b: call nz,display_error_text_B075]
@@ -558,7 +562,7 @@ l_3b4d:
 	move.b	#0x07,d0                        	| [$3b80: ld   a,$07]
 
 	move.l	a3,-(sp)                        	| [$3b82: push iy]
-	jbsr	task_manipulation_B05D            	| [$3b84: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$3b84: call set_next_task_B05D]
 	tst.b	d0                               	| [$3b87: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$3b88: call nz,display_error_text_B075]
@@ -587,7 +591,7 @@ l_3bb0:
 	movem.w	d1/d2,-(sp)                    	| [$3bb3: push bc]
 
 	move.l	a3,-(sp)                        	| [$3bb4: push iy]
-	jbsr	task_manipulation_B05D            	| [$3bb6: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$3bb6: call set_next_task_B05D]
 	tst.b	d0                               	| [$3bb9: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$3bba: call nz,display_error_text_B075]
@@ -627,14 +631,14 @@ l_3bf8:
 	move.l	a3,-(sp)                        	| [$3bfb: push iy]
 	move.b	#0x09,d0                        	| [$3bfd: ld   a,$09]
 	move.b	#0x09,d1                        	| [$3bff: ld   b,$09]
-	jbsr	task_manipulation_B05D            	| [$3c01: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$3c01: call set_next_task_B05D]
 	tst.b	d0                               	| [$3c04: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$3c05: call nz,display_error_text_B075]
 0:
 	move.b	#0x08,d0                        	| [$3c08: ld   a,$08]
 	move.b	#0x09,d1                        	| [$3c0a: ld   b,$09]
-	jbsr	task_manipulation_B05D            	| [$3c0c: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$3c0c: call set_next_task_B05D]
 	tst.b	d0                               	| [$3c0f: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$3c10: call nz,display_error_text_B075]
@@ -789,7 +793,7 @@ init_player_data_3D00:
 	rts                                    	| [$3d16: ret]
 	
 * probably move related, but not A.I. related (player movement)
-l_3db7:
+read_players_joysticks_3bd7:
 	jbsr	load_iy_with_player_structure_B04B	| [$3db7: call load_iy_with_player_structure_B04B]
 	move.b	current_task_index_C028,d0   	| [$3dba: ld   a,(current_task_index_C028)]
 	cmp.b	#0x08,d0                         	| [$3dbd: cp   $08]
@@ -2083,7 +2087,7 @@ l_4dbe:
 0:
 	move.b	#0x0F,d0                        	| [$4dd5: ld   a,$0F]
 	move.b	#0x20,d1                        	| [$4dd7: ld   b,$20]
-	jbsr	task_manipulation_B05D            	| [$4dd9: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$4dd9: call set_next_task_B05D]
 	tst.b	d0                               	| [$4ddc: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$4ddd: call nz,display_error_text_B075]
@@ -2101,7 +2105,7 @@ l_4de0:
 	move.l	(sp)+,a3                        	| [$4ded: pop  iy]
 	move.b	#0x01,d0                        	| [$4def: ld   a,$01]
 	move.b	#0x01,d1                        	| [$4df1: ld   b,$01]
-	jbsr	task_manipulation_B05D            	| [$4df3: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$4df3: call set_next_task_B05D]
 	tst.b	d0                               	| [$4df6: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$4df7: call nz,display_error_text_B075]
@@ -2396,7 +2400,7 @@ l_540e:
 	jeq	l_53e4                             	| [$5443: jp   z,$53E4]
 	clr.b	d0                               	| [$5446: ld   a,$00]
 	move.b	d0,d1                           	| [$5448: ld   b,a]
-	jbsr	task_manipulation_B05D            	| [$5449: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$5449: call set_next_task_B05D]
 	jbsr	task_yield_B051                  	| [$544c: call task_yield_B051]
 task_544f:
 	jbsr	display_background_picture_7A89                            	| [$544f: call $7A89]
@@ -2557,19 +2561,19 @@ l_5568:
 	jne	l_559c                             	| [$556f: jp   nz,$559C]
 	move.b	#0x0A,d0                        	| [$5572: ld   a,$0A]
 	move.b	#0x08,d1                        	| [$5574: ld   b,$08]
-	jbsr	task_manipulation_B05D            	| [$5576: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$5576: call set_next_task_B05D]
 	move.b	#0x0B,d0                        	| [$5579: ld   a,$0B]
 	move.b	#0x08,d1                        	| [$557b: ld   b,$08]
-	jbsr	task_manipulation_B05D            	| [$557d: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$557d: call set_next_task_B05D]
 	move.b	#0x08,d0                        	| [$5580: ld   a,$08]
 	move.b	#0x09,d1                        	| [$5582: ld   b,$09]
-	jbsr	task_manipulation_B05D            	| [$5584: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$5584: call set_next_task_B05D]
 	move.b	#0x09,d0                        	| [$5587: ld   a,$09]
 	move.b	#0x09,d1                        	| [$5589: ld   b,$09]
-	jbsr	task_manipulation_B05D            	| [$558b: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$558b: call set_next_task_B05D]
 	move.b	#0x07,d0                        	| [$558e: ld   a,$07]
 	move.b	#0x08,d1                        	| [$5590: ld   b,$08]
-	jbsr	task_manipulation_B05D            	| [$5592: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$5592: call set_next_task_B05D]
 	tst.b	d0                               	| [$5595: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$5596: call nz,display_error_text_B075]
@@ -2652,7 +2656,7 @@ l_5638:
 l_5643:
 	move.b	#0x01,d0                        	| [$5643: ld   a,$01]
 	move.b	d0,d1                           	| [$5645: ld   b,a]
-	jbsr	task_manipulation_B05D            	| [$5646: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$5646: call set_next_task_B05D]
 	tst.b	d0                               	| [$5649: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$564a: call nz,display_error_text_B075]
@@ -2728,7 +2732,7 @@ l_56df:
 l_56ea:
 	move.b	#0x01,d0                        	| [$56ea: ld   a,$01]
 	move.b	#0x02,d1                        	| [$56ec: ld   b,$02]
-	jbsr	task_manipulation_B05D            	| [$56ee: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$56ee: call set_next_task_B05D]
 	tst.b	d0                               	| [$56f1: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$56f2: call nz,display_error_text_B075]
@@ -2767,7 +2771,7 @@ l_58e5:
 	jne	l_58e5                             	| [$58f0: djnz $58E5]
 	move.b	#0x01,d0                        	| [$58f2: ld   a,$01]
 	move.b	d0,d1                           	| [$58f4: ld   b,a]
-	jbsr	task_manipulation_B05D            	| [$58f5: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$58f5: call set_next_task_B05D]
 	tst.b	d0                               	| [$58f8: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$58f9: call nz,display_error_text_B075]
@@ -2792,7 +2796,7 @@ l_590b:
 	jne	l_590b                             	| [$5916: djnz $590B]
 	move.b	#0x01,d0                        	| [$5918: ld   a,$01]
 	move.b	d0,d1                           	| [$591a: ld   b,a]
-	jbsr	task_manipulation_B05D            	| [$591b: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$591b: call set_next_task_B05D]
 	tst.b	d0                               	| [$591e: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$591f: call nz,display_error_text_B075]
@@ -2836,7 +2840,7 @@ l_5959:
 0:
 	move.b	#0x01,d0                        	| [$5967: ld   a,$01]
 	move.b	d0,d1                           	| [$5969: ld   b,a]
-	jbsr	task_manipulation_B05D            	| [$596a: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$596a: call set_next_task_B05D]
 	tst.b	d0                               	| [$596d: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$596e: call nz,display_error_text_B075]
@@ -3240,7 +3244,7 @@ l_5fd1:
 	jbsr	suspend_this_task_B05A            	| [$5fd3: call suspend_this_task_B05A]
 	move.b	#0x0F,d0                        	| [$5fd6: ld   a,$0F]
 	move.b	#0x20,d1                        	| [$5fd8: ld   b,$20]
-	jbsr	task_manipulation_B05D            	| [$5fda: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$5fda: call set_next_task_B05D]
 	tst.b	d0                               	| [$5fdd: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$5fde: call nz,display_error_text_B075]
@@ -3254,7 +3258,7 @@ l_5fd1:
 l_5fea:
 	move.b	#0x01,d0                        	| [$5fea: ld   a,$01]
 	move.b	#0x01,d1                        	| [$5fec: ld   b,$01]
-	jbsr	task_manipulation_B05D            	| [$5fee: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$5fee: call set_next_task_B05D]
 	tst.b	d0                               	| [$5ff1: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$5ff2: call nz,display_error_text_B075]
@@ -3384,7 +3388,7 @@ l_6117:
 	addq.b	#1,(0x0b,a3)                    	| [$6144: inc  (iy+$0b)]
 	move.b	#0x04,d0                        	| [$6147: ld   a,$04]
 	move.b	#0x02,d1                        	| [$6149: ld   b,$02]
-	jbsr	task_manipulation_B05D            	| [$614b: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$614b: call set_next_task_B05D]
 	move.b	#0x02,d0                        	| [$614e: ld   a,$02]
 	jbsr	l_b018                            	| [$6150: call $B018]
 l_6153:
@@ -3398,7 +3402,7 @@ l_6153:
 l_6166:
 	move.b	#0x0B,d0                        	| [$6166: ld   a,$0B]
 	move.b	#0x0D,d1                        	| [$6168: ld   b,$0D]
-	jbsr	task_manipulation_B05D            	| [$616a: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$616a: call set_next_task_B05D]
 	tst.b	d0                               	| [$616d: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$616e: call nz,display_error_text_B075]
@@ -3407,10 +3411,10 @@ l_6166:
 l_6174:
 	move.b	#0x0B,d0                        	| [$6174: ld   a,$0B]
 	move.b	#0x0D,d1                        	| [$6176: ld   b,$0D]
-	jbsr	task_manipulation_B05D            	| [$6178: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$6178: call set_next_task_B05D]
 	move.b	#0x02,d0                        	| [$617b: ld   a,$02]
 	move.b	#0x0F,d1                        	| [$617d: ld   b,$0F]
-	jbsr	task_manipulation_B05D            	| [$617f: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$617f: call set_next_task_B05D]
 	tst.b	d0                               	| [$6182: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$6183: call nz,display_error_text_B075]
@@ -3427,13 +3431,13 @@ l_6189:
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$6199: call nz,display_error_text_B075]
 0:
-	jbsr	l_3db7                            	| [$619c: call $3DB7]
+	jbsr	read_players_joysticks_3bd7                            	| [$619c: call $3DB7]
 	move.b	d0,current_move_p2_C26B                 	| [$619f: ld   (current_move_p2_C26B),a]
 	clr.b	d0                               	| [$61a2: xor  a]
 	move.b	d0,unknown_C26C                 	| [$61a3: ld   (unknown_C26C),a]
 	move.b	#0x0B,d0                        	| [$61a6: ld   a,$0B]
 	move.b	#0x0D,d1                        	| [$61a8: ld   b,$0D]
-	jbsr	task_manipulation_B05D            	| [$61aa: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$61aa: call set_next_task_B05D]
 	tst.b	d0                               	| [$61ad: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$61ae: call nz,display_error_text_B075]
@@ -3461,7 +3465,7 @@ l_61b4:
 l_61e2:
 	move.b	#0x02,d0                        	| [$61e2: ld   a,$02]
 	move.b	#0x0F,d1                        	| [$61e4: ld   b,$0F]
-	jbsr	task_manipulation_B05D            	| [$61e6: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$61e6: call set_next_task_B05D]
 	jra	l_6189                             	| [$61e9: jp   $6189]
 
 
@@ -3726,7 +3730,7 @@ l_64e8:
 	move.b	d0,match_timer_C167             	| [$64ea: ld   (match_timer_C167),a]
 	move.b	#0x02,d0                        	| [$64ed: ld   a,$02]
 	move.b	#0x08,d1                        	| [$64ef: ld   b,$08]
-	jbsr	task_manipulation_B05D            	| [$64f1: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$64f1: call set_next_task_B05D]
 	tst.b	d0                               	| [$64f4: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$64f5: call nz,display_error_text_B075]
@@ -3923,7 +3927,7 @@ l_6668:
 	jbsr	play_sound_B072                   	| [$669d: call play_sound_B072]
 	move.b	#0x03,d0                        	| [$66a0: ld   a,$03]
 	move.b	#0x0A,d1                        	| [$66a2: ld   b,$0A]
-	jbsr	task_manipulation_B05D            	| [$66a4: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$66a4: call set_next_task_B05D]
 	tst.b	d0                               	| [$66a7: and  a]
 	beq	0f
 	jbsr	display_error_text_B075           	| [$66a8: call nz,display_error_text_B075]
@@ -3939,14 +3943,14 @@ l_6668:
 	jne	l_6700                             	| [$66b8: jp   nz,$6700]
 	move.b	#0x0A,d0                        	| [$66bb: ld   a,$0A]
 	move.b	#0x0A,d1                        	| [$66bd: ld   b,$0A]
-	jbsr	task_manipulation_B05D            	| [$66bf: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$66bf: call set_next_task_B05D]
 	tst.b	d0                               	| [$66c2: and  a]
 	beq	0f
 	jbsr	display_error_text_B075           	| [$66c3: call nz,display_error_text_B075]
 0:
 	move.b	#0x0B,d0                        	| [$66c6: ld   a,$0B]
 	move.b	#0x0A,d1                        	| [$66c8: ld   b,$0A]
-	jbsr	task_manipulation_B05D            	| [$66ca: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$66ca: call set_next_task_B05D]
 	tst.b	d0                               	| [$66cd: and  a]
 	beq	0f
 	jbsr	display_error_text_B075           	| [$66ce: call nz,display_error_text_B075]
@@ -4067,15 +4071,15 @@ l_67b8:
 	jbsr	suspend_this_task_B05A            	| [$67c7: call suspend_this_task_B05A]
 	move.b	#0x0B,d0                        	| [$67ca: ld   a,$0B]
 	move.b	#0x12,d1                        	| [$67cc: ld   b,$12]
-	jbsr	task_manipulation_B05D            	| [$67ce: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$67ce: call set_next_task_B05D]
 	move.b	#0x0A,d0                        	| [$67d1: ld   a,$0A]
 	move.b	#0x13,d1                        	| [$67d3: ld   b,$13]
-	jbsr	task_manipulation_B05D            	| [$67d5: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$67d5: call set_next_task_B05D]
 	move.b	#0xC8,d0                        	| [$67d8: ld   a,$C8]
 	jbsr	suspend_this_task_B05A            	| [$67da: call suspend_this_task_B05A]
 	move.b	#0x02,d0                        	| [$67dd: ld   a,$02]
 	move.b	d0,d1                           	| [$67df: ld   b,a]
-	jbsr	task_manipulation_B05D            	| [$67e0: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$67e0: call set_next_task_B05D]
 	tst.b	d0                               	| [$67e3: and  a]
 	beq	0f
 	jbsr	display_error_text_B075           	| [$67e4: call nz,display_error_text_B075]
@@ -4091,15 +4095,15 @@ l_67ea:
 	jbsr	suspend_this_task_B05A            	| [$67f9: call suspend_this_task_B05A]
 	move.b	#0x0A,d0                        	| [$67fc: ld   a,$0A]
 	move.b	#0x12,d1                        	| [$67fe: ld   b,$12]
-	jbsr	task_manipulation_B05D            	| [$6800: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$6800: call set_next_task_B05D]
 	move.b	#0x0B,d0                        	| [$6803: ld   a,$0B]
 	move.b	#0x13,d1                        	| [$6805: ld   b,$13]
-	jbsr	task_manipulation_B05D            	| [$6807: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$6807: call set_next_task_B05D]
 	move.b	#0xC8,d0                        	| [$680a: ld   a,$C8]
 	jbsr	suspend_this_task_B05A            	| [$680c: call suspend_this_task_B05A]
 	move.b	#0x02,d0                        	| [$680f: ld   a,$02]
 	move.b	#0x01,d1                        	| [$6811: ld   b,$01]
-	jbsr	task_manipulation_B05D            	| [$6813: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$6813: call set_next_task_B05D]
 	tst.b	d0                               	| [$6816: and  a]
 	beq	0f
 	jbsr	display_error_text_B075           	| [$6817: call nz,display_error_text_B075]
@@ -4116,7 +4120,7 @@ l_681d:
 0:
 	move.b	#0x0F,d0                        	| [$6828: ld   a,$0F]
 	move.b	#0x09,d1                        	| [$682a: ld   b,$09]
-	jbsr	task_manipulation_B05D            	| [$682c: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$682c: call set_next_task_B05D]
 	movem.w	(sp)+,d1/d2                    	| [$682f: pop  bc]
 	move.w	(sp)+,d0                        	| [$6830: pop  af]
 	movem.w	d1/d2,-(sp)                    	| [$6831: push bc]
@@ -4130,7 +4134,7 @@ l_683f:
 	jbsr	play_sound_B072                   	| [$6841: call play_sound_B072]
 	move.b	#0x03,d0                        	| [$6844: ld   a,$03]
 	move.b	#0x09,d1                        	| [$6846: ld   b,$09]
-	jbsr	task_manipulation_B05D            	| [$6848: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$6848: call set_next_task_B05D]
 	tst.b	d0                               	| [$684b: and  a]
 	beq	0f
 	jbsr	display_error_text_B075           	| [$684c: call nz,display_error_text_B075]
@@ -4156,12 +4160,12 @@ l_686e:
 	jbsr	l_6b3d                            	| [$687a: call $6B3D]
 	move.b	#0x0A,d0                        	| [$687d: ld   a,$0A]
 	move.b	#0x12,d1                        	| [$687f: ld   b,$12]
-	jbsr	task_manipulation_B05D            	| [$6881: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$6881: call set_next_task_B05D]
 	move.b	#0x64,d0                        	| [$6884: ld   a,$64]
 	jbsr	suspend_this_task_B05A            	| [$6886: call suspend_this_task_B05A]
 	move.b	#0x02,d0                        	| [$6889: ld   a,$02]
 	move.b	#0x01,d1                        	| [$688b: ld   b,$01]
-	jbsr	task_manipulation_B05D            	| [$688d: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$688d: call set_next_task_B05D]
 	tst.b	d0                               	| [$6890: and  a]
 	beq	0f
 	jbsr	display_error_text_B075           	| [$6891: call nz,display_error_text_B075]
@@ -4189,12 +4193,12 @@ l_68b7:
 	jbsr	l_6b77                            	| [$68c3: call $6B77]
 	move.b	#0x0B,d0                        	| [$68c6: ld   a,$0B]
 	move.b	#0x12,d1                        	| [$68c8: ld   b,$12]
-	jbsr	task_manipulation_B05D            	| [$68ca: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$68ca: call set_next_task_B05D]
 	move.b	#0xC8,d0                        	| [$68cd: ld   a,$C8]
 	jbsr	suspend_this_task_B05A            	| [$68cf: call suspend_this_task_B05A]
 	move.b	#0x02,d0                        	| [$68d2: ld   a,$02]
 	move.b	d0,d1                           	| [$68d4: ld   b,a]
-	jbsr	task_manipulation_B05D            	| [$68d5: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$68d5: call set_next_task_B05D]
 	tst.b	d0                               	| [$68d8: and  a]
 	beq	0f
 	jbsr	display_error_text_B075           	| [$68d9: call nz,display_error_text_B075]
@@ -4210,7 +4214,7 @@ l_68ea:
 	jbsr	play_sound_B072                   	| [$68ec: call play_sound_B072]
 	move.b	#0x03,d0                        	| [$68ef: ld   a,$03]
 	move.b	#0x09,d1                        	| [$68f1: ld   b,$09]
-	jbsr	task_manipulation_B05D            	| [$68f3: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$68f3: call set_next_task_B05D]
 	tst.b	d0                               	| [$68f6: and  a]
 	beq	0f
 	jbsr	display_error_text_B075           	| [$68f7: call nz,display_error_text_B075]
@@ -4268,14 +4272,14 @@ l_6959:
 0:
 	move.b	#0x0A,d0                        	| [$6970: ld   a,$0A]
 	clr.b	d1                               	| [$6972: ld   b,$00]
-	jbsr	task_manipulation_B05D            	| [$6974: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$6974: call set_next_task_B05D]
 	tst.b	d0                               	| [$6977: and  a]
 	jeq	0f
 	jbsr	display_error_text_B075           	| [$6978: call nz,display_error_text_B075]
 0:
 	move.b	#0x0B,d0                        	| [$697b: ld   a,$0B]
 	clr.b	d1                               	| [$697d: ld   b,$00]
-	jbsr	task_manipulation_B05D            	| [$697f: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$697f: call set_next_task_B05D]
 	tst.b	d0                               	| [$6982: and  a]
 	jeq	0f
 	jbsr	display_error_text_B075           	| [$6983: call nz,display_error_text_B075]
@@ -5436,14 +5440,13 @@ l_75cd:
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$75d9: call nz,display_error_text_B075]
 0:
-	* crashes!!!!! FUCK FUCK
-	jbsr	l_3db7                            	| [$75dc: call $3DB7]
+	jbsr	read_players_joysticks_3bd7                            	| [$75dc: call $3DB7]
 	move.b	d0,current_move_C24B            	| [$75df: ld   (current_move_C24B),a]
 	clr.b	d0                               	| [$75e2: xor  a]
 	move.b	d0,unknown_C24C                 	| [$75e3: ld   (unknown_C24C),a]
 	move.b	#0x0A,d0                        	| [$75e6: ld   a,$0A]
 	move.b	#0x0D,d1                        	| [$75e8: ld   b,$0D]
-	jbsr	task_manipulation_B05D            	| [$75ea: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$75ea: call set_next_task_B05D]
 	tst.b	d0                               	| [$75ed: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$75ee: call nz,display_error_text_B075]
@@ -5472,7 +5475,7 @@ l_75fe:
 	movem.w	d1/d2,-(sp)                    	| [$7617: push bc]
 	move.b	#0x0A,d0                        	| [$7618: ld   a,$0A]
 	move.b	#0x0D,d1                        	| [$761a: ld   b,$0D]
-	jbsr	task_manipulation_B05D            	| [$761c: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$761c: call set_next_task_B05D]
 	tst.b	d0                               	| [$761f: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$7620: call nz,display_error_text_B075]
@@ -5483,7 +5486,7 @@ l_7626:
 	move.l	a2,-(sp)                        	| [$7626: push ix]
 	move.b	#0x0A,d0                        	| [$7628: ld   a,$0A]
 	move.b	#0x0D,d1                        	| [$762a: ld   b,$0D]
-	jbsr	task_manipulation_B05D            	| [$762c: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$762c: call set_next_task_B05D]
 	tst.b	d0                               	| [$762f: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$7630: call nz,display_error_text_B075]
@@ -5528,7 +5531,7 @@ task_7657:
 	lea	table_769B(pc),a2                  	| [$7675: ld   ix,table_769B]
 	add.w	d1,a2                            	| [$7679: add  ix,bc]
 
-	move.l	(0x00,a2),a0                    	| [$767b: ld   l,(ix+$00)]
+	move.l	(a2),a0                    	| [$767b: ld   l,(ix+$00)]
 												| [$767e: ld   h,(ix+$01)]
 	jra	(a0)                               	| [$7681: jp   (hl)]
 l_7682:
@@ -5542,7 +5545,7 @@ l_7682:
 	move.b	d0,d1                           	| [$768b: ld   c,a]
 	lea	table_76BD(pc),a2                  	| [$768e: ld   ix,table_76BD]
 	add.w	d1,a2                            	| [$7692: add  ix,bc]
-	move.l	(0x00,a2),a0                    	| [$7694: ld   l,(ix+$00)]
+	move.l	(a2),a0                    	| [$7694: ld   l,(ix+$00)]
 												| [$7697: ld   h,(ix+$01)]
 	jra	(a0)                               	| [$769a: jp   (hl)]
 table_769B:
@@ -5580,13 +5583,13 @@ l_772c:
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$7738: call nz,display_error_text_B075]
 0:
-	jbsr	l_3db7                            	| [$773b: call $3DB7]
+	jbsr	read_players_joysticks_3bd7                            	| [$773b: call $3DB7]
 	move.b	d0,current_move_p2_C26B                 	| [$773e: ld   (current_move_p2_C26B),a]
 	clr.b	d0                               	| [$7741: xor  a]
 	move.b	d0,unknown_C26C                 	| [$7742: ld   (unknown_C26C),a]
 	move.b	#0x0B,d0                        	| [$7745: ld   a,$0B]
 	move.b	#0x0D,d1                        	| [$7747: ld   b,$0D]
-	jbsr	task_manipulation_B05D            	| [$7749: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$7749: call set_next_task_B05D]
 	tst.b	d0                               	| [$774c: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$774d: call nz,display_error_text_B075]
@@ -5697,7 +5700,7 @@ l_7920:
 	jbsr	resume_task_B054                  	| [$794d: call resume_task_B054]
 	move.b	#0x01,d0                        	| [$7950: ld   a,$01]
 	move.b	d0,d1                           	| [$7952: ld   b,a]
-	jbsr	task_manipulation_B05D            	| [$7953: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$7953: call set_next_task_B05D]
 	tst.b	d0                               	| [$7956: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$7957: call nz,display_error_text_B075]
@@ -6022,7 +6025,7 @@ l_a36c:
 	btst.b	#2,(a0)                         	| [$a36c: bit  2,(hl)]
 	jeq	l_a37a                             	| [$a36e: jp   z,$A37A]
 l_a371:
-	jbsr	l_3db7                            	| [$a371: call $3DB7]
+	jbsr	read_players_joysticks_3bd7                            	| [$a371: call $3DB7]
 * player (human) technique
 	bsr		load_address_of_current_player_move_byte_CF04	| [$a374: ld   hl,(address_of_current_player_move_byte_CF04)]
 * player 1: hl = C24B
@@ -6142,7 +6145,7 @@ cpu_move_done_A410:
 	move.b	#0x0A,d0                        	| [$a41a: ld   a,$0A]
 l_a41c:
 	move.b	#0x0D,d1                        	| [$a41c: ld   b,$0D]
-	jbsr	task_manipulation_B05D            	| [$a41e: call task_manipulation_B05D]
+	jbsr	set_next_task_B05D            	| [$a41e: call set_next_task_B05D]
 	tst.b	d0                               	| [$a421: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$a422: call nz,display_error_text_B075]
@@ -7560,7 +7563,6 @@ l_accb:
 let_opponent_react_depending_on_skill_level_ACCE:
 	move.b	computer_skill_C910,d0          	| [$acce: ld   a,(computer_skill_C910)]
 	cmp.b	#0x10,d0                         	| [$acd1: cp   $10]
-	clr.b	d0                               	| [$acd3: ld   a,$00]
 	jcc	l_ad16                             	| [$acd5: jp   nc,$AD16] if level >= $10, skip the routine altogether
 
 * this is called when skill level is < 16 (under high level of champ)
@@ -7777,8 +7779,6 @@ table_linear_search_B00F:
 clear_player_structure_partial_b012:
 	jra	clear_player_structure_partial_b15c	| [$b012: jp   clear_player_structure_partial_b15c]
 
-resume_tasks_b015:
-	jra	resume_tasks_b171                             	| [$b015: jp   resume_tasks_b171]
 
 l_b018:
 	jra	l_b1ab                             	| [$b018: jp   $B1AB]
@@ -7802,9 +7802,6 @@ is_point_in_rectangle_B042:
 startup_B045:
 	jra	startup_B469                       	| [$b045: jp   startup_B469]
 
-
-resume_task_B054:
-	jra	resume_task_B5CD                	| [$b054: jp   resume_task_B5CD]
 
 schedule_task_to_start_B057:
 	jra	schedule_task_to_start_B620                  	| [$b057: jp   schedule_task_to_start_B620]
@@ -8015,6 +8012,8 @@ l_b16b:
 	jne	l_b16b                             	| [$b16e: djnz $B16B]
 	rts                                    	| [$b170: ret]
 	
+* try to resume all tasks
+resume_tasks_b015:
 resume_tasks_b171:
 	cmp.b	#0x18,d0                         	| [resume_tasks_b171: cp   $18]
 	bcs.b	0f
@@ -8585,7 +8584,7 @@ l_b4b8:
 												| [$b4c5: and  a] clear carry
 	add.w	d2,d2                           	| [$b4c6: rl   c] times 2 on 16 bits (bc)
 												| [$b4c8: rl   b]
-	lea	table_B87D(pc),a2                  	| [$b4ca: ld   ix,table_B87D]
+	lea	game_mem+0xB87D,a2                  	| [$b4ca: ld   ix,table_B87D]
 	add.w	d2,a2                            	| [$b4ce: add  ix,bc]
 
 	move.b	(0x00,a2),d1                    	| [$b4d0: ld   b,(ix+$00)]
@@ -8648,6 +8647,7 @@ l_b4b8:
 
 
 resume_a_task_b503:
+	**jbsr	osd_break
 	jbsr	disable_interrupts_BBE2           	| [$b503: call disable_interrupts_BBE2]
 	lea	unknown_C00C,a0                	| [$b506: ld   hl,unknown_C00C]
 										| [$b509: ld   iy,unknown_C00C]
@@ -8657,42 +8657,45 @@ resume_a_task_b503:
 										| [$b516: or   (iy+$03)]
 	jeq	jump_to_mainloop_B48D              	| [$b519: jp   z,jump_to_mainloop_B48D]
 	clr.w	d4
-	clr.b	d0                               	| [$b51c: xor  a]
-	move.b	d0,d4 
+	                               	| [$b51c: xor  a]
+	 
 	move.b	#0xC,d6			| lsw of original 0xC00C HL
 	* compute free task slot?				| [$b51d: ld   d,a]
-	cmp.b	(a0),d0                          	| [$b51e: cp   (hl)]
+	tst.b	(a0)                          	| [$b51e: cp   (hl)]
 	jne	l_b52d                             	| [$b51f: jp   nz,$B52D]
 	addq.w	#1,a0
 	addq.w	#1,d6                           	| [$b522: inc  l]
-	* check for 1 in task id
-	cmp.b	(a0),d0                          	| [$b523: cp   (hl)]
+	* check for nonzero bit in task id
+	tst.b	(a0)                          	| [$b523: cp   (hl)]
 	jne	l_b52d                             	| [$b524: jp   nz,$B52D]
-	* check for 2 in task id
+	* check for nonzero bit in task id
 	addq.w	#1,a0
 	addq.b	#1,d6                           	| [$b527: inc  l]
-	cmp.b	(a0),d0                          	| [$b528: cp   (hl)]
+	tst.b	(a0)                          	| [$b528: cp   (hl)]
 	jne	l_b52d                             	| [$b529: jp   nz,$B52D]
 	* has to be that slot
 	addq.b	#1,d6                           	| [$b52c: inc  l]
+	addq.w	#1,a0
 l_b52d:
 	move.b	d6,d0                           	| [$b52d: ld   a,l]
+	* slot number 0->...
 	sub.b	#0x0C,d0                         	| [$b52e: sub  $0C]
 	move.b	d0,d4                           	| [$b530: ld   e,a]
 	rol.b	#3,d4                            	| [$b531: rlc  e] * 3 multiply by 8
-	tst.b	d0                               	| [$b537: and  a] clear carry?
+											| [$b537: and  a] clear carry?
 	clr.w	d1                               	| [$b538: ld   b,$00]
 	* get non-zero slot id
 	move.b	(a0),d1                         	| [$b53a: ld   c,(hl)]
 	add.w	d1,d1                           	| [$b53b: rl   c]
 												| [$b53d: rl   b]
-	lea	table_B87D(pc),a2                  	| [$b53f: ld   ix,table_B87D]
+	lea	game_mem+0xB87D,a2                  	| [$b53f: ld   ix,table_B87D]
 	add.w	d1,a2                            	| [$b543: add  ix,bc]*
 	* get properties
 	move.b	(0x00,a2),d1                    	| [$b545: ld   b,(ix+$00)]
 	move.b	(0x01,a2),d0                    	| [$b548: ld   a,(ix+$01)]
 	add.b	d4,d0                            	| [$b54b: add  a,e]
 	move.b	d0,d4                           	| [$b54c: ld   e,a]
+		
 	move.b	d0,current_task_index_C028   	| [$b54d: ld   (current_task_index_C028),a]
 	move.b	d1,d0                           	| [$b550: ld   a,b]
 	move.b	(a0),d7
@@ -8783,7 +8786,7 @@ task_yield_B5A5:
 	move.b	d0,d1                           	| [$b5bd: ld   c,a]
 	add.w	d1,a0                            	| [$b5be: add  hl,bc]
 
-	lea	powers_of_2_table_B875(pc),a2      	| [$b5bf: ld   ix,powers_of_2_table_B875]
+	lea	game_mem+0xB875,a2      	| [$b5bf: ld   ix,powers_of_2_table_B875]
 	add.w	d3,a2                            	| [$b5c3: add  ix,de]
 
 	move.b	(a2),d0                    	| [$b5c5: ld   a,(ix+$00)]
@@ -8794,7 +8797,8 @@ jump_to_mainloop_B5CA:
 	jra	jump_to_mainloop_B48D              	| [$b5ca: jp   jump_to_mainloop_B48D]
 
 
-* < A: task number
+* < A/D0: task number to try to resume
+resume_task_B054:
 resume_task_B5CD:
 	jbsr	disable_interrupts_BBE2           	| [$b5cd: call disable_interrupts_BBE2]
 	lea	active_task_bit_table_C000,a0                	| [$b5d0: ld   hl,active_task_bit_table_C000]
@@ -8809,7 +8813,7 @@ resume_task_B5CD:
 	move.b	d0,d1                           	| [$b5e2: ld   c,a]
 	add.w	d1,a0                            	| [$b5e3: add  hl,bc]
 
-	lea	powers_of_2_table_B875(pc),a2      	| [$b5e4: ld   ix,powers_of_2_table_B875]
+	lea	game_mem+0xB875,a2      	| [$b5e4: ld   ix,powers_of_2_table_B875]
 	add.w	d3,a2                            	| [$b5e8: add  ix,de]
 
 	move.b	(a2),d0                    	| [$b5ea: ld   a,(ix+$00)]
@@ -8825,10 +8829,10 @@ resume_task_B5CD:
 	move.b	(a0),d7
 	eor.b	d7,d0                            	| [$b5f1: xor  (hl)]
 	move.b	d0,(a0)                         	| [$b5f2: ld   (hl),a]
-	move.w	#0x0006,d3                      	| [$b5f3: ld   de,$0006] 6
+	moveq	#6,d3                      	| [$b5f3: ld   de,$0006] 6
 	add.w	d3,a0                            	| [$b5f6: add  hl,de]
 	move.b	d1,d0                           	| [$b5f7: ld   a,b]
-	and.b	(a0),d0
+	and.b	(a0),d0                            | [$B5F8: and  (hl)]
 	jeq	l_b607                             	| [$b5f9: jp   z,$B607]
 	move.b	d1,d0                           	| [$b5fc: ld   a,b]
 	move.b	(a0),d7
@@ -8842,7 +8846,7 @@ resume_task_B5CD:
 l_b607:
 	add.w	d3,a0                            	| [$b607: add  hl,de]
 	move.b	d1,d0                           	| [$b608: ld   a,b]
-	and.b	(a0),d0
+	and.b	(a0),d0							| [$b609: and  (hl)]
 	jeq	l_b618                             	| [$b60a: jp   z,$B618]
 	move.b	d1,d0                           	| [$b60d: ld   a,b]
 	move.b	(a0),d7
@@ -8880,7 +8884,7 @@ schedule_task_to_start_B620:
 	ror.b	#3,d0                           	| [$b632: rra] * 3 divide by 8
 	move.b	d0,d1                           	| [$b635: ld   c,a]
 	add.w	d1,a0                            	| [$b636: add  hl,bc]
-	lea	powers_of_2_table_B875(pc),a2      	| [$b637: ld   ix,powers_of_2_table_B875]
+	lea	game_mem+0xB875,a2      	| [$b637: ld   ix,powers_of_2_table_B875]
 	add.w	d3,a2                            	| [$b63b: add  ix,de]
 
 * get proper power of 2 value in A (single bit value)
@@ -8926,7 +8930,7 @@ suspend_this_task_B65E:
 	ror.b	#3,d0                           	| [$b674: rra] * 3
 	move.b	d0,d1                           	| [$b677: ld   c,a]
 	add.w	d1,a0                            	| [$b678: add  hl,bc]
-	lea	powers_of_2_table_B875(pc),a2      	| [$b679: ld   ix,powers_of_2_table_B875]
+	lea	game_mem+0xB875,a2      	| [$b679: ld   ix,powers_of_2_table_B875]
 	add.w	d3,a2                            	| [$b67d: add  ix,de]
 	move.b	(a2),d0                    	| [$b67f: ld   a,(ix+$00)]
 	or.b	(a0),d0                           	| [$b682: or   (hl)]
@@ -8967,12 +8971,12 @@ suspend_this_task_B65E:
 control_screen_flip_BB6F:
 	rts
 	
-* seems to suspend a task but also make up for that and resume...
-* < D0: ??
+* seems to set next task to wake up when that one is suspended
+* < D0: task to wake up after that one
 * < D1: user parameter: when task is resumed, D0 is set to this value
-* > D0 0 or FF
-task_manipulation_B05D:
-task_manipulation_B6AE:
+* > D0 0 (ok) or FF (error, often results in error check)
+set_next_task_B05D:
+set_next_task_B6AE:
 	jbsr	disable_interrupts_BBE2           	| [$b6ae: call disable_interrupts_BBE2]
 	movem.w	d1/d2,-(sp)                    	| [$b6b1: push bc]
 	move.w	d0,-(sp)                        	| [$b6b2: push af]
@@ -8989,7 +8993,7 @@ task_manipulation_B6AE:
 	add.w	d1,a0                            	| [$b6c6: add  hl,bc]
 
 	move.l	a0,-(sp)                        	| [$b6c7: push hl]
-	lea	powers_of_2_table_B875(pc),a2      	| [$b6c8: ld   ix,powers_of_2_table_B875]
+	lea	game_mem+0xB875,a2      	| [$b6c8: ld   ix,powers_of_2_table_B875]
 	add.w	d3,a2                            	| [$b6cc: add  ix,de]
 
 	move.b	(a2),d0                    	| [$b6ce: ld   a,(ix+$00)]
@@ -9142,7 +9146,7 @@ l_b795:
 	move.b	d0,(0x06,a2)                    	| [$b7bd: ld   (ix+$06),a]
 	addq.b	#1,nb_suspended_tasks_C02A     	| [$b7c0: ld   ix,nb_suspended_tasks_C02A]
 											| [$b7c4: inc  (ix+$00)]
-	lea	powers_of_2_table_B875(pc),a2      	| [$b7c7: ld   ix,powers_of_2_table_B875]
+	lea	game_mem+0xB875,a2      	| [$b7c7: ld   ix,powers_of_2_table_B875]
 	add.w	d4,a2                            	| [$b7cb: add  ix,de]
 	move.b	(a2),d0                    	| [$b7cd: ld   a,(ix+$00)]
 	move.b	(a0),d7
@@ -9243,73 +9247,8 @@ task_stack_buffer_table_B825:
 	.long	unknown_C038                           	|  $b873
 
 
-powers_of_2_table_B875:
-	dc.b	0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80 | $b875
-table_B87D:
-	dc.b	0x00,0x00,0x01,0x00,0x02,0x01,0x01,0x00 | $b87d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b885
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b88d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b895
-	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $b89d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b8a5
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b8ad
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b8b5
-	dc.b	0x20,0x05,0x01,0x00,0x02,0x01,0x01,0x00 | $b8bd
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b8c5
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b8cd
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b8d5
-	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $b8dd
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b8e5
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b8ed
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b8f5
-	dc.b	0x40,0x06,0x01,0x00,0x02,0x01,0x01,0x00 | $b8fd
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b905
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b90d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b915
-	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $b91d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b925
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b92d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b935
-	dc.b	0x20,0x05,0x01,0x00,0x02,0x01,0x01,0x00 | $b93d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b945
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b94d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b955
-	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $b95d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b965
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b96d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b975
-	dc.b	0x80,0x07,0x01,0x00,0x02,0x01,0x01,0x00 | $b97d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b985
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b98d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b995
-	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $b99d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b9a5
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b9ad
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b9b5
-	dc.b	0x20,0x05,0x01,0x00,0x02,0x01,0x01,0x00 | $b9bd
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b9c5
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b9cd
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b9d5
-	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $b9dd
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b9e5
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $b9ed
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $b9f5
-	dc.b	0x40,0x06,0x01,0x00,0x02,0x01,0x01,0x00 | $b9fd
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba05
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $ba0d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba15
-	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $ba1d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba25
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $ba2d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba35
-	dc.b	0x20,0x05,0x01,0x00,0x02,0x01,0x01,0x00 | $ba3d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba45
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $ba4d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba55
-	dc.b	0x10,0x04,0x01,0x00,0x02,0x01,0x01,0x00 | $ba5d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba65
-	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 | $ba6d
-	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 | $ba75
+*powers_of_2_table_B875:
+*	dc.b	0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80 | $b875
 
 manage_coin_inserted_BA7D:
 	lea	nb_credits_minus_one_C024,a2   	| [$ba7d: ld   ix,nb_credits_minus_one_C024]
@@ -9352,7 +9291,7 @@ l_bacd:
 	jeq	l_bae5                             	| [$badc: jp   z,$BAE5]
 	clr.b	d0                               	| [$badf: xor  a]
 	move.b	#0x06,d1                        	| [$bae0: ld   b,$06]
-	jbsr	task_manipulation_B6AE            	| [$bae2: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$bae2: call set_next_task_B6AE]
 l_bae5:
 	rts                                    	| [$bae5: ret]
 l_bae6:
@@ -9534,16 +9473,16 @@ l_e031:
 	move.b	d0,d1                           	| [$e048: ld   b,a]
 	move.w	d0,-(sp)                        	| [$e049: push af]
 	move.b	#0x15,d0                        	| [$e04a: ld   a,$15]
-	jbsr	task_manipulation_B6AE            	| [$e04c: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$e04c: call set_next_task_B6AE]
 	move.w	(sp)+,d0                        	| [$e04f: pop  af]
 	move.b	d0,d1                           	| [$e050: ld   b,a]
 	move.w	d0,-(sp)                        	| [$e051: push af]
 	move.b	#0x16,d0                        	| [$e052: ld   a,$16]
-	jbsr	task_manipulation_B6AE            	| [$e054: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$e054: call set_next_task_B6AE]
 	move.w	(sp)+,d0                        	| [$e057: pop  af]
 	move.b	d0,d1                           	| [$e058: ld   b,a]
 	move.b	#0x17,d0                        	| [$e059: ld   a,$17]
-	jbsr	task_manipulation_B6AE            	| [$e05b: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$e05b: call set_next_task_B6AE]
 	jbsr	load_iy_with_player_structure_B574	| [$e05e: call load_iy_with_player_structure_B574]
 	move.l	(sp)+,a0                        	| [$e061: pop  hl]
 l_e062:
@@ -9648,7 +9587,7 @@ l_case_FD_e0e6:
 	move.l	a2,-(sp)                        	| [$e0ec: push ix]
 
 	move.l	a3,-(sp)                        	| [$e0ee: push iy]
-	jbsr	task_manipulation_B6AE            	| [$e0f0: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$e0f0: call set_next_task_B6AE]
 	move.l	(sp)+,a3                        	| [$e0f3: pop  iy]
 	move.l	(sp)+,a2                        	| [$e0f5: pop  ix]
 	move.w	#0x0003,d1                      	| [$e0f7: ld   bc,$0003] 3
@@ -9873,7 +9812,7 @@ l_e358:
 	jne	l_e32d                             	| [$e367: djnz $E32D]
 	move.b	#0x01,d0                        	| [$e369: ld   a,$01]
 	move.b	#0x01,d1                        	| [$e36b: ld   b,$01]
-	jbsr	task_manipulation_B6AE            	| [$e36d: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$e36d: call set_next_task_B6AE]
 	jbsr	task_yield_B5A5                   	| [$e370: call task_yield_B5A5]
 table_E373:
 	dc.b	0x08,0x1d,0x0c,0xa0,0x11,0xa0,0x0a,0xa0 | table_E373
@@ -10024,12 +9963,12 @@ l_e52d:
 	jbsr	suspend_this_task_B65E            	| [$e52f: call suspend_this_task_B65E]
 	move.b	#0x06,d0                        	| [$e532: ld   a,$06]
 	move.b	#0x06,d1                        	| [$e534: ld   b,$06]
-	jbsr	task_manipulation_B6AE            	| [$e536: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$e536: call set_next_task_B6AE]
 	move.b	#0x80,d0                        	| [$e539: ld   a,$80]
 	jbsr	suspend_this_task_B65E            	| [$e53b: call suspend_this_task_B65E]
 	move.b	#0x01,d0                        	| [$e53e: ld   a,$01]
 	move.b	#0x01,d1                        	| [$e540: ld   b,$01]
-	jbsr	task_manipulation_B6AE            	| [$e542: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$e542: call set_next_task_B6AE]
 	jbsr	task_yield_B5A5                   	| [$e545: call task_yield_B5A5]
 table_E548:
 	dc.b	0x0c,0x19,0xee,0xa3,0x3d,0xa0,0x3d,0xa0 | table_E548
@@ -10201,12 +10140,12 @@ l_e7b9:
 	jbsr	l_b1ab                            	| [$e7b9: call $B1AB]
 	move.b	#0x06,d0                        	| [$e7bc: ld   a,$06]
 	move.b	#0x06,d1                        	| [$e7be: ld   b,$06]
-	jbsr	task_manipulation_B6AE            	| [$e7c0: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$e7c0: call set_next_task_B6AE]
 	move.b	#0x80,d0                        	| [$e7c3: ld   a,$80]
 	jbsr	suspend_this_task_B65E            	| [$e7c5: call suspend_this_task_B65E]
 	move.b	#0x01,d0                        	| [$e7c8: ld   a,$01]
 	move.b	#0x01,d1                        	| [$e7ca: ld   b,$01]
-	jbsr	task_manipulation_B6AE            	| [$e7cc: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$e7cc: call set_next_task_B6AE]
 	jbsr	task_yield_B5A5                   	| [$e7cf: call task_yield_B5A5]
 
 l_e7d2:
@@ -10385,7 +10324,7 @@ l_e8be:
 	move.l	(sp)+,a3                        	| [$e923: pop  iy]
 	move.b	(0x02,a3),d1                    	| [$e925: ld   b,(iy+$02)]
 	move.b	#0x17,d0                        	| [$e928: ld   a,$17]
-	jbsr	task_manipulation_B6AE            	| [$e92a: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$e92a: call set_next_task_B6AE]
 	jbsr	task_yield_B5A5                   	| [$e92d: call task_yield_B5A5]
 table_E92E:
 	dc.b	0xa5,0xb5 | $e92e
@@ -10431,7 +10370,7 @@ l_e96d:
 	jbsr	display_multicolor_text_B391      	| [$e982: call display_multicolor_text_B391]
 	move.b	#0x0F,d0                        	| [$e985: ld   a,$0F]
 	move.b	#0x20,d1                        	| [$e987: ld   b,$20]
-	jbsr	task_manipulation_B6AE            	| [$e989: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$e989: call set_next_task_B6AE]
 	tst.b	d0                               	| [$e98c: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B186           	| [$e98d: call nz,display_error_text_B186]
@@ -10446,7 +10385,7 @@ l_e992:
 	move.b	#0xC0,(0x0a,a3)                 	| [$e99d: ld   (iy+$0a),$C0]
 	move.b	#0x04,d0                        	| [$e9a1: ld   a,$04]
 	movem.w	d1/d2,-(sp)                    	| [$e9a3: push bc]
-	jbsr	task_manipulation_B6AE            	| [$e9a4: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$e9a4: call set_next_task_B6AE]
 	movem.w	(sp)+,d1/d2                    	| [$e9a7: pop  bc]
 	move.b	d1,d0                           	| [$e9a8: ld   a,b]
 	cmp.b	#0x0B,d0                         	| [$e9a9: cp   $0B]
@@ -10457,7 +10396,7 @@ l_e9b0:
 	jbsr	suspend_this_task_B65E            	| [$e9b5: call suspend_this_task_B65E]
 	move.b	#0x01,d0                        	| [$e9b8: ld   a,$01]
 	move.b	#0x01,d1                        	| [$e9ba: ld   b,$01]
-	jbsr	task_manipulation_B6AE            	| [$e9bc: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$e9bc: call set_next_task_B6AE]
 	jbsr	task_yield_B5A5                   	| [$e9bf: call task_yield_B5A5]
 	illegal
 
@@ -10783,7 +10722,7 @@ l_ed5a:
 	* end of bouncing characters / highscore screen
 	move.b	#0x01,d0                        	| [$ed78: ld   a,$01]
 	move.b	#0x01,d1                        	| [$ed7a: ld   b,$01]
-	jbsr	task_manipulation_B6AE            	| [$ed7c: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$ed7c: call set_next_task_B6AE]
 l_ed7f:
 	jbsr	task_yield_B5A5                   	| [$ed7f: call task_yield_B5A5]
 
@@ -11125,7 +11064,7 @@ l_f309:
 	move.l	(sp)+,a0                        	| [$f322: pop  hl]
 	move.b	#0x01,d0                        	| [$f323: ld   a,$01]
 	move.b	#0x01,d1                        	| [$f325: ld   b,$01]
-	jbsr	task_manipulation_B6AE            	| [$f327: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$f327: call set_next_task_B6AE]
 	jbsr	task_yield_B5A5                   	| [$f32a: call task_yield_B5A5]
 l_f32d:
 	move.b	#0x06,d0                        	| [$f32d: ld   a,$06]
@@ -11137,7 +11076,7 @@ l_f32d:
 	move.l	a2,-(sp)                        	| [$f333: push ix]
 	move.b	d0,d1                           	| [$f335: ld   b,a]
 	move.b	#0x16,d0                        	| [$f336: ld   a,$16]
-	jbsr	task_manipulation_B6AE            	| [$f338: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$f338: call set_next_task_B6AE]
 	move.l	(sp)+,a2                        	| [$f33b: pop  ix]
 	move.l	(sp)+,a3                        	| [$f33d: pop  iy]
 	movem.w	(sp)+,d1/d2                    	| [$f33f: pop  bc]
@@ -11589,7 +11528,7 @@ l_f6ac:
 	jbsr	suspend_this_task_B65E            	| [$f6d8: call suspend_this_task_B65E]
 	move.b	#0x01,d0                        	| [$f6db: ld   a,$01]
 	move.b	#0x01,d1                        	| [$f6dd: ld   b,$01]
-	jbsr	task_manipulation_B6AE            	| [$f6df: call task_manipulation_B6AE]
+	jbsr	set_next_task_B6AE            	| [$f6df: call set_next_task_B6AE]
 	jbsr	task_yield_B5A5                   	| [$f6e2: call task_yield_B5A5]
 	
 * copy contents of ROM in $C040
