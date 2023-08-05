@@ -11470,7 +11470,7 @@ B4C4: 4E          ld   c,(hl)
 B4C5: A7          and  a	; clear carry for next rl
 B4C6: CB 11       rl   c
 B4C8: CB 10       rl   b
-B4CA: DD 21 D7 B2 ld   ix,table_B87D
+B4CA: DD 21 D7 B2 ld   ix,power_of_2_value_table_B87D
 B4CE: DD 09       add  ix,bc
 B4D0: DD 46 00    ld   b,(ix+$00)
 B4D3: DD 7E 01    ld   a,(ix+$01)
@@ -11554,7 +11554,7 @@ B538: 06 00       ld   b,$00
 B53A: 4E          ld   c,(hl)
 B53B: CB 11       rl   c
 B53D: CB 10       rl   b
-B53F: DD 21 D7 B2 ld   ix,table_B87D
+B53F: DD 21 D7 B2 ld   ix,power_of_2_value_table_B87D
 B543: DD 09       add  ix,bc
 B545: DD 46 00    ld   b,(ix+$00)
 B548: DD 7E 01    ld   a,(ix+$01)
@@ -12051,8 +12051,8 @@ task_stack_buffer_table_B825:
 ; looks very much like joystick combination tables to check player moves
 powers_of_2_table_B875:
 	dc.b	0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80 ; powers_of_2_table_B875
-table_B87D:
-	dc.b	0x00,0x00,0x01,0x00,0x02,0x01,0x01,0x00 ; table_B87D
+power_of_2_value_table_B87D:
+	dc.b	0x00,0x00,0x01,0x00,0x02,0x01,0x01,0x00 ; power_of_2_value_table_B87D
 	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 ; $b885
 	dc.b	0x08,0x03,0x01,0x00,0x02,0x01,0x01,0x00 ; $b88d
 	dc.b	0x04,0x02,0x01,0x00,0x02,0x01,0x01,0x00 ; $b895

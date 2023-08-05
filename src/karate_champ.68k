@@ -3534,7 +3534,7 @@ l_625e:
 	move.w	#0x0022,d1                      	| [$6264: ld   bc,$0022] 34
 	jbsr	ldir                              	| [$6267: ldir]
 	move.w	d0,-(sp)                        	| [$6269: push af]
-	roxl.b	#5,d0                           	| [$626a: rla] * 5
+	lsl.b	#5,d0                           	| [$626a: rla] * 5
 	and.b	#0x0F,d0                         	| [$626f: and  $0F]
 	jbsr	l_6297                            	| [$6271: call $6297]
 	lea	temp_numeric_buffer_CF00,a2    	| [$6274: ld   ix,temp_numeric_buffer_CF00]
@@ -8263,26 +8263,15 @@ l_b2cc:
 	
 * < D5/D6: X,Y
 * > D6: screen address
+* completely rewritten as probably time-critical
+* and so much simpler using 16-bit multiple shift
 compute_screen_address_from_XY_B2F6:
-	clr.b	d3                               	| [$b2f6: ld   d,$00]
-	move.b	d5,d4                           	| [$b2f8: ld   e,h]
-	asl.b	#1,d4                            	| [$b2f9: sla  e]
-	roxl.b	#1,d3                           	| [$b2fb: rl   d]
-	asl.b	#1,d4                            	| [$b2fd: sla  e]
-	roxl.b	#1,d3                           	| [$b2ff: rl   d]
-	asl.b	#1,d4                            	| [$b301: sla  e]
-	roxl.b	#1,d3                           	| [$b303: rl   d]
-	asl.b	#1,d4                            	| [$b305: sla  e]
-	roxl.b	#1,d3                           	| [$b307: rl   d]
-	asl.b	#1,d4                            	| [$b309: sla  e]
-	roxl.b	#1,d3                           	| [$b30b: rl   d] results in DE = H*32
-	clr.b	d0                               	| [$b30d: xor  a]
-	move.b	d0,d5                           	| [$b30e: ld   h,a]
-	lsl.w	#8,d5
+	clr.w	d3                               	| [$b2f6: ld   d,$00]
+	move.b	d5,d3                           	| [$b2f8: ld   e,h]
+	lsl.w	#5,d3
+	clr.w	d5
 	move.b	d6,d5
 	
-	lsl.w	#8,d3
-	move.b	d4,d3
 	move.w	#0xD3E0,d6                      	| [$b30f: ld   bc,$D3E0] screen address
 	add.w	d5,d6                            	| [$b312: add  hl,bc]
 
@@ -8688,10 +8677,12 @@ l_b52d:
 	move.b	(a0),d1                         	| [$b53a: ld   c,(hl)]
 	add.w	d1,d1                           	| [$b53b: rl   c]
 												| [$b53d: rl   b]
+	* power_of_2_value_table_B87D
 	lea	game_mem+0xB87D,a2                  	| [$b53f: ld   ix,table_B87D]
 	add.w	d1,a2                            	| [$b543: add  ix,bc]*
-	* get properties
+	* get value (2**n) which is basically D1 (before *2) modulo 32
 	move.b	(0x00,a2),d1                    	| [$b545: ld   b,(ix+$00)]
+	* get power (n) or bit number
 	move.b	(0x01,a2),d0                    	| [$b548: ld   a,(ix+$01)]
 	add.b	d4,d0                            	| [$b54b: add  a,e]
 	move.b	d0,d4                           	| [$b54c: ld   e,a]
@@ -8922,11 +8913,13 @@ suspend_this_task_B65E:
 	lea	unknown_C012,a0                	| [$b665: ld   hl,unknown_C012]
 	move.b	d0,d2                           	| [$b668: ld   c,a]
 	clr.w	d1                               	| [$b669: ld   b,$00]
-	move.w	#0x0000,d3                      	| [$b66b: ld   de,$0000] 0
+	moveq	#0,d3                      	| [$b66b: ld   de,$0000] 0
+	* bit number
 	and.b	#0x07,d0                         	| [$b66e: and  $07]
 	move.b	d0,d3                           	| [$b670: ld   e,a]
 	move.b	d2,d0                           	| [$b671: ld   a,c]
 	and.b	#0xF8,d0                         	| [$b672: and  $F8]
+	* byte number
 	ror.b	#3,d0                           	| [$b674: rra] * 3
 	move.b	d0,d1                           	| [$b677: ld   c,a]
 	add.w	d1,a0                            	| [$b678: add  hl,bc]
@@ -8939,20 +8932,26 @@ suspend_this_task_B65E:
 	* original code starts from C100 and assumes each task struct has 0x20 size
 	lea	task_struct_C100,a3                	| [$b687: ld   iy,task_struct_C100]
 	move.b	d0,d1                           	| [$b68b: ld   b,a]
-	clr.b	d2                               	| [$b68c: ld   c,$00]
-	tst.b	d0                               	| [$b68e: and  a]
+												| [$b68c: ld   c,$00]
+												| [$b68e: and  a]
 	* multiply by 32, which bypasses task_struct_table_B7E5 pointer
 	* table completely, and is VERY bad practice!
 	* since we kept task struct with proper 0x20 size it works, though
-	* TODO: optim: lsl.w	#5,d1
-	roxr.b	#1,d1                           	| [$b68f: rr   b]
-	roxr.b	#1,d2                           	| [$b691: rr   c]
-	roxr.b	#1,d1                           	| [$b693: rr   b]
-	roxr.b	#1,d2                           	| [$b695: rr   c]
-	roxr.b	#1,d1                           	| [$b697: rr   b]
-	roxr.b	#1,d2                           	| [$b699: rr   c]
-	lsl.w	#8,d1
-	move.b	d2,d1
+	
+	* get rid of roxr, it may yield many bad surprises because
+	* of the rather persistent X flag (not easy to get rid of
+	* unlike C flag)
+	* the idea here is to put D0*32 in D1.W to be able to add it to A2
+	lsl.w	#5,d1
+
+												| [$b68f: rr   b]
+												| [$b691: rr   c]
+												| [$b693: rr   b]
+												| [$b695: rr   c]
+												| [$b697: rr   b]
+												| [$b699: rr   c]
+					
+					
 	add.w	d1,a3                            	| [$b69b: add  iy,bc]
 	move.w	(sp)+,d0                        	| [$b69d: pop  af]
 * writes in task struct + 2: number of frames to wait until next frame
@@ -9120,17 +9119,21 @@ l_b795:
 	add.b	d4,d0                            	| [$b79b: add  a,e]
 	movem.w	d1/d2,-(sp)                    	| [$b79c: push bc]
 	moveq	#0,d1
-	move.b	d0,d1                           	| [$b79d: ld   b,a]
-	move.b	d3,d2                           	| [$b79e: ld   c,d]
-	tst.b	d0                               	| [$b79f: and  a]
-	roxr.b	#1,d1                           	| [$b7a0: rr   b]
-	roxr.b	#1,d2                           	| [$b7a2: rr   c]
-	roxr.b	#1,d1                           	| [$b7a4: rr   b]
-	roxr.b	#1,d2                           	| [$b7a6: rr   c]
-	roxr.b	#1,d1                           	| [$b7a8: rr   b]
-	roxr.b	#1,d2                           	| [$b7aa: rr   c]
+	* get rid of roxr, it may yield many bad surprises because
+	* of the rather persistent X flag (not easy to get rid of
+	* unlike C flag)
+	* the idea here is to put (D0,D3)*32 in D1.W to be able to add it to A2
+	move.b	d0,d1                           	| [$b79d: ld   b,a] msb
 	lsl.w	#8,d1
-	move.b	d2,d1
+	move.b	d3,d1                           	| [$b79e: ld   c,d] lsb
+	lsr.w	#3,d1
+													| [$b79f: and  a]
+												| [$b7a0: rr   b]
+												| [$b7a2: rr   c]
+												| [$b7a4: rr   b]
+												| [$b7a6: rr   c]
+												| [$b7a8: rr   b]
+												| [$b7aa: rr   c]
 	add.w	d1,a2                            	| [$b7ac: add  ix,bc]
 	movem.w	(sp)+,d1/d2                    	| [$b7ae: pop  bc]
 * read current frame timeout value
