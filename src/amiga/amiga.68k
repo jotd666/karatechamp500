@@ -49,7 +49,7 @@ ONE_TICK = 1
 	.endif
 
 	.else
-OPT_ENABLE_LOGGING = 0
+OPT_ENABLE_LOGGING = 1
 OPT_ENABLE_PROFILING = 0
 * set to higher values than 1 to speed game up
 ONE_TICK = 1

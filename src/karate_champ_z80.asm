@@ -4377,7 +4377,7 @@ jump_table_547B:
 57EC: 3A 4D 61    ld   a,(unknown_C147)
 57EF: A7          and  a
 57F0: C2 96 5D    jp   nz,$573C
-57F3: DD 21 00 60 ld   ix,active_task_bit_table_C000
+57F3: DD 21 00 60 ld   ix,ram_start_C000
 57F7: DD 7E 01    ld   a,(ix+$01)
 57FA: E6 D0       and  $70
 57FC: 47          ld   b,a
@@ -11418,7 +11418,7 @@ B471: CD E8 BB    call disable_interrupts_BBE2
 B474: ED 56       im   1				; set interrupt mode
 B476: 31 00 6F    ld   sp,temp_numeric_buffer_CF00			; set stack again
 ; clear part of RAM
-B479: 21 00 60    ld   hl,active_task_bit_table_C000
+B479: 21 00 60    ld   hl,ram_start_C000
 B47C: 01 20 00    ld   bc,$0080			; immediate value
 B47F: CD B7 B8    call clear_zone_B2BD
 B482: CD 41 BB    call init_ram_BB41
@@ -11433,7 +11433,7 @@ B490: CD E2 BB    call enable_interrupts_BBE8
 ; loop until one of the 2 timers/counters is nonzero
 ; jump at different locations
 scheduler_loop_b493:
-B493: 21 0C 60    ld   hl,unknown_C006
+B493: 21 0C 60    ld   hl,tasks_running_C006
 B496: 3A 83 60    ld   a,(nb_tasks_to_start_C029)
 B499: A7          and  a
 B49A: C2 AD B4    jp   nz,run_a_task_b4a7
@@ -11523,8 +11523,8 @@ B502: E9          jp   (hl)
 
 resume_a_task_b503:
 B503: CD E8 BB    call disable_interrupts_BBE2
-B506: 21 06 60    ld   hl,unknown_C00C
-B509: FD 21 06 60 ld   iy,unknown_C00C
+B506: 21 06 60    ld   hl,tasks_to_resume_bitfield_C00C
+B509: FD 21 06 60 ld   iy,tasks_to_resume_bitfield_C00C
 B50D: FD 7E 00    ld   a,(iy+$00)
 B510: FD B6 01    or   (iy+$01)
 B513: FD B6 08    or   (iy+$02)
@@ -11621,7 +11621,7 @@ B5A4: C9          ret
 task_yield_B5A5:
 B5A5: CD E8 BB    call disable_interrupts_BBE2
 B5A8: 3A 82 60    ld   a,(current_task_index_C028)
-B5AB: 21 00 60    ld   hl,active_task_bit_table_C000
+B5AB: 21 00 60    ld   hl,ram_start_C000
 B5AE: 4F          ld   c,a
 B5AF: 06 00       ld   b,$00
 B5B1: 11 00 00    ld   de,$0000
@@ -11644,7 +11644,7 @@ B5CA: C3 27 B4    jp   jump_to_mainloop_B48D
 
 resume_task_B5CD:
 B5CD: CD E8 BB    call disable_interrupts_BBE2
-B5D0: 21 00 60    ld   hl,active_task_bit_table_C000
+B5D0: 21 00 60    ld   hl,ram_start_C000
 B5D3: 4F          ld   c,a
 B5D4: 06 00       ld   b,$00
 B5D6: 11 00 00    ld   de,$0000
@@ -11704,7 +11704,7 @@ B61F: C9          ret
 ; returns 0 if something changed, $FF otherwise
 schedule_task_to_start_B620:
 B620: CD E8 BB    call disable_interrupts_BBE2
-B623: 21 00 60    ld   hl,active_task_bit_table_C000
+B623: 21 00 60    ld   hl,ram_start_C000
 B626: 4F          ld   c,a
 B627: 06 00       ld   b,$00
 B629: 11 00 00    ld   de,$0000
@@ -11748,7 +11748,7 @@ suspend_this_task_B65E:
 B65E: CD E8 BB    call disable_interrupts_BBE2
 B661: F5          push af
 B662: 3A 82 60    ld   a,(current_task_index_C028)
-B665: 21 18 60    ld   hl,unknown_C012
+B665: 21 18 60    ld   hl,tasks_suspended_C012
 B668: 4F          ld   c,a
 B669: 06 00       ld   b,$00
 B66B: 11 00 00    ld   de,$0000
@@ -11795,7 +11795,7 @@ set_next_task_B6AE:
 B6AE: CD E8 BB    call disable_interrupts_BBE2
 B6B1: C5          push bc
 B6B2: F5          push af
-B6B3: 21 00 60    ld   hl,active_task_bit_table_C000
+B6B3: 21 00 60    ld   hl,ram_start_C000
 B6B6: 4F          ld   c,a
 B6B7: 06 00       ld   b,$00
 B6B9: 11 00 00    ld   de,$0000
@@ -11890,7 +11890,7 @@ B74E: 32 8B 60    ld   (periodic_counter_8bit_C02B),a
 B751: AF          xor  a
 B752: CD CF BB    call control_screen_flip_BB6F
 B755: CD D7 BA    call manage_coin_inserted_BA7D
-B758: 21 18 60    ld   hl,unknown_C012
+B758: 21 18 60    ld   hl,tasks_suspended_C012
 B75B: 01 00 00    ld   bc,$0000
 B75E: 16 00       ld   d,$00
 B760: CD D7 BD    call $B77D
@@ -11907,6 +11907,9 @@ B777: 08          ex   af,af'
 B778: CD E2 BB    call enable_interrupts_BBE8
 B77B: ED 45       retn
 
+; here we check the bits that "suspend_this_task" routines
+; have set, clear them, and count how many tasks were suspended
+confirm_suspended_tasks_b77d:
 B77D: 7E          ld   a,(hl)
 B77E: A7          and  a
 B77F: C2 24 BD    jp   nz,$B784
@@ -12210,7 +12213,7 @@ BB44: 21 00 70    ld   hl,$D000
 BB47: 01 00 10    ld   bc,$1000			; immediate value
 BB4A: CD B7 B8    call clear_zone_B2BD
 ; clear ram
-BB4D: 21 00 60    ld   hl,active_task_bit_table_C000
+BB4D: 21 00 60    ld   hl,ram_start_C000
 BB50: 01 00 10    ld   bc,$1000			; immediate value
 BB53: CD B7 B8    call clear_zone_B2BD
 BB56: D5          push de

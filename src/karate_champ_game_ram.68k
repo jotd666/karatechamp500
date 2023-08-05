@@ -71,14 +71,14 @@
 	.global unknown_C780
 	.global	referee_x_pos_C700
 
-	.global	active_task_bit_table_C000
+	.global	ram_start_C000
 	.global	unknown_C001
 	.global	unknown_C002
-	.global	unknown_C006
+	.global	tasks_running_C006
 	.global	unknown_C008
-	.global	unknown_C00C
+	.global	tasks_to_resume_bitfield_C00C
 	.global	unknown_C010
-	.global	unknown_C012
+	.global	tasks_suspended_C012
 	.global	unknown_C018
 	.global	unknown_C020
 	.global	unknown_C025
@@ -181,21 +181,15 @@
 * increase if unexplained crashes
 STACK_INFLATION = 4
 
-active_task_bit_table_C000:
-	ds.b	1
-unknown_C001:
-	ds.b	1
-unknown_C002:
-	ds.b	4
-unknown_C006:
-	ds.b	2
-unknown_C008:
-	ds.b	4
-unknown_C00C:
-	ds.b	4
-unknown_C010:
-	ds.b	2
-unknown_C012:
+ram_start_C000:
+	ds.b	6
+tasks_running_C006:
+	ds.b	6
+	* CAUTION: C00C and C012 "connect" because at some
+	* point we point on C012+offset and sub to get C00C+offset
+tasks_to_resume_bitfield_C00C:
+	ds.b	6
+tasks_suspended_C012:
 	ds.b	6
 unknown_C018:
 	ds.b	8
