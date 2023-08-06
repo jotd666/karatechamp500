@@ -1415,10 +1415,13 @@ l_42bd:
 	            	| [$42c4: ld   de,$0200]
 	              	| [$42c7: and  a]
 					| [sbc  hl,de]
+	
 	move.b	#0x0D,d3                        	| [$42ca: ld   d,$0D]
 	jbsr	divide_hl_by_d_b003                            	| [$42cc: call $B003]
 	tst.b	d0                               	| [$42cf: and  a]
 	beq.b	0f
+	jbsr	get_current_frame_contents_478D   	| [$42bd: call get_current_frame_contents_478D]
+	jbsr		osd_break
 	jbsr	display_error_text_B075           	| [$42d0: call nz,display_error_text_B075]
 0:
 	bsr		change_d5_d6_to_d5_16
@@ -7817,10 +7820,7 @@ l_ae1f:
 multiply_de_b000:
 	jra	multiply_de_B0C3                   	| [$b000: jp   multiply_de_B0C3]
 
-divide_hl_by_d_b003:
-	jra	divide_hl_by_d_b0db                             	| [$b003: jp   $B0DB]
-
-
+	
 
 table_linear_search_B00F:
 	jra	table_linear_search_B148           	| [$b00f: jp   table_linear_search_B148]
@@ -7924,7 +7924,8 @@ multiply_de_B0C3:
 * > d5/d6: input
 * > d3.b: divisor
 * > d5/d6: result
-* > d0: quotient?
+* > d0: remainder
+divide_hl_by_d_b003:
 divide_hl_by_d_b0db:
 	clr.b	d0                               	| [$b0db: xor  a]
 	move.b	#0x10,d1                        	| [$b0dc: ld   b,$10]
