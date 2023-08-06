@@ -1073,9 +1073,7 @@ l_3f93:
 	jbsr	display_error_text_B075           	| [$3ff6: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a2                        	| [$3ff9: pop  ix]
-	* D5.16 => D5/D6
-	move.b	d5,d6
-	lsr.w	#8,d5
+	* D5 and D6 contain retrieved data now
 	btst.b	#7,(0x01,a2)                    	| [$3ffb: bit  7,(ix+$01)]
 	jeq	l_400a                             	| [$3fff: jp   z,$400A]
 l_4002:
@@ -1089,6 +1087,7 @@ l_400a:
 	move.b	d0,(0x09,a3)                    	| [$400e: ld   (iy+$09),a]
 	move.b	d5,d0                           	| [$4011: ld   a,h]
 	add.b	(0x03,a2),d0                     	| [$4012: add  a,(ix+$03)]
+	* sets player Y (normally doesn't change once a round starts)
 	move.b	d0,(0x0a,a3)                    	| [$4015: ld   (iy+$0a),a]
 	rts                                    	| [$4018: ret]
 
@@ -2361,6 +2360,7 @@ l_53ee:
 0:
 	move.w	#0x003C,d1                      	| [$53fa: ld   bc,$003C] 60
 	jbsr	fill_video_and_attribute_memory_B030	| [$53fd: call fill_video_and_attribute_memory_B030]
+	
 	lea	unknown_C908,a0                	| [$5400: ld   hl,unknown_C908]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5403: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	btst.b	#2,d0                           	| [$5406: bit  2,a]
@@ -2609,7 +2609,7 @@ l_55d1:
 	moveq	#1,d7
 	sbcd.b	d7,d0                        	| [$55d4: sub  $01]
 	move.b	d0,match_timer_C167             	| [$55d7: ld   (match_timer_C167),a]
-	jbsr	l_64fb                            	| [$55da: call $64FB]
+	jbsr	display_remaining_round_time_64fb                            	| [$55da: call $64FB]
 	move.b	#0x08,d0                        	| [$55dd: ld   a,$08]
 	jbsr	play_sound_B072                   	| [$55df: call play_sound_B072]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$55e2: ld   a,(players_type_human_or_cpu_flags_C02D)]
@@ -2685,7 +2685,7 @@ l_5678:
 	move.b	match_timer_C167,d0             	| [$5678: ld   a,(match_timer_C167)]
 	moveq	#1,d7
 	sbcd.b	d7,d0                        	| [$567b: sub  $01]	move.b	d0,match_timer_C167             	| [$567e: ld   (match_timer_C167),a]
-	jbsr	l_64fb                            	| [$5681: call $64FB]
+	jbsr	display_remaining_round_time_64fb                            	| [$5681: call $64FB]
 	move.b	#0x08,d0                        	| [$5684: ld   a,$08]
 	jbsr	play_sound_B072                   	| [$5686: call play_sound_B072]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5689: ld   a,(players_type_human_or_cpu_flags_C02D)]
@@ -3694,11 +3694,12 @@ task_6491:
 * when resumes, shows blue "karate champ" title screen
 * initialize match timer to 30 seconds (BCD)
 l_649e:
-	move.w	#0x0030,d5                      	| [$649e: ld   hl,$0030] 48
+	*move.w	#0x0030,d5                      	| [$649e: ld   hl,$0030] 48
 	lea	match_timer_C167,a2            	| [$64a1: ld   ix,match_timer_C167]
-	move.b	d6,(0x00,a2)                    	| [$64a5: ld   (ix+$00),l]
-	move.b	d5,(0x01,a2)                    	| [$64a8: ld   (ix+$01),h]
-	jbsr	l_64fb                            	| [$64ab: call $64FB]
+	move.b	#0x30,(0x00,a2)                    	| [$64a5: ld   (ix+$00),l]
+	* probably useless
+	move.b	#0x00,(0x01,a2)                    	| [$64a8: ld   (ix+$01),h]
+	jbsr	display_remaining_round_time_64fb                            	| [$64ab: call $64FB]
 l_64ae:
 	clr.b	d0                               	| [$64ae: ld   a,$00]
 	jbsr	suspend_this_task_B05A            	| [$64b0: call suspend_this_task_B05A]
@@ -3727,7 +3728,7 @@ l_64bd:
 	move.b	d0,unknown_C168                 	| [$64da: ld   (unknown_C168),a]
 	cmp.b	#0x99,d0                         	| [$64dd: cp   $99]
 	jeq	l_64e8                             	| [$64df: jp   z,$64E8]
-	jbsr	l_64fb                            	| [$64e2: call $64FB]
+	jbsr	display_remaining_round_time_64fb                            	| [$64e2: call $64FB]
 	jra	l_64bd                             	| [$64e5: jp   $64BD]
 l_64e8:
 	clr.b	d0                               	| [$64e8: ld   a,$00]
@@ -3741,23 +3742,29 @@ l_64e8:
 0:
 	jbsr	task_yield_B051                  	| [$64f8: call task_yield_B051]
 
-l_64fb:
-	move.b	#0x98,d3                        	| [$64fb: ld   d,$98]
-	move.w	#0x05,d5                      	| [$64fd: ld   hl,$050F]
-	move.w	#0x0F,d6                      	| [$64fd: ld   hl,$050F]
+
+display_remaining_round_time_64fb:
+	move.b	#0x98,d3                        	| [$64fb: ld   d,$98] color
+	move.w	#0x05,d5                      	| [$64fd: ld   hl,$050F] X of time value
+	move.w	#0x0F,d6                      	| [$64fd: ld   hl,$050F] Y
 l_6500:
+	* set coordinates
 	move.b	d6,temp_numeric_buffer_CF00     	| [$6500: ld   (temp_numeric_buffer_CF00),hl]
 	move.b	d5,temp_numeric_buffer_CF00+1     	| [$6500: ld   (temp_numeric_buffer_CF00),hl]
 	st.b	d0                                	| [$6503: ld   a,$FF]
 	* end the string... using an area also used as a pointer WTF!
 	move.b	d0,unknown_pointer_CF06                 	| [$6505: ld   (unknown_pointer_CF06),a]
+	* now convert timer to displayable characters
+	* only LSB is useful
 	move.b	match_timer_C167,d0             	| [$6508: ld   a,(match_timer_C167)]
 	move.b	d0,d1                           	| [$650b: ld   b,a]
+    * seconds unit
 	and.b	#0x0F,d0                         	| [$650c: and  $0F]
 	moveq	#0,d5
+	* attribute
 	move.b	d3,d5                           	| [$650f: ld   h,d] MSB
-	lsl.w	#8,d5
-	move.b	d0,d5                           	| [$650e: ld   l,a] LSB
+	
+	move.b	d0,d6                           	| [$650e: ld   l,a] LSB
 	* it's not really address_of_current_player_move_byte_CF04, it's used
 	* for something else, numeric stuff
 	move.b	d6,address_of_current_player_move_byte_CF04
@@ -3765,11 +3772,9 @@ l_6500:
 	move.b	d1,d0                           	| [$6513: ld   a,b]
 	lsr.b	#4,d0                            	| [$6514: srl  a] * 4
 	and.b	#0x0F,d0                         	| [$651c: and  $0F]
-	move.b	d0,d5                           	| [$651e: ld   l,a] update LSB
-	* store as little endian
-	SWAP_WORD	D5
-	move.w	d5,unknown_CF02                 	| [$651f: ld   (unknown_CF02),hl]
-	SWAP_WORD	D5
+	move.b	d0,d6                           	| [$651e: ld   l,a] update LSB
+	move.b	d6,unknown_CF02                 	| [$651f: ld   (unknown_CF02),hl]
+	move.b	d5,unknown_CF02+1                 	| [$651f: ld   (unknown_CF02),hl]
 												| [$651f: ld   (unknown_CF02),hl]
 	lea	temp_numeric_buffer_CF00,a0    	| [$6522: ld   hl,temp_numeric_buffer_CF00]
 	jbsr	display_multicolor_text_B03C      	| [$6525: call display_multicolor_text_B03C]
@@ -6143,6 +6148,8 @@ l_a409:
 cpu_move_done_A410:
 	move.b	current_task_index_C028,d0   	| [$a410: ld   a,(current_task_index_C028)]
 	cmp.b	#0x09,d0                         	| [$a413: cp   $09]
+	* uncomment to block red player (deep debug)
+	*move.b	#0x0B,d0
 	jeq	l_a41c                             	| [$a417: jp   z,$A41C]
 	move.b	#0x0A,d0                        	| [$a41a: ld   a,$0A]
 	bra.b	0f
@@ -8903,7 +8910,7 @@ schedule_task_to_start_B620:
 	or.b	(a0),d0                           	| [$b64d: or   (hl)]
 	move.b	d0,(a0)                         	| [$b64e: ld   (hl),a]
 	lea	nb_tasks_to_start_C029,a0      	| [$b64f: ld   hl,nb_tasks_to_start_C029]
-	addq.b	#1,(a0)                         	| [$b652: inc  (hl)] increment timer
+	addq.b	#1,(a0)                         	| [$b652: inc  (hl)] increment number of tasks to start
 	clr.b	d0                               	| [$b653: xor  a]
 	jbsr	enable_interrupts_BBE8            	| [$b654: call enable_interrupts_BBE8]
 	rts                                    	| [$b657: ret]
@@ -9600,11 +9607,13 @@ l_case_FA_e0dd:
 	entrypoint_16	eca8
 	cmp.l	#0,a0
 	bne.b	0f
+	bsr		osd_break
 	trap	#12
 0:
 											| 
 	jra	(a0)                               	| [$e0e5: jp   (hl)]
 l_case_FD_e0e6:
+	bsr		osd_break
 	trap	#11
 	move.b	(0x01,a2),d0                    	| [$e0e6: ld   a,(ix+$01)]
 	move.b	(0x02,a2),d1                    	| [$e0e9: ld   b,(ix+$02)]
@@ -11354,6 +11363,7 @@ l_F530:
 	add.w	d3,d6                            	| [$f53c: add  hl,de]
 	move.b	#0xB0,d0                      	| [$f53d: ld   (hl),$B0]
 	jbsr		osd_w_colorram
+	jbsr	osd_break
 	trap	#13
 	move.l	unknown_pointer_CF06,a0             	| [$f53f: ld   hl,(unknown_pointer_CF06)]
 	move.b	unknown_CF05,d0                 	| [$f542: ld   a,(unknown_CF05)]
@@ -11400,6 +11410,7 @@ l_f584:
 	tst.b	d0                               	| [$f58b: and  a]
 	sub.w	d3,a0								| [sbc  hl,de]
 	* screen shit, ends with read on CF06 WTF!
+	jbsr	osd_break
 	trap	#14
 	move.l	a0,-(sp)                        	| [$f58e: push hl]
 	move.l	(sp)+,a3                        	| [$f58f: pop  iy]

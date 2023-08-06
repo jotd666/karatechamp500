@@ -25,7 +25,7 @@ _expmem
     IFD CHIP_ONLY
     dc.l    $0
     ELSE
-	dc.l	$C0000					; ws_expmem
+	dc.l	$100000					; ws_expmem
     ENDC
 	dc.w	_name-_base				; ws_name
 	dc.w	_copy-_base				; ws_copy
@@ -78,7 +78,7 @@ start:
     
     IFD CHIP_ONLY
     lea  _expmem(pc),a0
-    move.l  #$100000,(a0)
+    move.l  #$C0000,(a0)
     ENDC
     lea progstart(pc),a0
     move.l  _expmem(pc),(a0)

@@ -268,11 +268,11 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
     sprite_names = [None]*NB_POSSIBLE_SPRITES
     for i in range(NB_POSSIBLE_SPRITES):
         sprite = sprites.get(i)
-        f.write("\t.word\t")
+        f.write("\t.long\t")
         if sprite:
             name = f"{sprite['name']}"
             sprite_names[i] = name
-            f.write(f"{name}-sprite_table")
+            f.write(f"{name}")
         else:
             f.write("0")
         f.write("\n")
