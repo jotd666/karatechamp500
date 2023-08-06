@@ -3196,6 +3196,7 @@ practice_screen_5f2a:
 	jbsr	l_b018                            	| [$5f4a: call $B018]
 	lea	game_mem+0x600C,a0                  	| [$5f4d: ld   hl,table_600C]
 	jbsr	display_multicolor_text_B03C      	| [$5f50: call display_multicolor_text_B03C]
+	* "if you don't want practice" message
 	lea	game_mem+0x602E,a0                  	| [$5f53: ld   hl,table_602E]
 	move.b	#0xA8,d3                        	| [$5f56: ld   d,$A8]
 	jbsr	display_text_B039                 	| [$5f58: call display_text_B039]
@@ -3224,10 +3225,11 @@ l_5f7b:
 	jne	l_5f65                             	| [$5f7b: djnz $5F65]
 
 	* timeout, now proceed to practice
+	* (first, clear the message)
 	move.b	#0x06,d1
 	move.b	#0x13,d2                      	| [$5f7d: ld   bc,$0613]
-	move.b	#0xa0,d3
-	move.b	#0x3d,d4                      	| [$5f80: ld   de,$a03d]
+	move.b	#0xa0,d3		| attribute
+	move.b	#0x3d,d4       	| [$5f80: ld   de,$a03d] character
 	move.b	#0X18,d5
 	move.b	#0x0E,d6                      	| [$5f83: ld   hl,$180E]
 	jbsr	fill_rectangle_B01B               	| [$5f86: call fill_rectangle_B01B]
@@ -8233,7 +8235,7 @@ l_b28b:
 	rts                                    	| [$b28d: ret]
 
 * < D1/D2: number of row/colums
-* < D3/D4: D=character, E=attribute
+* < D3/D4: D3=attribute, D4=character
 * < D5/D6: start coords X,Y
 fill_rectangle_B01B:
 fill_rectangle_B28E:
@@ -8242,9 +8244,7 @@ fill_rectangle_B28E:
 	movem.w	d5/D6,-(sp)                        	| [$b28f: push hl]
 	movem.w	d1/d2,-(sp)                    	| [$b290: push bc]
 	movem.w	d3/d4,-(sp)                    	| [$b291: push de]
-	move.l	a1,-(sp)                        	| [$b291: push de]
 	jbsr	compute_screen_address_from_XY_B2F6	| [$b292: call compute_screen_address_from_XY_B2F6]
-	move.l	(sp)+,a1                        	| [$b295: pop  de]
 	movem.w	(sp)+,d3/d4                    	| [$b295: pop  de]
 	movem.w	(sp)+,d1/d2                    	| [$b296: pop  bc]
 l_b297:
@@ -8252,14 +8252,14 @@ l_b297:
 	move.w	d0,-(sp)
 	move.b	d4,d0                         	| [$b298: ld   (hl),e]
 	jbsr	osd_w_videoram
-	move.w	#0x400,d1                     	| [$b299: ld   bc,$0400]
-	add.w	d1,d6                            	| [$b29c: add  hl,bc]
+	                     	| [$b299: ld   bc,$0400]
+	add.w	#0x400,d6                            	| [$b29c: add  hl,bc]
 	move.b	d3,d0                         	| [$b29d: ld   (hl),d]
 	jbsr	osd_w_colorram
 	move.w	(sp)+,d0
-	move.w	#0x03FF,d1                      	| [$b29e: ld   bc,$03FF]
+											| [$b29e: ld   bc,$03FF]
 											| [$b2a1: and  a]
-	sub.w	d1,d6							| [sbc  hl,bc]
+	sub.w	#0x3FF,d6							| [sbc  hl,bc]
 	movem.w	(sp)+,d1/d2                    	| [$b2a4: pop  bc]
 	subq.b	#1,d1                           	| [$b2a5: dec  b]
 	jne	l_b297                             	| [$b2a6: jp   nz,$B297]
