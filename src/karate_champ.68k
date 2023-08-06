@@ -1472,7 +1472,6 @@ l_436c:
 	tst.b	d0                               	| [$436c: and  a]
 	jeq	l_43b4                             	| [$436d: jp   z,$43B4]
 	move.w	d0,-(sp)                        	| [$4370: push af]
-
 	move.l	a0,-(sp)                        	| [$4371: push hl]
 	lea	game_mem+0x43B7,a2                  	| [$4372: ld   ix,table_43B7]
 	* we don't need A1 but D3/D4
@@ -1480,16 +1479,17 @@ l_436c:
 	move.b	(0x08,a3),d3                    	| [$4379: ld   d,(iy+$08)]
 	bclr.b	#7,d3                           	| [$437c: res  7,d]
 	jbsr	key_value_linear_search_B00C      	| [$437e: call key_value_linear_search_B00C]
+	* retrieves pushed value of A0 in A1
 	move.l	(sp)+,a1                        	| [$4381: pop  de]
-	movem.w	(sp)+,d3/d4                    	| [$4381: pop  de]
-	movem.w	(sp)+,d1/d2                    	| [$4382: pop  bc]
+	* and pushed value of D0 in D1
+	move.w	(sp)+,d1                    	| [$4382: pop  bc]
 	tst.b	d0                               	| [$4383: and  a]
 	jne	l_4393                             	| [$4384: jp   nz,$4393]
 	move.b	d6,d0                           	| [$4387: ld   a,l]
 	cmp.b	d4,d0                            	| [$4388: cp   e]
 	jne	l_4393                             	| [$4389: jp   nz,$4393]
 	clr.b	d0                               	| [$438c: xor  a]
-	move.w	#0x0000,d5                      	| [$438d: ld   hl,$0000] 0
+	moveq	#0,d5                      	| [$438d: ld   hl,$0000] 0
 	jra	l_43b4                             	| [$4390: jp   $43B4]
 l_4393:
 	exg	a1,a0                              	| [$4393: ex   de,hl]
@@ -7789,8 +7789,6 @@ multiply_de_b000:
 divide_hl_by_d_b003:
 	jra	divide_hl_by_d_b0db                             	| [$b003: jp   $B0DB]
 
-random_B006:
-	jra	random_B0EE                        	| [$b006: jp   random_B0EE]
 
 
 table_linear_search_B00F:
@@ -7919,6 +7917,7 @@ l_b0eb:
 * < e: max value (not included)
 * > a: value between 0 and e (not included)
 * > d
+random_B006:
 random_B0EE:
 	clr.b	d0                               	| [$b0ee: xor  a]  clears a
 	move.b	#0x08,d1                        	| [$b0ef: ld   b,$08] b <- $08	| do it 8 times at least
@@ -8727,6 +8726,7 @@ l_b52d:
 	* scheduler and all!!!
 	move.l	a1,sp
 
+	move.b	#0,0x108
 	* switch registers, get back A0 as task structure (not needed)
 										| [$b564: ex   de,hl]
 										| [$b565: ld   de,$0004] 4
@@ -9607,13 +9607,13 @@ l_case_FA_e0dd:
 	entrypoint_16	eca8
 	cmp.l	#0,a0
 	bne.b	0f
-	bsr		osd_break
+	jbsr		osd_break
 	trap	#12
 0:
 											| 
 	jra	(a0)                               	| [$e0e5: jp   (hl)]
 l_case_FD_e0e6:
-	bsr		osd_break
+	jbsr		osd_break
 	trap	#11
 	move.b	(0x01,a2),d0                    	| [$e0e6: ld   a,(ix+$01)]
 	move.b	(0x02,a2),d1                    	| [$e0e9: ld   b,(ix+$02)]
