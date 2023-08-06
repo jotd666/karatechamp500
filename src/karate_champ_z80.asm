@@ -3888,7 +3888,7 @@ table_53C9:
 table_53CC:
 	dc.b	0xd2,0xd0,0x80,0xff,0xcc,0x53 ; table_53CC
 task_53d2:
-53D2: 21 62 60    ld   hl,unknown_C0C8
+53D2: 21 62 60    ld   hl,player_1_score_C0C8
 53D5: 06 10       ld   b,$10
 53D7: 36 00       ld   (hl),$00
 53D9: 23          inc  hl
@@ -4734,7 +4734,7 @@ start_round_58c7:
 5B4A: C3 DA 5B    jp   return_zero_in_A_5B7A
 5B4D: CB 8E       res  1,(hl)
 5B4F: C3 DA 5B    jp   return_zero_in_A_5B7A
-5B52: 21 62 60    ld   hl,unknown_C0C8
+5B52: 21 62 60    ld   hl,player_1_score_C0C8
 5B55: 06 10       ld   b,$10
 5B57: 36 00       ld   (hl),$00
 5B59: 23          inc  hl
@@ -5012,12 +5012,12 @@ table_5E07:
 5E98: C1          pop  bc
 5E99: 10 77       djnz $5E78
 5E9B: 01 04 14    ld   bc,$1404
-5E9E: DD 21 62 60 ld   ix,unknown_C0C8
+5E9E: DD 21 62 60 ld   ix,player_1_score_C0C8
 5EA2: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5EA5: CB 57       bit  2,a
 5EA7: C2 B1 5E    jp   nz,$5EB1
 5EAA: 01 0C 14    ld   bc,$1406
-5EAD: DD 21 70 60 ld   ix,unknown_C0D0
+5EAD: DD 21 70 60 ld   ix,player_2_score_C0D0
 5EB1: FD 21 77 60 ld   iy,unknown_C0DD
 5EB5: DD 7E 01    ld   a,(ix+$01)
 5EB8: FD 86 01    add  a,(iy+$01)
@@ -5029,7 +5029,7 @@ table_5E07:
 5EC6: DD 77 00    ld   (ix+$00),a
 5EC9: C5          push bc
 5ECA: DD E5       push ix
-5ECC: 2A 60 60    ld   hl,(unknown_C0C0)
+5ECC: 2A 60 60    ld   hl,(high_score_C0C0)
 5ECF: 7D          ld   a,l
 5ED0: 6C          ld   l,h
 5ED1: 67          ld   h,a
@@ -5038,7 +5038,7 @@ table_5E07:
 5ED8: A7          and  a
 5ED9: ED 42       sbc  hl,bc
 5EDB: D2 E3 5E    jp   nc,$5EE9
-5EDE: 11 60 60    ld   de,unknown_C0C0
+5EDE: 11 60 60    ld   de,high_score_C0C0
 5EE1: DD E5       push ix
 5EE3: E1          pop  hl
 5EE4: 01 09 00    ld   bc,$0003
@@ -5050,7 +5050,7 @@ table_5E07:
 5EF0: E1          pop  hl
 5EF1: CD 9F B0    call display_text_color_2_B03F
 5EF4: 01 08 14    ld   bc,$1402
-5EF7: 21 60 60    ld   hl,unknown_C0C0
+5EF7: 21 60 60    ld   hl,high_score_C0C0
 5EFA: 16 32       ld   d,$98
 5EFC: CD 9F B0    call display_text_color_2_B03F
 5EFF: C9          ret
@@ -5740,9 +5740,9 @@ table_65FB:
 6631: 32 EA 61    ld   (unknown_C1EA),a
 6634: 3A 09 6D    ld   a,(unknown_C703)
 6637: 32 EB 61    ld   (unknown_C1EB),a
-663A: 2A 62 60    ld   hl,(unknown_C0C8)
+663A: 2A 62 60    ld   hl,(player_1_score_C0C8)
 663D: 22 72 60    ld   (unknown_C0D8),hl
-6640: 2A 70 60    ld   hl,(unknown_C0D0)
+6640: 2A 70 60    ld   hl,(player_2_score_C0D0)
 6643: 22 7A 60    ld   (unknown_C0DA),hl
 ; init player points to both zero
 6646: 21 00 00    ld   hl,$0000
@@ -6108,7 +6108,7 @@ table_65FB:
 69AD: CA B2 CD    jp   z,$67B8
 69B0: FE 0A       cp   $0A
 69B2: CA EA CD    jp   z,$67EA
-69B5: 2A 62 60    ld   hl,(unknown_C0C8)
+69B5: 2A 62 60    ld   hl,(player_1_score_C0C8)
 69B8: 7D          ld   a,l
 69B9: 6C          ld   l,h
 69BA: 67          ld   h,a
@@ -6119,7 +6119,7 @@ table_65FB:
 69C2: A7          and  a
 69C3: ED 52       sbc  hl,de
 69C5: E5          push hl
-69C6: 2A 70 60    ld   hl,(unknown_C0D0)
+69C6: 2A 70 60    ld   hl,(player_2_score_C0D0)
 69C9: 7D          ld   a,l
 69CA: 6C          ld   l,h
 69CB: 67          ld   h,a
@@ -7623,7 +7623,7 @@ display_background_picture_7A89:
 7AF4: C5          push bc
 7AF5: CD 96 B0    call display_multicolor_text_B03C
 7AF8: C1          pop  bc
-7AF9: 21 70 60    ld   hl,unknown_C0D0
+7AF9: 21 70 60    ld   hl,player_2_score_C0D0
 7AFC: 16 32       ld   d,$98
 7AFE: CD 9F B0    call display_text_color_2_B03F
 7B01: C9          ret
@@ -10985,7 +10985,7 @@ error_text_B1A3:
 	dc.b	0x0e,0x10,0x0e,0x1b,0x1b,0x18,0x1b,0xff ; error_text_B1A3
 B1AB: FD E5       push iy
 B1AD: F5          push af
-B1AE: DD 21 62 60 ld   ix,unknown_C0C8
+B1AE: DD 21 62 60 ld   ix,player_1_score_C0C8
 B1B2: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 B1B5: E6 06       and  $0C
 B1B7: FE 06       cp   $0C
@@ -11003,7 +11003,7 @@ B1D2: F5          push af
 B1D3: A7          and  a
 B1D4: C4 2C B1    call nz,display_error_text_B186
 B1D7: C3 7E B1    jp   $B1DE
-B1DA: DD 21 70 60 ld   ix,unknown_C0D0
+B1DA: DD 21 70 60 ld   ix,player_2_score_C0D0
 B1DE: F1          pop  af
 B1DF: DD 86 01    add  a,(ix+$01)
 B1E2: 27          daa
@@ -11012,7 +11012,7 @@ B1E6: DD 7E 00    ld   a,(ix+$00)
 B1E9: CE 00       adc  a,$00
 B1EB: 27          daa
 B1EC: DD 77 00    ld   (ix+$00),a
-B1EF: 2A 60 60    ld   hl,(unknown_C0C0)
+B1EF: 2A 60 60    ld   hl,(high_score_C0C0)
 B1F2: 7D          ld   a,l
 B1F3: 6C          ld   l,h
 B1F4: 67          ld   h,a
@@ -11021,12 +11021,12 @@ B1F8: DD 4E 01    ld   c,(ix+$01)
 B1FB: A7          and  a
 B1FC: ED 42       sbc  hl,bc
 B1FE: D2 06 B8    jp   nc,$B20C
-B201: 11 60 60    ld   de,unknown_C0C0
+B201: 11 60 60    ld   de,high_score_C0C0
 B204: DD E5       push ix
 B206: E1          pop  hl
 B207: 01 09 00    ld   bc,$0003
 B20A: ED B0       ldir
-B20C: 21 60 60    ld   hl,unknown_C0C0
+B20C: 21 60 60    ld   hl,high_score_C0C0
 B20F: 16 32       ld   d,$98
 B211: 3A 11 63    ld   a,(background_and_state_bits_C911)
 B214: CB BF       res  7,a
@@ -11051,7 +11051,7 @@ B242: 01 04 14    ld   bc,$1404
 B245: FE 08       cp   $02
 B247: C0          ret  nz
 B248: 16 32       ld   d,$98
-B24A: 21 62 60    ld   hl,unknown_C0C8
+B24A: 21 62 60    ld   hl,player_1_score_C0C8
 B24D: CD 6E B9    call display_text_color_2_B3CE
 B250: 3A 98 60    ld   a,(unknown_C032)
 B253: CB 4F       bit  1,a
@@ -11067,7 +11067,7 @@ B26A: CD DE B8    call is_title_screen_demo_mode_B27E
 B26D: 01 0C 14    ld   bc,$1406
 B270: FE 08       cp   $02
 B272: C0          ret  nz
-B273: 21 70 60    ld   hl,unknown_C0D0
+B273: 21 70 60    ld   hl,player_2_score_C0D0
 B276: 16 32       ld   d,$98
 B278: CD 6E B9    call display_text_color_2_B3CE
 B27B: FD E1       pop  iy
@@ -12220,7 +12220,7 @@ BB56: D5          push de
 ; init ram with some startup values
 BB57: CD E5 FC    call init_C040_F6E5
 BB5A: 3E 08       ld   a,$02
-BB5C: 32 60 60    ld   (unknown_C0C0),a
+BB5C: 32 60 60    ld   (high_score_C0C0),a
 BB5F: CD 38 BB    call get_dip_switches_BB92
 BB62: 32 90 60    ld   (dip_switches_copy_C030),a
 BB65: AF          xor  a
@@ -13976,11 +13976,11 @@ F2EF: C9          ret
 F2F0: 06 0C       ld   b,$06
 F2F2: DD 21 40 60 ld   ix,unknown_C040
 F2F6: 11 18 00    ld   de,$0012
-F2F9: FD 21 62 60 ld   iy,unknown_C0C8
+F2F9: FD 21 62 60 ld   iy,player_1_score_C0C8
 F2FD: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 F300: CB 57       bit  2,a
 F302: C2 03 F9    jp   nz,$F309
-F305: FD 21 70 60 ld   iy,unknown_C0D0
+F305: FD 21 70 60 ld   iy,player_2_score_C0D0
 F309: FD 7E 08    ld   a,(iy+$02)
 F30C: DD 96 08    sub  (ix+$02)
 F30F: FD 7E 01    ld   a,(iy+$01)

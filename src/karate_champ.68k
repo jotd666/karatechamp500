@@ -53,11 +53,12 @@
 
 * C220: another structure, A.I. related, probably sharing both parties characteristics
 * TODO: figure out more values from that structure, specially:
-* +07/+08: frame id/pointer on frame structure of own player, used as input of check_hl_in_ix_list_B009 by A.I
-*  so the CPU can recognize the moves
+* +07/+08: frame id/pointer on frame structure of own player, 
+* used as input of check_hl_in_ix_list_B009 by A.I
+*  so the CPU can recognize the moves. Bit 7 of +08 set means symmetric tile
 * +09 white player x ($20 min $DF max)
 * +0A: current move index (at least during practice)
-* +0B/+0C: frame id, like 07/08 for opponent player. Note: bit 8 of C22C set: opponent facing right, maybe
+* +0B/+0C: frame id, like 07/08 for opponent player. Note: bit 7 of C22C set: opponent facing right, maybe
 *     only important for frame display
 * +0D opponent player x
 * +0E oppnent move index
@@ -984,16 +985,18 @@ l_3f4a:
 	bsr		change_d3_d4_to_d3_16
 	move.l	d3,a1
 	move.w	(sp)+,d3
+	* D3.16 is now the address of the move
+	* only walking moves are handled there
 	add.l	#game_mem,a1
 	move.l	a1,a0                        	| [$3f4d: push de]
 	                        	| [$3f4e: pop  hl]
 
 	move.l	a0,a2                        	| [$3f51: push hl]
 	                        	| [$3f52: pop  ix]
-	move.b	(0x08,a3),d0                    	| [$3f54: ld   a,(iy+$08)]
+	move.b	(0x08,a3),d0                    	| [$3f54: ld   a,(iy+$08)]	
 	eor.b	d3,d0                            	| [$3f57: xor  d]
 	jmi	l_3f76                             	| [$3f58: jp   m,$3F76]
-	* new movement is computed, store it
+	* new movement is computed, store it (with facing direction bit set)
 	bsr		store_a0_in_a3_structure_07_address      	| [$3f5b: ld   (iy+$07),l]
 										| [$3f5e: ld   (iy+$08),h]
 	move.b	(0x09,a3),d0                    	| [$3f61: ld   a,(iy+$09)]
@@ -1006,6 +1009,7 @@ l_3f4a:
 	jra	l_3f92                             	| [$3f73: jp   $3F92]
 l_3f76:
 	move.b	d4,(0x07,a3)                    	| [$3f76: ld   (iy+$07),e]
+	* facing left (bit 7 set)
 	bset.b	#7,d3                           	| [$3f79: set  7,d]
 	move.b	d3,(0x08,a3)                    	| [$3f7b: ld   (iy+$08),d]
 	move.b	(0x02,a2),d0                    	| [$3f7e: ld   a,(ix+$02)]
@@ -1162,10 +1166,10 @@ l_4132:
 	move.l	a2,-(sp)                        	| [$4132: push ix]
 	lea	unknown_C71C,a2                	| [$4134: ld   ix,unknown_C71C]
 	clr.b	d0                               	| [$4138: xor  a]
-	jbsr	l_4249                            	| [$4139: call $4249]
+	jbsr	set_sprite_block_attribute_4249                            	| [$4139: call $4249]
 	lea	unknown_C77C,a2                	| [$413c: ld   ix,unknown_C77C]
 	clr.b	d0                               	| [$4140: xor  a]
-	jbsr	l_4249                            	| [$4141: call $4249]
+	jbsr	set_sprite_block_attribute_4249                            	| [$4141: call $4249]
 	move.l	(sp)+,a2                        	| [$4144: pop  ix]
 l_4146:
 	move.b	#0x01,d2                        	| [$4146: ld   c,$01]
@@ -1177,11 +1181,12 @@ l_4152:
 	rts                                    	| [$4152: ret]
 
 * < A3: C240 or C260 depending on player
+* < A1: C71C or C74C depending on player (sprite shadow RAM)
 
 display_player_sprite_4153:
 	* given player struct in A3, return D5/D6 current frame
 	jbsr	get_current_frame_contents_478D   	| [$4153: call get_current_frame_contents_478D]
-
+	* D5/D6 is returned, save it
 	movem.w	d5/d6,-(sp)                        	| [$4156: push hl]
 	                      	| [$4157: ld   de,$0200]
 											| [$415a: and  a]
@@ -1199,52 +1204,65 @@ display_player_sprite_4153:
 	add.w	d5,d5                           	| [$4167: add  hl,hl]
 	move.w	#0x088D,d3                      	| [$4168: ld   de,$088D] offset
 	add.w	d3,d5                            	| [$416b: add  hl,de]
-	* convert d5 to real pointer
+	* convert d5 to real pointer on ROM
 	bsr		change_d5_w_to_a0
 	
 	move.b	(a0),d0                         	| [$416c: ld   a,(hl)]
 	btst.b	#7,(0x08,a3)                    	| [$416d: bit  7,(iy+$08)]
 	jeq	l_4176                             	| [$4171: jp   z,$4176]
+	* character is facing left: negate X offset
+	* to get starting corner
 	neg.b	d0                               	| [$4174: neg]
 l_4176:
 	add.b	(0x09,a3),d0                     	| [$4176: add  a,(iy+$09)]
 	sub.b	#0x20,d0                         	| [$4179: sub  $20]
-	move.b	d0,(0x00,a2)                    	| [$417b: ld   (ix+$00),a]
-	move.b	d0,(0x10,a2)                    	| [$417e: ld   (ix+$10),a]
-	move.b	d0,(0x20,a2)                    	| [$4181: ld   (ix+$20),a]
-	add.b	#0x10,d0                         	| [$4184: add  a,$10]
-	move.b	d0,(0x04,a2)                    	| [$4186: ld   (ix+$04),a]
-	move.b	d0,(0x14,a2)                    	| [$4189: ld   (ix+$14),a]
-	move.b	d0,(0x24,a2)                    	| [$418c: ld   (ix+$24),a]
-	add.b	#0x10,d0                         	| [$418f: add  a,$10]
-	move.b	d0,(0x08,a2)                    	| [$4191: ld   (ix+$08),a]
-	move.b	d0,(0x18,a2)                    	| [$4194: ld   (ix+$18),a]
-	move.b	d0,(0x28,a2)                    	| [$4197: ld   (ix+$28),a]
-	add.b	#0x10,d0                         	| [$419a: add  a,$10]
-	move.b	d0,(0x0c,a2)                    	| [$419c: ld   (ix+$0c),a]
-	move.b	d0,(0x1c,a2)                    	| [$419f: ld   (ix+$1c),a]
-	move.b	d0,(0x2c,a2)                    	| [$41a2: ld   (ix+$2c),a]
-	move.b	(0x0a,a3),d0                    	| [$41a5: ld   a,(iy+$0a)]
-	sub.b	#0x30,d0                         	| [$41a8: sub  $30]
-	move.b	d0,(0x03,a2)                    	| [$41aa: ld   (ix+$03),a]
-	move.b	d0,(0x07,a2)                    	| [$41ad: ld   (ix+$07),a]
-	move.b	d0,(0x0b,a2)                    	| [$41b0: ld   (ix+$0b),a]
-	move.b	d0,(0x0f,a2)                    	| [$41b3: ld   (ix+$0f),a]
-	add.b	#0x10,d0                         	| [$41b6: add  a,$10]
-	move.b	d0,(0x13,a2)                    	| [$41b8: ld   (ix+$13),a]
-	move.b	d0,(0x17,a2)                    	| [$41bb: ld   (ix+$17),a]
-	move.b	d0,(0x1b,a2)                    	| [$41be: ld   (ix+$1b),a]
-	move.b	d0,(0x1f,a2)                    	| [$41c1: ld   (ix+$1f),a]
-	add.b	#0x10,d0                         	| [$41c4: add  a,$10]
-	move.b	d0,(0x23,a2)                    	| [$41c6: ld   (ix+$23),a]
-	move.b	d0,(0x27,a2)                    	| [$41c9: ld   (ix+$27),a]
-	move.b	d0,(0x2b,a2)                    	| [$41cc: ld   (ix+$2b),a]
-	move.b	d0,(0x2f,a2)                    	| [$41cf: ld   (ix+$2f),a]
+	* set X for character sprites
+	move.b	d0,(0x00,a2)      | [$417b: ld   (ix+$00),a]
+	move.b	d0,(0x10,a2)      | [$417e: ld   (ix+$10),a]
+	move.b	d0,(0x20,a2)      | [$4181: ld   (ix+$20),a] bottom left
+	add.b	#0x10,d0          | [$4184: add  a,$10]
+	move.b	d0,(0x04,a2)      | [$4186: ld   (ix+$04),a]
+	move.b	d0,(0x14,a2)      | [$4189: ld   (ix+$14),a]
+	move.b	d0,(0x24,a2)      | [$418c: ld   (ix+$24),a]
+	add.b	#0x10,d0          | [$418f: add  a,$10]
+	move.b	d0,(0x08,a2)      | [$4191: ld   (ix+$08),a]
+	move.b	d0,(0x18,a2)      | [$4194: ld   (ix+$18),a]
+	move.b	d0,(0x28,a2)      | [$4197: ld   (ix+$28),a] bottom right
+	add.b	#0x10,d0          | [$419a: add  a,$10]
+	move.b	d0,(0x0c,a2)      | [$419c: ld   (ix+$0c),a]
+	move.b	d0,(0x1c,a2)      | [$419f: ld   (ix+$1c),a]
+	move.b	d0,(0x2c,a2)      | [$41a2: ld   (ix+$2c),a]
+	move.b	(0x0a,a3),d0      | [$41a5: ld   a,(iy+$0a)]
+	sub.b	#0x30,d0          | [$41a8: sub  $30]
+	* set Y for character sprites
+	move.b	d0,(0x03,a2)      | [$41aa: ld   (ix+$03),a]
+	move.b	d0,(0x07,a2)      | [$41ad: ld   (ix+$07),a]
+	move.b	d0,(0x0b,a2)      | [$41b0: ld   (ix+$0b),a]
+	move.b	d0,(0x0f,a2)      | [$41b3: ld   (ix+$0f),a]
+	add.b	#0x10,d0          | [$41b6: add  a,$10]
+	move.b	d0,(0x13,a2)      | [$41b8: ld   (ix+$13),a]
+	move.b	d0,(0x17,a2)      | [$41bb: ld   (ix+$17),a]
+	move.b	d0,(0x1b,a2)      | [$41be: ld   (ix+$1b),a]
+	move.b	d0,(0x1f,a2)      | [$41c1: ld   (ix+$1f),a]
+	add.b	#0x10,d0          | [$41c4: add  a,$10]
+	move.b	d0,(0x23,a2)      | [$41c6: ld   (ix+$23),a]
+	move.b	d0,(0x27,a2)      | [$41c9: ld   (ix+$27),a]
+	move.b	d0,(0x2b,a2)      | [$41cc: ld   (ix+$2b),a]
+	move.b	d0,(0x2f,a2)      | [$41cf: ld   (ix+$2f),a]
 	movem.w	(sp)+,d5/d6                        	| [$41d2: pop  hl]
 	clr.b	d1                               	| [$41d3: ld   b,$00]
 	bsr		change_d5_d6_to_a0
+	* a0 points to the frame
 	move.b	(a0),d0                         	| [$41d5: ld   a,(hl)]
-	rol.b	#2,d0                            	| [$41d6: rlca] * 2
+	* clear damn X flag that would randomly
+	* flip sprites if left alone, depending on
+	* a previous arithmetic operation
+	moveq	#0,d7
+	roxl.b	#1,d7
+	* we need to set X not just C, so we have to use roxl
+	roxl.b	#2,d0                            	| [$41d6: rlca] * 2
+	* now use X flag from previous operation, selecting
+	* flipped image in some cases (D1 = 0x80)
 	roxr.b	#1,d1                           	| [$41d8: rr   b]
 	rol.b	#2,d0                            	| [$41da: rlca] * 2
 	and.b	#0x70,d0                         	| [$41dc: and  $70]
@@ -1252,18 +1270,24 @@ l_4176:
 	or.b	d2,d0                             	| [$41df: or   c]
 	btst.b	#7,(0x08,a3)                    	| [$41e0: bit  7,(iy+$08)]
 	jeq	l_41e9                             	| [$41e4: jp   z,$41E9]
-	* flip sprites
+	* flip sprite image
 	eor.b	#0x80,d0                         	| [$41e7: xor  $80]
 l_41e9:
+	* D0: 0xML
+	* M: if > 8 then facing left
+	*    rest of bits: sprite bank 0,1,2
+	* L: 1: white, 2: red
 	move.l	a2,-(sp)                        	| [$41e9: push ix]
 	addq.w	#2,a2                           	| [$41eb: inc  ix] * 2
-	jbsr	l_4249                            	| [$41ef: call $4249]
+	* same attribute for all 4 sprite block
+	jbsr	set_sprite_block_attribute_4249                            	| [$41ef: call $4249]
 	move.l	(sp)+,a2                        	| [$41f2: pop  ix]
 	addq.w	#1,a0                           	| [$41f4: inc  hl]
 	btst.b	#7,(0x08,a3)                    	| [$41f5: bit  7,(iy+$08)]
 	jne	l_420d                             	| [$41f9: jp   nz,$420D]
 	move.b	#0x0C,d1                        	| [$41fc: ld   b,$0C]
 	move.w	#0x0004,d3                      	| [$41fe: ld   de,$0004] 4
+	* set code for all 12 sprites, facing right
 l_4201:
 	move.b	(a0)+,d0                         	| [$4201: ld   a,(hl)]
 	move.b	d0,(0x01,a2)                    	| [$4202: ld   (ix+$01),a]
@@ -1272,6 +1296,9 @@ l_4201:
 	subq.b	#1,d1                           	| [...]
 	jne	l_4201                             	| [$4208: djnz $4201]
 	jra	l_4248                             	| [$420a: jp   $4248]
+	* set code for all 12 sprites, facing left
+	* more complex because of mirrored X but basically
+	* same 12-sprite code set
 l_420d:
 	move.b	(a0)+,d3                         	| [$420d: ld   d,(hl)]
 	move.b	d3,(0x0d,a2)                    	| [$420e: ld   (ix+$0d),d]
@@ -1311,11 +1338,13 @@ l_420d:
 l_4248:
 	rts                                    	| [$4248: ret]
 
-l_4249:
+* < A2 address to write to
+* < D0 value to write
+set_sprite_block_attribute_4249:
 	move.b	#0x0C,d1                        	| [$4249: ld   b,$0C]
 	move.w	#0x0004,d3                      	| [$424b: ld   de,$0004] 4
 l_424e:
-	move.b	d0,(0x00,a2)                    	| [$424e: ld   (ix+$00),a]
+	move.b	d0,(a2)                    	| [$424e: ld   (ix+$00),a]
 	add.w	d3,a2                            	| [$4251: add  ix,de]
 	subq.b	#1,d1                           	| [...]
 	jne	l_424e                             	| [$4253: djnz $424E]
@@ -1589,6 +1618,7 @@ l_4487:
 * reached when player is hit, same c42B (technique index)
 * value written with 2 now...
 	move.b	#0x02,(0x0b,a3)                 	| [$448e: ld   (iy+$0b),$02]
+* loop, wait for player to stand up
 	move.w	#0x0A89,d1                      	| [$4492: ld   bc,$0A89]
 l_4495:
 	movem.w	d1/d2,-(sp)                    	| [$4495: push bc]
@@ -1602,6 +1632,7 @@ l_4495:
 	jbsr	display_error_text_B075           	| [$44a6: call nz,display_error_text_B075]
 0:
 	movem.w	(sp)+,d1/d2                    	| [$44a9: pop  bc]
+	* get frame animation pointer as D5/D6
 	move.b	(0x07,a3),d6                    	| [$44aa: ld   l,(iy+$07)]
 	move.b	(0x08,a3),d5                    	| [$44ad: ld   h,(iy+$08)]
 	bclr.b	#7,d5                           	| [$44b0: res  7,h]
@@ -1610,7 +1641,6 @@ l_4495:
 	jne	l_4495                             	| [$44b5: jp   nz,$4495]
 	rts                                    	| [$44b8: ret]
 l_44b9:
-
 	move.l	a3,-(sp)                        	| [$44b9: push iy]
 	move.b	#0x3C,d0                        	| [$44bb: ld   a,$3C]
 	jbsr	suspend_this_task_B05A            	| [$44bd: call suspend_this_task_B05A]
@@ -1619,7 +1649,7 @@ l_44b9:
 
 	move.l	a2,-(sp)                        	| [$44c5: push ix]
 	clr.b	d0                               	| [$44c7: xor  a]
-	jbsr	l_4249                            	| [$44c8: call $4249]
+	jbsr	set_sprite_block_attribute_4249                            	| [$44c8: call $4249]
 	move.l	(sp)+,a2                        	| [$44cb: pop  ix]
 	move.b	#0x05,d1                        	| [$44cd: ld   b,$05]
 	move.b	(0x09,a3),d0                    	| [$44cf: ld   a,(iy+$09)]
@@ -1633,7 +1663,7 @@ l_44b9:
 l_44dd:
 	movem.w	d1/d2,-(sp)                    	| [$44dd: push bc]
 
-	move.l	a0,-(sp)                        	| [$44de: push hl]
+	movem.w	d5/d6,-(sp)                        	| [$44de: push hl]
 	move.l	a2,-(sp)                        	| [$44df: push ix]
 	move.b	d6,d0                           	| [$44e1: ld   a,l]
 	sub.b	d1,d0                            	| [$44e2: sub  b]
@@ -1645,11 +1675,11 @@ l_44dd:
 	move.b	#0x18,d1                        	| [$44ee: ld   b,$18]
 l_44f0:
 	move.b	d1,d0                           	| [$44f0: ld   a,b]
-	jbsr	l_b0a2                            	| [$44f1: call $B0A2]
+	jbsr	animate_guided_character_B0A2                            	| [$44f1: call $B0A2]
 	move.b	#0x10,d0                        	| [$44f4: ld   a,$10]
 	jbsr	suspend_this_task_B05A            	| [$44f6: call suspend_this_task_B05A]
 	move.l	(sp),a2                        	| [$44f9: pop  ix]
-	move.l	(sp),a0                        	| [$44fb: pop  hl]
+	movem.w	(sp),d5/d6                        	| [$44fb: pop  hl]
 
 												| [$44fc: push hl]
 												| [$44fd: push ix]
@@ -1660,11 +1690,11 @@ l_44f0:
 	move.b	#0x19,d1                        	| [$4509: ld   b,$19]
 l_450b:
 	move.b	d1,d0                           	| [$450b: ld   a,b]
-	jbsr	l_b0a2                            	| [$450c: call $B0A2]
+	jbsr	animate_guided_character_B0A2                            	| [$450c: call $B0A2]
 	move.b	#0x10,d0                        	| [$450f: ld   a,$10]
 	jbsr	suspend_this_task_B05A            	| [$4511: call suspend_this_task_B05A]
 	move.l	(sp)+,a2                        	| [$4514: pop  ix]
-	move.l	(sp)+,a0                        	| [$4516: pop  hl]
+	movem.w	(sp)+,d5/d6                        	| [$4516: pop  hl]
 	movem.w	(sp)+,d1/d2                    	| [$4517: pop  bc]
 	subq.b	#1,d1                           	| [...]
 	jne	l_44dd                             	| [$4518: djnz $44DD]
@@ -2334,7 +2364,8 @@ l_531b:
 
 
 task_53d2:
-	lea	unknown_C0C8,a0                	| [$53d2: ld   hl,unknown_C0C8]
+	* clear both player scores
+	lea	player_1_score_C0C8,a0                	| [$53d2: ld   hl,player_1_score_C0C8]
 	move.b	#0x10,d1                        	| [$53d5: ld   b,$10]
 l_53d7:
 	clr.b	(a0)+                             	| [$53d7: ld   (hl),$00]
@@ -2602,7 +2633,7 @@ l_55a9:
 	btst.b	#2,d0                           	| [$55c5: bit  2,a]
 	jeq	l_5614                             	| [$55c7: jp   z,$5614]
 	move.b	match_timer_C167,d0             	| [$55ca: ld   a,(match_timer_C167)]
-	tst.b	d0                               	| [$55cd: and  a]
+											| [$55cd: and  a]
 	jeq	l_5614                             	| [$55ce: jp   z,$5614]
 l_55d1:
 	move.b	match_timer_C167,d0             	| [$55d1: ld   a,(match_timer_C167)]
@@ -3060,7 +3091,7 @@ l_5b4d:
 	bclr.b	#1,(a0)                         	| [$5b4d: res  1,(hl)]
 	jra	return_zero_in_A_5B7A              	| [$5b4f: jp   return_zero_in_A_5B7A]
 l_5b52:
-	lea	unknown_C0C8,a0                	| [$5b52: ld   hl,unknown_C0C8]
+	lea	player_1_score_C0C8,a0                	| [$5b52: ld   hl,player_1_score_C0C8]
 	move.b	#0x10,d1                        	| [$5b55: ld   b,$10]
 l_5b57:
 	clr.b	(a0)+                             	| [$5b57: ld   (hl),$00]
@@ -3501,7 +3532,7 @@ display_practice_technique_name_61EC:
 	lea	players_type_human_or_cpu_flags_C02D,a0	| [$620f: ld   hl,players_type_human_or_cpu_flags_C02D]
 	btst.b	#3,(a0)                         	| [$6212: bit  3,(hl)]
 	jne	l_621a                             	| [$6214: jp   nz,$621A]
-* computer is showing the moves: load technique in player 2 structure
+* 1P game: computer is showing the moves: load technique in player 2 structure
 	move.b	d0,current_move_p2_C26B                 	| [$6217: ld   (current_move_p2_C26B),a]
 l_621a:
 	move.l	a2,-(sp)                        	| [$621a: push ix]
@@ -3887,9 +3918,9 @@ task_6622:
 	move.b	d0,unknown_C1EA                 	| [$6631: ld   (unknown_C1EA),a]
 	move.b	unknown_C703,d0                 	| [$6634: ld   a,(unknown_C703)]
 	move.b	d0,unknown_C1EB                 	| [$6637: ld   (unknown_C1EB),a]
-	move.w	unknown_C0C8,unknown_C0D8             	| [$663a: ld   hl,(unknown_C0C8)]
+	move.w	player_1_score_C0C8,unknown_C0D8             	| [$663a: ld   hl,(player_1_score_C0C8)]
 	                 	| [$663d: ld   (unknown_C0D8),hl]
-	move.w	unknown_C0D0,unknown_C0DA             	| [$6640: ld   hl,(unknown_C0D0)]
+	move.w	player_2_score_C0D0,unknown_C0DA             	| [$6640: ld   hl,(player_2_score_C0D0)]
 	                 	| [$6643: ld   (unknown_C0DA),hl]
 * init player points to both zero
 											| [$6646: ld   hl,$0000] 0
@@ -4316,8 +4347,8 @@ l_69a8:
 	jeq	l_67b8                             	| [$69ad: jp   z,$67B8]
 	cmp.b	#0x0A,d0                         	| [$69b0: cp   $0A]
 	jeq	l_67ea                             	| [$69b2: jp   z,$67EA]
-	move.b	unknown_C0C8,d6             	| [$69b5: ld   hl,(unknown_C0C8)]
-	move.b	unknown_C0C8+1,d5             	| [$69b5: ld   hl,(unknown_C0C8)]
+	move.b	player_1_score_C0C8,d6             	| [$69b5: ld   hl,(player_1_score_C0C8)]
+	move.b	player_1_score_C0C8+1,d5             	| [$69b5: ld   hl,(player_1_score_C0C8)]
 	move.b	d6,d0                           	| [$69b8: ld   a,l]
 	move.b	d5,d6                           	| [$69b9: ld   l,h]
 	move.b	d0,d5                           	| [$69ba: ld   h,a]
@@ -4332,8 +4363,8 @@ l_69a8:
 	sub.w	d3,d5							| [sbc  hl,de]
 
 	move.w	d5,-(sp)                        	| [$69c5: push hl]
-	move.b	unknown_C0D0,d6             	| [$69c6: ld   hl,(unknown_C0D0)]
-	move.b	unknown_C0D0+1,d5             	| [$69c6: ld   hl,(unknown_C0D0)]
+	move.b	player_2_score_C0D0,d6             	| [$69c6: ld   hl,(player_2_score_C0D0)]
+	move.b	player_2_score_C0D0+1,d5             	| [$69c6: ld   hl,(player_2_score_C0D0)]
 	move.b	d6,d0                           	| [$69c9: ld   a,l]
 	move.b	d5,d6                           	| [$69ca: ld   l,h]
 	move.b	d0,d5                           	| [$69cb: ld   h,a]
@@ -5859,7 +5890,7 @@ l_7aee:
 	movem.w	d1/d2,-(sp)                    	| [$7af4: push bc]
 	jbsr	display_multicolor_text_B03C      	| [$7af5: call display_multicolor_text_B03C]
 	movem.w	(sp)+,d1/d2                    	| [$7af8: pop  bc]
-	lea	unknown_C0D0,a0                	| [$7af9: ld   hl,unknown_C0D0]
+	lea	player_2_score_C0D0,a0                	| [$7af9: ld   hl,player_2_score_C0D0]
 	move.b	#0x98,d3                        	| [$7afc: ld   d,$98]
 	jbsr	display_text_color_2_B03F                            	| [$7afe: call $B03F]
 	rts                                    	| [$7b01: ret]
@@ -7856,8 +7887,7 @@ task_b09c:
 task_b09f:
 	jra	l_e1fb                             	| [$b09f: jp   $E1FB]
 
-l_b0a2:
-	jra	animate_guided_character_F75D                             	| [$b0a2: jp   $F75D]
+                            	| [$b0a2: jp   $F75D]
 
 
 stop_sound_b0ae:
@@ -8079,7 +8109,7 @@ error_text_B1A3:
 l_b1ab:
 	move.l	a3,-(sp)                        	| [$b1ab: push iy]
 	move.w	d0,-(sp)                        	| [$b1ad: push af]
-	lea	unknown_C0C8,a2                	| [$b1ae: ld   ix,unknown_C0C8]
+	lea	player_1_score_C0C8,a2                	| [$b1ae: ld   ix,player_1_score_C0C8]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$b1b2: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	and.b	#0x0C,d0                         	| [$b1b5: and  $0C]
 	cmp.b	#0x0C,d0                         	| [$b1b7: cp   $0C]
@@ -8093,15 +8123,15 @@ l_b1c4:
 	jeq	l_b1de                             	| [$b1c9: jp   z,$B1DE]
 	cmp.b	#0x0B,d0                         	| [$b1cc: cp   $0B]
 	jeq	l_b1da                             	| [$b1ce: jp   z,$B1DA]
-	move.w	(sp)+,d0                        	| [$b1d1: pop  af]
-	move.w	d0,-(sp)                        	| [$b1d2: push af]
-	tst.b	d0                               	| [$b1d3: and  a]
+	move.w	(sp),d0                        	| [$b1d1: pop  af]
+	                        	| [$b1d2: push af]
+	                               	| [$b1d3: and  a]
 	beq.b	0f
 	jbsr	display_error_text_B186           	| [$b1d4: call nz,display_error_text_B186]
 0:
 	jra	l_b1de                             	| [$b1d7: jp   $B1DE]
 l_b1da:
-	lea	unknown_C0D0,a2                	| [$b1da: ld   ix,unknown_C0D0]
+	lea	player_2_score_C0D0,a2                	| [$b1da: ld   ix,player_2_score_C0D0]
 l_b1de:
 	move.w	(sp)+,d0                        	| [$b1de: pop  af]
 	move.b	(0x01,a2),d7
@@ -8111,27 +8141,24 @@ l_b1de:
 	moveq	#0,d7
 	abcd	d7,d0                    	| [$b1e6: ld   a,(ix+$00)]
 	move.b	d0,(0x00,a2)                    	| [$b1ec: ld   (ix+$00),a]
-	move.w	#0xC0,d5		             	| [$b1ef: ld   hl,(unknown_C0C0)]
-	move.w	#0xC0,d6		             	| [$b1ef: ld   hl,(unknown_C0C0)]
-	move.b	d6,d0                           	| [$b1f2: ld   a,l]
-	move.b	d5,d6                           	| [$b1f3: ld   l,h]
-	move.b	d0,d5                           	| [$b1f4: ld   h,a]
+	* WTF this is fishy too
+	move.w	#0xC0C0,d5		             	| [$b1ef: ld   hl,(high_score_C0C0)]
+	* makes no sense... removed
+											| [$b1f2: ld   a,l]
+											| [$b1f3: ld   l,h]
+											| [$b1f4: ld   h,a]
 	move.w	(0x00,a2),d1                    	| [$b1f5: ld   b,(ix+$00)]
 												| [$b1f8: ld   c,(ix+$01)]
 												| [$b1fb: and  a]
-	bsr		change_d5_d6_to_d5_16
-	sub.w	d1,d5											| [sbc  hl,bc]
+	cmp.w	d1,d5											| [sbc  hl,bc]
 	jcc	l_b20c                             	| [$b1fe: jp   nc,$B20C]
-	move.w	#0xC0,d2               	| [$b201: ld   de,unknown_C0C0]
-	move.w	#0xC0,d3               	| [$b201: ld   de,unknown_C0C0]
-
+	lea		high_score_C0C0,a1               	| [$b201: ld   de,high_score_C0C0]
 	move.l	a2,a0                        	| [$b204: push ix]
 											| [$b206: pop  hl]
 	move.w	#0x0003,d1                      	| [$b207: ld   bc,$0003] 3
 	jbsr	ldir                              	| [$b20a: ldir]
 l_b20c:
-	move.b	#0xC0,d5                	| [$b20c: ld   hl,unknown_C0C0]
-	move.b	#0xC0,d6                	| [$b20c: ld   hl,unknown_C0C0]
+	lea		high_score_C0C0,a0                	| [$b20c: ld   hl,high_score_C0C0]
 	move.b	#0x98,d3                        	| [$b20f: ld   d,$98]
 	move.b	background_and_state_bits_C911,d0	| [$b211: ld   a,(background_and_state_bits_C911)]
 	bclr.b	#7,d0                           	| [$b214: res  7,a]
@@ -8163,8 +8190,8 @@ l_b227:
 0:
 l_b248:
 	move.b	#0x98,d3                        	| [$b248: ld   d,$98]
-	move.b	#0xC0,d5                	| [$b24a: ld   hl,unknown_C0C8]
-	move.b	#0xC8,d6                	| [$b24a: ld   hl,unknown_C0C8]
+	move.b	#0xC0,d5                	| [$b24a: ld   hl,player_1_score_C0C8]
+	move.b	#0xC8,d6                	| [$b24a: ld   hl,player_1_score_C0C8]
 	jbsr	display_text_color_2_B3CE         	| [$b24d: call display_text_color_2_B3CE]
 	move.b	unknown_C032,d0                 	| [$b250: ld   a,(unknown_C032)]
 	btst.b	#1,d0                           	| [$b253: bit  1,a]
@@ -8185,8 +8212,8 @@ l_b248:
 	rts                                    	| [$b272: ret  nz]
 0:
 l_b273:
-	move.b	#0xC0,d5                	| [$b273: ld   hl,unknown_C0D0]
-	move.b	#0xD0,d6                	| [$b273: ld   hl,unknown_C0D0]
+	move.b	#0xC0,d5                	| [$b273: ld   hl,player_2_score_C0D0]
+	move.b	#0xD0,d6                	| [$b273: ld   hl,player_2_score_C0D0]
 	move.b	#0x98,d3                        	| [$b276: ld   d,$98]
 	jbsr	display_text_color_2_B3CE         	| [$b278: call display_text_color_2_B3CE]
 l_b27b:
@@ -8722,11 +8749,10 @@ l_b52d:
 	add.w	(a0),a1
 	
 	* sets stack for this task 
-	* looks like a mini-os with a task
+	* looks like a mini-os with a (manual) task
 	* scheduler and all!!!
 	move.l	a1,sp
 
-	move.b	#0,0x108
 	* switch registers, get back A0 as task structure (not needed)
 										| [$b564: ex   de,hl]
 										| [$b565: ld   de,$0004] 4
@@ -9394,7 +9420,7 @@ init_ram_BB41:
 * init ram with some startup values
 	jbsr	init_C040_F6E5                    	| [$bb57: call init_C040_F6E5]
 	move.b	#0x02,d0                        	| [$bb5a: ld   a,$02]
-	move.b	d0,unknown_C0C0                 	| [$bb5c: ld   (unknown_C0C0),a]
+	move.b	d0,high_score_C0C0                 	| [$bb5c: ld   (high_score_C0C0),a]
 	jbsr	get_dip_switches_BB92             	| [$bb5f: call get_dip_switches_BB92]
 	move.b	d0,dip_switches_copy_C030       	| [$bb62: ld   (dip_switches_copy_C030),a]
 	clr.b	d0                               	| [$bb65: xor  a]
@@ -11079,18 +11105,20 @@ l_f2f0:
 	move.b	#0x06,d1                        	| [$f2f0: ld   b,$06]
 	lea	unknown_C040,a2                	| [$f2f2: ld   ix,unknown_C040]
 	move.w	#0x0012,d3                      	| [$f2f6: ld   de,$0012] 18
-	lea	unknown_C0C8,a3                	| [$f2f9: ld   iy,unknown_C0C8]
+	lea	player_1_score_C0C8,a3                	| [$f2f9: ld   iy,player_1_score_C0C8]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$f2fd: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	btst.b	#2,d0                           	| [$f300: bit  2,a]
 	jne	l_f309                             	| [$f302: jp   nz,$F309]
-	lea	unknown_C0D0,a3                	| [$f305: ld   iy,unknown_C0D0]
+	lea	player_2_score_C0D0,a3                	| [$f305: ld   iy,player_2_score_C0D0]
 l_f309:
 	move.b	(0x02,a3),d0                    	| [$f309: ld   a,(iy+$02)]
 	sub.b	(0x02,a2),d0                     	| [$f30c: sub  (ix+$02)]
 	move.b	(0x01,a3),d0                    	| [$f30f: ld   a,(iy+$01)]
-	sub.b	(0x01,a2),d0                    	| [$f312: sbc  a,(ix+$01)]
+	move.b	(1,a2),d7
+	subx.b	d7,d0                    	| [$f312: sbc  a,(ix+$01)]
 	move.b	(0x00,a3),d0                    	| [$f315: ld   a,(iy+$00)]
-	sub.b	(0x00,a2),d0                    	| [$f318: sbc  a,(ix+$00)]
+	move.b	(a2),d7
+	subx.b	d7,d0                    	| [$f318: sbc  a,(ix+$00)]
 	jcc	l_f32d                             	| [$f31b: jp   nc,$F32D]
 	add.w	d3,a2                            	| [$f31e: add  ix,de]
 	subq.b	#1,d1                           	| [...]
@@ -11594,6 +11622,7 @@ table_F6F1:
 * < D0: movement index in table
 * < D5,D6: X,Y
 animate_guided_character_F75D:
+animate_guided_character_B0A2:
 	
 	lea	game_mem+0xF7C4,a3                  	| [$f75d: ld   iy,table_F7C4]
 	moveq	#0,d3                      	| [$f761: ld   de,$0000] 0

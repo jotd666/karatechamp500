@@ -782,7 +782,6 @@ osd_update_sprites:
 	* now D2 is tile code (0-15xx)
 	*     D3 is tile color "table" (0-31)
 	lea		sprite_table,a0
-	move.b	#1,0x108
 	add.w	d2,d2
 	add.w	d2,d2
 	moveq	#0,d5

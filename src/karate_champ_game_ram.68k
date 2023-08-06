@@ -92,9 +92,9 @@
 	.global	unknown_C040
 	.global	unknown_C099
 	.global	unknown_C0AB
-	.global	unknown_C0C0
-	.global	unknown_C0C8
-	.global	unknown_C0D0
+	.global	high_score_C0C0
+	.global	player_1_score_C0C8
+	.global	player_2_score_C0D0
 	.global	unknown_C0D8
 	.global	unknown_C0DA
 	.global	unknown_C0DD
@@ -177,9 +177,9 @@
 	.global stack_bottom_C400
 	.global stack_top_CF00
 * we play it safe, 68000 processors use more stack
-* than Z80s, plus there are osd calls, so times 4 seems good
+* than Z80s, plus there are osd calls, so
 * increase if unexplained crashes
-STACK_INFLATION = 4
+STACK_INFLATION = 6
 
 ram_start_C000:
 	ds.b	6
@@ -229,11 +229,11 @@ unknown_C099:
 	ds.b	18
 unknown_C0AB:
 	ds.b	21
-unknown_C0C0:
+high_score_C0C0:
 	ds.b	8
-unknown_C0C8:
+player_1_score_C0C8:
 	ds.b	8
-unknown_C0D0:
+player_2_score_C0D0:
 	ds.b	8
 unknown_C0D8:
 	ds.b	2
