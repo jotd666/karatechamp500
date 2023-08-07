@@ -1456,6 +1456,9 @@ table_183F:
 3BA6: C4 D5 B0    call nz,display_error_text_B075
 3BA9: DD CB 00 5E bit  3,(ix+$00)
 3BAD: CA 15 96    jp   z,$3C15
+	; reached when a player hits the opponent
+	; A0 (HL) currently points on a hitting move, and the memory is organized
+	; so HL MSB gives the points (that needs multiplying by 100)
 3BB0: 44          ld   b,h
 3BB1: 3E 04       ld   a,$04
 3BB3: C5          push bc
@@ -1466,7 +1469,7 @@ table_183F:
 3BBD: FD E1       pop  iy
 3BBF: C1          pop  bc
 3BC0: 78          ld   a,b
-3BC1: CD 12 B0    call $B018
+3BC1: CD 12 B0    call award_score_b018
 3BC4: C3 15 96    jp   $3C15
 3BC7: CD F7 4C    call player_management_routine_46FD
 3BCA: A7          and  a
@@ -2867,7 +2870,7 @@ get_current_frame_contents_478D:
 489C: C2 D5 B0    jp   nz,display_error_text_B075
 489F: 3E 08       ld   a,$02
 48A1: FD E5       push iy
-48A3: CD 12 B0    call $B018
+48A3: CD 12 B0    call award_score_b018
 48A6: FD E1       pop  iy
 48A8: FD 6E 0E    ld   l,(iy+$0e)
 48AB: FD 66 0F    ld   h,(iy+$0f)
@@ -3731,7 +3734,7 @@ table_5040:
 51FC: CB 27       sla  a
 51FE: CB 27       sla  a
 5200: CB 27       sla  a
-5202: CD 12 B0    call $B018
+5202: CD 12 B0    call award_score_b018
 5205: FD E5       push iy
 5207: 3E 40       ld   a,$40
 5209: CD 5A B0    call suspend_this_task_B05A
@@ -3950,7 +3953,7 @@ task_53d2:
 5459: CA C4 54    jp   z,$5464
 545C: CD B4 B0    call display_players_rank_B0B4
 545F: 3E 00       ld   a,$00
-5461: CD 12 B0    call $B018
+5461: CD 12 B0    call award_score_b018
 5464: 3A 11 63    ld   a,(background_and_state_bits_C911)
 5467: CB BF       res  7,a
 5469: CB 27       sla  a
@@ -4135,12 +4138,12 @@ jump_table_547B:
 55EC: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
 55EF: CB 9E       res  3,(hl)
 55F1: 3E 01       ld   a,$01
-55F3: CD 12 B0    call $B018
+55F3: CD 12 B0    call award_score_b018
 55F6: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
 55F9: CB DE       set  3,(hl)
 55FB: C3 09 5C    jp   $5603
 55FE: 3E 01       ld   a,$01
-5600: CD 12 B0    call $B018
+5600: CD 12 B0    call award_score_b018
 5603: 3E 0C       ld   a,$06
 5605: CD 5A B0    call suspend_this_task_B05A
 5608: 3A CD 61    ld   a,(match_timer_C167)
@@ -4203,12 +4206,12 @@ jump_table_547B:
 5693: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
 5696: CB 96       res  2,(hl)
 5698: 3E 01       ld   a,$01
-569A: CD 12 B0    call $B018
+569A: CD 12 B0    call award_score_b018
 569D: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
 56A0: CB D6       set  2,(hl)
 56A2: C3 AA 5C    jp   $56AA
 56A5: 3E 01       ld   a,$01
-56A7: CD 12 B0    call $B018
+56A7: CD 12 B0    call award_score_b018
 56AA: 3E 0C       ld   a,$06
 56AC: CD 5A B0    call suspend_this_task_B05A
 56AF: 3A CD 61    ld   a,(match_timer_C167)
@@ -4829,7 +4832,7 @@ init_level_params_5BA1:
 5C1B: CD 7C DA    call $7AD6
 5C1E: CD B4 B0    call display_players_rank_B0B4
 5C21: 3E 00       ld   a,$00
-5C23: CD 12 B0    call $B018
+5C23: CD 12 B0    call award_score_b018
 5C26: 3A 10 63    ld   a,(computer_skill_C910)
 5C29: 87          add  a,a
 5C2A: 87          add  a,a
@@ -5091,7 +5094,7 @@ practice_screen_5f2a:
 5F42: CD B4 B0    call display_players_rank_B0B4
 5F45: CD 7C DA    call $7AD6
 5F48: 3E 00       ld   a,$00
-5F4A: CD 12 B0    call $B018
+5F4A: CD 12 B0    call award_score_b018
 5F4D: 21 06 C0    ld   hl,table_600C
 5F50: CD 96 B0    call display_multicolor_text_B03C
 5F53: 21 8E C0    ld   hl,table_602E
@@ -5305,7 +5308,7 @@ table_602E:
 6149: 06 08       ld   b,$02
 614B: CD 57 B0    call set_next_task_B05D
 614E: 3E 08       ld   a,$02
-6150: CD 12 B0    call $B018
+6150: CD 12 B0    call award_score_b018
 6153: 3E 00       ld   a,$00
 6155: 32 CB 68    ld   (current_move_p2_C26B),a
 6158: CD 90 C8    call $6230
@@ -10721,7 +10724,8 @@ clear_player_structure_partial_b012:
 B012: C3 56 B1    jp   clear_player_structure_partial_b15c
 resume_tasks_b015:
 B015: C3 D1 B1    jp   resume_tasks_b171
-B018: C3 AB B1    jp   $B1AB
+award_score_b018:
+B018: C3 AB B1    jp   award_score_b1ab
 fill_rectangle_B01B:
 B01B: C3 2E B8    jp   fill_rectangle_B28E
 clear_sprite_shadow_ram_C7xx_B01E:
@@ -10983,6 +10987,8 @@ B1A0: C3 3F B1    jp   $B19F
 
 error_text_B1A3:
 	dc.b	0x0e,0x10,0x0e,0x1b,0x1b,0x18,0x1b,0xff ; error_text_B1A3
+; < A: score to be multiplied by 100 & awarded
+award_score_b1ab:
 B1AB: FD E5       push iy
 B1AD: F5          push af
 B1AE: DD 21 62 60 ld   ix,player_1_score_C0C8
@@ -12869,7 +12875,7 @@ E4E8: C2 EE E4    jp   nz,$E4EE
 E4EB: 21 46 EC    ld   hl,table_E64C
 E4EE: CD 31 B9    call display_multicolor_text_B391
 E4F1: F1          pop  af
-E4F2: CD AB B1    call $B1AB
+E4F2: CD AB B1    call award_score_b1ab
 E4F5: 3A 11 63    ld   a,(background_and_state_bits_C911)
 E4F8: FE 02       cp   $08
 E4FA: CA 82 E5    jp   z,$E528
@@ -13077,7 +13083,7 @@ E70A: F5          push af
 E70B: 21 8B EC    ld   hl,perfect_text_E62B
 E70E: CD 31 B9    call display_multicolor_text_B391
 E711: F1          pop  af
-E712: CD AB B1    call $B1AB
+E712: CD AB B1    call award_score_b1ab
 E715: C3 F5 E4    jp   $E4F5
 E718: FD 21 90 6D ld   iy,unknown_C730
 E71C: 21 D6 52    ld   hl,$587C		; immediate value
@@ -13143,7 +13149,7 @@ E7B1: F5          push af
 E7B2: 21 8B EC    ld   hl,perfect_text_E62B
 E7B5: CD 31 B9    call display_multicolor_text_B391
 E7B8: F1          pop  af
-E7B9: CD AB B1    call $B1AB
+E7B9: CD AB B1    call award_score_b1ab
 E7BC: 3E 0C       ld   a,$06
 E7BE: 06 0C       ld   b,$06
 E7C0: CD AE BC    call set_next_task_B6AE
@@ -13380,7 +13386,7 @@ E9A8: 78          ld   a,b
 E9A9: FE 0B       cp   $0B
 E9AB: C2 B0 E3    jp   nz,$E9B0
 E9AE: 3E 80       ld   a,$20
-E9B0: CD AB B1    call $B1AB
+E9B0: CD AB B1    call award_score_b1ab
 E9B3: 3E 20       ld   a,$80
 E9B5: CD 5E BC    call suspend_this_task_B65E
 E9B8: 3E 01       ld   a,$01

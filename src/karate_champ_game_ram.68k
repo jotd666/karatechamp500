@@ -179,7 +179,7 @@
 * we play it safe, 68000 processors use more stack
 * than Z80s, plus there are osd calls, so
 * increase if unexplained crashes
-STACK_INFLATION = 6
+STACK_INFLATION = 8
 
 ram_start_C000:
 	ds.b	6
