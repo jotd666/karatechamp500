@@ -3981,14 +3981,14 @@ jump_table_547B:
 	.word	$5529
 	.word	$5529
 	.word	$5529
-	.word	$56F8
+	.word	evade_56f8
 	.word	$B084
 	.word	$4D84
-	.word	$56F8
+	.word	evade_56f8
 	.word	$B087
-	.word	$56F8
+	.word	evade_56f8
 	.word	$4D84
-	.word	$56F8
+	.word	evade_56f8
 	.word	$4D84
 	.word	$B08A
 	.word	$B08D
@@ -4245,6 +4245,7 @@ jump_table_547B:
 56F2: C4 D5 B0    call nz,display_error_text_B075
 56F5: CD 51 B0    call task_yield_B051
 
+evade_56f8:
 56F8: 21 E9 DD    ld   hl,table_77e3
 56FB: CD 96 B0    call display_multicolor_text_B03C
 56FE: 3E 0A       ld   a,$0A

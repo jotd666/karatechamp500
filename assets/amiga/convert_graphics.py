@@ -19,6 +19,17 @@ if os.path.exists(rw_json):
     # key as integer, list as set for faster lookup (not that it matters...)
     used_tile_cluts = {int(k):set(v) for k,v in used_cluts["tiles"].items()}
     used_sprite_cluts = {int(k):set(v) for k,v in used_cluts["sprites"].items()}
+
+    # if sprite is used with clut 1, then it's used with clut 2 (white/red)
+    for k,v in used_sprite_cluts.items():
+        if k < 1121:
+            if v == {2}:
+                v.add(1)
+            elif v == {1}:
+                v.add(2)
+    # add score points in 2 colors too
+    for i in range(1009,1019):
+        used_sprite_cluts[i] = {1,2}
 else:
     print("Warning: no {} file, no tile/clut filter, expect BIG graphics.68k file")
     used_tile_cluts = None
