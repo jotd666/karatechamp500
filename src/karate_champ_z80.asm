@@ -5736,7 +5736,7 @@ table_65FB:
 	dc.b	0x30,0x05,0xf6,0x30,0x06,0xf7,0x30,0x07 ; $660b
 	dc.b	0xf8,0x30,0x08,0xf9,0x30,0x09,0xfa,0x30 ; $6613
 	dc.b	0x0a,0xe0,0x40,0x0b,0xe1,0x40,0x0c,0x67 ; $661b
-6622: CD 47 DA    call $7A4D                                          
+6622: CD 47 DA    call clear_all_referee_bubbles_and_flags_7a4d                                          
 6625: CD F5 C3    call $69F5                                          
 6628: CD EE C3    call $69EE                                          
 662B: CD CB CA    call $6A6B                                          
@@ -5794,7 +5794,7 @@ table_65FB:
 66AD: CD 5A B0    call suspend_this_task_B05A
 66B0: C5          push bc
 66B1: F5          push af
-66B2: CD 47 DA    call $7A4D
+66B2: CD 47 DA    call clear_all_referee_bubbles_and_flags_7a4d
 66B5: F1          pop  af
 66B6: C1          pop  bc
 66B7: A7          and  a
@@ -5864,7 +5864,7 @@ table_65FB:
 674B: CD 5A B0    call suspend_this_task_B05A
 674E: A7          and  a
 674F: C4 D5 B0    call nz,display_error_text_B075
-6752: CD 47 DA    call $7A4D
+6752: CD 47 DA    call clear_all_referee_bubbles_and_flags_7a4d
 6755: CD CB CA    call $6A6B
 6758: 3E 96       ld   a,$3C
 675A: CD 5A B0    call suspend_this_task_B05A
@@ -5893,7 +5893,7 @@ table_65FB:
 6792: CD D8 B0    call play_sound_B072
 6795: 3E 96       ld   a,$3C
 6797: CD 5A B0    call suspend_this_task_B05A
-679A: CD 47 DA    call $7A4D
+679A: CD 47 DA    call clear_all_referee_bubbles_and_flags_7a4d
 679D: 21 16 63    ld   hl,player_2_points_C91A
 67A0: 3A 1A 63    ld   a,(player_1_points_C91A)
 67A3: BE          cp   (hl)
@@ -6077,7 +6077,7 @@ table_65FB:
 6956: 32 17 63    ld   (unknown_C91D),a
 6959: 3E B0       ld   a,$B0
 695B: CD 5A B0    call suspend_this_task_B05A
-695E: CD 47 DA    call $7A4D
+695E: CD 47 DA    call clear_all_referee_bubbles_and_flags_7a4d
 6961: CD 97 CB    call $6B3D
 6964: CD DD CB    call $6B77
 6967: 3E 96       ld   a,$3C
@@ -7534,6 +7534,8 @@ evade_object_period_table_79D9:
 7A49: 0C          inc  c
 7A4A: 10 E5       djnz $7A31
 7A4C: C9          ret
+
+clear_all_referee_bubbles_and_flags_7a4d:
 7A4D: 21 B6 6D    ld   hl,unknown_C7BC
 7A50: 06 10       ld   b,$10
 7A52: 36 00       ld   (hl),$00
