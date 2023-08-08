@@ -801,12 +801,13 @@ init_player_data_3D00:
 	jbsr	ldir                              	| [$3d14: ldir]
 	rts                                    	| [$3d16: ret]
 	
-* probably move related, but not A.I. related (player movement)
+* move related, but not A.I. related (player movement)
 read_players_joysticks_3bd7:
 	jbsr	load_iy_with_player_structure_B04B	| [$3db7: call load_iy_with_player_structure_B04B]
 	move.b	current_task_index_C028,d0   	| [$3dba: ld   a,(current_task_index_C028)]
 	cmp.b	#0x08,d0                         	| [$3dbd: cp   $08]
 	jne	l_3dc8                             	| [$3dbf: jp   nz,$3DC8]
+	* player 1 task: read player 1 joysticks
 	jbsr	read_p1_controls_B0B7             	| [$3dc2: call read_p1_controls_B0B7]
 	jra	l_3dd0                             	| [$3dc5: jp   $3DD0]
 l_3dc8:
@@ -4992,14 +4993,16 @@ l_6cb2:
 	jbsr	or_50_to_C7BE_7A58                	| [$6ce2: call or_50_to_C7BE_7A58]
 	rts                                    	| [$6ce5: ret]
 
+* displays winning technique in the upper left corner
 * < D5/D6 technique
 display_scoring_technique_6CE6:
 	move.w	d3,-(sp)
 	bclr.b	#7,d5                           	| [$6ce6: res  7,h]
+	* technique address list
 	lea	game_mem+0x6D1E,a2                  	| [$6ce8: ld   ix,table_6D1E]
+	* technique names list
 	lea	game_mem+0x6D3E,a3                  	| [$6cec: ld   iy,table_6D3E]
-	lsl.w	#8,d5
-	move.b	d6,d5
+	bsr		change_d5_d6_to_d5_16		| so we can compare
 l_6cf0:
 	move.b	(0x01,a2),d3                    	| [$6cf3: ld   d,(ix+$01)]
 	lsl.w	#8,d3
@@ -5018,6 +5021,7 @@ l_6cf0:
 l_6d14:
 	bsr		load_a0_from_a3_structure_00_address		                    	| [$6d14: ld   l,(iy+$00)]
 			                    	| [$6d17: ld   h,(iy+$01)]
+								
 	jbsr	display_multicolor_text_B03C      	| [$6d1a: call display_multicolor_text_B03C]
 	move.w	(sp)+,d3
 	rts                                    	| [$6d1d: ret]
@@ -8193,6 +8197,10 @@ is_title_screen_demo_mode_B0B1:
 
 read_p1_controls_B0B7:
 	jbsr	osd_read_inputs
+	tst.b	d0
+	beq.b	0f
+	move.b	#1,0x110
+0:
 	bra.b	rpc_bbaf
 	
 read_p2_controls_B0BA:
