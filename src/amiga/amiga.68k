@@ -1758,12 +1758,15 @@ update_bg_tile:
 	* get current level
 	moveq	#0,d2
 	* not working!!
-	move.b	map_index_C900,d2
+	move.b	background_and_state_bits_C911,d2
+	and.w	#0xF,d2
 	cmp.b	current_background,d2
 	beq.b	0f
 	move.b	d2,current_background
-	lea 	palette(pc),a0
+	lea 	palette_table(pc),a0
+	move.b	(a0,d2.w),d2
 	lsl.w	#5,d2
+	lea		palette(pc),a0
 	add.w	d2,a0
 	bsr		load_palette_in_copperlist
 0:	
@@ -2422,33 +2425,28 @@ _end_of_ng_code:
 	.align 2
 palette:
 	.include "palette.68k"
-palette_level_4:
-palette_level_2:
-palette_level_3:
-palette_level_1:
+palette_table:
+	dc.b	0		| 0: title but also level 4	palette is then different!
+	dc.b	11		| 1: dojo
+	dc.b	3		| 2: bamboos
+	dc.b	3       | 3: practice but also level 10
+	dc.b	2       | 4: fuji
+	dc.b	8       | 5: mills
+	dc.b	9       | 6: tipee
+	dc.b	1		| 7: pier
+	dc.b	6		| 8: field
+	dc.b	8		| 9: city
+	dc.b	5		| A: boat
+	dc.b	12		| B: moon
+	dc.b	0		| C:
+	dc.b	0		| D:
+	dc.b	0		| E:
+	dc.b	0		| F:
+	.align	2
 
-
-per_level_palette_table:
-	dc.w	palette_level_4-per_level_palette_table
-	dc.w	palette-per_level_palette_table
-	dc.w	palette_level_3-per_level_palette_table
-	dc.w	palette_level_3-per_level_palette_table
-	dc.w	palette_level_2-per_level_palette_table
-	dc.w	palette-per_level_palette_table
-	dc.w	palette-per_level_palette_table
-	dc.w	palette_level_1-per_level_palette_table
-	dc.w	palette-per_level_palette_table
-	dc.w	palette-per_level_palette_table
-	dc.w	palette-per_level_palette_table
-	dc.w	palette-per_level_palette_table
-	dc.w	palette-per_level_palette_table
-	dc.w	palette-per_level_palette_table
-	dc.w	palette-per_level_palette_table
-	dc.w	palette-per_level_palette_table
-	dc.w	palette-per_level_palette_table
 	
 	
-	* on amiga, this file is included in pengo.68k file
+	* on amiga, this file is included in karate_champ.68k file
 	* so the assembler can optimize by using PC-relative addressing
 	* whenever possible (and it does)
 	.ifndef	RELEASE

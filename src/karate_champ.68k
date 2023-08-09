@@ -4620,7 +4620,8 @@ l_60e6:
 	jeq	l_6166                             	| [$6109: jp   z,$6166] practice done
 	subq.b	#1,(0x0a,a3)                    	| [$610c: dec  (iy+$0a)] decrease index
 * 1 player mode - display the technique name in "practice"
-	jbsr	display_practice_technique_name_61EC	| [$610f: call display_practice_technique_name_61EC]
+* and make computer perform the move
+	jbsr	next_practice_technique_61EC	| [$610f: call next_practice_technique_61EC]
 	jra	l_6166                             	| [$6112: jp   $6166]
 l_6115:
 	move.b	#0x32,d1                        	| [$6115: ld   b,$32]
@@ -4725,7 +4726,7 @@ l_61b4:
 	jeq	l_61e2                             	| [$61d3: jp   z,$61E2] end of practice
 	jbsr	l_6230                            	| [$61d6: call $6230]
 	move.b	(0x0a,a3),d0                    	| [$61d9: ld   a,(iy+$0a)]
-	jbsr	display_practice_technique_name_61EC	| [$61dc: call display_practice_technique_name_61EC]
+	jbsr	next_practice_technique_61EC	| [$61dc: call next_practice_technique_61EC]
 	jra	l_6189                             	| [$61df: jp   $6189]
 l_61e2:
 	move.b	#0x02,d0                        	| [$61e2: ld   a,$02]
@@ -4739,8 +4740,7 @@ l_61e2:
 * < a: index in table
 * < iy: table pointer ($C220)
 
-
-display_practice_technique_name_61EC:
+next_practice_technique_61EC:
 	add.b	d0,d0                            	| [$61ec: add  a,a]
 	add.b	d0,d0                            	| [$61ed: add  a,a]
 	clr.w	d1                               	| [$61ef: ld   b,$00]
@@ -4775,6 +4775,7 @@ l_621a:
 												| [$6224: ld   l,(ix+$02)]
 												| [$6227: ld   h,(ix+$03)]
 	move.b	#0x98,d3                        	| [$622a: ld   d,$98]
+	* print technique name in the bottom left corner
 	jbsr	display_text_B039                 	| [$622c: call display_text_B039]
 	rts                                    	| [$622f: ret]
 l_6230:
@@ -4801,9 +4802,9 @@ l_625e:
 	move.w	#0x0022,d1                      	| [$6264: ld   bc,$0022] 34
 	jbsr	ldir                              	| [$6267: ldir]
 	move.w	d0,-(sp)                        	| [$6269: push af]
-	lsl.b	#5,d0                           	| [$626a: rla] times 32
+	rol.b	#5,d0                           	| [$626a: rla * 5]
 	and.b	#0x0F,d0                         	| [$626f: and  $0F]
-	jbsr	l_6297                            	| [$6271: call $6297]
+	jbsr	show_joystick_positions_6297                            	| [$6271: call $6297]
 	lea	temp_numeric_buffer_CF00,a2    	| [$6274: ld   ix,temp_numeric_buffer_CF00]
 	move.b	#0x12,d0                        	| [$6278: ld   a,$12]
 	move.b	d0,(0x00,a2)                    	| [$627a: ld   (ix+$00),a]
@@ -4816,33 +4817,36 @@ l_625e:
 	move.b	d0,(0x1d,a2)                    	| [$628d: ld   (ix+$1d),a]
 	move.w	(sp)+,d0                        	| [$6290: pop  af]
 	and.b	#0x0F,d0                         	| [$6291: and  $0F]
-	jbsr	l_6297                            	| [$6293: call $6297]
+	jbsr	show_joystick_positions_6297                            	| [$6293: call $6297]
 	rts                                    	| [$6296: ret]
-l_6297:
+show_joystick_positions_6297:
+	rts
+	
 	clr.b	d2                               	| [$6297: ld   c,$00]
 	CLEAR_XC_FLAGS
 l_6299:
 	roxr.b	#1,d0                           	| [$6299: rra]
 	jcs	l_62a7                             	| [$629a: jp   c,$62A7]
 	addq.b	#1,d2                           	| [$629d: inc  c]
-	move.w	d0,-(sp)                        	| [$629e: push af]
-	move.b	d2,d0                           	| [$629f: ld   a,c]
-	* cmp => sub so X flag is properly set
-	sub.b	#0x04,d0                         	| [$62a0: cp   $04]
-	movem.w	(sp)+,d0                        	| [$62a2: pop  af]
+	*move.w	d0,-(sp)                        	| [$629e: push af]
+	*move.b	d2,d0                           	| [$629f: ld   a,c]
+	** cmp => sub so X flag is properly set
+	*subq.b	#0x04,d0                         	| [$62a0: cp   $04]
+	*movem.w	(sp)+,d0                        	| [$62a2: pop  af]
 	jne	l_6299                             	| [$62a3: jp   nz,$6299]
 	rts                                    	| [$62a6: ret]
 l_62a7:
 	clr.w	d1                               	| [$62a9: ld   b,$00]
-	asl.b	#1,d1                            	| [$62a7: sla  c]
-	lea	table_62CE,a2                  	| [$62ab: ld   ix,table_62CE]
+	asl.b	#1,d2                            	| [$62a7: sla  c]
+	move.b	d2,d1
+	lea	table_62CE(pc),a2                  	| [$62ab: ld   ix,table_62CE]
 	lea	player_2_struct_C260,a3        	| [$62af: ld   iy,player_2_struct_C260]
 	btst.b	#7,(0x08,a3)                    	| [$62b3: bit  7,(iy+$08)]
 	jeq	l_62be                             	| [$62b7: jp   z,$62BE]
-	lea	table_62D6,a2                  	| [$62ba: ld   ix,table_62D6]
+	lea	table_62D6(pc),a2                  	| [$62ba: ld   ix,table_62D6]
 l_62be:
 	add.w	d1,a2                            	| [$62be: add  ix,bc]
-	bsr		load_a0_from_a2_structure_02_address                    	| [$62c0: ld   l,(ix+$00)]
+	bsr		load_a0_from_a2_structure_00_address                    	| [$62c0: ld   l,(ix+$00)]
 											| [$62c3: ld   h,(ix+$01)]
 	jbsr	display_multicolor_text_B03C      	| [$62c6: call display_multicolor_text_B03C]
 	rts                                    	| [$62c9: ret]

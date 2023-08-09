@@ -5283,7 +5283,7 @@ table_602E:
 6109: CA CC C1    jp   z,$6166			; practice done
 610C: FD 35 0A    dec  (iy+$0a)			; decrease index
 ; 1 player mode - display the technique name in "practice"
-610F: CD E6 C1    call display_practice_technique_name_61EC
+610F: CD E6 C1    call next_practice_technique_61EC
 6112: C3 CC C1    jp   $6166
 6115: 06 98       ld   b,$32
 6117: C5          push bc
@@ -5368,7 +5368,7 @@ table_602E:
 61D3: CA E8 C1    jp   z,$61E2	; end of practice
 61D6: CD 90 C8    call $6230
 61D9: FD 7E 0A    ld   a,(iy+$0a)
-61DC: CD E6 C1    call display_practice_technique_name_61EC
+61DC: CD E6 C1    call next_practice_technique_61EC
 61DF: C3 23 C1    jp   $6189
 61E2: 3E 08       ld   a,$02
 61E4: 06 0F       ld   b,$0F
@@ -5382,7 +5382,7 @@ table_602E:
 ; < iy: table pointer ($C220)
 
 
-display_practice_technique_name_61EC:
+next_practice_technique_61EC:
 61EC: 87          add  a,a
 61ED: 87          add  a,a
 61EE: 4F          ld   c,a
@@ -5444,7 +5444,7 @@ display_practice_technique_name_61EC:
 626D: 17          rla
 626E: 17          rla
 626F: E6 0F       and  $0F
-6271: CD 3D C8    call $6297
+6271: CD 3D C8    call show_joystick_positions_6297
 6274: DD 21 00 6F ld   ix,temp_numeric_buffer_CF00
 6278: 3E 18       ld   a,$12
 627A: DD 77 00    ld   (ix+$00),a
@@ -5457,8 +5457,9 @@ display_practice_technique_name_61EC:
 628D: DD 77 17    ld   (ix+$1d),a
 6290: F1          pop  af
 6291: E6 0F       and  $0F
-6293: CD 3D C8    call $6297
+6293: CD 3D C8    call show_joystick_positions_6297
 6296: C9          ret
+show_joystick_positions_6297:
 6297: 0E 00       ld   c,$00
 6299: 1F          rra
 629A: DA AD C8    jp   c,$62A7
@@ -13334,6 +13335,7 @@ E92A: CD AE BC    call set_next_task_B6AE
 E92D: CD A5 B5    call task_yield_B5A5
 table_E92E:
 	dc.b	0xa5,0xb5 ; $e92e
+
 E930: 3E 04       ld   a,$04
 E932: CD 80 BC    call schedule_task_to_start_B620
 E935: AF          xor  a
