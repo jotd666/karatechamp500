@@ -193,14 +193,14 @@ task_address_table_0020:
 	dc.w	task_53d2 ; $0022
 	dc.w	$544f ; $0024
 	dc.w	$6491 ; $0026
-	dc.w	$6529 ; $0028
+	dc.w	display_hit_score_task_6529 ; $0028
 	dc.w	$7c5d ; $002a
 	dc.w	$6f89 ; $002c
 	dc.w	$6622 ; $002e
-	dc.w	$755b ; $0030
-	dc.w	$7657 ; $0032
-	dc.w	$3a9c ; $0034
-	dc.w	$3a9c ; $0036
+	dc.w	white_player_task_755b ; $0030
+	dc.w	red_player_task_7657 ; $0032
+	dc.w	player_task_3a9c ; $0034
+	dc.w	player_task_3a9c ; $0036
 	dc.w	$0050 ; $0038		; not used probably!
 	dc.w	$0050 ; $003a		; not used probably!
 	dc.w	$0050 ; $003c		; not used probably!
@@ -5294,6 +5294,7 @@ table_602E:
 6121: C1          pop  bc
 6122: 05          dec  b
 6123: CA 59 C1    jp   z,$6153
+; see if practice moves match
 6126: FD 21 C0 68 ld   iy,player_2_struct_C260
 612A: DD 21 40 68 ld   ix,player_1_struct_C240
 612E: FD 6E 0D    ld   l,(iy+$07)
@@ -5307,6 +5308,7 @@ table_602E:
 6144: FD 34 0B    inc  (iy+$0b)
 6147: 3E 04       ld   a,$04
 6149: 06 08       ld   b,$02
+; wake up display score task for successfully copying computer practice move
 614B: CD 57 B0    call set_next_task_B05D
 614E: 3E 08       ld   a,$02
 6150: CD 12 B0    call award_score_b018
@@ -5684,7 +5686,7 @@ table_6473:
 6581: FD 21 FB C5 ld   iy,table_65FB
 6585: F1          pop  af
 6586: A7          and  a
-6587: CC 83 C5    call z,$6529
+6587: CC 83 C5    call z,display_hit_score_task_6529
 658A: FE 07       cp   $0D
 658C: D4 D5 B0    call nc,display_error_text_B075
 658F: 4F          ld   c,a
@@ -5704,7 +5706,7 @@ table_6473:
 65AC: C2 87 C5    jp   nz,$652D
 65AF: 3E 00       ld   a,$00
 65B1: 32 F2 6D    ld   (unknown_C7F8),a
-65B4: C3 83 C5    jp   $6529
+65B4: C3 83 C5    jp   display_hit_score_task_6529
 65B7: FD 7E 0A    ld   a,(iy+$0a)
 65BA: D6 12       sub  $18
 65BC: DD 77 09    ld   (ix+$03),a
@@ -5782,7 +5784,7 @@ table_65FB:
 668F: DD 21 B6 6D ld   ix,unknown_C7BC
 6693: 26 05       ld   h,$05
 6695: CD CE DA    call $7A6E
-6698: CD 52 DA    call or_50_to_C7BE_7A58
+6698: CD 52 DA    call change_bubble_flag_clut_to_red_7A58
 669B: 3E 85       ld   a,$25
 669D: CD D8 B0    call play_sound_B072
 66A0: 3E 09       ld   a,$03
@@ -5857,7 +5859,7 @@ table_65FB:
 6738: DD 21 B6 6D ld   ix,unknown_C7BC
 673C: 26 05       ld   h,$05
 673E: CD CE DA    call $7A6E
-6741: CD 52 DA    call or_50_to_C7BE_7A58
+6741: CD 52 DA    call change_bubble_flag_clut_to_red_7A58
 6744: 3E 84       ld   a,$24
 6746: CD D8 B0    call play_sound_B072
 6749: 3E D0       ld   a,$70
@@ -5888,7 +5890,7 @@ table_65FB:
 6784: DD 21 B6 6D ld   ix,unknown_C7BC
 6788: 26 05       ld   h,$05
 678A: CD CE DA    call $7A6E
-678D: CD 52 DA    call or_50_to_C7BE_7A58
+678D: CD 52 DA    call change_bubble_flag_clut_to_red_7A58
 6790: 3E 82       ld   a,$28
 6792: CD D8 B0    call play_sound_B072
 6795: 3E 96       ld   a,$3C
@@ -6394,7 +6396,7 @@ table_6C59:
 6CA0: DD 21 B6 6D ld   ix,unknown_C7BC
 6CA4: 26 05       ld   h,$05
 6CA6: CD CE DA    call $7A6E
-6CA9: CD 52 DA    call or_50_to_C7BE_7A58
+6CA9: CD 52 DA    call change_bubble_flag_clut_to_red_7A58
 6CAC: 3E 45       ld   a,$45
 6CAE: 32 BE 6D    ld   (unknown_C7BE),a
 6CB1: C9          ret
@@ -6418,7 +6420,7 @@ table_6C59:
 6CD9: DD 21 B6 6D ld   ix,unknown_C7BC
 6CDD: 26 05       ld   h,$05
 6CDF: CD CE DA    call $7A6E
-6CE2: CD 52 DA    call or_50_to_C7BE_7A58
+6CE2: CD 52 DA    call change_bubble_flag_clut_to_red_7A58
 6CE5: C9          ret
 
 display_scoring_technique_6CE6:
@@ -6534,7 +6536,7 @@ table_6D3E:
 6E1E: DD 21 B6 6D ld   ix,unknown_C7BC
 6E22: 26 01       ld   h,$01
 6E24: CD CE DA    call $7A6E
-6E27: CD 52 DA    call or_50_to_C7BE_7A58
+6E27: CD 52 DA    call change_bubble_flag_clut_to_red_7A58
 6E2A: 21 BE 6D    ld   hl,unknown_C7BE
 6E2D: CB FE       set  7,(hl)
 6E2F: 3E 96       ld   a,$3C
@@ -7099,7 +7101,7 @@ table_751b:
 table_754b:
 	dc.b	0x64,0x19,0x46,0x80,0x60,0x1a,0x46,0x90 ; table_754b
 	dc.b	0x70,0x1b,0x46,0x90,0x80,0x1c,0x46,0x90 ; $7553
-	dc.b	0x9e,0x00 ; $755b
+	dc.b	0x9e,0x00 ; white_player_task_755b
 755B: 3E 00       ld   a,$00
 755D: 32 4B 68    ld   (current_move_C24B),a
 7560: 3A 11 63    ld   a,(background_and_state_bits_C911)
@@ -7543,7 +7545,7 @@ clear_all_referee_bubbles_and_flags_7a4d:
 7A55: 10 FB       djnz $7A52
 7A57: C9          ret
 
-or_50_to_C7BE_7A58:
+change_bubble_flag_clut_to_red_7A58:
 7A58: 21 BE 6D    ld   hl,unknown_C7BE
 7A5B: 11 04 00    ld   de,$0004
 7A5E: 06 04       ld   b,$04
