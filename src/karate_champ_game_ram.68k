@@ -161,18 +161,9 @@
 	.global	unknown_C91D
 	.global	unknown_CC3D
 	.global	unknown_CD21
-	.global	temp_numeric_buffer_CF00
-	.global	unknown_CF01
-	.global	unknown_CF02
-	.global	unknown_CF03
-	.global	unknown_CF05
+	.global	temp_buffer_CF00
+	.global	address_of_current_player_move_byte_CF04
 	.global	unknown_pointer_CF06
-	.global	unknown_CF08
-	.global	unknown_CF0A
-	.global	unknown_CF0B
-	.global	unknown_CF0C
-	.global	unknown_CF16
-	.global	unknown_CF21
 
 	.global stack_bottom_C400
 	.global stack_top_CF00
@@ -562,30 +553,10 @@ unknown_CD21:
 	* roughly
 	ds.b	0X200*STACK_INFLATION
 stack_top_CF00:
-temp_numeric_buffer_CF00:
-	ds.b	1
-unknown_CF01:
-	ds.b	1
-unknown_CF02:
-	ds.b	1
-unknown_CF03:
-	ds.b	1
+temp_buffer_CF00:
+	ds.b	4
 address_of_current_player_move_byte_CF04:
-	ds.b	1
-unknown_CF05:
-	ds.b	1
-	.align	2
+	ds.b	2
 unknown_pointer_CF06:
 	ds.l	1	
-unknown_CF08:
-	ds.b	2
-unknown_CF0A:
-	ds.b	1
-unknown_CF0B:
-	ds.b	1
-unknown_CF0C:
-	ds.b	10
-unknown_CF16:
-	ds.b	11
-unknown_CF21:
-	ds.b	223
+	ds.b	0xFA		| rest of the memory is used by temp_buffer_CF00

@@ -1755,6 +1755,7 @@ osd_w_colorram:
 * other rows use a X/Y transposed system like Galaxian or Xevious!
 *
 update_bg_tile:
+
 	* get current level
 	moveq	#0,d2
 	* not working!!
@@ -2217,6 +2218,12 @@ handle_keyboard:
 	* snobees play chicken
 	st.b	cheat_used
 *	st.b	snobee_chicken_flag
+0:
+	.ifndef	RELEASE
+	cmp.b	#0x58,d0	| F9 key
+	bne.b	0f
+	illegal
+	.endif
 0:
 	tst.l	_resload
 	bne.b	0f

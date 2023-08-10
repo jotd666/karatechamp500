@@ -35,7 +35,7 @@ else:
     used_tile_cluts = None
     used_sprite_cluts = None
 
-dump_tiles = False
+dump_tiles = True
 dump_sprites = True
 
 if dump_tiles or dump_sprites:

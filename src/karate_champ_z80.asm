@@ -4996,7 +4996,7 @@ table_5E07:
 5E6A: 21 77 60    ld   hl,unknown_C0DD
 5E6D: 16 32       ld   d,$98
 5E6F: 01 19 18    ld   bc,$1213
-5E72: CD 9F B0    call display_text_color_2_B03F
+5E72: CD 9F B0    call display_color_number_B03F
 5E75: C9          ret
 5E76: 06 04       ld   b,$04
 5E78: C5          push bc
@@ -5052,11 +5052,11 @@ table_5E07:
 5EEC: 16 32       ld   d,$98
 5EEE: DD E5       push ix
 5EF0: E1          pop  hl
-5EF1: CD 9F B0    call display_text_color_2_B03F
+5EF1: CD 9F B0    call display_color_number_B03F
 5EF4: 01 08 14    ld   bc,$1402
 5EF7: 21 60 60    ld   hl,high_score_C0C0
 5EFA: 16 32       ld   d,$98
-5EFC: CD 9F B0    call display_text_color_2_B03F
+5EFC: CD 9F B0    call display_color_number_B03F
 5EFF: C9          ret
 table_5F00:
 	dc.b	0x12,0x13,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c ; table_5F00
@@ -7634,7 +7634,7 @@ display_background_picture_7A89:
 7AF8: C1          pop  bc
 7AF9: 21 70 60    ld   hl,player_2_score_C0D0
 7AFC: 16 32       ld   d,$98
-7AFE: CD 9F B0    call display_text_color_2_B03F
+7AFE: CD 9F B0    call display_color_number_B03F
 7B01: C9          ret
 two_p_color_text_7B02:
 	dc.b	0x14,0x05,0x02,0x98,0x1e,0x98,0x19,0x98 ; two_p_color_text_7B02
@@ -10751,8 +10751,8 @@ display_text_B039:
 B039: C3 5D B9    jp   display_text_B357
 display_multicolor_text_B03C:
 B03C: C3 31 B9    jp   display_multicolor_text_B391
-display_text_color_2_B03F:
-B03F: C3 6E B9    jp   display_text_color_2_B3CE
+display_color_number_B03F:
+B03F: C3 6E B9    jp   display_color_number_B3CE
 is_point_in_rectangle_B042:
 B042: C3 40 B4    jp   is_point_in_rectangle_B440
 
@@ -10840,7 +10840,7 @@ B0DA: C9          ret
 ; > d5/d6: input
 ; > d3.b: divisor
 ; > d5/d6: result
-; > d0: quotient?
+; > d0: remainder
 divide_hl_by_d_b0db:
 B0DB: AF          xor  a
 B0DC: 06 10       ld   b,$10
@@ -11050,7 +11050,7 @@ B220: CD DE B8    call is_title_screen_demo_mode_B27E
 B223: A7          and  a
 B224: CA DB B8    jp   z,$B27B
 B227: 01 08 14    ld   bc,$1402
-B22A: CD 6E B9    call display_text_color_2_B3CE
+B22A: CD 6E B9    call display_color_number_B3CE
 B22D: 01 04 14    ld   bc,$1404
 B230: 3A 11 63    ld   a,(background_and_state_bits_C911)
 B233: CB BF       res  7,a
@@ -11064,7 +11064,7 @@ B245: FE 08       cp   $02
 B247: C0          ret  nz
 B248: 16 32       ld   d,$98
 B24A: 21 62 60    ld   hl,player_1_score_C0C8
-B24D: CD 6E B9    call display_text_color_2_B3CE
+B24D: CD 6E B9    call display_color_number_B3CE
 B250: 3A 98 60    ld   a,(unknown_C032)
 B253: CB 4F       bit  1,a
 B255: CA DB B8    jp   z,$B27B
@@ -11081,7 +11081,7 @@ B270: FE 08       cp   $02
 B272: C0          ret  nz
 B273: 21 70 60    ld   hl,player_2_score_C0D0
 B276: 16 32       ld   d,$98
-B278: CD 6E B9    call display_text_color_2_B3CE
+B278: CD 6E B9    call display_color_number_B3CE
 B27B: FD E1       pop  iy
 B27D: C9          ret
 
@@ -11331,8 +11331,9 @@ B3C8: C3 A9 B9    jp   $B3A3
 B3CB: FD E1       pop  iy
 B3CD: C9          ret
 
-; not sure of what it exactly does. It displays text at HL
-display_text_color_2_B3CE:
+* displays number pointed by A0 at X=D1/Y=D2
+* with D3 color
+display_color_number_B3CE:
 B3CE: E5          push hl
 B3CF: D5          push de
 B3D0: 60          ld   h,b

@@ -288,6 +288,15 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address_mask:
 load_address_of_current_player_move_byte_CF04:
 	moveq	#0,d7
 	move.w	address_of_current_player_move_byte_CF04,d7
+	beq.b	0f
+	cmp.w	#0x20,d7
+	beq.b	0f
+	* sanity, can't be anything else
+	jbsr	osd_break
+	illegal
+	illegal
+	illegal
+0:
 	lea		current_move_C24B,a0
 	add.l	d7,a0
 	rts
@@ -306,6 +315,41 @@ store_address_of_current_player_move_byte_CF04:
 	move.w	d7,address_of_current_player_move_byte_CF04	
 	rts
 	
+
+	
+load_address_of_current_player_from_a3_10:
+	moveq	#0,d7
+	move.w	(0x10,a3),d7
+	
+	beq.b	0f
+	cmp.w	#0x20,d7
+	beq.b	0f
+	* sanity, can't be anything else
+	jbsr	osd_break
+	illegal
+	illegal
+	illegal
+0:
+	move.l	d7,a0
+	add.l	#player_1_struct_C240,a0
+	rts
+
+
+store_address_of_current_player_in_a3_10:
+	move.l	a0,d7
+	sub.l	#player_1_struct_C240,d7
+	beq.b	0f
+	cmp.w	#0x20,d7
+	beq.b	0f
+	* sanity, can't be anything else
+	jbsr	osd_break
+	illegal
+	illegal
+	illegal
+0:
+	move.w	d7,(0x10,a3)	
+	rts
+	
 load_a1_from_a0:
 	moveq.l	#0,d7
 	move.b	(1,a0),d7
@@ -322,6 +366,11 @@ change_a0_to_d5_d6:
 	lsr.w	#8,d5
 	rts
 
+change_d5_w_to_d5_d6:
+	move.b	d5,d6
+	lsr.w	#8,d5
+	rts
+	
 change_d5_w_to_a0:
 	swap	d5
 	clr.w	d5
@@ -1036,7 +1085,7 @@ l_3f76:
 l_3f92:
 	rts                                    	| [$3f92: ret]
 l_3f93:
-	lea	temp_numeric_buffer_CF00,a2    	| [$3f93: ld   ix,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a2    	| [$3f93: ld   ix,temp_buffer_CF00]
 	bclr.b	#7,d2                           	| [$3f97: res  7,c]
 	move.b	(0x07,a3),d0                    	| [$3f99: ld   a,(iy+$07)]
 	move.b	d0,(0x00,a2)                    	| [$3f9c: ld   (ix+$00),a]
@@ -1207,14 +1256,6 @@ display_player_sprite_4153:
 	sub.w	#2,d5								| [sbc  hl,de]  MSB
 	move.b	#0x0D,d3                        	| [$415d: ld   d,$0D]
 
-*	move.w	d5,0x110
-*	move.w	d6,0x112
-*	cmp.b	#0x86,d6
-*	bne.b	11f
-*	cmp.b	#1,d5
-*	bne.b	11f
-*	jbsr	osd_break
-*11:
 	jbsr	divide_hl_by_d_b003                            	| [$415f: call $B003]
 	tst.b	d0                               	| [$4162: and  a]
 	beq.b	0f
@@ -1422,7 +1463,7 @@ l_42a3:
 	move.l	a3,-(sp)                        	| [$42a5: push iy]
 	movem.w	d3-d6,-(sp)                    	| [$42a7: push de+push hl]
 	* backup in temp buffer for later
-	move.l	a3,unknown_CF08                 	| [$42a9: ld   (unknown_CF08),iy]
+	move.l	a3,temp_buffer_CF00+8                 	| [$42a9: ld   (temp_buffer_CF00+8),iy]
 	lea	player_2_struct_C260,a3        	| [$42ad: ld   iy,player_2_struct_C260]
 	move.b	current_task_index_C028,d0   	| [$42b1: ld   a,(current_task_index_C028)]
 	cmp.b	#0x0A,d0                         	| [$42b4: cp   $0A]
@@ -1430,7 +1471,7 @@ l_42a3:
 	lea	player_1_struct_C240,a3        	| [$42b9: ld   iy,player_1_struct_C240]
 l_42bd:
 	jbsr	get_current_frame_contents_478D   	| [$42bd: call get_current_frame_contents_478D]
-	lea	temp_numeric_buffer_CF00,a2    	| [$42c0: ld   ix,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a2    	| [$42c0: ld   ix,temp_buffer_CF00]
 	sub.b	#2,d5   | msb 0x200 => 2
 	            	| [$42c4: ld   de,$0200]
 	              	| [$42c7: and  a]
@@ -1476,7 +1517,7 @@ l_42bd:
 	move.l	a3,-(sp)                        	| [$430b: push iy]
 *	jra	l_4343                             	| [$430d: jp   $4343]
 *	* retrieve backuped value, this seems not reached
-*	move.l	unknown_CF08,a3             	| [$4310: ld   iy,(unknown_CF08)]
+*	move.l	temp_buffer_CF00+8,a3             	| [$4310: ld   iy,(temp_buffer_CF00+8)]
 *	move.b	(0x0b,a3),d0                    	| [$4314: ld   a,(iy+$0b)]
 *	cmp.b	(0x12,a3),d0                     	| [$4317: cp   (iy+$12)]
 *	jeq	l_432f                             	| [$431a: jp   z,$432F]
@@ -1543,7 +1584,7 @@ l_4393:
 	exg	d3,d5                              	| [$4393: ex   de,hl]
 	exg	d4,d6                              	| [$4393: ex   de,hl]
 	move.b	d1,d0                           	| [$4394: ld   a,b]
-	move.l	unknown_CF08,a3             	| [$4395: ld   iy,(unknown_CF08)]
+	move.l	temp_buffer_CF00+8,a3             	| [$4395: ld   iy,(temp_buffer_CF00+8)]
 	move.b	(0x07,a3),d2                    	| [$4399: ld   c,(iy+$07)]
 	move.b	(0x08,a3),d1                    	| [$439c: ld   b,(iy+$08)]
 	move.b	d2,(0x10,a3)                    	| [$439f: ld   (iy+$10),c]
@@ -2468,11 +2509,12 @@ table_4AD4:
 	dc.b	0xff | $4b14
 	.align	2
 l_4b15:
-	move.b	(0x07,a3),d2                    	| [$4b15: ld   c,(iy+$07)]
-	move.b	(0x08,a3),d1                    	| [$4b18: ld   b,(iy+$08)]
-	bclr.b	#7,d1                           	| [$4b1b: res  7,b]
-	movem.w	d1/d2,-(sp)                    	| [$4b1d: push bc]
-	move.l	(sp)+,a2                        	| [$4b1e: pop  ix]
+	bsr		load_a1_from_a3_structure_07_address_mask
+										| [$4b15: ld   c,(iy+$07)]
+										| [$4b18: ld   b,(iy+$08)]
+										| [$4b1b: res  7,b]
+	move.l	a1,a2                    	| [$4b1d: push bc]
+											| [$4b1e: pop  ix]
 	move.b	(0x02,a2),d0                    	| [$4b20: ld   a,(ix+$02)]
 	move.b	(0x03,a2),d2                    	| [$4b23: ld   c,(ix+$03)]
 	btst.b	#7,(0x08,a3)                    	| [$4b26: bit  7,(iy+$08)]
@@ -2515,11 +2557,12 @@ table_4B79:
 l_4b7d:
 
 	move.l	a3,-(sp)                        	| [$4b7d: push iy]
-	move.b	(0x10,a3),d6                    	| [$4b7f: ld   l,(iy+$10)]
-	move.b	(0x11,a3),d5                    	| [$4b82: ld   h,(iy+$11)]
+	bsr		load_address_of_current_player_from_a3_10
+											| [$4b7f: ld   l,(iy+$10)]
+											| [$4b82: ld   h,(iy+$11)]
 
-	move.l	a0,-(sp)                        	| [$4b85: push hl]
-	move.l	(sp)+,a3                        	| [$4b86: pop  iy]
+	move.l	a0,a3                        	| [$4b85: push hl]
+											| [$4b86: pop  iy]
 	jbsr	l_4c14                            	| [$4b88: call $4C14]
 	move.l	(sp)+,a3                        	| [$4b8b: pop  iy]
 	tst.b	d0                               	| [$4b8d: and  a]
@@ -2576,14 +2619,15 @@ l_4bf9:
 l_4bfb:
 	rts                                    	| [$4bfb: ret]
 l_4bfc:
-	lea	player_1_struct_C240(pc),a0        	| [$4bfc: ld   hl,player_1_struct_C240]
+	lea	player_1_struct_C240,a0        	| [$4bfc: ld   hl,player_1_struct_C240]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$4bff: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	btst.b	#2,d0                           	| [$4c02: bit  2,a]
 	jne	l_4c0a                             	| [$4c04: jp   nz,$4C0A]
-	lea	player_2_struct_C260(pc),a0        	| [$4c07: ld   hl,player_2_struct_C260]
+	lea	player_2_struct_C260,a0        	| [$4c07: ld   hl,player_2_struct_C260]
 l_4c0a:
-	move.b	d6,(0x10,a3)                    	| [$4c0a: ld   (iy+$10),l]
-	move.b	d5,(0x11,a3)                    	| [$4c0d: ld   (iy+$11),h]
+	bsr		store_address_of_current_player_in_a3_10
+												| [$4c0a: ld   (iy+$10),l]
+												| [$4c0d: ld   (iy+$11),h]
 	jbsr	l_4b7d                            	| [$4c10: call $4B7D]
 	rts                                    	| [$4c13: ret]
 
@@ -2618,7 +2662,7 @@ l_4c7d:
 	clr.w	d1                               	| [$4c83: ld   b,$00]
 	move.b	(0x0c,a3),d1                    	| [$4c80: ld   c,(iy+$0c)]
 	add.w	d1,a0                            	| [$4c85: add  hl,bc]
-	lea	temp_numeric_buffer_CF00,a2    	| [$4c86: ld   ix,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a2    	| [$4c86: ld   ix,temp_buffer_CF00]
 	move.b	(0x09,a3),d0                    	| [$4c8a: ld   a,(iy+$09)]
 	sub.b	(a0),d0                          	| [$4c8d: sub  (hl)]
 	move.b	d0,(0x00,a2)                    	| [$4c8e: ld   (ix+$00),a]
@@ -2645,7 +2689,7 @@ l_4cbc:
 l_4cc5:
 
 	move.l	a3,-(sp)                        	| [$4cc5: push iy]
-	lea	temp_numeric_buffer_CF00,a2    	| [$4cc7: ld   ix,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a2    	| [$4cc7: ld   ix,temp_buffer_CF00]
 	lea	game_mem+0x4D14,a0                  	| [$4ccb: ld   hl,table_4D14]
 	clr.w	d1                               	| [$4cd1: ld   b,$00]
 	move.b	(0x0c,a3),d1                    	| [$4cce: ld   c,(iy+$0c)]
@@ -2664,9 +2708,8 @@ l_4cc5:
 	jbsr	get_current_frame_contents_478D   	| [$4ce9: call get_current_frame_contents_478D]
 	                      	| [$4cec: ld   de,$0200]
 	                               	| [$4cef: and  a]
-	sub.w	#0x200,a0				| [sbc  hl,de]
+	subq.w	#2,d5				| [sbc  hl,de]  sub 0x200, sub 2 from MSB
 	move.b	#0x0D,d3                        	| [$4cf2: ld   d,$0D]
-	bsr		change_a0_to_d5_d6
 	jbsr	divide_hl_by_d_b003               	| [$4cf4: call divide_hl_by_d_b003]
 	tst.b	d0                               	| [$4cf7: and  a]
 	beq.b	0f
@@ -2674,10 +2717,10 @@ l_4cc5:
 0:
 	bsr		change_d5_d6_to_d5_16
 	add.w	d5,d5                            	| [$4cfb: add  hl,hl]
-	add.w	d5,a5                            	| [$4cfc: add  hl,hl]
+	add.w	d5,d5                            	| [$4cfc: add  hl,hl]
 	move.w	#0x088D,d3                      	| [$4cfd: ld   de,$088D] offset
 	add.w	d3,d5                            	| [$4d00: add  hl,de]
-	addq.w	#3,a0                           	| [$4d01: inc  hl] * 3
+	addq.w	#3,d5                           	| [$4d01: inc  hl] * 3
 	move.b	(0x0a,a3),d0                    	| [$4d04: ld   a,(iy+$0a)]
 	bsr		change_d5_w_to_a0
 	add.b	(a0),d0                          	| [$4d07: add  a,(hl)]
@@ -2819,7 +2862,7 @@ l_4de0:
 	move.b	#0x1D,d5
 	move.b	#0,d6                      	| [$4e03: ld   hl,$1D00]
 	jbsr	fill_rectangle_B01B                            	| [$4e06: call $B01B]
-	lea	temp_numeric_buffer_CF00,a2    	| [$4e09: ld   ix,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a2    	| [$4e09: ld   ix,temp_buffer_CF00]
 	move.b	#0x02,(0x00,a2)                 	| [$4e0d: ld   (ix+$00),$02]
 	move.b	#0x10,(0x01,a2)                 	| [$4e11: ld   (ix+$01),$10]
 	move.b	#0xFF,(0x1e,a2)                 	| [$4e15: ld   (ix+$1e),$FF]
@@ -3220,6 +3263,11 @@ jump_table_547B:
 
 
 l_5529:
+	.ifne	OPT_EVADE_TEST
+	jra		evade_56f8
+	.endif
+	
+	
 	clr.b	d0                               	| [$5529: ld   a,$00]
 	move.b	d0,unknown_C147                 	| [$552b: ld   (unknown_C147),a]
 	move.b	d0,unknown_C148                 	| [$552e: ld   (unknown_C148),a]
@@ -3444,7 +3492,9 @@ l_56ea:
 	jbsr	task_yield_B051                  	| [$56f5: call task_yield_B051]
 
 evade_56f8:
-	lea	table_77e3(pc),a0                  	| [$56f8: ld   hl,table_77e3]
+	* display "EVADE" logo
+	lea	game_mem+0x77e3,a0                  	| [$56f8: ld   hl,table_77e3]
+	jbsr	osd_break
 	jbsr	display_multicolor_text_B03C      	| [$56fb: call display_multicolor_text_B03C]
 	move.b	#0x0A,d0                        	| [$56fe: ld   a,$0A]
 	lea	players_type_human_or_cpu_flags_C02D(pc),a0	| [$5700: ld   hl,players_type_human_or_cpu_flags_C02D]
@@ -3668,7 +3718,7 @@ l_584d:
 	move.b	nb_credits_minus_one_C024,d0    	| [$584d: ld   a,(nb_credits_minus_one_C024)]
 	tst.b	d0                               	| [$5850: and  a]
 	jne	l_58ae                             	| [$5851: jp   nz,$58AE]
-	lea	table_7816(pc),a0                  	| [$5854: ld   hl,table_7816]
+	lea	game_mem+0x7816,a0                  	| [$5854: ld   hl,table_7816]
 	move.b	#0x98,d3                        	| [$5857: ld   d,$98]
 	jbsr	display_text_B039                 	| [$5859: call display_text_B039]
 	move.b	#0x15,d0                        	| [$585c: ld   a,$15]
@@ -3689,9 +3739,10 @@ l_5863:
 	jne	l_58ae                             	| [$5876: jp   nz,$58AE]
 	subq.b	#1,d1                           	| [...]
 	jne	l_5863                             	| [$5879: djnz $5863]
-	move.w	#0x150C,temp_numeric_buffer_CF00    	| [$587b: ld   hl,$0C15] immediate
-											| [$587e: ld   (temp_numeric_buffer_CF00),hl]
+	move.w	#0x150C,temp_buffer_CF00    	| [$587b: ld   hl,$0C15] immediate
+											| [$587e: ld   (temp_buffer_CF00),hl]
 	st.b	d0                                	| [$5881: ld   a,$FF]
+	* CF04 is used for something else than address_of_current_player_move_byte_CF04
 	move.b	d0,address_of_current_player_move_byte_CF04	| [$5883: ld   (address_of_current_player_move_byte_CF04),a]
 	lea	unknown_C149,a0                	| [$5886: ld   hl,unknown_C149]
 	move.b	(a0),d0                         	| [$5889: ld   a,(hl)]
@@ -3702,12 +3753,12 @@ l_5863:
 	move.b	d0,(a0)                         	| [$5892: ld   (hl),a]
 	move.b	d0,d1                           	| [$5893: ld   b,a]
 	and.b	#0x0F,d0                         	| [$5894: and  $0F]
-	move.b	d0,unknown_CF03                 	| [$5896: ld   (unknown_CF03),a]
+	move.b	d0,temp_buffer_CF00+3                 	| [$5896: ld   (temp_buffer_CF00+3),a]
 	move.b	d1,d0                           	| [$5899: ld   a,b]
 	and.b	#0xF0,d0                         	| [$589a: and  $F0]
 	ror.b	#4,d0                            	| [$589c: rrca] * 4
-	move.b	d0,unknown_CF02                 	| [$58a0: ld   (unknown_CF02),a]
-	lea	temp_numeric_buffer_CF00,a0    	| [$58a3: ld   hl,temp_numeric_buffer_CF00]
+	move.b	d0,temp_buffer_CF00+2                 	| [$58a0: ld   (temp_buffer_CF00+2),a]
+	lea	temp_buffer_CF00,a0    	| [$58a3: ld   hl,temp_buffer_CF00]
 	move.b	#0x98,d3                        	| [$58a6: ld   d,$98]
 	jbsr	display_text_B039                 	| [$58a8: call display_text_B039]
 	jra	l_5861                             	| [$58ab: jp   $5861]
@@ -3807,16 +3858,16 @@ l_5931:
 	movem.w	(sp)+,d1/d2                    	| [$593b: pop  bc]
 	subq.b	#1,d1                           	| [...]
 	jne	l_5931                             	| [$593c: djnz $5931]
-	lea	table_77b9(pc),a0                  	| [$593e: ld   hl,table_77b9]
+	lea	game_mem+0x77b9,a0                  	| [$593e: ld   hl,table_77b9]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5941: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	and.b	#0x03,d0                         	| [$5944: and  $03]
 	cmp.b	#0x03,d0                         	| [$5946: cp   $03]
 	jne	l_5959                             	| [$5948: jp   nz,$5959]
-	lea	table_78b7(pc),a0                  	| [$594b: ld   hl,table_78b7]
+	lea	game_mem+0x78b7,a0                  	| [$594b: ld   hl,table_78b7]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$594e: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	btst.b	#2,d0                           	| [$5951: bit  2,a]
 	jne	l_5959                             	| [$5953: jp   nz,$5959]
-	lea	table_7884(pc),a0                  	| [$5956: ld   hl,table_7884]
+	lea	game_mem+0x7884,a0                  	| [$5956: ld   hl,table_7884]
 l_5959:
 	move.b	#0x98,d3                        	| [$5959: ld   d,$98]
 	jbsr	display_text_B039                 	| [$595b: call display_text_B039]
@@ -4295,7 +4346,7 @@ l_5e56:
 	move.b	#0x98,d3                        	| [$5e6d: ld   d,$98]
 	move.b	#0x12,d1                        	| [$5e6f: ld   bc,$1213] 4627
 	move.b	#0x13,d2                        	| [$5e6f: ld   bc,$1213] 4627
-	jbsr	display_text_color_2_B03F         	| [$5e72: call display_text_color_2_B03F]
+	jbsr	display_color_number_B03F         	| [$5e72: call display_color_number_B03F]
 	rts                                    	| [$5e75: ret]
 l_5e76:
 	move.b	#0x04,d1                        	| [$5e76: ld   b,$04]
@@ -4324,6 +4375,7 @@ l_5e78:
 	jne	l_5e78                             	| [$5e99: djnz $5E78]
 	move.b	#0x14,d1                        	| [$5e9b: ld   bc,$1404] 5124
 	move.b	#0x04,d2                        	| [$5e9b: ld   bc,$1404] 5124
+	jbsr	osd_break
 	lea	player_1_score_C0C8,a2         	| [$5e9e: ld   ix,player_1_score_C0C8]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5ea2: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	btst.b	#2,d0                           	| [$5ea5: bit  2,a]
@@ -4368,12 +4420,12 @@ l_5ee9:
 
 	move.l	a2,a0                        	| [$5eee: push ix]
 											| [$5ef0: pop  hl]
-	jbsr	display_text_color_2_B03F         	| [$5ef1: call display_text_color_2_B03F]
+	jbsr	display_color_number_B03F         	| [$5ef1: call display_color_number_B03F]
 	move.b	#0x14,d1                        	| [$5ef4: ld   bc,$1402] 5122
 	move.b	#0x02,d2                        	| [$5ef4: ld   bc,$1402] 5122
 	lea	high_score_C0C0,a0             	| [$5ef7: ld   hl,high_score_C0C0]
 	move.b	#0x98,d3                        	| [$5efa: ld   d,$98]
-	jbsr	display_text_color_2_B03F         	| [$5efc: call display_text_color_2_B03F]
+	jbsr	display_color_number_B03F         	| [$5efc: call display_color_number_B03F]
 	rts                                    	| [$5eff: ret]
 
 	
@@ -4779,18 +4831,18 @@ l_621a:
 	jbsr	display_text_B039                 	| [$622c: call display_text_B039]
 	rts                                    	| [$622f: ret]
 l_6230:
-	lea	table_6367(pc),a0                  	| [$6230: ld   hl,table_6367]
-	lea	temp_numeric_buffer_CF00,a1    	| [$6233: ld   de,temp_numeric_buffer_CF00]
+	lea	game_mem+0x6367,a0                  	| [$6230: ld   hl,table_6367]
+	lea	temp_buffer_CF00,a1    	| [$6233: ld   de,temp_buffer_CF00]
 	move.w	#0x002C,d1                      	| [$6236: ld   bc,$002C] 44
 	jbsr	ldir                              	| [$6239: ldir]
-	lea	temp_numeric_buffer_CF00,a0    	| [$623b: ld   hl,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a0    	| [$623b: ld   hl,temp_buffer_CF00]
 	jbsr	display_multicolor_text_B03C      	| [$623e: call display_multicolor_text_B03C]
 	move.b	#0x11,d0                        	| [$6241: ld   a,$11]
-	move.b	d0,temp_numeric_buffer_CF00     	| [$6243: ld   (temp_numeric_buffer_CF00),a]
-	move.b	d0,unknown_CF0B                 	| [$6246: ld   (unknown_CF0B),a]
-	move.b	d0,unknown_CF16                 	| [$6249: ld   (unknown_CF16),a]
-	move.b	d0,unknown_CF21                 	| [$624c: ld   (unknown_CF21),a]
-	lea	temp_numeric_buffer_CF00,a0    	| [$624f: ld   hl,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a0    	| [$624f: ld   hl,temp_buffer_CF00]
+	move.b	d0,(a0)     	| [$6243: ld   (temp_buffer_CF00),a]
+	move.b	d0,(0xB,a0)                 	| [$6246: ld   (unknown_CF0B),a]
+	move.b	d0,(0x16,a0)                 	| [$6249: ld   (unknown_CF16),a]
+	move.b	d0,(0x21,a0)                 	| [$624c: ld   (unknown_CF21),a]
 	jbsr	display_multicolor_text_B03C      	| [$6252: call display_multicolor_text_B03C]
 	lea	table_6473(pc),a0                  	| [$6255: ld   hl,table_6473]
 	move.b	#0x98,d3                        	| [$6258: ld   d,$98]
@@ -4798,14 +4850,14 @@ l_6230:
 	rts                                    	| [$625d: ret]
 l_625e:
 	lea	table_62DE(pc),a0                  	| [$625e: ld   hl,table_62DE]
-	lea	temp_numeric_buffer_CF00,a1    	| [$6261: ld   de,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a1    	| [$6261: ld   de,temp_buffer_CF00]
 	move.w	#0x0022,d1                      	| [$6264: ld   bc,$0022] 34
 	jbsr	ldir                              	| [$6267: ldir]
 	move.w	d0,-(sp)                        	| [$6269: push af]
 	rol.b	#5,d0                           	| [$626a: rla * 5]
 	and.b	#0x0F,d0                         	| [$626f: and  $0F]
 	jbsr	show_joystick_positions_6297                            	| [$6271: call $6297]
-	lea	temp_numeric_buffer_CF00,a2    	| [$6274: ld   ix,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a2    	| [$6274: ld   ix,temp_buffer_CF00]
 	move.b	#0x12,d0                        	| [$6278: ld   a,$12]
 	move.b	d0,(0x00,a2)                    	| [$627a: ld   (ix+$00),a]
 	move.b	d0,(0x07,a2)                    	| [$627d: ld   (ix+$07),a]
@@ -4906,22 +4958,7 @@ practice_table_table_6361:
 	.long	practice_table_6301 | $6361
 	.long	practice_table_6321 | $6363
 	.long	practice_table_6341 | $6365
-table_6367:
-	dc.b	0x0b,0x1c,0x3c,0x88,0xac,0xd8,0xad,0xd8 | table_6367
-	dc.b	0x3c,0x88,0xfe,0x0b,0x1d,0xae,0xd8,0xaf | $636f
-	dc.b	0x88,0xb0,0x88,0xb1,0xd8,0xfe,0x0b,0x1e | $6377
-	dc.b	0xb2,0xd8,0xb3,0x88,0xb4,0x88,0xb5,0xd8 | $637f
-	dc.b	0xfe,0x0b,0x1f,0x3c,0x88,0xb6,0xd8,0xb7 | $6387
-	dc.b	0xd8,0x3c,0x88,0xff | $638f
-table_6393:
-	dc.b	0x89,0x0a,0x92,0x0a,0x9b,0x0a,0xad,0x0a | table_6393
-	dc.b	0xc8,0x0a,0xa4,0x0a,0xb6,0x0a,0xbf,0x0a | $639b
-	dc.b	0xfe,0xfe,0xc9,0x0c,0xdb,0x0c,0x50,0x0d | $63a3
-	dc.b	0xe0,0x0d,0x55,0x0e,0x24,0x0f,0x99,0x0f | $63ab
-	dc.b	0x17,0x10,0xa7,0x10,0x13,0x11,0x76,0x11 | $63b3
-	dc.b	0xeb,0x11,0xde,0x12,0x53,0x13,0xff,0xff | $63bb
-	dc.b	0x04,0x1d,0x0b,0x0a,0x0c,0x14,0xfe,0x04 | $63c3
-	dc.b	0x1e,0x14,0x12,0x0c,0x14,0xff | $63cb
+
 * "JUMPING"
 table_63D1:
 	dc.b	0x03,0x1d,0x13,0x1e,0x16,0x19,0x12,0x17 | table_63D1
@@ -5018,8 +5055,8 @@ display_remaining_round_time_64fb:
 	move.w	#0x0F,d6                      	| [$64fd: ld   hl,$050F] Y
 l_6500:
 	* set coordinates
-	move.b	d6,temp_numeric_buffer_CF00     	| [$6500: ld   (temp_numeric_buffer_CF00),hl]
-	move.b	d5,temp_numeric_buffer_CF00+1     	| [$6500: ld   (temp_numeric_buffer_CF00),hl]
+	move.b	d6,temp_buffer_CF00     	| [$6500: ld   (temp_buffer_CF00),hl]
+	move.b	d5,temp_buffer_CF00+1     	| [$6500: ld   (temp_buffer_CF00),hl]
 	st.b	d0                                	| [$6503: ld   a,$FF]
 	* end the string... using an area also used as a pointer WTF!
 	move.b	d0,unknown_pointer_CF06                 	| [$6505: ld   (unknown_pointer_CF06),a]
@@ -5042,10 +5079,10 @@ l_6500:
 	lsr.b	#4,d0                            	| [$6514: srl  a] * 4
 	and.b	#0x0F,d0                         	| [$651c: and  $0F]
 	move.b	d0,d6                           	| [$651e: ld   l,a] update LSB
-	move.b	d6,unknown_CF02                 	| [$651f: ld   (unknown_CF02),hl]
-	move.b	d5,unknown_CF02+1                 	| [$651f: ld   (unknown_CF02),hl]
-												| [$651f: ld   (unknown_CF02),hl]
-	lea	temp_numeric_buffer_CF00,a0    	| [$6522: ld   hl,temp_numeric_buffer_CF00]
+	move.b	d6,temp_buffer_CF00+2                 	| [$651f: ld   (temp_buffer_CF00+2),hl]
+	move.b	d5,temp_buffer_CF00+2+1                 	| [$651f: ld   (temp_buffer_CF00+2),hl]
+												| [$651f: ld   (temp_buffer_CF00+2),hl]
+	lea	temp_buffer_CF00,a0    	| [$6522: ld   hl,temp_buffer_CF00]
 	jbsr	display_multicolor_text_B03C      	| [$6525: call display_multicolor_text_B03C]
 	rts                                    	| [$6528: ret]
 
@@ -5635,10 +5672,10 @@ l_69ee:
 	rts                                    	| [$69f4: ret]
 l_69f5:
 	lea	game_mem+0x6A07,a0                  	| [$69f5: ld   hl,table_6A07]
-	lea	temp_numeric_buffer_CF00,a1    	| [$69f8: ld   de,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a1    	| [$69f8: ld   de,temp_buffer_CF00]
 	move.w	#0x0022,d1                      	| [$69fb: ld   bc,$0022] 34
 	jbsr	ldir                              	| [$69fe: ldir]
-	lea	temp_numeric_buffer_CF00,a0    	| [$6a00: ld   hl,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a0    	| [$6a00: ld   hl,temp_buffer_CF00]
 	jbsr	display_multicolor_text_B03C      	| [$6a03: call display_multicolor_text_B03C]
 	rts                                    	| [$6a06: ret]
 l_6a25:
@@ -5808,13 +5845,13 @@ l_6bad:
 * < D5/D6
 * < A1: source (turned to A0)
 l_6bb1:
-	move.b	d6,temp_numeric_buffer_CF00     	| [$6bb1: ld   (temp_numeric_buffer_CF00),hl]
-	move.b	d5,temp_numeric_buffer_CF00+1     	| [$6bb1: ld   (temp_numeric_buffer_CF00),hl]
+	move.b	d6,temp_buffer_CF00     	| [$6bb1: ld   (temp_buffer_CF00),hl]
+	move.b	d5,temp_buffer_CF00+1     	| [$6bb1: ld   (temp_buffer_CF00),hl]
 	exg	a1,a0                              	| [$6bb4: ex   de,hl]
-	lea	unknown_CF02,a1                	| [$6bb5: ld   de,unknown_CF02]
+	lea	temp_buffer_CF00+2,a1                	| [$6bb5: ld   de,temp_buffer_CF00+2]
 	move.w	#0x0006,d1                      	| [$6bb8: ld   bc,$0006] 6
 	jbsr	ldir                              	| [$6bbb: ldir]
-	lea	temp_numeric_buffer_CF00,a0    	| [$6bbd: ld   hl,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a0    	| [$6bbd: ld   hl,temp_buffer_CF00]
 	jbsr	display_multicolor_text_B03C      	| [$6bc0: call display_multicolor_text_B03C]
 	rts                                    	| [$6bc3: ret]
 
@@ -5844,13 +5881,13 @@ l_6bee:
 	lea	game_mem+0x6C59,a0                  	| [$6bee: ld   hl,table_6C59]
 	move.b	#0x90,d3                        	| [$6bf1: ld   d,$90]
 	jbsr	display_text_B039                 	| [$6bf3: call display_text_B039]
-	move.b	#0x06,temp_numeric_buffer_CF00+1                      	| [$6bf6: ld   hl,$0607]
-	move.b	#0x07,temp_numeric_buffer_CF00     	| [$6bf9: ld   (temp_numeric_buffer_CF00),hl]
+	move.b	#0x06,temp_buffer_CF00+1                      	| [$6bf6: ld   hl,$0607]
+	move.b	#0x07,temp_buffer_CF00     	| [$6bf9: ld   (temp_buffer_CF00),hl]
 	move.b	unknown_C148,d0                 	| [$6bfc: ld   a,(unknown_C148)]
 	move.b	d0,d6                           	| [$6bff: ld   l,a]
 	move.b	#0x98,d5                        	| [$6c00: ld   h,$98]
-	move.b	d6,unknown_CF02                 	| [$6c02: ld   (unknown_CF02),hl]
-	move.b	d5,unknown_CF02+1                 	| [$6c02: ld   (unknown_CF02),hl]
+	move.b	d6,temp_buffer_CF00+2                 	| [$6c02: ld   (temp_buffer_CF00+2),hl]
+	move.b	d5,temp_buffer_CF00+2+1                 	| [$6c02: ld   (temp_buffer_CF00+2),hl]
 	move.w	#0x98,address_of_current_player_move_byte_CF04+1                  	| [$6c05: ld   hl,table_983c]
 	move.w	#0x3C,address_of_current_player_move_byte_CF04                  	| [$6c05: ld   hl,table_983c]
 								| [$6c08: ld   (address_of_current_player_move_byte_CF04),hl]
@@ -5858,16 +5895,16 @@ l_6bee:
 	move.b	#0x26,unknown_pointer_CF06                  	| [$6c0b: ld   hl,table_9826]
 	                 	| [$6c0e: ld   (unknown_pointer_CF06),hl]
 	lea	game_mem+0x983c,a0                  	| [$6c11: ld   hl,table_983c]
-	move.b	#0x98,unknown_CF08+1                 	| [$6c14: ld   (unknown_CF08),hl]
-	move.b	#0x3C,unknown_CF08                 	| [$6c14: ld   (unknown_CF08),hl]
+	move.b	#0x98,temp_buffer_CF00+8+1                 	| [$6c14: ld   (temp_buffer_CF00+8),hl]
+	move.b	#0x3C,temp_buffer_CF00+8                 	| [$6c14: ld   (temp_buffer_CF00+8),hl]
 	move.b	unknown_C147,d0                 	| [$6c17: ld   a,(unknown_C147)]
 	move.b	d0,d6                           	| [$6c1a: ld   l,a]
 	move.b	#0x90,d5                        	| [$6c1b: ld   h,$90]
-	move.b	d6,unknown_CF0A                 	| [$6c1d: ld   (unknown_CF0A),hl]
-	move.b	d5,unknown_CF0A+1                 	| [$6c1d: ld   (unknown_CF0A),hl]
+	move.b	d6,temp_buffer_CF00+0xA                 	| [$6c1d: ld   (temp_buffer_CF00+0xA),hl]
+	move.b	d5,temp_buffer_CF00+0xA+1                 	| [$6c1d: ld   (temp_buffer_CF00+0xA),hl]
 	st.b	d0                                	| [$6c20: ld   a,$FF]
-	move.b	d0,unknown_CF0C                 	| [$6c22: ld   (unknown_CF0C),a]
-	lea	temp_numeric_buffer_CF00,a0    	| [$6c25: ld   hl,temp_numeric_buffer_CF00]
+	move.b	d0,temp_buffer_CF00+0xC                 	| [$6c22: ld   (temp_buffer_CF00+0xC),a]
+	lea	temp_buffer_CF00,a0    	| [$6c25: ld   hl,temp_buffer_CF00]
 	jbsr	display_multicolor_text_B03C      	| [$6c28: call display_multicolor_text_B03C]
 	rts                                    	| [$6c2b: ret]
 * empty text to erase previous values
@@ -6883,62 +6920,7 @@ l_772c:
 0:
 	jra	l_772c                             	| [$7750: jp   $772C]
 	
-table_7799:
-	dc.b	0x0c,0x0e,0x19,0x15,0x0a,0x22,0x0e,0x1b | table_7799
-	dc.b	0x3c,0x01,0xff | $77a1
-table_77a4:
-	dc.b	0x0c,0x0e,0x19,0x15,0x0a,0x22,0x0e,0x1b | table_77a4
-	dc.b	0x3c,0x02,0xff,0x17,0x07,0x1d,0x12,0x16 | $77ac
-	dc.b	0x0e,0x3c,0x03,0x00,0xff | $77b4
-table_77b9:
-	dc.b	0x0a,0x0c,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c | table_77b9
-	dc.b	0x3c,0x3c,0x3c,0x3c,0x3c,0xfe,0x0a,0x0d | $77c1
-	dc.b	0x3c,0x10,0x0a,0x16,0x0e,0x3c,0x18,0x1f | $77c9
-	dc.b	0x0e,0x1b,0x3c,0xfe,0x0a,0x0e,0x3c,0x3c | $77d1
-	dc.b	0x3c,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c | $77d9
-	dc.b	0x3c,0xff | $77e1
-table_77e3:
-	dc.b	0x06,0x05,0xc1,0x92,0xc2,0x92,0xc3,0x92 | table_77e3
-	dc.b	0xc4,0x92,0xc5,0x92,0xc6,0x92,0xc7,0x92 | $77eb
-	dc.b	0xfe,0x06,0x06,0xc8,0x92,0x4f,0x92,0x50 | $77f3
-	dc.b	0x92,0x51,0x92,0x52,0x92,0x53,0x92,0x54 | $77fb
-	dc.b	0x92,0xfe,0x06,0x07,0x55,0x92,0x56,0x92 | $7803
-	dc.b	0x57,0x92,0x58,0x92,0x59,0x92,0x5a,0x92 | $780b
-	dc.b	0x5b,0x92,0xff | $7813
-table_7816:
-	dc.b	0x05,0x0a,0x15,0x18,0x1c,0x0e,0x1b,0x3c | table_7816
-	dc.b	0x1d,0x18,0x3c,0x0c,0x18,0x17,0x1d,0x12 | $781e
-	dc.b	0x17,0x1e,0x0e,0x3c,0x0f,0x12,0x10,0x11 | $7826
-	dc.b	0x1d,0xfe,0x02,0x0c,0x12,0x17,0x1c,0x0e | $782e
-	dc.b	0x1b,0x1d,0x3c,0x0c,0x18,0x12,0x17,0x3c | $7836
-	dc.b	0x20,0x12,0x1d,0x11,0x12,0x17,0x3c,0x01 | $783e
-	dc.b	0x05,0x3c,0x1c,0x0e,0x0c,0x18,0x17,0x0d | $7846
-	dc.b	0xfe,0x05,0x0e,0x20,0x12,0x17,0x17,0x0e | $784e
-	dc.b	0x1b,0x3c,0x1d,0x18,0x3c,0x0c,0x18,0x17 | $7856
-	dc.b	0x1d,0x12,0x17,0x1e,0x0e,0xfe,0x09,0x10 | $785e
-	dc.b	0x1c,0x12,0x17,0x10,0x15,0x0e,0x3c,0x19 | $7866
-	dc.b	0x15,0x0a,0x22,0xfe,0x07,0x12,0x19,0x1b | $786e
-	dc.b	0x0e,0x1c,0x1c,0x3c,0x01,0x19,0x3c,0x0b | $7876
-	dc.b	0x1e,0x1d,0x1d,0x18,0x17 | $787e
-table_7883:
-	dc.b	0xff | table_7883
-table_7884:
-	dc.b	0x09,0x0c,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c | table_7884
-	dc.b	0x3c,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c | $788c
-	dc.b	0xfe,0x09,0x0d,0x3c,0x02,0x19,0x3c,0x10 | $7894
-	dc.b	0x0a,0x16,0x0e,0x3c,0x18,0x1f,0x0e,0x1b | $789c
-	dc.b	0x3c,0xfe,0x09,0x0e,0x3c,0x3c,0x3c,0x3c | $78a4
-	dc.b	0x3c,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c | $78ac
-	dc.b	0x3c,0x3c,0xff | $78b4
-table_78b7:
-	dc.b	0x09,0x0c,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c | table_78b7
-	dc.b	0x3c,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c | $78bf
-	dc.b	0xfe,0x09,0x0d,0x3c,0x01,0x19,0x3c,0x10 | $78c7
-	dc.b	0x0a,0x16,0x0e,0x3c,0x18,0x1f,0x0e,0x1b | $78cf
-	dc.b	0x3c,0xfe,0x09,0x0e,0x3c,0x3c,0x3c,0x3c | $78d7
-	dc.b	0x3c,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c,0x3c | $78df
-	dc.b	0x3c,0x3c,0xff | $78e7
-	.align	2
+
 l_78ea:
 	move.b	#0x01,d0                        	| [$78ea: ld   a,$01]
 	jbsr	play_sound_B072                   	| [$78ec: call play_sound_B072]
@@ -7140,7 +7122,7 @@ l_7aee:
 	movem.w	(sp)+,d1/d2                    	| [$7af8: pop  bc]
 	lea	player_2_score_C0D0,a0                	| [$7af9: ld   hl,player_2_score_C0D0]
 	move.b	#0x98,d3                        	| [$7afc: ld   d,$98]
-	jbsr	display_text_color_2_B03F                            	| [$7afe: call $B03F]
+	jbsr	display_color_number_B03F                            	| [$7afe: call $B03F]
 	rts                                    	| [$7b01: ret]
 two_p_color_text_7B02:
 	dc.b	0x14,0x05,0x02,0x98,0x1e,0x98,0x19,0x98 | two_p_color_text_7B02
@@ -7180,14 +7162,14 @@ display_credits_7C1C:
 	move.b	#0x98,d3                        	| [$7c1f: ld   d,$98]
 	jbsr	display_text_B039                 	| [$7c21: call display_text_B039]
 											| [$7c24: ld   hl,$1F1C]
-	move.w	#0x1C1F,temp_numeric_buffer_CF00     	| [$7c27: ld   (temp_numeric_buffer_CF00),hl]
+	move.w	#0x1C1F,temp_buffer_CF00     	| [$7c27: ld   (temp_buffer_CF00),hl]
 * at least during "press 1P button" screen
 * check number of credits, maybe to display them
 	move.b	nb_credits_minus_one_C024,d0    	| [$7c2a: ld   a,(nb_credits_minus_one_C024)]
 	moveq	#1,d7
 	abcd	d7,d0                        	| [$7c2d: add  a,$01]
 	move.b	d0,d1                           	| [$7c30: ld   b,a]
-	lea	temp_numeric_buffer_CF00,a2    	| [$7c31: ld   ix,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a2    	| [$7c31: ld   ix,temp_buffer_CF00]
 	and.b	#0x0F,d0                         	| [$7c35: and  $0F]
 	move.b	d0,(0x03,a2)                    	| [$7c37: ld   (ix+$03),a]
 	move.b	d1,d0                           	| [$7c3a: ld   a,b]
@@ -7195,7 +7177,7 @@ display_credits_7C1C:
 	move.b	d0,(0x02,a2)                    	| [$7c43: ld   (ix+$02),a]
 	st.b	d0                                	| [$7c46: ld   a,$FF]
 	move.b	d0,(0x04,a2)                    	| [$7c48: ld   (ix+$04),a]
-	lea	temp_numeric_buffer_CF00,a0    	| [$7c4b: ld   hl,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a0    	| [$7c4b: ld   hl,temp_buffer_CF00]
 	move.b	#0x98,d3                        	| [$7c4e: ld   d,$98]
 	jbsr	display_text_B039                 	| [$7c50: call display_text_B039]
 	rts                                    	| [$7c53: ret]
@@ -7514,12 +7496,12 @@ compute_attack_disntace_a496:
 	clr.b	(a0)                             	| [$a497: ld   (hl),$00]
 	* load distance with max val plus 1
 	move.b	#0x09,(0x0f,a3)                 	| [$a499: ld   (iy+$0f),$09]
-	lea	temp_numeric_buffer_CF00,a2    	| [$a49d: ld   ix,temp_numeric_buffer_CF00]
+	lea	temp_buffer_CF00,a2    	| [$a49d: ld   ix,temp_buffer_CF00]
 	                  	| [$a4a1: ld   hl,($A539)]
 	* I don't think that this is useful. Storing contents of A539 in CF02...
 	* A539 is in ROM and contains 00,FF
-	move.b	#0x00,unknown_CF02                 	| [$a4a4: ld   (unknown_CF02),hl]
-	move.b	#0xFF,unknown_CF03                 	| [$a4a4: ld   (unknown_CF02),hl]
+	move.b	#0x00,temp_buffer_CF00+2                 	| [$a4a4: ld   (temp_buffer_CF00+2),hl]
+	move.b	#0xFF,temp_buffer_CF00+3                 	| [$a4a4: ld   (temp_buffer_CF00+2),hl]
 	lea	table_A529(pc),a0                  	| [$a4a7: ld   hl,table_A529]
 	move.b	(0x0d,a3),d3                    	| [$a4aa: ld   d,(iy+$0d)]
 	move.b	(0x0e,a3),d4                    	| [$a4ad: ld   e,(iy+$0e)]
@@ -9082,8 +9064,6 @@ clear_zone_B021:
 
 
 
-display_text_color_2_B03F:
-	jra	display_text_color_2_B3CE          	| [$b03f: jp   display_text_color_2_B3CE]
 
 is_point_in_rectangle_B042:
 	jra	is_point_in_rectangle_B440         	| [$b042: jp   is_point_in_rectangle_B440]
@@ -9166,7 +9146,7 @@ multiply_de_B0C3:
 
 * > d5/d6: input
 * > d3.b: divisor
-* > d6: result
+* > d5/d6: result
 * > d0: remainder
 divide_hl_by_d_b003:
 divide_hl_by_d_b0db:
@@ -9174,11 +9154,12 @@ divide_hl_by_d_b0db:
 	bsr		change_d5_d6_to_d5_16
 	and.w	#0xFF,d3
 	divu	d3,d5
-	move.b	d5,d6		| result
 	swap	d5
-	move.b	d5,d0
-	moveq	#0,d5		| has to be 0
-	rts
+	move.b	d5,d0		| remainder must be on 8 bits...
+	swap	d5
+	* rebuild the result as D5/D6
+	jra		change_d5_w_to_d5_d6
+
 	
 
 * legacy implementation transcode which seems to have issues in some cases
@@ -9339,7 +9320,6 @@ display_error_text_B186:
 	move.w	d0,-(sp)                        	| [$b18b: push af]
 	movem.w	d1/d2,-(sp)                    	| [$b18c: push bc]
 	movem.w	d3/d4,-(sp)                    	| [$b18d: push de]
-	move.l	a1,-(sp)                        	| [$b18d: push de]
 
 	move.l	a0,-(sp)                        	| [$b18e: push hl]
 
@@ -9349,7 +9329,6 @@ display_error_text_B186:
 	jbsr	display_text_B357                 	| [$b196: call display_text_B357]
 	move.l	(sp)+,a3                        	| [$b199: pop  iy]
 	move.l	(sp)+,a0                        	| [$b19b: pop  hl]
-	move.l	(sp)+,a1                        	| [$b19c: pop  de]
 	movem.w	(sp)+,d3/d4                    	| [$b19c: pop  de]
 	movem.w	(sp)+,d1/d2                    	| [$b19d: pop  bc]
 	move.w	(sp)+,d0                        	| [$b19e: pop  af]
@@ -9437,7 +9416,7 @@ l_b20c:
 l_b227:
 	move.b	#0x14,d1                      	| [$b227: ld   bc,$1402]
 	move.b	#0x02,d2                      	| [$b227: ld   bc,$1402]
-	jbsr	display_text_color_2_B3CE         	| [$b22a: call display_text_color_2_B3CE]
+	jbsr	display_color_number_B3CE         	| [$b22a: call display_color_number_B3CE]
 	move.b	#0x14,d1                      	| [$b22d: ld   bc,$1404]
 	move.b	#0x04,d2                      	| [$b22d: ld   bc,$1404]
 	move.b	background_and_state_bits_C911,d0	| [$b230: ld   a,(background_and_state_bits_C911)]
@@ -9455,9 +9434,8 @@ l_b227:
 0:
 l_b248:
 	move.b	#0x98,d3                        	| [$b248: ld   d,$98]
-	move.b	#0xC0,d5                	| [$b24a: ld   hl,player_1_score_C0C8]
-	move.b	#0xC8,d6                	| [$b24a: ld   hl,player_1_score_C0C8]
-	jbsr	display_text_color_2_B3CE         	| [$b24d: call display_text_color_2_B3CE]
+	lea		player_1_score_C0C8,a0                	| [$b24a: ld   hl,player_1_score_C0C8]	
+	jbsr	display_color_number_B3CE         	| [$b24d: call display_color_number_B3CE]
 	move.b	unknown_C032,d0                 	| [$b250: ld   a,(unknown_C032)]
 	btst.b	#1,d0                           	| [$b253: bit  1,a]
 	jeq	l_b27b                             	| [$b255: jp   z,$B27B]
@@ -9477,10 +9455,9 @@ l_b248:
 	rts                                    	| [$b272: ret  nz]
 0:
 l_b273:
-	move.b	#0xC0,d5                	| [$b273: ld   hl,player_2_score_C0D0]
-	move.b	#0xD0,d6                	| [$b273: ld   hl,player_2_score_C0D0]
+	lea		player_2_score_C0D0,a0                	| [$b273: ld   hl,player_2_score_C0D0]
 	move.b	#0x98,d3                        	| [$b276: ld   d,$98]
-	jbsr	display_text_color_2_B3CE         	| [$b278: call display_text_color_2_B3CE]
+	jbsr	display_color_number_B3CE         	| [$b278: call display_color_number_B3CE]
 l_b27b:
 	move.l	(sp)+,a3                        	| [$b27b: pop  iy]
 	rts                                    	| [$b27d: ret]
@@ -9634,9 +9611,7 @@ l_b35c:
 	move.b	(a3),d0                    	| [$b362: ld   a,(iy+$00)]
 	move.b	d0,d6                           	| [$b365: ld   l,a]
 	movem.w	d3/d4,-(sp)                    	| [$b366: push de]
-	move.l	a1,-(sp)                        	| [$b366: push de]
 	jbsr	compute_screen_address_from_XY_B2F6	| [$b367: call compute_screen_address_from_XY_B2F6]
-	move.l	(sp)+,a1                        	| [$b36a: pop  de]
 	movem.w	(sp)+,d3/d4                    	| [$b36a: pop  de]
 l_b36b:
 	addq.w	#1,a3                           	| [$b36b: inc  iy]
@@ -9703,8 +9678,10 @@ l_b3cb:
 	move.l	(sp)+,a3                        	| [$b3cb: pop  iy]
 	rts                                    	| [$b3cd: ret]
 
-* not sure of what it exactly does. It displays text pointed by A0 at D1/D2
-display_text_color_2_B3CE:
+* displays number pointed by A0 at X=D1/Y=D2
+* with D3 color
+display_color_number_B03F:
+display_color_number_B3CE:
 	move.l	a0,-(sp)                        	| [$b3ce: push hl]
 	movem.w	d3/d4,-(sp)                    	| [$b3cf: push de]
 	move.b	d1,d5                           	| [$b3d0: ld   h,b]
@@ -11354,7 +11331,8 @@ l_e693:
 	jne	l_e693                             	| [$e6aa: djnz $E693]
 	lea	unknown_C734,a3                	| [$e6ac: ld   iy,unknown_C734]
 	move.b	#0x0A,d1                        	| [$e6b0: ld   b,$0A]
-	lea	table_7883(pc),a0                  	| [$e6b2: ld   hl,table_7883]
+	move.b	#0x78,d5
+	move.b	#0x83,d6                  	| [$e6b2: ld   hl,$7883]
 l_e6b5:
 	move.b	d5,(0x00,a3)                    	| [$e6b5: ld   (iy+$00),h]
 	move.b	#0x9B,(0x01,a3)                 	| [$e6b8: ld   (iy+$01),$9B]
@@ -12272,7 +12250,7 @@ display_hiscores_F1AE:
 	jbsr	display_multicolor_text_B391      	| [$f1b1: call display_multicolor_text_B391]
 	move.b	#0x06,d1                        	| [$f1b4: ld   b,$06]
 	lea	unknown_C040,a3                	| [$f1b6: ld   iy,unknown_C040]
-	lea	unknown_CF08,a2                	| [$f1ba: ld   ix,unknown_CF08]
+	lea	temp_buffer_CF00+8,a2                	| [$f1ba: ld   ix,temp_buffer_CF00+8]
 	move.b	#0x07,(0x00,a2)                 	| [$f1be: ld   (ix+$00),$07]
 	move.b	#0x0F,(0x01,a2)                 	| [$f1c2: ld   (ix+$01),$0F]
 	move.b	#0xFF,(0x0e,a2)                 	| [$f1c6: ld   (ix+$0e),$FF]
@@ -12294,7 +12272,7 @@ l_f1cd:
 	jne	l_f1cd                             	| [$f1f5: djnz $F1CD]
 
 	move.l	a3,-(sp)                        	| [$f1f7: push iy]
-	lea	unknown_CF0A,a2                	| [$f1f9: ld   ix,unknown_CF0A]
+	lea	temp_buffer_CF00+0xA,a2                	| [$f1f9: ld   ix,temp_buffer_CF00+0xA]
 	move.b	#0x05,d1                        	| [$f1fd: ld   b,$05]
 l_f1ff:
 	move.b	(0x00,a2),d0                    	| [$f1ff: ld   a,(ix+$00)]
@@ -12305,10 +12283,10 @@ l_f1ff:
 	subq.b	#1,d1                           	| [...]
 	jne	l_f1ff                             	| [$f20e: djnz $F1FF]
 l_f210:
-	lea	unknown_CF08,a0                	| [$f210: ld   hl,unknown_CF08]
+	lea	temp_buffer_CF00+8,a0                	| [$f210: ld   hl,temp_buffer_CF00+8]
 	jbsr	display_multicolor_text_B391      	| [$f213: call display_multicolor_text_B391]
 	move.l	(sp)+,a3                        	| [$f216: pop  iy]
-	lea	unknown_CF08,a2                	| [$f218: ld   ix,unknown_CF08]
+	lea	temp_buffer_CF00+8,a2                	| [$f218: ld   ix,temp_buffer_CF00+8]
 	addq.b	#2,(0x01,a2)                    	| [$f21c: inc  (ix+$01)] * 2
 	move.w	#0x000F,d3                      	| [$f222: ld   de,$000F] 15
 	add.w	d3,a3                            	| [$f225: add  iy,de]
@@ -12317,7 +12295,7 @@ l_f210:
 	jne	l_f1ca                             	| [$f228: djnz $F1CA]
 	move.b	#0x06,d1                        	| [$f22a: ld   b,$06]
 	lea	unknown_C040,a3                	| [$f22c: ld   iy,unknown_C040]
-	lea	unknown_CF08,a2                	| [$f230: ld   ix,unknown_CF08]
+	lea	temp_buffer_CF00+8,a2                	| [$f230: ld   ix,temp_buffer_CF00+8]
 	move.b	#0x0F,(0x00,a2)                 	| [$f234: ld   (ix+$00),$0F]
 	move.b	#0x0F,(0x01,a2)                 	| [$f238: ld   (ix+$01),$0F]
 l_f23c:
@@ -12340,20 +12318,20 @@ l_f23c:
 	move.b	#0x16,(0x05,a2)                 	| [$f273: ld   (ix+$05),$16]
 	move.b	#0x19,(0x06,a2)                 	| [$f277: ld   (ix+$06),$19]
 l_f27b:
-	lea	unknown_CF08,a0                	| [$f27b: ld   hl,unknown_CF08]
+	lea	temp_buffer_CF00+8,a0                	| [$f27b: ld   hl,temp_buffer_CF00+8]
 	move.b	#0xB0,d3                        	| [$f27e: ld   d,$B0]
 	movem.w	d1/d2,-(sp)                    	| [$f280: push bc]
 	jbsr	display_text_B357                 	| [$f281: call display_text_B357]
 	move.w	#0x0012,d3                      	| [$f284: ld   de,$0012] 18
 	add.w	d3,a3                            	| [$f287: add  iy,de]
-	lea	unknown_CF08,a2                	| [$f289: ld   ix,unknown_CF08]
+	lea	temp_buffer_CF00+8,a2                	| [$f289: ld   ix,temp_buffer_CF00+8]
 	addq.b	#2,(0x01,a2)                    	| [$f28d: inc  (ix+$01)] * 2
 	movem.w	(sp)+,d1/d2                    	| [$f293: pop  bc]
 	subq.b	#1,d1                           	| [...]
 	jne	l_f23c                             	| [$f294: djnz $F23C]
 	move.b	#0x06,d1                        	| [$f296: ld   b,$06]
 	lea	unknown_C040,a3                	| [$f298: ld   iy,unknown_C040]
-	lea	unknown_CF08,a2                	| [$f29c: ld   ix,unknown_CF08]
+	lea	temp_buffer_CF00+8,a2                	| [$f29c: ld   ix,temp_buffer_CF00+8]
 	move.b	#0x17,(0x00,a2)                 	| [$f2a0: ld   (ix+$00),$17]
 	move.b	#0x0F,(0x01,a2)                 	| [$f2a4: ld   (ix+$01),$0F]
 	move.b	#0xFF,(0x08,a2)                 	| [$f2a8: ld   (ix+$08),$FF]
@@ -12374,11 +12352,11 @@ l_f2ae:
 	move.b	d0,(0x07,a2)                    	| [$f2d0: ld   (ix+$07),a]
 
 	move.l	a3,-(sp)                        	| [$f2d3: push iy]
-	lea	unknown_CF08,a0                	| [$f2d5: ld   hl,unknown_CF08]
+	lea	temp_buffer_CF00+8,a0                	| [$f2d5: ld   hl,temp_buffer_CF00+8]
 	jbsr	display_multicolor_text_B391      	| [$f2d8: call display_multicolor_text_B391]
 	move.l	(sp)+,a3                        	| [$f2db: pop  iy]
 	movem.w	(sp)+,d1/d2                    	| [$f2dd: pop  bc]
-	lea	unknown_CF08,a2                	| [$f2de: ld   ix,unknown_CF08]
+	lea	temp_buffer_CF00+8,a2                	| [$f2de: ld   ix,temp_buffer_CF00+8]
 	addq.b	#2,(0x01,a2)                    	| [$f2e2: inc  (ix+$01)] * 2
 	move.w	#0x0012,d3                      	| [$f2e8: ld   de,$0012] 18
 	add.w	d3,a3                            	| [$f2eb: add  iy,de]
@@ -12465,14 +12443,14 @@ l_f355:
 
 l_f39f:
 	move.w	d0,-(sp)                        	| [$f39f: push af]
-	move.b	unknown_CF01,d0                 	| [$f3a0: ld   a,(unknown_CF01)]
+	move.b	temp_buffer_CF00+1,d0                 	| [$f3a0: ld   a,(temp_buffer_CF00+1)]
 	subq.b	#0x07,d0                        	| [$f3a3: sub  $07]
 	move.b	d0,d3                           	| [$f3a5: ld   d,a]
 	move.b	#0x0B,d4                        	| [$f3a6: ld   e,$0B]
 	jbsr	multiply_de_B0C3                  	| [$f3a8: call multiply_de_B0C3]
 	lea	table_F131(pc),a2                  	| [$f3ab: ld   ix,table_F131]
 	add.w	d3,a2                            	| [$f3af: add  ix,de]
-	move.b	temp_numeric_buffer_CF00,d0     	| [$f3b1: ld   a,(temp_numeric_buffer_CF00)]
+	move.b	temp_buffer_CF00,d0     	| [$f3b1: ld   a,(temp_buffer_CF00)]
 	subq.b	#0x05,d0                        	| [$f3b4: sub  $05]
 	clr.w	d1                               	| [$f3b6: ld   b,$00]
 	move.b	d0,d1                           	| [$f3b8: ld   c,a]
@@ -12485,9 +12463,9 @@ l_f39f:
 l_f3c4:
 	move.b	d2,d0                           	| [$f3c4: ld   a,c]
 	move.w	d0,-(sp)                        	| [$f3c5: push af]
-	move.b	temp_numeric_buffer_CF00,d0     	| [$f3c6: ld   a,(temp_numeric_buffer_CF00)]
+	move.b	temp_buffer_CF00,d0     	| [$f3c6: ld   a,(temp_buffer_CF00)]
 	move.b	d0,d5                           	| [$f3c9: ld   h,a]
-	move.b	unknown_CF01,d0                 	| [$f3ca: ld   a,(unknown_CF01)]
+	move.b	temp_buffer_CF00+1,d0                 	| [$f3ca: ld   a,(temp_buffer_CF00+1)]
 	move.b	d0,d6                           	| [$f3cd: ld   l,a]
 	jbsr	compute_screen_address_from_XY_B2F6	| [$f3ce: call compute_screen_address_from_XY_B2F6]
 	move.w  #0x400,d3                      	| [$f3d1: ld   de,$0400]
@@ -12495,14 +12473,14 @@ l_f3c4:
 	move.w	(sp)+,d0                        	| [$f3d5: pop  af]
 	jbsr		osd_w_colorram                         	| [$f3d6: ld   (hl),a]
 	move.b	d0,d1                           	| [$f3d7: ld   b,a]
-	move.b	temp_numeric_buffer_CF00,d0     	| [$f3d8: ld   a,(temp_numeric_buffer_CF00)]
+	move.b	temp_buffer_CF00,d0     	| [$f3d8: ld   a,(temp_buffer_CF00)]
 	cmp.b	#0x17,d0                         	| [$f3db: cp   $17]
 	jeq	l_f3e6                             	| [$f3dd: jp   z,$F3E6]
 	cmp.b	#0x19,d0                         	| [$f3e0: cp   $19]
 	jeq	l_f3e6                             	| [$f3e2: jp   z,$F3E6]
 	rts                                    	| [$f3e5: ret]
 l_f3e6:
-	move.b	unknown_CF01,d0                 	| [$f3e6: ld   a,(unknown_CF01)]
+	move.b	temp_buffer_CF00+1,d0                 	| [$f3e6: ld   a,(temp_buffer_CF00+1)]
 	cmp.b	#0x0B,d0                         	| [$f3e9: cp   $0B]
 	beq.b	0f
 	rts                                    	| [$f3eb: ret  nz]
@@ -12516,15 +12494,15 @@ l_f3e6:
 l_f3f3:
 	move.b	#0x01,d0                        	| [$f3f3: ld   a,$01]
 	jbsr	suspend_this_task_B65E            	| [$f3f5: call suspend_this_task_B65E]
-	move.b	unknown_CF03,d0                 	| [$f3f8: ld   a,(unknown_CF03)]
+	move.b	temp_buffer_CF00+3,d0                 	| [$f3f8: ld   a,(temp_buffer_CF00+3)]
 	moveq	#1,d7
 	sbcd.b	d7,d0                        	| [$f3fb: sub  $01]
 * part needs rewriting
-	move.b	d0,unknown_CF03                 	| [$f3fe: ld   (unknown_CF03),a]
-	move.b	unknown_CF02,d0                 	| [$f401: ld   a,(unknown_CF02)]
+	move.b	d0,temp_buffer_CF00+3                 	| [$f3fe: ld   (temp_buffer_CF00+3),a]
+	move.b	temp_buffer_CF00+2,d0                 	| [$f401: ld   a,(temp_buffer_CF00+2)]
 	clr.b	d7
 	sbcd.b	d7,d0                        	| [$f404: sbc  a,$00]
-	move.b	d0,unknown_CF02                 	| [$f407: ld   (unknown_CF02),a]
+	move.b	d0,temp_buffer_CF00+2                 	| [$f407: ld   (temp_buffer_CF00+2),a]
 	move.b	#0x18,d5                        	| [$f40a: ld   h,$18]
 	move.b	#0x03,d6                        	| [$f40c: ld   l,$03]
 	jbsr	compute_screen_address_from_XY_B2F6	| [$f40e: call compute_screen_address_from_XY_B2F6]
@@ -12532,10 +12510,10 @@ l_f3f3:
 											| [$f411: push hl]
 											| [$f412: pop  ix]
 	move.w  #0x400,d1                      	| [$f414: ld   bc,$0400]
-	move.b	unknown_CF02,d0                 	| [$f417: ld   a,(unknown_CF02)]
+	move.b	temp_buffer_CF00+2,d0                 	| [$f417: ld   a,(temp_buffer_CF00+2)]
 	lsr.b	#4,d0                            	| [$f41a: srl  a] * 4
 	jbsr		osd_w_videoram                    	| [$f422: ld   (ix+$00),a]
-	move.b	unknown_CF02,d0                 	| [$f425: ld   a,(unknown_CF02)]
+	move.b	temp_buffer_CF00+2,d0                 	| [$f425: ld   a,(temp_buffer_CF00+2)]
 	and.b	#0x0F,d0                         	| [$f428: and  $0F]
 	sub.w	#0x20,d6
 	jbsr		osd_w_videoram						| [$f42a: ld   (ix-$20),a]
@@ -12546,7 +12524,7 @@ l_f3f3:
 	sub.w	#0x20,d6
 	jbsr		osd_w_colorram
 	add.w	#0x20,d6						| [$f433: ld   (ix-$20),$98]
-	lea	unknown_CF02,a0                	| [$f437: ld   hl,unknown_CF02]
+	lea	temp_buffer_CF00+2,a0                	| [$f437: ld   hl,temp_buffer_CF00+2]
 	move.b	(a0)+,d0                         	| [$f43a: ld   a,(hl)]
 												| [$f43b: inc  hl]
 	or.b	(a0),d0                           	| [$f43c: or   (hl)]
@@ -12572,61 +12550,61 @@ l_f444:
 	jeq	l_f4b4                             	| [$f461: jp   z,$F4B4]
 	cmp.b	#0x10,d0                         	| [$f464: cp   $10]
 	jne	l_f4e3                             	| [$f466: jp   nz,$F4E3]
-	move.b	temp_numeric_buffer_CF00,d0     	| [$f469: ld   a,(temp_numeric_buffer_CF00)]
+	move.b	temp_buffer_CF00,d0     	| [$f469: ld   a,(temp_buffer_CF00)]
 	addq.b	#2,d0                           	| [$f46c: inc  a] * 2
-	move.b	d0,temp_numeric_buffer_CF00     	| [$f46e: ld   (temp_numeric_buffer_CF00),a]
+	move.b	d0,temp_buffer_CF00     	| [$f46e: ld   (temp_buffer_CF00),a]
 	cmp.b	#0x1B,d0                         	| [$f471: cp   $1B]
 	jcs	l_f48d                             	| [$f473: jp   c,$F48D]
 	move.b	#0x05,d0                        	| [$f476: ld   a,$05]
-	move.b	d0,temp_numeric_buffer_CF00     	| [$f478: ld   (temp_numeric_buffer_CF00),a]
-	move.b	unknown_CF01,d0                 	| [$f47b: ld   a,(unknown_CF01)]
+	move.b	d0,temp_buffer_CF00     	| [$f478: ld   (temp_buffer_CF00),a]
+	move.b	temp_buffer_CF00+1,d0                 	| [$f47b: ld   a,(temp_buffer_CF00+1)]
 	addq.b	#2,d0                           	| [$f47e: inc  a] * 2
 	cmp.b	#0x0D,d0                         	| [$f480: cp   $0D]
 	jcs	l_f487                             	| [$f482: jp   c,$F487]
 	move.b	#0x07,d0                        	| [$f485: ld   a,$07]
 l_f487:
-	move.b	d0,unknown_CF01                 	| [$f487: ld   (unknown_CF01),a]
+	move.b	d0,temp_buffer_CF00+1                 	| [$f487: ld   (temp_buffer_CF00+1),a]
 	jra	l_f4e3                             	| [$f48a: jp   $F4E3]
 l_f48d:
 	jra	l_f4e3                             	| [$f48d: jp   $F4E3]
 l_f490:
-	move.b	unknown_CF01,d0                 	| [$f490: ld   a,(unknown_CF01)]
+	move.b	temp_buffer_CF00+1,d0                 	| [$f490: ld   a,(temp_buffer_CF00+1)]
 	addq.b	#2,d0                           	| [$f493: inc  a] * 2
 	cmp.b	#0x0D,d0                         	| [$f495: cp   $0D]
 	jcs	l_f49c                             	| [$f497: jp   c,$F49C]
 	move.b	#0x07,d0                        	| [$f49a: ld   a,$07]
 l_f49c:
-	move.b	d0,unknown_CF01                 	| [$f49c: ld   (unknown_CF01),a]
+	move.b	d0,temp_buffer_CF00+1                 	| [$f49c: ld   (temp_buffer_CF00+1),a]
 	jra	l_f4e3                             	| [$f49f: jp   $F4E3]
 l_f4a2:
-	move.b	unknown_CF01,d0                 	| [$f4a2: ld   a,(unknown_CF01)]
+	move.b	temp_buffer_CF00+1,d0                 	| [$f4a2: ld   a,(temp_buffer_CF00+1)]
 	subq.b	#2,d0                           	| [$f4a5: dec  a] * 2
 	cmp.b	#0x05,d0                         	| [$f4a7: cp   $05]
 	jne	l_f4ae                             	| [$f4a9: jp   nz,$F4AE]
 	move.b	#0x0B,d0                        	| [$f4ac: ld   a,$0B]
 l_f4ae:
-	move.b	d0,unknown_CF01                 	| [$f4ae: ld   (unknown_CF01),a]
+	move.b	d0,temp_buffer_CF00+1                 	| [$f4ae: ld   (temp_buffer_CF00+1),a]
 	jra	l_f4e3                             	| [$f4b1: jp   $F4E3]
 l_f4b4:
-	move.b	temp_numeric_buffer_CF00,d0     	| [$f4b4: ld   a,(temp_numeric_buffer_CF00)]
+	move.b	temp_buffer_CF00,d0     	| [$f4b4: ld   a,(temp_buffer_CF00)]
 	subq.b	#2,d0                           	| [$f4b7: dec  a] * 2
 	cmp.b	#0x03,d0                         	| [$f4b9: cp   $03]
 	jeq	l_f4c4                             	| [$f4bb: jp   z,$F4C4]
-	move.b	d0,temp_numeric_buffer_CF00     	| [$f4be: ld   (temp_numeric_buffer_CF00),a]
+	move.b	d0,temp_buffer_CF00     	| [$f4be: ld   (temp_buffer_CF00),a]
 	jra	l_f4e3                             	| [$f4c1: jp   $F4E3]
 l_f4c4:
-	move.b	unknown_CF01,d0                 	| [$f4c4: ld   a,(unknown_CF01)]
+	move.b	temp_buffer_CF00+1,d0                 	| [$f4c4: ld   a,(temp_buffer_CF00+1)]
 	cmp.b	#0x07,d0                         	| [$f4c7: cp   $07]
 	jne	l_f4d9                             	| [$f4c9: jp   nz,$F4D9]
 	move.b	#0x19,d0                        	| [$f4cc: ld   a,$19]
-	move.b	d0,temp_numeric_buffer_CF00     	| [$f4ce: ld   (temp_numeric_buffer_CF00),a]
+	move.b	d0,temp_buffer_CF00     	| [$f4ce: ld   (temp_buffer_CF00),a]
 	move.b	#0x0B,d0                        	| [$f4d1: ld   a,$0B]
-	move.b	d0,unknown_CF01                 	| [$f4d3: ld   (unknown_CF01),a]
+	move.b	d0,temp_buffer_CF00+1                 	| [$f4d3: ld   (temp_buffer_CF00+1),a]
 	jra	l_f4e3                             	| [$f4d6: jp   $F4E3]
 l_f4d9:
 	move.b	#0x19,d0                        	| [$f4d9: ld   a,$19]
-	move.b	d0,temp_numeric_buffer_CF00     	| [$f4db: ld   (temp_numeric_buffer_CF00),a]
-	lea	unknown_CF01,a0                	| [$f4de: ld   hl,unknown_CF01]
+	move.b	d0,temp_buffer_CF00     	| [$f4db: ld   (temp_buffer_CF00),a]
+	lea	temp_buffer_CF00+1,a0                	| [$f4de: ld   hl,temp_buffer_CF00+1]
 	subq.b	#2,(a0)                         	| [$f4e1: dec  (hl)] * 2
 l_f4e3:
 	move.b	#0x01,d0                        	| [$f4e3: ld   a,$01]
@@ -12634,34 +12612,34 @@ l_f4e3:
 	move.w	(sp)+,d0                        	| [$f4e8: pop  af]
 	and.b	#0x0F,d0                         	| [$f4e9: and  $0F]
 	jeq	l_f5d0                             	| [$f4eb: jp   z,$F5D0]
-	move.b	unknown_CF01,d0                 	| [$f4ee: ld   a,(unknown_CF01)]
+	move.b	temp_buffer_CF00+1,d0                 	| [$f4ee: ld   a,(temp_buffer_CF00+1)]
 	cmp.b	#0x0B,d0                         	| [$f4f1: cp   $0B]
 	jne	l_f501                             	| [$f4f3: jp   nz,$F501]
-	move.b	temp_numeric_buffer_CF00,d0     	| [$f4f6: ld   a,(temp_numeric_buffer_CF00)]
+	move.b	temp_buffer_CF00,d0     	| [$f4f6: ld   a,(temp_buffer_CF00)]
 	cmp.b	#0x19,d0                         	| [$f4f9: cp   $19]
 	jne	l_f501                             	| [$f4fb: jp   nz,$F501]
 	st.b	d0                                	| [$f4fe: ld   a,$FF]
 	rts                                    	| [$f500: ret]
 l_f501:
-	move.b	unknown_CF01,d0                 	| [$f501: ld   a,(unknown_CF01)]
+	move.b	temp_buffer_CF00+1,d0                 	| [$f501: ld   a,(temp_buffer_CF00+1)]
 	cmp.b	#0x0B,d0                         	| [$f504: cp   $0B]
 	jne	l_f555                             	| [$f506: jp   nz,$F555]
-	move.b	temp_numeric_buffer_CF00,d0     	| [$f509: ld   a,(temp_numeric_buffer_CF00)]
+	move.b	temp_buffer_CF00,d0     	| [$f509: ld   a,(temp_buffer_CF00)]
 	cmp.b	#0x17,d0                         	| [$f50c: cp   $17]
 	jne	l_f555                             	| [$f50e: jp   nz,$F555]
 	move.b	#0x16,d0                        	| [$f511: ld   a,$16]
 	jbsr	play_sound_BBB5                   	| [$f513: call play_sound_BBB5]
-	move.b	unknown_CF05,d0                 	| [$f516: ld   a,(unknown_CF05)]
+	move.b	temp_buffer_CF00+5,d0                 	| [$f516: ld   a,(temp_buffer_CF00+5)]
 	subq.b	#1,d0                           	| [$f519: dec  a]
 	cmp.b	#0xFF,d0                         	| [$f51a: cp   $FF]
 	jeq	l_f5d0                             	| [$f51c: jp   z,$F5D0]
-	move.b	d0,unknown_CF05                 	| [$f51f: ld   (unknown_CF05),a]
+	move.b	d0,temp_buffer_CF00+5                 	| [$f51f: ld   (temp_buffer_CF00+5),a]
 	move.b	#0x0E,d5                        	| [$f522: ld   h,$0E]
 	move.b	#0x04,d6                        	| [$f524: ld   l,$04]
 	jbsr	compute_screen_address_from_XY_B2F6	| [$f526: call compute_screen_address_from_XY_B2F6]
 
 	movem.w	d5/d6,-(sp)                        	| [$f529: push hl]
-	move.b	unknown_CF05,d0                 	| [$f52a: ld   a,(unknown_CF05)]
+	move.b	temp_buffer_CF00+5,d0                 	| [$f52a: ld   a,(temp_buffer_CF00+5)]
 	move.b	d0,d4                           	| [$f52d: ld   e,a]
 	move.b	#0x20,d3                        	| [$f52e: ld   d,$20]
 l_F530:
@@ -12678,7 +12656,7 @@ l_F530:
 	jbsr	osd_break
 	trap	#13
 	move.l	unknown_pointer_CF06,a0             	| [$f53f: ld   hl,(unknown_pointer_CF06)]
-	move.b	unknown_CF05,d0                 	| [$f542: ld   a,(unknown_CF05)]
+	move.b	temp_buffer_CF00+5,d0                 	| [$f542: ld   a,(temp_buffer_CF00+5)]
 	asl.b	#1,d0                            	| [$f545: sla  a]
 	addq.b	#0x06,d0                        	| [$f547: add  a,$06]
 	clr.b	d1                               	| [$f549: ld   b,$00]
@@ -12691,13 +12669,13 @@ l_F530:
 l_f555:
 	move.b	#0x16,d0                        	| [$f555: ld   a,$16]
 	jbsr	play_sound_BBB5                   	| [$f557: call play_sound_BBB5]
-	move.b	unknown_CF01,d0                 	| [$f55a: ld   a,(unknown_CF01)]
+	move.b	temp_buffer_CF00+1,d0                 	| [$f55a: ld   a,(temp_buffer_CF00+1)]
 	subq.b	#0x07,d0                        	| [$f55d: sub  $07]
 	move.b	d0,d3                           	| [$f55f: ld   d,a]
 	move.b	#0x0B,d4                        	| [$f560: ld   e,$0B]
 	jbsr	multiply_de_B0C3                  	| [$f562: call multiply_de_B0C3]
 	clr.b	d5                               	| [$f565: ld   h,$00]
-	move.b	temp_numeric_buffer_CF00,d0     	| [$f567: ld   a,(temp_numeric_buffer_CF00)]
+	move.b	temp_buffer_CF00,d0     	| [$f567: ld   a,(temp_buffer_CF00)]
 	subq.b	#0x05,d0                        	| [$f56a: sub  $05]
 	move.b	d0,d6                           	| [$f56c: ld   l,a]
 	add.w	d3,a0                            	| [$f56d: add  hl,de]
@@ -12710,7 +12688,7 @@ l_f555:
 	jbsr	compute_screen_address_from_XY_B2F6	| [$f577: call compute_screen_address_from_XY_B2F6]
 
 	move.l	a0,-(sp)                        	| [$f57a: push hl]
-	move.b	unknown_CF05,d0                 	| [$f57b: ld   a,(unknown_CF05)]
+	move.b	temp_buffer_CF00+5,d0                 	| [$f57b: ld   a,(temp_buffer_CF00+5)]
 	cmp.b	#0x03,d0                         	| [$f57e: cp   $03]
 	jne	l_f584                             	| [$f580: jp   nz,$F584]
 	subq.b	#1,d0                           	| [$f583: dec  a]
@@ -12733,7 +12711,7 @@ l_f584:
 	add.w	d1,a3                            	| [$f59c: add  iy,bc]
 	move.b	#0xA8,(0x00,a3)                 	| [$f59e: ld   (iy+$00),$A8]
 	move.l	unknown_pointer_CF06,a3             	| [$f5a2: ld   iy,(unknown_pointer_CF06)]
-	move.b	unknown_CF05,d0                 	| [$f5a6: ld   a,(unknown_CF05)]
+	move.b	temp_buffer_CF00+5,d0                 	| [$f5a6: ld   a,(temp_buffer_CF00+5)]
 	cmp.b	#0x03,d0                         	| [$f5a9: cp   $03]
 	jne	l_f5af                             	| [$f5ab: jp   nz,$F5AF]
 	subq.b	#1,d0                           	| [$f5ae: dec  a]
@@ -12748,37 +12726,37 @@ l_f5af:
 	move.b	d0,(0x00,a3)                    	| [$f5bb: ld   (iy+$00),a]
 	move.b	(0x01,a2),d0                    	| [$f5be: ld   a,(ix+$01)]
 	move.b	d0,(0x01,a3)                    	| [$f5c1: ld   (iy+$01),a]
-	move.b	unknown_CF05,d0                 	| [$f5c4: ld   a,(unknown_CF05)]
+	move.b	temp_buffer_CF00+5,d0                 	| [$f5c4: ld   a,(temp_buffer_CF00+5)]
 	cmp.b	#0x03,d0                         	| [$f5c7: cp   $03]
 	jeq	l_f5cd                             	| [$f5c9: jp   z,$F5CD]
 	addq.b	#1,d0                           	| [$f5cc: inc  a]
 l_f5cd:
-	move.b	d0,unknown_CF05                 	| [$f5cd: ld   (unknown_CF05),a]
+	move.b	d0,temp_buffer_CF00+5                 	| [$f5cd: ld   (temp_buffer_CF00+5),a]
 l_f5d0:
 	move.b	#0x08,d1                        	| [$f5d0: ld   b,$08]
 l_f5d2:
 	move.b	#0x01,d0                        	| [$f5d2: ld   a,$01]
 	movem.w	d1/d2,-(sp)                    	| [$f5d4: push bc]
 	jbsr	suspend_this_task_B65E            	| [$f5d5: call suspend_this_task_B65E]
-	move.b	unknown_CF03,d0                 	| [$f5d8: ld   a,(unknown_CF03)]
+	move.b	temp_buffer_CF00+3,d0                 	| [$f5d8: ld   a,(temp_buffer_CF00+3)]
 	moveq	#1,d7
 	sbcd.b	d7,d0                        	| [$f5db: sub  $01]
-	move.b	d0,unknown_CF03                 	| [$f5de: ld   (unknown_CF03),a]
-	move.b	unknown_CF02,d0                 	| [$f5e1: ld   a,(unknown_CF02)]
+	move.b	d0,temp_buffer_CF00+3                 	| [$f5de: ld   (temp_buffer_CF00+3),a]
+	move.b	temp_buffer_CF00+2,d0                 	| [$f5e1: ld   a,(temp_buffer_CF00+2)]
 	clr.b	d7
 	sbcd.b	d7,d0                        	| [$f5e4: sbc  a,$00]
 
-	move.b	d0,unknown_CF02                 	| [$f5e7: ld   (unknown_CF02),a]
+	move.b	d0,temp_buffer_CF00+2                 	| [$f5e7: ld   (temp_buffer_CF00+2),a]
 	move.b	#0x18,d5                        	| [$f5ea: ld   h,$18]
 	move.b	#0x03,d6                        	| [$f5ec: ld   l,$03]
 	jbsr	compute_screen_address_from_XY_B2F6	| [$f5ee: call compute_screen_address_from_XY_B2F6]
-	move.b	unknown_CF02,d0                 	| [$f5f1: ld   a,(unknown_CF02)]
+	move.b	temp_buffer_CF00+2,d0                 	| [$f5f1: ld   a,(temp_buffer_CF00+2)]
 	lsr.b	#4,d0                            	| [$f5f4: srl  a] * 4
 	jbsr	osd_w_videoram                       	| [$f5fc: ld   (hl),a]
 
 	move.w	d6,d4                        	| [$f5fd: push hl]
 	                        	| [$f5fe: pop  iy]
-	move.b	unknown_CF02,d0                 	| [$f600: ld   a,(unknown_CF02)]
+	move.b	temp_buffer_CF00+2,d0                 	| [$f600: ld   a,(temp_buffer_CF00+2)]
 	and.b	#0x0F,d0                         	| [$f603: and  $0F]
 	sub.w	#0x20,d4
 	move.w	d6,-(a7)
@@ -12802,7 +12780,7 @@ l_f5d2:
 	jeq	l_f620                             	| [$f61b: jp   z,$F620]
 	move.b	#0x08,d1                        	| [$f61e: ld   b,$08]
 l_f620:
-	lea	unknown_CF02,a0                	| [$f620: ld   hl,unknown_CF02]
+	lea	temp_buffer_CF00+2,a0                	| [$f620: ld   hl,temp_buffer_CF00+2]
 	move.b	(a0)+,d0                         	| [$f623: ld   a,(hl)]
 	                           	| [$f624: inc  hl]
 	or.b	(a0),d0                           	| [$f625: or   (hl)]
@@ -12833,7 +12811,7 @@ l_f64a:
 	lea	name_registration_time_str_EDD1(pc),a0                  	| [$f658: ld   hl,name_registration_time_str_EDD1]
 	jbsr	display_multicolor_text_B391      	| [$f65b: call display_multicolor_text_B391]
 	jbsr	display_hiscores_F1AE             	| [$f65e: call display_hiscores_F1AE]
-	lea	unknown_CF08,a2                	| [$f661: ld   ix,unknown_CF08]
+	lea	temp_buffer_CF00+8,a2                	| [$f661: ld   ix,temp_buffer_CF00+8]
 	move.b	#0x05,(0x00,a2)                 	| [$f665: ld   (ix+$00),$05]
 	move.b	#0x04,(0x01,a2)                 	| [$f669: ld   (ix+$01),$04]
 	move.b	#0x3C,(0x02,a2)                 	| [$f66d: ld   (ix+$02),$3C]
@@ -12855,19 +12833,19 @@ l_f64a:
 	move.b	#0x16,(0x05,a2)                 	| [$f6a4: ld   (ix+$05),$16]
 	move.b	#0x19,(0x06,a2)                 	| [$f6a8: ld   (ix+$06),$19]
 l_f6ac:
-	lea	unknown_CF08,a0                	| [$f6ac: ld   hl,unknown_CF08]
+	lea	temp_buffer_CF00+8,a0                	| [$f6ac: ld   hl,temp_buffer_CF00+8]
 	move.b	#0xA8,d3                        	| [$f6af: ld   d,$A8]
 	jbsr	display_text_B357                 	| [$f6b1: call display_text_B357]
 	clr.b	d0                               	| [$f6b4: xor  a]
-	move.b	d0,unknown_CF03                 	| [$f6b5: ld   (unknown_CF03),a]
+	move.b	d0,temp_buffer_CF00+3                 	| [$f6b5: ld   (temp_buffer_CF00+3),a]
 	move.b	#0x30,d0                        	| [$f6b8: ld   a,$30]
-	move.b	d0,unknown_CF02                 	| [$f6ba: ld   (unknown_CF02),a]
+	move.b	d0,temp_buffer_CF00+2                 	| [$f6ba: ld   (temp_buffer_CF00+2),a]
 	clr.b	d0                               	| [$f6bd: xor  a]
-	move.b	d0,unknown_CF05                 	| [$f6be: ld   (unknown_CF05),a]
+	move.b	d0,temp_buffer_CF00+5                 	| [$f6be: ld   (temp_buffer_CF00+5),a]
 	move.b	#0x05,d0                        	| [$f6c1: ld   a,$05]
-	move.b	d0,temp_numeric_buffer_CF00     	| [$f6c3: ld   (temp_numeric_buffer_CF00),a]
+	move.b	d0,temp_buffer_CF00     	| [$f6c3: ld   (temp_buffer_CF00),a]
 	move.b	#0x07,d0                        	| [$f6c6: ld   a,$07]
-	move.b	d0,unknown_CF01                 	| [$f6c8: ld   (unknown_CF01),a]
+	move.b	d0,temp_buffer_CF00+1                 	| [$f6c8: ld   (temp_buffer_CF00+1),a]
 	move.b	#0x01,d0                        	| [$f6cb: ld   a,$01]
 	jbsr	l_f39f                            	| [$f6cd: call $F39F]
 	jbsr	l_f3f3                            	| [$f6d0: call $F3F3]
@@ -13163,7 +13141,7 @@ display_player_rank_FD6A:
 
 	move.l	a0,-(sp)                        	| [$fd6b: push hl]
 	addq.b	#4,d4                           	| [$fd6c: inc  e] * 4
-	lea	unknown_CF08,a2                	| [$fd70: ld   ix,unknown_CF08]
+	lea	temp_buffer_CF00+8,a2                	| [$fd70: ld   ix,temp_buffer_CF00+8]
 	move.b	d4,(0x00,a2)                    	| [$fd74: ld   (ix+$00),e]
 	move.b	#0x01,(0x01,a2)                 	| [$fd77: ld   (ix+$01),$01]
 	move.l	(sp)+,a0                        	| [$fd7b: pop  hl]
@@ -13182,12 +13160,12 @@ l_fd84:
 	move.b	d0,d1                           	| [$fd87: ld   c,a]
 	lea	position_table_FDA3(pc),a0         	| [$fd8a: ld   hl,position_table_FDA3]
 	add.w	d1,a0                            	| [$fd8d: add  hl,bc]
-	lea	unknown_CF0A,a1                	| [$fd8e: ld   de,unknown_CF0A]
+	lea	temp_buffer_CF00+0xA,a1                	| [$fd8e: ld   de,temp_buffer_CF00+0xA]
 	jbsr	ldi                               	| [$fd91: ldi]
 	jbsr	ldi                               	| [$fd93: ldi]
 	jbsr	ldi                               	| [$fd95: ldi]
 	move.b	#0xFF,(0x05,a2)                 	| [$fd97: ld   (ix+$05),$FF]
-	lea	unknown_CF08,a0                	| [$fd9b: ld   hl,unknown_CF08]
+	lea	temp_buffer_CF00+8,a0                	| [$fd9b: ld   hl,temp_buffer_CF00+8]
 	move.l	(sp)+,a1                        	| [$fd9e: pop  de]
 	movem.w	(sp)+,d3/d4                    	| [$fd9e: pop  de]
 	jbsr	display_text_B357                 	| [$fd9f: call display_text_B357]
