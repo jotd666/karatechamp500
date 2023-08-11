@@ -1755,12 +1755,15 @@ osd_w_colorram:
 * other rows use a X/Y transposed system like Galaxian or Xevious!
 *
 update_bg_tile:
-
 	* get current level
 	moveq	#0,d2
 	* not working!!
+	move.b	map_index_C900,d2
+	cmp.b	#4,d2
+	beq.b	1f
 	move.b	background_and_state_bits_C911,d2
 	and.w	#0xF,d2
+1:
 	cmp.b	current_background,d2
 	beq.b	0f
 	move.b	d2,current_background

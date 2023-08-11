@@ -29,6 +29,10 @@ for kn,tv in used_cluts_.items():
     for k,v in tv.items():
         used_cluts[kn][int(k)] = set(v)
 
+
+used_cluts_ = None
+print(used_cluts["tiles"][705])
+
 # all alphanum chars can use those cluts
 alpha_clut = {0,
     2,
@@ -50,6 +54,7 @@ if tile_dump:
                 color_code = (clut_index>> 3) & 0x1f
                 tile_code =  tile_index + ((clut_index & 7) << 8);
                 used_cluts["tiles"][tile_code].add(color_code)
+
 
 nb_updates = 0
 

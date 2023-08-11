@@ -20,6 +20,7 @@ if os.path.exists(rw_json):
     used_tile_cluts = {int(k):set(v) for k,v in used_cluts["tiles"].items()}
     used_sprite_cluts = {int(k):set(v) for k,v in used_cluts["sprites"].items()}
 
+
     # if sprite is used with clut 1, then it's used with clut 2 (white/red)
     for k,v in used_sprite_cluts.items():
         if k < 1121:
@@ -167,10 +168,10 @@ sprite_cluts = clut_table[:32]
 
 for k,chardat in enumerate(block_dict["tile"]["data"]):
     img = Image.new('RGB',(8,8))
-
     character_codes = list()
 
     for cidx,colors in enumerate(bg_cluts):
+
         if not used_tile_cluts or (k in used_tile_cluts and cidx in used_tile_cluts[k]):
             d = iter(chardat)
             for i in range(8):

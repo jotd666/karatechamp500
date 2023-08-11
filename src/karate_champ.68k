@@ -2726,11 +2726,13 @@ l_4cc5:
 	jbsr	get_current_frame_contents_478D   	| [$4ce9: call get_current_frame_contents_478D]
 	                      	| [$4cec: ld   de,$0200]
 	                               	| [$4cef: and  a]
-	subq.w	#2,d5				| [sbc  hl,de]  sub 0x200, sub 2 from MSB
+	subq.b	#2,d5				| [sbc  hl,de]  sub 0x200, sub 2 from MSB
 	move.b	#0x0D,d3                        	| [$4cf2: ld   d,$0D]
 	jbsr	divide_hl_by_d_b003               	| [$4cf4: call divide_hl_by_d_b003]
 	tst.b	d0                               	| [$4cf7: and  a]
 	beq.b	0f
+	* evade ERROR occurs
+	jbsr	osd_break
 	jbsr	display_error_text_B075           	| [$4cf8: call nz,display_error_text_B075]
 0:
 	bsr		change_d5_d6_to_d5_16
@@ -9208,8 +9210,8 @@ divide_hl_by_d_b0db:
 * > d
 random_B006:
 random_B0EE:
-	clr.b	d0                               	| [$b0ee: xor  a]  clears a
-	move.b	#0x08,d1                        	| [$b0ef: ld   b,$08] b <- $08	| do it 8 times at least
+	clr.b	d0                               	| [$b0ee: xor  a]  clears carry
+	moveq	#0x07,d1                        	| [$b0ef: ld   b,$08] b <- $08	| do it 8 times at least
 l_b0f1:
 	asl.b	#1,d3                            	| [$b0f1: sla  d] d *= 2
 	roxl.b	#1,d0                           	| [$b0f3: rl   a] a <- 1 if carry set else 0
@@ -9218,8 +9220,7 @@ l_b0f1:
 	sub.b	d4,d0                            	| [$b0f9: sub  e] a <- a-e
 	bset.b	#0,d3                           	| [$b0fa: set  0,d] d &= 1
 l_b0fc:
-	subq.b	#1,d1                           	| [...]
-	jne	l_b0f1                             	| [$b0fc: djnz $B0F1] repeat 8 times
+	dbf	d1,l_b0f1                             	| [$b0fc: djnz $B0F1] repeat 8 times
 	rts                                    	| [$b0fe: ret]
 
 * < ix: table like walk_frames_list_AA3B, jump_frames_list_AA4D... 2 value list ending with FF FF
@@ -12916,6 +12917,11 @@ animate_guided_character_B0A2:
 	add.w	d3,a3                            	| [$f769: add  iy,de]
 	move.w	(a3),d3                    	| [$f76b: ld   e,(iy+$00)]
 	SWAP_WORD	d3
+	* remove MSW just in case
+	* (we have to do move.l	as we need unsigned 16 bits)
+	swap	d3
+	clr		d3
+	swap	d3
 	move.l	d3,a3
 	add.l	#game_mem+2,a3
 										| [$f76e: ld   d,(iy+$01)]
