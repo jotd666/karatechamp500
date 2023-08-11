@@ -1043,12 +1043,12 @@ l_3f4a:
 	move.b	(a0)+,d4                         	| [$3f4a: ld   e,(hl)]
 	                           	| [$3f4b: inc  hl]
 	move.b	(a0),d3                         	| [$3f4c: ld   d,(hl)]
-	bclr.b	#7,d3                           	| [$3f4f: res  7,h]
 	move.w	d3,-(sp)
+	bclr.b	#7,d3                           	| [$3f4f: res  7,h]
 	bsr		change_d3_d4_to_d3_16
+	* D3.16 is now the address of the move
 	move.l	d3,a1
 	move.w	(sp)+,d3
-	* D3.16 is now the address of the move
 	* only walking moves are handled there
 	add.l	#game_mem,a1
 	move.l	a1,a0                        	| [$3f4d: push de]
