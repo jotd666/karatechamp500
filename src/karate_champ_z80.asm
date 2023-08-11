@@ -2023,12 +2023,12 @@ check_if_move_warrants_a_kiai_409d:
 4128: 7E          ld   a,(hl)
 4129: CB 7F       bit  7,a
 412B: C2 98 41    jp   nz,$4132
-412E: DD 21 D6 6D ld   ix,unknown_C77C
+412E: DD 21 D6 6D ld   ix,girl_sprite_shadow_C77C
 4132: DD E5       push ix
 4134: DD 21 16 6D ld   ix,unknown_C71C
 4138: AF          xor  a
 4139: CD 43 48    call $4249
-413C: DD 21 D6 6D ld   ix,unknown_C77C
+413C: DD 21 D6 6D ld   ix,girl_sprite_shadow_C77C
 4140: AF          xor  a
 4141: CD 43 48    call $4249
 4144: DD E1       pop  ix
@@ -6590,7 +6590,7 @@ table_6f56:
 6FD1: DD 6E 01    ld   l,(ix+$01)
 6FD4: DD 4E 08    ld   c,(ix+$02)
 6FD7: DD 46 09    ld   b,(ix+$03)
-6FDA: FD 21 D6 6D ld   iy,unknown_C77C
+6FDA: FD 21 D6 6D ld   iy,girl_sprite_shadow_C77C
 6FDE: FD 74 00    ld   (iy+$00),h
 6FE1: FD 75 09    ld   (iy+$03),l
 6FE4: FD 74 04    ld   (iy+$04),h
@@ -6792,7 +6792,7 @@ table_6f56:
 71EB: 67          ld   h,a
 71EC: DD 4E 08    ld   c,(ix+$02)
 71EF: DD 46 09    ld   b,(ix+$03)
-71F2: FD 21 D6 6D ld   iy,unknown_C77C
+71F2: FD 21 D6 6D ld   iy,girl_sprite_shadow_C77C
 71F6: FD 74 00    ld   (iy+$00),h
 71F9: FD 74 04    ld   (iy+$04),h
 71FC: FD 75 09    ld   (iy+$03),l
@@ -6893,7 +6893,7 @@ table_6f56:
 72D8: FD 70 1A    ld   (iy+$1a),b
 72DB: FD 70 1E    ld   (iy+$1e),b
 72DE: FD 70 88    ld   (iy+$22),b
-72E1: FD 21 74 6D ld   iy,unknown_C7D4
+72E1: FD 21 74 6D ld   iy,big_head_sprite_shadow_C7D4
 72E5: 7C          ld   a,h
 72E6: D6 82       sub  $28
 72E8: FD 77 00    ld   (iy+$00),a
@@ -6939,12 +6939,14 @@ table_6f56:
 7352: 79          ld   a,c
 7353: FE 02       cp   $08
 7355: D2 CC D9    jp   nc,$7366
-7358: FD 21 D6 6D ld   iy,unknown_C77C
+; girl moves forward to the player (my hero)
+7358: FD 21 D6 6D ld   iy,girl_sprite_shadow_C77C
 735C: FD 35 00    dec  (iy+$00)
 735F: FD 35 04    dec  (iy+$04)
 7362: 0C          inc  c
 7363: C3 13 D9    jp   $7319
-7366: FD 21 74 6D ld   iy,unknown_C7D4
+7366: FD 21 74 6D ld   iy,big_head_sprite_shadow_C7D4
+; big head, animation #1
 736A: FD 36 01 C5 ld   (iy+$01),$65
 736E: FD 36 05 C5 ld   (iy+$05),$65
 7372: FD 36 03 CC ld   (iy+$09),$66
@@ -6953,6 +6955,7 @@ table_6f56:
 737C: 3E 10       ld   a,$10
 737E: CD 5A B0    call suspend_this_task_B05A
 7381: FD E1       pop  iy
+; big head, animation #2
 7383: FD 36 01 CD ld   (iy+$01),$67
 7387: FD 36 05 CD ld   (iy+$05),$67
 738B: FD 36 03 C2 ld   (iy+$09),$68
@@ -6985,7 +6988,7 @@ table_73a5:
 73CE: 67          ld   h,a
 73CF: DD 4E 08    ld   c,(ix+$02)
 73D2: DD 46 09    ld   b,(ix+$03)
-73D5: FD 21 D6 6D ld   iy,unknown_C77C
+73D5: FD 21 D6 6D ld   iy,girl_sprite_shadow_C77C
 73D9: FD 74 00    ld   (iy+$00),h
 73DC: FD 75 09    ld   (iy+$03),l
 73DF: 3E 10       ld   a,$10

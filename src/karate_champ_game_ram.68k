@@ -141,13 +141,13 @@
 	.global	unknown_C740
 	.global	unknown_C74C
 	.global	unknown_C768
-	.global	unknown_C77C
+	.global	girl_sprite_shadow_C77C
 	.global	unknown_C77D
 	.global	unknown_C790
 	.global	unknown_C7BC
 	.global	unknown_C7BE
 	.global	unknown_C7C8
-	.global	unknown_C7D4
+	.global	big_head_sprite_shadow_C7D4
 	.global	unknown_C7E4
 	.global	unknown_C7F8
 	.global	unknown_C7FB
@@ -483,7 +483,7 @@ unknown_C760:
 	ds.b	8
 unknown_C768:
 	ds.b	20
-unknown_C77C:
+girl_sprite_shadow_C77C:
 	ds.b	1
 unknown_C77D:
 	ds.b	3
@@ -504,7 +504,7 @@ referee_flags_and_bubbles_sprites_C7C0:
 	ds.b	8
 unknown_C7C8:
 	ds.b	12
-unknown_C7D4:
+big_head_sprite_shadow_C7D4:
 	ds.b	12
 	.align	2
 *task_struct_C7E0:

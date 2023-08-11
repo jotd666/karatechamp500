@@ -1223,14 +1223,14 @@ l_40dc:
 	move.b	(a0),d0                         	| [$4128: ld   a,(hl)]
 	btst.b	#7,d0                           	| [$4129: bit  7,a]
 	jne	l_4132                             	| [$412b: jp   nz,$4132]
-	lea	unknown_C77C,a2                	| [$412e: ld   ix,unknown_C77C]
+	lea	girl_sprite_shadow_C77C,a2                	| [$412e: ld   ix,girl_sprite_shadow_C77C]
 l_4132:
 
 	move.l	a2,-(sp)                        	| [$4132: push ix]
 	lea	unknown_C71C,a2                	| [$4134: ld   ix,unknown_C71C]
 	clr.b	d0                               	| [$4138: xor  a]
 	jbsr	set_sprite_block_attribute_4249                            	| [$4139: call $4249]
-	lea	unknown_C77C,a2                	| [$413c: ld   ix,unknown_C77C]
+	lea	girl_sprite_shadow_C77C,a2                	| [$413c: ld   ix,girl_sprite_shadow_C77C]
 	clr.b	d0                               	| [$4140: xor  a]
 	jbsr	set_sprite_block_attribute_4249                            	| [$4141: call $4249]
 	move.l	(sp)+,a2                        	| [$4144: pop  ix]
@@ -1539,6 +1539,24 @@ l_4343:
 	move.l	(sp)+,a3                        	| [$4343: pop  iy]
 	movem.w	(sp)+,d3-d6                    	| [$4346: pop  de+pop hl]
 	jbsr	is_point_in_rectangle_B042        	| [$4347: call is_point_in_rectangle_B042]
+
+	* cheat mode: hit from anywhere
+	tst.b	fake_p2_hit_flag
+	beq.b	0f
+	clr.b	fake_p2_hit_flag
+	cmp.l	#player_1_struct_C240,a3
+	bne.b	0f
+	st.b	d0
+0:
+	tst.b	fake_p1_hit_flag
+	beq.b	0f
+	clr.b	fake_p1_hit_flag
+	cmp.l	#player_2_struct_C260,a3
+	bne.b	0f
+	st.b	d0
+0:
+	* end cheat mode
+	
 	tst.b	d0                               	| [$434a: and  a]
 	jeq	l_435c                             	| [$434b: jp   z,$435C]
 	move.b	#0x04,d1                        	| [$434e: ld   b,$04]
@@ -4375,7 +4393,6 @@ l_5e78:
 	jne	l_5e78                             	| [$5e99: djnz $5E78]
 	move.b	#0x14,d1                        	| [$5e9b: ld   bc,$1404] 5124
 	move.b	#0x04,d2                        	| [$5e9b: ld   bc,$1404] 5124
-	jbsr	osd_break
 	lea	player_1_score_C0C8,a2         	| [$5e9e: ld   ix,player_1_score_C0C8]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5ea2: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	btst.b	#2,d0                           	| [$5ea5: bit  2,a]
@@ -6142,7 +6159,7 @@ l_6fbc:
 	move.b	(0x01,a2),d6                    	| [$6fd1: ld   l,(ix+$01)]
 	move.b	(0x02,a2),d2                    	| [$6fd4: ld   c,(ix+$02)]
 	move.b	(0x03,a2),d1                    	| [$6fd7: ld   b,(ix+$03)]
-	lea	unknown_C77C,a3                	| [$6fda: ld   iy,unknown_C77C]
+	lea	girl_sprite_shadow_C77C,a3                	| [$6fda: ld   iy,girl_sprite_shadow_C77C]
 	move.b	d5,(0x00,a3)                    	| [$6fde: ld   (iy+$00),h]
 	move.b	d6,(0x03,a3)                    	| [$6fe1: ld   (iy+$03),l]
 	move.b	d5,(0x04,a3)                    	| [$6fe4: ld   (iy+$04),h]
@@ -6360,6 +6377,8 @@ l_71b5:
 	move.w	#0x0010,d1                      	| [$71c3: ld   bc,$0010] 16
 	jbsr	ldir                              	| [$71c6: ldir]
 l_71c8:
+	* here's the part where player is happy to win the round
+	* and the girl says "my hero"
 	move.b	background_and_state_bits_C911,d0	| [$71c8: ld   a,(background_and_state_bits_C911)]
 	bclr.b	#7,d0                           	| [$71cb: res  7,a]
 	sub.b	#0x30,d0                         	| [$71cd: sub  $30]
@@ -6374,13 +6393,14 @@ l_71c8:
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$71e0: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	btst.b	#2,d0                           	| [$71e3: bit  2,a]
 	jne	l_71ec                             	| [$71e5: jp   nz,$71EC]
-	move.b	#0x40,d0                        	| [$71e8: ld   a,$40]
-	add.b	d5,d0                            	| [$71ea: add  a,h]
-	move.b	d0,d5                           	| [$71eb: ld   h,a]
+	* player 2: move player to the right
+	add.b	#0x40,d5                        	| [$71e8: ld   a,$40]
+												| [$71ea: add  a,h]
+												| [$71eb: ld   h,a]
 l_71ec:
 	move.b	(0x02,a2),d2                    	| [$71ec: ld   c,(ix+$02)]
 	move.b	(0x03,a2),d1                    	| [$71ef: ld   b,(ix+$03)]
-	lea	unknown_C77C,a3                	| [$71f2: ld   iy,unknown_C77C]
+	lea	girl_sprite_shadow_C77C,a3                	| [$71f2: ld   iy,girl_sprite_shadow_C77C]
 	move.b	d5,(0x00,a3)                    	| [$71f6: ld   (iy+$00),h]
 	move.b	d5,(0x04,a3)                    	| [$71f9: ld   (iy+$04),h]
 	move.b	d6,(0x03,a3)                    	| [$71fc: ld   (iy+$03),l]
@@ -6396,7 +6416,7 @@ l_71ec:
 	lea	task_struct_C1C0,a2                	| [$7213: ld   ix,task_struct_C1C0]
 	move.b	d2,(0x09,a2)                    	| [$7217: ld   (ix+$09),c]
 
-	movem.l	d5/d6,-(sp)                        	| [$721a: push hl]
+	movem.w	d5/d6,-(sp)                        	| [$721a: push hl]
 	move.b	d5,d0                           	| [$721b: ld   a,h]
 	sub.b	#0x20,d0                         	| [$721c: sub  $20]
 	move.b	d0,d3                           	| [$721e: ld   d,a]
@@ -6407,7 +6427,7 @@ l_71ec:
 	move.b	#0xF4,d2                      	| [$7223: ld   bc,$05F4]
 	move.b	#0x47,d5                        	| [$7226: ld   h,$47]
 	jbsr	referee_shows_winner_7a6a                            	| [$7228: call $7A6A]
-	movem.l	(sp),d5/d6                        	| [$722b: pop  hl]
+	movem.w	(sp),d5/d6                        	| [$722b: pop  hl]
 
 	                        	| [$722c: push hl]
 	lea	unknown_C7BC,a3                	| [$722d: ld   iy,unknown_C7BC]
@@ -6419,7 +6439,7 @@ l_71ec:
 	move.b	d0,(0x03,a3)                    	| [$723a: ld   (iy+$03),a]
 	move.b	#0x80,(0x01,a3)                 	| [$723d: ld   (iy+$01),$80]
 	move.b	#0x47,(0x02,a3)                 	| [$7241: ld   (iy+$02),$47]
-	move.m	(sp)+,d5/d6                        	| [$7245: pop  hl]
+	movem.w	(sp)+,d5/d6                        	| [$7245: pop  hl]
 	move.b	d5,d0                           	| [$7246: ld   a,h]
 	sub.b	#0x28,d0                         	| [$7247: sub  $28]
 	move.b	d0,d1                           	| [$7249: ld   b,a]
@@ -6485,7 +6505,8 @@ l_72cf:
 	move.b	d1,(0x1a,a3)                    	| [$72d8: ld   (iy+$1a),b]
 	move.b	d1,(0x1e,a3)                    	| [$72db: ld   (iy+$1e),b]
 	move.b	d1,(0x22,a3)                    	| [$72de: ld   (iy+$22),b]
-	lea	unknown_C7D4,a3                	| [$72e1: ld   iy,unknown_C7D4]
+	* sets position for the big head, don't show it yet
+	lea	big_head_sprite_shadow_C7D4,a3                	| [$72e1: ld   iy,big_head_sprite_shadow_C7D4]
 	move.b	d5,d0                           	| [$72e5: ld   a,h]
 	sub.b	#0x28,d0                         	| [$72e6: sub  $28]
 	move.b	d0,(0x00,a3)                    	| [$72e8: ld   (iy+$00),a]
@@ -6538,13 +6559,15 @@ l_7335:
 	move.b	d2,d0                           	| [$7352: ld   a,c]
 	cmp.b	#0x08,d0                         	| [$7353: cp   $08]
 	jcc	l_7366                             	| [$7355: jp   nc,$7366]
-	lea	unknown_C77C,a3                	| [$7358: ld   iy,unknown_C77C]
+	lea	girl_sprite_shadow_C77C,a3                	| [$7358: ld   iy,girl_sprite_shadow_C77C]
+	* girl moves forward to the player (my hero)
 	subq.b	#1,(0x00,a3)                    	| [$735c: dec  (iy+$00)]
 	subq.b	#1,(0x04,a3)                    	| [$735f: dec  (iy+$04)]
 	addq.b	#1,d2                           	| [$7362: inc  c]
 	jra	l_7319                             	| [$7363: jp   $7319]
 l_7366:
-	lea	unknown_C7D4,a3                	| [$7366: ld   iy,unknown_C7D4]
+	lea	big_head_sprite_shadow_C7D4,a3                	| [$7366: ld   iy,big_head_sprite_shadow_C7D4]
+	* big head, animation #1
 	move.b	#0x65,(0x01,a3)                 	| [$736a: ld   (iy+$01),$65]
 	move.b	#0x65,(0x05,a3)                 	| [$736e: ld   (iy+$05),$65]
 	move.b	#0x66,(0x09,a3)                 	| [$7372: ld   (iy+$09),$66]
@@ -6554,6 +6577,7 @@ l_7366:
 	move.b	#0x10,d0                        	| [$737c: ld   a,$10]
 	jbsr	suspend_this_task_B05A            	| [$737e: call suspend_this_task_B05A]
 	move.l	(sp)+,a3                        	| [$7381: pop  iy]
+	* big head, animation #2
 	move.b	#0x67,(0x01,a3)                 	| [$7383: ld   (iy+$01),$67]
 	move.b	#0x67,(0x05,a3)                 	| [$7387: ld   (iy+$05),$67]
 	move.b	#0x68,(0x09,a3)                 	| [$738b: ld   (iy+$09),$68]
@@ -6586,7 +6610,7 @@ l_73ab:
 l_73cf:
 	move.b	(0x02,a2),d2                    	| [$73cf: ld   c,(ix+$02)]
 	move.b	(0x03,a2),d1                    	| [$73d2: ld   b,(ix+$03)]
-	lea	unknown_C77C,a3                	| [$73d5: ld   iy,unknown_C77C]
+	lea	girl_sprite_shadow_C77C,a3                	| [$73d5: ld   iy,girl_sprite_shadow_C77C]
 	move.b	d5,(0x00,a3)                    	| [$73d9: ld   (iy+$00),h]
 	move.b	d6,(0x03,a3)                    	| [$73dc: ld   (iy+$03),l]
 	move.b	#0x10,d0                        	| [$73df: ld   a,$10]
@@ -9065,9 +9089,6 @@ clear_zone_B021:
 
 
 
-is_point_in_rectangle_B042:
-	jra	is_point_in_rectangle_B440         	| [$b042: jp   is_point_in_rectangle_B440]
-
 
 
 schedule_task_to_start_B057:
@@ -9760,7 +9781,8 @@ l_b428:
 * < ix: struct containing x,width,y,height
 * < d: X
 * < e: Y
-* > a: 0 or FF
+* > a: 0 or FF if contains
+is_point_in_rectangle_B042:
 is_point_in_rectangle_B440:
 	move.b	(0x00,a2),d0                    	| [$b440: ld   a,(ix+$00)]
 	cmp.b	d3,d0                            	| [$b443: cp   d]
@@ -9779,7 +9801,7 @@ l_b45b:
 	cmp.b	d4,d0                            	| [$b45e: cp   e]
 	jcs	l_b467                             	| [$b45f: jp   c,$B467]
 	st.b	d0                                	| [$b462: ld   a,$FF]
-	jra	l_b468                             	| [$b464: jp   $B468]
+	rts                             	| [$b464: jp   $B468]
 l_b467:
 	clr.b	d0                               	| [$b467: xor  a]
 l_b468:

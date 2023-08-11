@@ -2199,23 +2199,29 @@ handle_keyboard:
 
     bsr	toggle_pause
 0:
+	.ifdef RELEASE
 	btst	#2,cheat_flags+3
 	beq.b	0f
+	.endif
 	* cheat keys
 	cmp.b	#0x50,d0	| F1 key
 	bne.b	0f
 	st.b	cheat_used
-*	st.b	diamonds_are_aligned_flag
+	* next hit (even in the air), P1 wins round
+	move.w	#0x101,player_1_points_C91A
+	st.b	fake_p1_hit_flag
+	move.w	#0xFFF,_custom+color
 0:
 	cmp.b	#0x51,d0	| F2 key
 	bne.b	0f
-	* no snobees: level completed
+	* next hit (even in the air), P2 wins round
 	st.b	cheat_used
-*	clr.b	remaining_alive_snobees_8D98
+	move.w	#0x101,player_2_points_C91C
+	st.b	fake_p2_hit_flag
+	move.w	#0xF00,_custom+color
 0:
 	cmp.b	#0x52,d0	| F3 key
 	bne.b	0f
-	* snobees play chicken
 	st.b	cheat_used
 *	st.b	snobee_chicken_flag
 0:

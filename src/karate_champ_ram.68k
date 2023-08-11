@@ -4,6 +4,8 @@
 	.global	stack_top
 	.global	stack_bottom
 	.global invincible_flag
+	.global	fake_p1_hit_flag
+	.global	fake_p2_hit_flag
 	.global start_level
 	.global vb_ticks_count
 	
@@ -51,6 +53,10 @@ vbl_sync_counter_start_screen:
 	.word	0
 high_score_beaten:
 	.word	0
+fake_p1_hit_flag:
+	.byte	0
+fake_p2_hit_flag:
+	.byte	0
 invincible_flag:
 	.byte	0
 infinite_lives_flag:
