@@ -317,7 +317,7 @@ store_address_of_current_player_move_byte_CF04:
 	
 
 	
-load_address_of_current_player_from_a3_10:
+load_address_of_current_player_from_a3_10_to_a0:
 	moveq	#0,d7
 	move.w	(0x10,a3),d7
 	
@@ -332,6 +332,23 @@ load_address_of_current_player_from_a3_10:
 0:
 	move.l	d7,a0
 	add.l	#player_1_struct_C240,a0
+	rts
+
+load_address_of_current_player_from_a3_10_to_a1:
+	moveq	#0,d7
+	move.w	(0x10,a3),d7
+	
+	beq.b	0f
+	cmp.w	#0x20,d7
+	beq.b	0f
+	* sanity, can't be anything else
+	jbsr	osd_break
+	illegal
+	illegal
+	illegal
+0:
+	move.l	d7,a1
+	add.l	#player_1_struct_C240,a1
 	rts
 
 
@@ -439,7 +456,7 @@ task_address_table_0020:
 	.long	0x6491,task_6491                           	|  $0026
 	.long	0x6529,display_hit_score_task_6529                           	|  $0028
 	.long	0x7c5d,handle_1up_2up_flashing_7c5d                           	|  $002a
-	.long	0x6f89,task_6f89                           	|  $002c
+	.long	0x6f89,girl_hesitating_task_6f89                           	|  $002c
 	.long	0x6622,task_6622                           	|  $002e
 	.long	0x755b,white_player_task_755b                           	|  $0030
 	.long	0x7657,red_player_task_7657                           	|  $0032
@@ -500,7 +517,9 @@ l_3aa5:
 	move.b	background_and_state_bits_C911,d0	| [$3aae: ld   a,(background_and_state_bits_C911)]
 	and.b	#0x70,d0                         	| [$3ab1: and  $70]
 	cmp.b	#0x20,d0                         	| [$3ab3: cp   $20]
+	* girl hesitating task running, jump
 	jeq	l_3c3e                             	| [$3ab5: jp   z,$3C3E]
+	* now round begins
 	move.b	background_and_state_bits_C911,d0	| [$3ab8: ld   a,(background_and_state_bits_C911)]
 	bclr.b	#7,d0                           	| [$3abb: res  7,a]
 	cmp.b	#0x10,d0                         	| [$3abd: cp   $10]
@@ -2575,7 +2594,7 @@ table_4B79:
 l_4b7d:
 
 	move.l	a3,-(sp)                        	| [$4b7d: push iy]
-	bsr		load_address_of_current_player_from_a3_10
+	bsr		load_address_of_current_player_from_a3_10_to_a0
 											| [$4b7f: ld   l,(iy+$10)]
 											| [$4b82: ld   h,(iy+$11)]
 
@@ -2706,13 +2725,22 @@ l_4cbc:
 
 l_4cc5:
 
+*     PC  4CC5
+
+*     AF  FFBC
+*     BC  0004
+*     DE  0A89 player standing pos (destroyed)
+*     HL  FFFF
+*     IX  4C7B destroyed
+*     IY  C300 **
+
 	move.l	a3,-(sp)                        	| [$4cc5: push iy]
 	lea	temp_buffer_CF00,a2    	| [$4cc7: ld   ix,temp_buffer_CF00]
 	lea	game_mem+0x4D14,a0                  	| [$4ccb: ld   hl,table_4D14]
 	clr.w	d1                               	| [$4cd1: ld   b,$00]
 	move.b	(0x0c,a3),d1                    	| [$4cce: ld   c,(iy+$0c)]
 	add.w	d1,a0                            	| [$4cd3: add  hl,bc]
-	bsr		load_a1_from_a3_structure_10_address
+	bsr		load_address_of_current_player_from_a3_10_to_a1
 												| [$4cd4: ld   e,(iy+$10)]
 												| [$4cd7: ld   d,(iy+$11)]
 	move.l	a1,a3                        	| [$4cda: push de]
@@ -2731,8 +2759,6 @@ l_4cc5:
 	jbsr	divide_hl_by_d_b003               	| [$4cf4: call divide_hl_by_d_b003]
 	tst.b	d0                               	| [$4cf7: and  a]
 	beq.b	0f
-	* evade ERROR occurs
-	jbsr	osd_break
 	jbsr	display_error_text_B075           	| [$4cf8: call nz,display_error_text_B075]
 0:
 	bsr		change_d5_d6_to_d5_16
@@ -3512,9 +3538,8 @@ l_56ea:
 	jbsr	task_yield_B051                  	| [$56f5: call task_yield_B051]
 
 evade_56f8:
-	* display "EVADE" logo
+	* display "EVADE" logo on the top left
 	lea	game_mem+0x77e3,a0                  	| [$56f8: ld   hl,table_77e3]
-	jbsr	osd_break
 	jbsr	display_multicolor_text_B03C      	| [$56fb: call display_multicolor_text_B03C]
 	move.b	#0x0A,d0                        	| [$56fe: ld   a,$0A]
 	lea	players_type_human_or_cpu_flags_C02D(pc),a0	| [$5700: ld   hl,players_type_human_or_cpu_flags_C02D]
@@ -6122,7 +6147,7 @@ l_6d8b:
 	jbsr	task_yield_B051                   	| [$6e38: call task_yield_B051]
 
 
-task_6f89:
+girl_hesitating_task_6f89:
 	move.b	background_and_state_bits_C911,d0	| [$6f89: ld   a,(background_and_state_bits_C911)]
 	bclr.b	#7,d0                           	| [$6f8c: res  7,a]
 	cmp.b	#0x20,d0                         	| [$6f8e: cp   $20]
@@ -6281,6 +6306,7 @@ l_707a:
 0:
 	move.l	(sp)+,a3                        	| [$70f1: pop  iy]
 	move.l	(sp)+,a2                        	| [$70f3: pop  ix]
+	* animate girl at start which doesn't know who to choose
 	move.b	#0xD7,(0x11,a3)                 	| [$70f5: ld   (iy+$11),$D7]
 	move.b	#0x47,(0x12,a3)                 	| [$70f9: ld   (iy+$12),$47]
 	move.b	#0xD8,(0x15,a3)                 	| [$70fd: ld   (iy+$15),$D8]
@@ -10214,10 +10240,6 @@ l_b658:
 * depending on the difficulty level
 suspend_this_task_B05A:
 suspend_this_task_B65E:
-	cmp.w	#0xA89,d0		| TEMP
-	bne.b	0f
-	move.w	#0x100,0x120
-0:
 	jbsr	disable_interrupts_BBE2           	| [$b65e: call disable_interrupts_BBE2]
 	move.w	d0,-(sp)                        	| [$b661: push af]
 	move.b	current_task_index_C028,d0   	| [$b662: ld   a,(current_task_index_C028)]
