@@ -3145,6 +3145,19 @@ l_53d7:
 												| [$53d9: inc  hl]
 	subq.b	#1,d1                           	| [...]
 	jne	l_53d7                             	| [$53da: djnz $53D7]
+
+	.ifne	OPT_START_SCORE
+	* cheat to test highscores
+	move.l	#OPT_START_SCORE,d1
+	swap	d1
+	lea	player_1_score_C0C8,a0
+	move.b	d1,(a0)+
+	rol.l	#8,d1
+	move.b	d1,(a0)+
+	rol.l	#8,d1
+	move.b	d1,(a0)+
+	.endif
+	
 	jbsr	set_normal_screen_b060                  	| [$53dc: call $B060]
 * 1 player mode (and also at game bootup)
 	lea	players_type_human_or_cpu_flags_C02D,a0	| [$53df: ld   hl,players_type_human_or_cpu_flags_C02D]
@@ -4162,6 +4175,8 @@ l_5b57:
 										| [$5b59: inc  hl]
 	subq.b	#1,d1                           	| [...]
 	jne	l_5b57                             	| [$5b5a: djnz $5B57]
+
+
 l_5b5c:
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5b5c: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	btst.b	#2,d0                           	| [$5b5f: bit  2,a]
@@ -6390,16 +6405,16 @@ l_707a:
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$718a: call nz,display_error_text_B075]
 0:
-	move.l	(sp)+,a3                        	| [$718d: pop  iy]
-	move.l	(sp)+,a2                        	| [$718f: pop  ix]
+	move.l	(sp),a3                        	| [$718d: pop  iy]
+	move.l	(sp),a2                        	| [$718f: pop  ix]
 	move.b	#0xD7,(0x11,a3)                 	| [$7191: ld   (iy+$11),$D7]
 	move.b	#0x47,(0x12,a3)                 	| [$7195: ld   (iy+$12),$47]
 	move.b	#0xD8,(0x15,a3)                 	| [$7199: ld   (iy+$15),$D8]
 	move.b	#0x47,(0x16,a3)                 	| [$719d: ld   (iy+$16),$47]
 
-	move.l	a2,-(sp)                        	| [$71a1: push ix]
+	                       	| [$71a1: push ix]
 
-	move.l	a3,-(sp)                        	| [$71a3: push iy]
+	                       	| [$71a3: push iy]
 	move.b	#0x14,d0                        	| [$71a5: ld   a,$14]
 	jbsr	suspend_this_task_B05A            	| [$71a7: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$71aa: and  a]
