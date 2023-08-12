@@ -1230,17 +1230,20 @@ osd_sound_enable:
 osd_sound_disable:	
 	rts
 osd_sound_start:
-	rts
 	
 	movem.l	d0/d1/a0/a6,-(a7)
-	tst.b	d0
-	jmi	7f		| should stop the sound
+
 	and.w	#0xFF,d0
+
+	move.b	d0,d1
+	move.w	d1,0xDFF180
+	move.w	d1,0x110
+
 	lea		_custom,a6
 	
 	
 	lsl.w	#3,d0
-	lea		sound_table_set_2,a0
+	lea		sound_table_set_1,a0
 
 	move.w	(a0,d0.w),d1	| sound type
 	beq.b	0f		| no sound

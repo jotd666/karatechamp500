@@ -2166,7 +2166,7 @@ l_47a8:
 l_47d4:
 	rts                                    	| [$47d4: ret]
 
-* something to do with evade
+* throw projectile in evade
 task_47d6:
 	jbsr	load_iy_with_player_structure_B04B	| [$47d6: call load_iy_with_player_structure_B04B]
 	move.b	#0x13,d0                        	| [$47d9: ld   a,$13]
@@ -3031,7 +3031,7 @@ l_5266:
 	jbsr	display_error_text_B075           	| [$5272: call nz,display_error_text_B075]
 0:
 	move.b	#0x80,d0                        	| [$5275: ld   a,$80]
-	jbsr	stop_sound_b0ae                            	| [$5277: call $B0AE]
+	jbsr	issue_sound_lowlevel_B0AE                            	| [$5277: call $B0AE]
 	move.b	dip_switches_copy_C030,d0       	| [$527a: ld   a,(dip_switches_copy_C030)]
 	btst.b	#7,d0                           	| [$527d: bit  7,a] free play bit
 	jeq	l_5287                             	| [$527f: jp   z,$5287]
@@ -9130,9 +9130,7 @@ task_yield_B051:
 set_normal_screen_b060:
 	jra	set_normal_screen_bb72                             	| [$b060: jp   $BB72]
 
-play_sound_B072:
-	jbsr	osd_sound_start
-	rts
+
 	
 display_error_text_B075:
 	jra	display_error_text_B186            	| [$b075: jp   display_error_text_B186]
@@ -9158,8 +9156,6 @@ task_b09f:
                             	| [$b0a2: jp   $F75D]
 
 
-stop_sound_b0ae:
-	jra	stop_sound_BBDF                    	| [$b0ae: jp   stop_sound_BBDF]
 
 is_title_screen_demo_mode_B0B1:
 	jra	is_title_screen_demo_mode_B27E     	| [$b0b1: jp   is_title_screen_demo_mode_B27E]
@@ -10610,11 +10606,11 @@ manage_coin_inserted_BA7D:
 	jne	l_baa9                             	| [$ba93: jp   nz,$BAA9]
 	addq.b	#1,(0x01,a2)                    	| [$ba96: inc  (ix+$01)]
 	move.b	#0x20,d0                        	| [$ba99: ld   a,$20]
-	jbsr	stop_sound_BBDF                   	| [$ba9b: call stop_sound_BBDF]
+	jbsr	issue_sound_lowlevel_BBDF                   	| [$ba9b: call issue_sound_lowlevel_BBDF]
 	move.b	dip_switches_copy_C030,d0       	| [$ba9e: ld   a,(dip_switches_copy_C030)]
 	and.b	#0x03,d0                         	| [$baa1: and  $03]
 	lea	unknown_C025,a0                	| [$baa3: ld   hl,unknown_C025]
-	jbsr	l_bae6                            	| [$baa6: call $BAE6]
+	jbsr	coin_inserted_bae6                            	| [$baa6: call $BAE6]
 l_baa9:
 	move.b	d1,d0                           	| [$baa9: ld   a,b]
 	btst.b	#6,d0                           	| [$baaa: bit  6,a]
@@ -10623,12 +10619,12 @@ l_baa9:
 	jne	l_bacd                             	| [$bab3: jp   nz,$BACD]
 	addq.b	#1,(0x02,a2)                    	| [$bab6: inc  (ix+$02)]
 	move.b	#0x20,d0                        	| [$bab9: ld   a,$20]
-	jbsr	stop_sound_BBDF                   	| [$babb: call stop_sound_BBDF]
+	jbsr	issue_sound_lowlevel_BBDF                   	| [$babb: call issue_sound_lowlevel_BBDF]
 	move.b	dip_switches_copy_C030,d0       	| [$babe: ld   a,(dip_switches_copy_C030)]
 	lsr.b	#2,d0                            	| [$bac1: srl  a] * 2
 	and.b	#0x03,d0                         	| [$bac5: and  $03]
 	lea	unknown_C026,a0                	| [$bac7: ld   hl,unknown_C026]
-	jbsr	l_bae6                            	| [$baca: call $BAE6]
+	jbsr	coin_inserted_bae6                            	| [$baca: call $BAE6]
 l_bacd:
 	move.b	d1,(0x03,a2)                    	| [$bacd: ld   (ix+$03),b]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$bad0: ld   a,(players_type_human_or_cpu_flags_C02D)]
@@ -10642,7 +10638,9 @@ l_bacd:
 	jbsr	set_next_task_B6AE            	| [$bae2: call set_next_task_B6AE]
 l_bae5:
 	rts                                    	| [$bae5: ret]
-l_bae6:
+	
+	* coin inserted
+coin_inserted_bae6:
 	* one credit per coin
 	tst.b	d0                               	| [$bae6: and  a]
 	jne	l_bafa                             	| [$bae7: jp   nz,$BAFA]
@@ -10716,7 +10714,7 @@ init_ram_BB41:
 	clr.b	d0                               	| [$bb65: xor  a]
 	jbsr	schedule_task_to_start_B620                 	| [$bb66: call schedule_task_to_start_B620]
 	move.b	#0x80,d0                        	| [$bb69: ld   a,$80]
-	jbsr	stop_sound_BBDF                   	| [$bb6b: call stop_sound_BBDF]
+	jbsr	issue_sound_lowlevel_BBDF                   	| [$bb6b: call issue_sound_lowlevel_BBDF]
 	rts                                    	| [$bb6e: ret]
 
 set_normal_screen_bb72:
@@ -10760,7 +10758,8 @@ enable_interrupts_b0c0:
 enable_interrupts_BBE8:
 	jbsr		osd_enable_vblank_interrupt
 	rts
-
+	
+play_sound_B072:
 play_sound_BBB5:
 	move.w	d0,-(sp)                        	| [$bbb5: push af]
 	move.b	dip_switches_copy_C030,d0       	| [$bbb6: ld   a,(dip_switches_copy_C030)]
@@ -10771,24 +10770,24 @@ play_sound_BBB5:
 	jeq	l_bbdd                             	| [$bbc3: jp   z,$BBDD] both players are CPU: demo: exit
 l_bbc6:
 	move.w	(sp),d0                        	| [$bbc6: pop  af]
-	                        	| [$bbc7: push af]
 	cmp.b	#0x80,d0                         	| [$bbc8: cp   $80]
 	jne	l_bbda                             	| [$bbca: jp   nz,$BBDA]
-	clr.b	d0                               	| [$bbcd: ld   a,$00]
-*out  ($02),a
-	move.b	#0x01,d0                        	| [$bbd1: ld   a,$01]
-*out  ($02),a
+* stop sound
+	jbsr	osd_sound_stop
 	jra	l_bbdd                             	| [$bbd5: jp   $BBDD]
 	move.w	(sp),d0                        	| [$bbd8: pop  af]
 	                        	| [$bbd9: push af]
 l_bbda:
-	jbsr	stop_sound_BBDF                   	| [$bbda: call stop_sound_BBDF]
+	jbsr	issue_sound_lowlevel_BBDF         	| [$bbda: call issue_sound_lowlevel_BBDF]
 l_bbdd:
 	move.w	(sp)+,d0                        	| [$bbdd: pop  af]
 	rts                                    	| [$bbde: ret]
 
-stop_sound_BBDF:
-	jra	osd_sound_stop	| [$bbe1: ret]
+
+issue_sound_lowlevel_B0AE:
+issue_sound_lowlevel_BBDF:
+	jbra		osd_sound_start
+
 
 * 3 entries to call E031, d0=0,4 or 6
 * D0: is then used to pick a value from table in address_table_E24C
@@ -11513,6 +11512,7 @@ l_e7b9:
 l_e7d2:
 	jbsr	clear_score_text_FDC4             	| [$e7d2: call clear_score_text_FDC4]
 	jbsr	display_players_rank_FD44         	| [$e7d5: call display_players_rank_FD44]
+	* play main theme music
 	move.b	#0x01,d0                        	| [$e7d8: ld   a,$01]
 	jbsr	play_sound_BBB5                   	| [$e7da: call play_sound_BBB5]
 	move.b	background_and_state_bits_C911,d0	| [$e7dd: ld   a,(background_and_state_bits_C911)]
@@ -11970,6 +11970,7 @@ l_ec9d:
 	
 l_eca8:
 show_highscores_screen_eca8:
+	* play main theme music
 	move.b	#0x01,d0                        	| [$eca8: ld   a,$01]
 	jbsr	play_sound_BBB5                   	| [$ecaa: call play_sound_BBB5]
 	move.w	#0x703C,d1                      	| [$ecad: ld   bc,$703C]

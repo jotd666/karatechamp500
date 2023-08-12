@@ -10807,7 +10807,7 @@ B0A2: C3 57 FD    jp   animate_guided_character_F75D
 B0A5: C3 00 00    jp   $0000
 B0A8: C3 00 E0    jp   $E000
 B0AB: C3 00 E0    jp   $E000
-B0AE: C3 7F BB    jp   stop_sound_BBDF
+B0AE: C3 7F BB    jp   issue_sound_lowlevel_BBDF
 is_title_screen_demo_mode_B0B1:
 B0B1: C3 DE B8    jp   is_title_screen_demo_mode_B27E
 display_players_rank_B0B4:
@@ -12147,11 +12147,11 @@ BA8F: DD CB 09 DE bit  7,(ix+$03)
 BA93: C2 A3 BA    jp   nz,$BAA9
 BA96: DD 34 01    inc  (ix+$01)
 BA99: 3E 80       ld   a,$20
-BA9B: CD 7F BB    call stop_sound_BBDF
+BA9B: CD 7F BB    call issue_sound_lowlevel_BBDF
 BA9E: 3A 90 60    ld   a,(dip_switches_copy_C030)
 BAA1: E6 09       and  $03
 BAA3: 21 85 60    ld   hl,unknown_C025
-BAA6: CD EC BA    call $BAE6
+BAA6: CD EC BA    call coin_inserted_bae6
 BAA9: 78          ld   a,b
 BAAA: CB 77       bit  6,a
 BAAC: CA 67 BA    jp   z,$BACD
@@ -12159,13 +12159,13 @@ BAAF: DD CB 09 DC bit  6,(ix+$03)
 BAB3: C2 67 BA    jp   nz,$BACD
 BAB6: DD 34 08    inc  (ix+$02)
 BAB9: 3E 80       ld   a,$20
-BABB: CD 7F BB    call stop_sound_BBDF
+BABB: CD 7F BB    call issue_sound_lowlevel_BBDF
 BABE: 3A 90 60    ld   a,(dip_switches_copy_C030)
 BAC1: CB 3F       srl  a
 BAC3: CB 3F       srl  a
 BAC5: E6 09       and  $03
 BAC7: 21 8C 60    ld   hl,unknown_C026
-BACA: CD EC BA    call $BAE6
+BACA: CD EC BA    call coin_inserted_bae6
 BACD: DD 70 09    ld   (ix+$03),b
 BAD0: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 BAD3: E6 09       and  $03
@@ -12177,6 +12177,7 @@ BADF: AF          xor  a
 BAE0: 06 0C       ld   b,$06
 BAE2: CD AE BC    call set_next_task_B6AE
 BAE5: C9          ret
+coin_inserted_bae6:
 BAE6: A7          and  a
 BAE7: C2 FA BA    jp   nz,$BAFA
 BAEA: DD 7E 00    ld   a,(ix+$00)
@@ -12242,7 +12243,7 @@ BB62: 32 90 60    ld   (dip_switches_copy_C030),a
 BB65: AF          xor  a
 BB66: CD 80 BC    call schedule_task_to_start_B620
 BB69: 3E 20       ld   a,$80
-BB6B: CD 7F BB    call stop_sound_BBDF
+BB6B: CD 7F BB    call issue_sound_lowlevel_BBDF
 BB6E: C9          ret
 
 control_screen_flip_BB6F:
@@ -12343,6 +12344,7 @@ BBC6: F1          pop  af
 BBC7: F5          push af
 BBC8: FE 20       cp   $80
 BBCA: C2 7A BB    jp   nz,$BBDA
+* stop sound
 BBCD: 3E 00       ld   a,$00
 BBCF: D3 08       out  ($02),a
 BBD1: 3E 01       ld   a,$01
@@ -12350,11 +12352,11 @@ BBD3: D3 08       out  ($02),a
 BBD5: C3 77 BB    jp   $BBDD
 BBD8: F1          pop  af
 BBD9: F5          push af
-BBDA: CD 7F BB    call stop_sound_BBDF
+BBDA: CD 7F BB    call issue_sound_lowlevel_BBDF
 BBDD: F1          pop  af
 BBDE: C9          ret
 
-stop_sound_BBDF:
+issue_sound_lowlevel_BBDF:
 BBDF: D3 40       out  ($40),a
 BBE1: C9          ret
 

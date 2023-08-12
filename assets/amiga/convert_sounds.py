@@ -2,6 +2,7 @@ import subprocess,os,struct,glob,tempfile
 import shutil
 
 sox = "sox"
+gamename = "karate_champ"
 
 if not shutil.which("sox"):
     raise Exception("sox command not in path, please install it")
@@ -20,31 +21,33 @@ sndfile = os.path.join(src_dir,"sound_entries.68k")
 hq_sample_rate = 18000
 vhq_sample_rate = 22050
 
+
 EMPTY_SND = "EMPTY_SND"
 sound_dict = {
-"CREDIT_SND"               :{"index":0,"channel":0,"sample_rate":hq_sample_rate},
-"INTRO_TUNE_SND"             :{"index":1,"pattern":0,"loops":True,"volume":32},
-"START_TUNE_SND"              :{"index":2,"pattern":2,"loops":False,"volume":32},
-"WIN_TUNE_SND"              :{"index":3,"pattern":4,"loops":False,"volume":32},
-"LOSE_TUNE_SND"              :{"index":4,"pattern":6,"loops":False,"volume":32},
-"BLOW_SND"               :{"index":5,"channel":0,"sample_rate":hq_sample_rate},
-"KIAI_1_SND"             :{"index":6,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
-"KIAI_2_SND"             :{"index":7,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
-"SECOND_SND"             :{"index":8,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"START_TUNE_SND"              :{"index":1,"pattern":2,"loops":False,"volume":32},
+"LOSE_TUNE_SND"              :{"index":2,"pattern":1,"loops":False,"volume":32},
+"INTRO_TUNE_SND"              :{"index":3,"pattern":0,"loops":False,"volume":32},
+"WIN_TUNE_SND"             :{"index":0x04,"pattern":3,"loops":True,"volume":32},
+"BLOW_SND"               :{"index":0x11,"channel":0,"sample_rate":hq_sample_rate},
+"KIAI_1_SND"             :{"index":0x21,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"KIAI_2_SND"             :{"index":0x22,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"SECOND_SND"             :{"index":0x08,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "STOP_SND"             :{"index":9,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
-"SWOOSH_1_SND"             :{"index":10,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
-"SWOOSH_2_SND"             :{"index":11,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"SWOOSH_1_SND"             :{"index":0x15,"channel":1,"loops":False,"sample_rate":hq_sample_rate},
+"SWOOSH_2_SND"             :{"index":0x16,"channel":1,"loops":False,"sample_rate":hq_sample_rate},
 "JUDGE_SND"             :{"index":12,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
-"FULL_POINT_SND"             :{"index":13,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"FULL_POINT_SND"             :{"index":0x27,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "HALF_POINT_SND"             :{"index":13,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
-"EVADE_SND"             :{"index":14,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "BULL_SND"             :{"index":15,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
-"FALL_SND"             :{"index":15,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"FALL_SND"             :{"index":0x10,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"EVADE_SND"             :{"index":0x13,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"BEGIN_SND"             :{"index":0x25,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"CREDIT_SND"               :{"index":0x20,"channel":0,"sample_rate":hq_sample_rate},
 
 
 }
 
-max_sound = 0x20  # max(x["index"] for x in sound_dict.values())+1
+max_sound = max(x["index"] for x in sound_dict.values())+1
 sound_table = [""]*max_sound
 sound_table_set_1 = ["\t.long\t0,0"]*max_sound
 
@@ -83,7 +86,7 @@ def write_asm(contents,fw):
         n += 1
     fw.write("\n")
 
-music_module_label = "pengo_tunes"
+music_module_label = f"{gamename}_tunes"
 
 raw_file = os.path.join(tempfile.gettempdir(),"out.raw")
 with open(sndfile,"w") as fst,open(outfile,"w") as fw:
@@ -131,6 +134,7 @@ with open(sndfile,"w") as fst,open(outfile,"w") as fw:
 
             amp_ratio = max(maxsigned,abs(minsigned))/128
 
+
             wav = os.path.splitext(wav_name)[0]
             sound_table[sound_index] = "    SOUND_ENTRY {},{},{},{},{},{}\n".format(wav,len(signed_data)//2,channel,used_sampling_rate,int(64*amp_ratio),used_priority)
             sound_table_set_1[sound_index] = f"\t.word\t1,{int(details.get('loops',0))}\n\t.long\t{wav}_sound"
@@ -162,7 +166,7 @@ with open(sndfile,"w") as fst,open(outfile,"w") as fw:
             write_asm(contents,fw)
 
     # make sure next section will be aligned
-    with open(os.path.join(sound_dir,"karate_champ_conv.mod"),"rb") as f:
+    with open(os.path.join(sound_dir,f"{gamename}_conv.mod"),"rb") as f:
         contents = f.read()
     fw.write("{}:".format(music_module_label))
     write_asm(contents,fw)
