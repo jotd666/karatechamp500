@@ -779,7 +779,10 @@ osd_update_sprites:
 	lsl.w	#4,d5
 	add.w	d5,d2		| extended tile code
 	add.w	d3,d2		| add bank offset to tile code
-	* now D2 is tile code (0-15xx)
+	* now D2 is tile code (0-1536)
+	cmp.w	#0x601,d2
+	bcc.b	13f
+
 	*     D3 is tile color "table" (0-31)
 	lea		sprite_table,a0
 	add.w	d2,d2
@@ -816,6 +819,11 @@ osd_update_sprites:
 12:
 	.ifne	OPT_ENABLE_LOGGING
 	move.w	#0xF00,0xDFF180
+	.endif
+	bra.b	1b
+13:
+	.ifne	OPT_ENABLE_LOGGING
+	move.w	#0x0FF,0xDFF180
 	.endif
 	bra.b	1b
 
@@ -1236,7 +1244,6 @@ osd_sound_start:
 	and.w	#0xFF,d0
 
 	move.b	d0,d1
-	move.w	d1,0xDFF180
 	move.w	d1,0x110
 
 	lea		_custom,a6

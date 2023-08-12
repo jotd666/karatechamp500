@@ -1340,7 +1340,7 @@ table_183F:
 ; a shitload of frame tables here!!!
 ; then code resumes
 
-3A9C: CD 4B B0    call load_iy_with_player_structure_B04B
+3A9C: CD 4B B0    call load_iy_with_task_structure_B04B
 3A9F: CD 18 B0    call clear_player_structure_partial_b012
 3AA2: CD 41 96    call $3C41
 3AA5: CD B0 96    call $3CB0
@@ -1657,7 +1657,7 @@ table_3D77:
 	dc.b	0x89,0x0a,0x88,0x88,0x89,0x0a,0x88,0x88 ; $3daf
 
 ; probably move related, but not A.I. related (player movement)
-3DB7: CD 4B B0 	  call load_iy_with_player_structure_B04B
+3DB7: CD 4B B0 	  call load_iy_with_task_structure_B04B
 3DBA: 3A 82 60    ld   a,(current_task_index_C028)
 3DBD: FE 02       cp   $08
 3DBF: C2 62 97    jp   nz,$3DC8
@@ -2785,12 +2785,12 @@ get_current_frame_contents_478D:
 47D4: C9          ret
 47D5: 00          nop
 
-47D6: CD 4B B0    call load_iy_with_player_structure_B04B
+47D6: CD 4B B0    call load_iy_with_task_structure_B04B
 47D9: 3E 19       ld   a,$13
 47DB: CD D8 B0    call play_sound_B072
 47DE: CD 18 B0    call clear_player_structure_partial_b012
 47E1: CD BD 42    call $48B7
-47E4: CD C2 43    call $4968
+47E4: CD C2 43    call load_evade_object_sprite_pointer_4968
 47E7: CD D2 43    call $4978
 47EA: FD E5       push iy
 47EC: 3E 01       ld   a,$01
@@ -2802,7 +2802,7 @@ get_current_frame_contents_478D:
 47FA: CD 56 4B    call $4B5C
 47FD: FE FF       cp   $FF
 47FF: CA A2 42    jp   z,$48A8
-4802: CD C2 43    call $4968
+4802: CD C2 43    call load_evade_object_sprite_pointer_4968
 4805: CD D2 43    call $4978
 4808: CD F6 4B    call $4BFC
 480B: F5          push af
@@ -2840,7 +2840,7 @@ get_current_frame_contents_478D:
 4851: CD 16 47    call $4D1C
 4854: 3E 18       ld   a,$12
 4856: CD D8 B0    call play_sound_B072
-4859: CD C2 43    call $4968
+4859: CD C2 43    call load_evade_object_sprite_pointer_4968
 485C: CD D2 43    call $4978
 485F: CD 5E 47    call $4D5E
 4862: A7          and  a
@@ -2950,7 +2950,8 @@ table_494B:
 table_4960:
 	dc.b	0x7c,0xc7,0x8c,0xc7,0x9c,0xc7,0xac,0xc7 ; table_4960
 
-4968: CD 4B B0    call load_iy_with_player_structure_B04B
+load_evade_object_sprite_pointer_4968:
+4968: CD 4B B0    call load_iy_with_task_structure_B04B
 496B: FD 6E 0E    ld   l,(iy+$0e)
 496E: FD 66 0F    ld   h,(iy+$0f)
 4971: E5          push hl
@@ -3037,7 +3038,7 @@ table_4960:
 4A0D: C2 71 4A    jp   nz,$4AD1
 4A10: FD CB 02 DE bit  7,(iy+$08)
 4A14: CA A5 4A    jp   z,$4AA5
-4A17: CD C2 43    call $4968
+4A17: CD C2 43    call load_evade_object_sprite_pointer_4968
 4A1A: 06 04       ld   b,$04
 4A1C: DD 4E 01    ld   c,(ix+$01)
 4A1F: DD 7E 08    ld   a,(ix+$02)
@@ -3067,7 +3068,7 @@ table_4960:
 4A5E: 11 14 00    ld   de,$0014
 4A61: DD 19       add  ix,de
 4A63: 10 BD       djnz $4A1C
-4A65: CD C2 43    call $4968
+4A65: CD C2 43    call load_evade_object_sprite_pointer_4968
 4A68: DD 4E 01    ld   c,(ix+$01)
 4A6B: DD 46 08    ld   b,(ix+$02)
 4A6E: DD 5E 05    ld   e,(ix+$05)
@@ -3095,7 +3096,7 @@ table_4960:
 4AAF: CD 48 B0    call is_point_in_rectangle_B042
 4AB2: A7          and  a
 4AB3: C2 71 4A    jp   nz,$4AD1
-4AB6: CD C2 43    call $4968
+4AB6: CD C2 43    call load_evade_object_sprite_pointer_4968
 4AB9: 06 14       ld   b,$14
 4ABB: FD 7E 03    ld   a,(iy+$09)
 4ABE: DD AE 00    xor  (ix+$00)
@@ -3381,7 +3382,7 @@ table_4D74:
 4D80: E6 92       and  $38
 4D82: 20 9A       jr   nz,$4DBE
 
-4D84: CD 4B B0    call load_iy_with_player_structure_B04B
+4D84: CD 4B B0    call load_iy_with_task_structure_B04B
 4D87: CD 18 B0    call clear_player_structure_partial_b012
 4D8A: FD E5       push iy
 4D8C: 3E 02       ld   a,$08
@@ -3655,7 +3656,7 @@ table_5040:
 5139: FD 77 03    ld   (iy+$09),a
 513C: 3E 14       ld   a,$14
 513E: CD D8 B0    call play_sound_B072
-5141: CD C2 43    call $4968
+5141: CD C2 43    call load_evade_object_sprite_pointer_4968
 5144: CD D2 43    call $4978
 5147: CD 5E 47    call $4D5E
 514A: CD 15 4B    call $4B15
@@ -3667,7 +3668,7 @@ table_5040:
 5159: C2 C1 51    jp   nz,$5161
 515C: 3E 14       ld   a,$14
 515E: CD D8 B0    call play_sound_B072
-5161: CD C2 43    call $4968
+5161: CD C2 43    call load_evade_object_sprite_pointer_4968
 5164: CD D2 43    call $4978
 5167: CD F6 4B    call $4BFC
 516A: F5          push af
@@ -3703,7 +3704,7 @@ table_5040:
 51AE: CD 16 47    call $4D1C
 51B1: 3E 18       ld   a,$12
 51B3: CD D8 B0    call play_sound_B072
-51B6: CD C2 43    call $4968
+51B6: CD C2 43    call load_evade_object_sprite_pointer_4968
 51B9: CD D2 43    call $4978
 51BC: CD 5E 47    call $4D5E
 51BF: FD 6E 0D    ld   l,(iy+$07)
@@ -3756,7 +3757,7 @@ table_5040:
 522F: A7          and  a
 5230: C4 D5 B0    call nz,display_error_text_B075
 5233: C3 48 58    jp   $5242
-5236: CD C2 43    call $4968
+5236: CD C2 43    call load_evade_object_sprite_pointer_4968
 5239: DD E5       push ix
 523B: E1          pop  hl
 523C: 01 50 00    ld   bc,$0050
@@ -9069,7 +9070,7 @@ A37A: C9          ret
 ; roughly called every 60th frames, sometimes 2 times in the frame
 ; probably not or loosely synchronized with 60Hz interrupt
 fight_mainloop_A37B:
-A37B: CD 4B B0    call load_iy_with_player_structure_B04B
+A37B: CD 4B B0    call load_iy_with_task_structure_B04B
 A37E: FD 36 10 00 ld   (iy+$10),$00
 A382: AF          xor  a
 A383: CD 5A B0    call suspend_this_task_B05A
@@ -9082,7 +9083,7 @@ A38D: C4 D5 B0    call nz,display_error_text_B075
 ; when players are shown and fight. either in the intro/demo
 ; or during a real fight
 fight_mainloop_A390:
-A390: CD 4B B0    call load_iy_with_player_structure_B04B
+A390: CD 4B B0    call load_iy_with_task_structure_B04B
 ; now (1 player vs red CPU: iy = $C200)
 A393: CD 82 A4    call update_players_struct_C2xx_A428
 A396: CD 47 A9    call move_human_player_A34D
@@ -10763,7 +10764,7 @@ startup_B045:
 B045: C3 C3 B4    jp   startup_B469
 periodic_interrupt_B048:
 B048: C3 8F BD    jp   on_periodic_interrupt_B72F
-load_iy_with_player_structure_B04B:
+load_iy_with_task_structure_B04B:
 B04B: C3 D4 B5    jp   load_iy_with_player_structure_B574
 load_struct_C100_from_A_index_B04E:
 B04E: C3 2E B5    jp   load_struct_C100_from_A_index_B58E

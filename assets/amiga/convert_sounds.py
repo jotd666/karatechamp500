@@ -21,13 +21,18 @@ sndfile = os.path.join(src_dir,"sound_entries.68k")
 hq_sample_rate = 18000
 vhq_sample_rate = 22050
 
+START_FIGHT_MUSIC = 0
+LOSE_FIGHT_MUSIC = 1
+WIN_FIGHT_MUSIC = 2
+MAIN_THEME_MUSIC = 3
+
 
 EMPTY_SND = "EMPTY_SND"
 sound_dict = {
-"START_TUNE_SND"              :{"index":1,"pattern":2,"loops":False,"volume":32},
-"LOSE_TUNE_SND"              :{"index":2,"pattern":1,"loops":False,"volume":32},
-"INTRO_TUNE_SND"              :{"index":3,"pattern":0,"loops":False,"volume":32},
-"WIN_TUNE_SND"             :{"index":0x04,"pattern":3,"loops":True,"volume":32},
+"INTRO_TUNE_SND"              :{"index":1,"pattern":MAIN_THEME_MUSIC,"loops":True,"volume":32},
+"LOSE_TUNE_SND"              :{"index":2,"pattern":LOSE_FIGHT_MUSIC,"loops":False,"volume":32},
+"START_TUNE_SND"              :{"index":3,"pattern":START_FIGHT_MUSIC,"loops":False,"volume":32},
+"WIN_TUNE_SND"             :{"index":0x04,"pattern":WIN_FIGHT_MUSIC,"loops":False,"volume":32},
 "BLOW_SND"               :{"index":0x11,"channel":0,"sample_rate":hq_sample_rate},
 "KIAI_1_SND"             :{"index":0x21,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "KIAI_2_SND"             :{"index":0x22,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
