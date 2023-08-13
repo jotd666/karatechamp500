@@ -43,7 +43,7 @@ sound_dict = {
 "JUDGE_SND"             :{"index":12,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "FULL_POINT_SND"             :{"index":0x27,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "HALF_POINT_SND"             :{"index":13,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
-"BULL_SND"             :{"index":15,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+#"BULL_SND"             :{"index":0x10,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "FALL_SND"             :{"index":0x10,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "EVADE_SND"             :{"index":0x13,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "BEGIN_SND"             :{"index":0x25,"channel":0,"loops":False,"sample_rate":hq_sample_rate},

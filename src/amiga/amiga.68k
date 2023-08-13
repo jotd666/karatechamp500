@@ -57,7 +57,7 @@ ONE_TICK = 1
 	.endif
 	
 
-OPT_ENABLE_DOUBLE_BUFFERING_BG = 0
+OPT_ENABLE_DOUBLE_BUFFERING_BG = 1
 
 _custom = 0xDFF000
 
@@ -658,6 +658,7 @@ _vblank:
 	tst.b	pause_flag
 	bne.b	23f
 
+
 	jbsr		karate_champ_irq
 	.ifne  OPT_ENABLE_DOUBLE_BUFFERING_BG
 	bsr		switch_screen_buffers
@@ -712,7 +713,7 @@ osd_update_sprites:
 	*lea		test_sprites_title_xy,a0
 	move.l	a0,a6			| save sprite table in A6
 	move.w	#NB_TARGET_SPRITES-1,d7
-	lea		previous_sprites(pc),a4
+	move.l	previous_sprites_ptr(pc),a4
 0:
 	moveq	#0,d0
 	moveq	#0,d1
@@ -731,7 +732,7 @@ osd_update_sprites:
 	dbf		d7,0b
 	
 	move.w	#NB_TARGET_SPRITES-1,d7
-	lea		previous_sprites(pc),a4
+	move.l	previous_sprites_ptr(pc),a4
 	* for each sprite
 0:
 	moveq	#0,d0
@@ -748,6 +749,7 @@ osd_update_sprites:
 	jeq		1f
 10:
 	.ifne	OPT_ENABLE_LOGGING
+	move.l	#sprite_shadow_ram_C700,0x108
 	lea		sprite_log_table,a1
 	move.l	a1,0x100
 	moveq	#0,d2
@@ -1343,23 +1345,28 @@ osd_sound_stop:
 	
 
 
-switch_screen_buffers:	
+switch_screen_buffers:
 	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
 	* let's switch screen buffers, background (chars)
 	* toggle fg planes (double buffering)
 	lea		bg_drawed_screen_ptr(pc),a0
 	lea		bg_displayed_screen_ptr(pc),a4
+	lea		previous_sprites_ptr(pc),a6
 	lea		bg_screen_data_1,a1
 	lea		bg_screen_data_2,a5
+	lea		previous_sprites_1,a2
+	lea		previous_sprites_2,a3
 	* also switch previous state memory
 	cmp.l	(a0),a1
 	bne.b	2f
 	* screen data 1 is displayed screen
 	* set it to drawn screen
 	exg		a1,a5
+	exg		a2,a3
 2:
 	move.l	a1,(a0)
 	move.l	a5,(a4)
+	move.l	a3,(a6)
 	jbsr		set_bg_bitplanes
 	.endif
 	
@@ -1821,6 +1828,9 @@ update_bg_tile:
 
 	
 	move.l	bg_drawed_screen_ptr(pc),a1
+	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
+	move.l	bg_displayed_screen_ptr(pc),a4
+	.endif
 	* D3 = Y
 
 	add.w	d3,d3
@@ -1830,6 +1840,9 @@ update_bg_tile:
 	add.w	d3,a1
 	lea		bg_screen_backbuffer_data,a2
 	add.w	d3,a2
+	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
+	add.w	d3,a4
+	.endif
 
 	moveq	#NB_PLAYFIELD_PLANES-1,d3
 
@@ -1855,11 +1868,17 @@ update_bg_tile:
 	.rept	8
 	move.b	(a0)+,d0
 	move.b	d0,(offset,a1)	
-	move.b	d0,(offset,a2)	
+	move.b	d0,(offset,a2)
+	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
+	move.b	d0,(offset,a4)
+	.endif	
 	.set	offset,offset+NB_BYTES_PER_ROW
 	.endr
 	add.w	d1,a1
 	add.w	d1,a2
+	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
+	add.w	d1,a4
+	.endif
 	dbf		d3,4b
 0:
 	rts
@@ -1871,10 +1890,16 @@ update_bg_tile:
 	.rept	8
 	clr.b	(offset,a1)
 	clr.b	(offset,a2)
+	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
+	clr.b	(offset,a4)
+	.endif	
 	.set	offset,offset+NB_BYTES_PER_ROW
 	.endr
 	add.w	d0,a1
 	add.w	d0,a2
+	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
+	add.w	d0,a4
+	.endif
 	dbf		d3,11b
 2:
 	rts
@@ -2368,7 +2393,11 @@ keyboard_table:
 	ds.b	0x100
 
 
-previous_sprites:
+previous_sprites_ptr:
+	dc.l	previous_sprites_1
+previous_sprites_1:
+	ds.w	NB_TARGET_SPRITES
+previous_sprites_2:
 	ds.w	NB_TARGET_SPRITES
 	
 pause_flag:

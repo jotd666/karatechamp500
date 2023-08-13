@@ -209,7 +209,7 @@ task_address_table_0020:
 	dc.w	$47d6 ; $0042
 	dc.w	$47d6 ; $0044
 	dc.w	$47d6 ; $0046
-	dc.w	$50f2 ; $0048
+	dc.w	bull_task_50F2 ; $0048
 	dc.w	$b099 ; $004a
 	dc.w	$b09c ; $004c
 	dc.w	$b09f ; $004e
@@ -3626,6 +3626,8 @@ table_5040:
 	dc.b	0x8a,0x7d,0x04,0x8a,0x7e,0x04,0x8a,0x7f ; $50e8
 	dc.b	0x04,0x8a,0x67,0x4b,0xb0 ; $50f0
 
+bull_task_50F2:
+50F2: CD 4B B0    call load_iy_with_task_structure_B04B                                        
 50F5: CD 18 B0    call clear_player_structure_partial_b012
 50F8: FD 36 19 09 ld   (iy+$13),$03
 50FC: 11 2D 69    ld   de,task_struct_C380+7
@@ -5775,7 +5777,7 @@ table_65FB:
 6678: D6 12       sub  $18
 667A: 5F          ld   e,a
 667B: 26 0A       ld   h,$0A
-667D: CD CA DA    call $7A6A
+667D: CD CA DA    call referee_shows_winner_7a6a
 6680: 01 17 01    ld   bc,$011D
 6683: FD 7E 0A    ld   a,(iy+$0a)
 6686: C6 10       add  a,$10
@@ -5785,7 +5787,7 @@ table_65FB:
 668E: 5F          ld   e,a
 668F: DD 21 B6 6D ld   ix,unknown_C7BC
 6693: 26 05       ld   h,$05
-6695: CD CE DA    call $7A6E
+6695: CD CE DA    call referee_shows_bubble_7a6e
 6698: CD 52 DA    call change_bubble_flag_clut_to_red_7A58
 669B: 3E 85       ld   a,$25
 669D: CD D8 B0    call play_sound_B072
@@ -5850,7 +5852,7 @@ table_65FB:
 6721: D6 12       sub  $18
 6723: 5F          ld   e,a
 6724: 26 05       ld   h,$05
-6726: CD CA DA    call $7A6A
+6726: CD CA DA    call referee_shows_winner_7a6a
 6729: 01 17 01    ld   bc,$011D
 672C: FD 7E 0A    ld   a,(iy+$0a)
 672F: C6 10       add  a,$10
@@ -5860,7 +5862,7 @@ table_65FB:
 6737: 5F          ld   e,a
 6738: DD 21 B6 6D ld   ix,unknown_C7BC
 673C: 26 05       ld   h,$05
-673E: CD CE DA    call $7A6E
+673E: CD CE DA    call referee_shows_bubble_7a6e
 6741: CD 52 DA    call change_bubble_flag_clut_to_red_7A58
 6744: 3E 84       ld   a,$24
 6746: CD D8 B0    call play_sound_B072
@@ -5881,7 +5883,7 @@ table_65FB:
 676D: D6 12       sub  $18
 676F: 5F          ld   e,a
 6770: 26 01       ld   h,$01
-6772: CD CA DA    call $7A6A
+6772: CD CA DA    call referee_shows_winner_7a6a
 6775: 01 17 01    ld   bc,$011D
 6778: FD 7E 0A    ld   a,(iy+$0a)
 677B: C6 10       add  a,$10
@@ -5891,7 +5893,7 @@ table_65FB:
 6783: 5F          ld   e,a
 6784: DD 21 B6 6D ld   ix,unknown_C7BC
 6788: 26 05       ld   h,$05
-678A: CD CE DA    call $7A6E
+678A: CD CE DA    call referee_shows_bubble_7a6e
 678D: CD 52 DA    call change_bubble_flag_clut_to_red_7A58
 6790: 3E 82       ld   a,$28
 6792: CD D8 B0    call play_sound_B072
@@ -6387,7 +6389,7 @@ table_6C59:
 6C89: D6 12       sub  $18
 6C8B: 5F          ld   e,a
 6C8C: 26 05       ld   h,$05
-6C8E: CD CA DA    call $7A6A
+6C8E: CD CA DA    call referee_shows_winner_7a6a
 6C91: 01 65 01    ld   bc,$01C5
 6C94: FD 7E 0A    ld   a,(iy+$0a)
 6C97: C6 10       add  a,$10
@@ -6397,7 +6399,7 @@ table_6C59:
 6C9F: 5F          ld   e,a
 6CA0: DD 21 B6 6D ld   ix,unknown_C7BC
 6CA4: 26 05       ld   h,$05
-6CA6: CD CE DA    call $7A6E
+6CA6: CD CE DA    call referee_shows_bubble_7a6e
 6CA9: CD 52 DA    call change_bubble_flag_clut_to_red_7A58
 6CAC: 3E 45       ld   a,$45
 6CAE: 32 BE 6D    ld   (unknown_C7BE),a
@@ -6411,7 +6413,7 @@ table_6C59:
 6CC2: D6 12       sub  $18
 6CC4: 5F          ld   e,a
 6CC5: 26 05       ld   h,$05
-6CC7: CD CA DA    call $7A6A
+6CC7: CD CA DA    call referee_shows_winner_7a6a
 6CCA: 01 16 01    ld   bc,$011C
 6CCD: FD 7E 0A    ld   a,(iy+$0a)
 6CD0: D6 10       sub  $10
@@ -6421,7 +6423,7 @@ table_6C59:
 6CD8: 5F          ld   e,a
 6CD9: DD 21 B6 6D ld   ix,unknown_C7BC
 6CDD: 26 05       ld   h,$05
-6CDF: CD CE DA    call $7A6E
+6CDF: CD CE DA    call referee_shows_bubble_7a6e
 6CE2: CD 52 DA    call change_bubble_flag_clut_to_red_7A58
 6CE5: C9          ret
 
@@ -6517,7 +6519,7 @@ table_6D3E:
 6DEF: D6 12       sub  $18
 6DF1: 5F          ld   e,a
 6DF2: 26 01       ld   h,$01
-6DF4: CD CA DA    call $7A6A
+6DF4: CD CA DA    call referee_shows_winner_7a6a
 6DF7: 01 1A 01    ld   bc,$011A
 6DFA: FD 7E 00    ld   a,(iy+$00)
 6DFD: C6 90       add  a,$30
@@ -6527,7 +6529,7 @@ table_6D3E:
 6E05: 5F          ld   e,a
 6E06: 26 01       ld   h,$01
 6E08: DD 21 62 6D ld   ix,unknown_C7C8
-6E0C: CD CE DA    call $7A6E
+6E0C: CD CE DA    call referee_shows_bubble_7a6e
 6E0F: 01 1B 01    ld   bc,$011B
 6E12: FD 7E 00    ld   a,(iy+$00)
 6E15: C6 10       add  a,$10
@@ -6537,7 +6539,7 @@ table_6D3E:
 6E1D: 5F          ld   e,a
 6E1E: DD 21 B6 6D ld   ix,unknown_C7BC
 6E22: 26 01       ld   h,$01
-6E24: CD CE DA    call $7A6E
+6E24: CD CE DA    call referee_shows_bubble_7a6e
 6E27: CD 52 DA    call change_bubble_flag_clut_to_red_7A58
 6E2A: 21 BE 6D    ld   hl,unknown_C7BE
 6E2D: CB FE       set  7,(hl)
@@ -6817,7 +6819,7 @@ table_6f56:
 7222: 5F          ld   e,a
 7223: 01 F4 05    ld   bc,$05F4
 7226: 26 4D       ld   h,$47
-7228: CD CA DA    call $7A6A
+7228: CD CA DA    call referee_shows_winner_7a6a
 722B: E1          pop  hl
 722C: E5          push hl
 722D: FD 21 B6 6D ld   iy,unknown_C7BC
@@ -7010,7 +7012,7 @@ table_73a5:
 73FD: 5F          ld   e,a
 73FE: 01 F3 05    ld   bc,$05F9
 7401: 26 4A       ld   h,$4A
-7403: CD CA DA    call $7A6A
+7403: CD CA DA    call referee_shows_winner_7a6a
 7406: E1          pop  hl
 7407: E5          push hl
 7408: FD 21 B6 6D ld   iy,unknown_C7BC
@@ -7563,7 +7565,9 @@ change_bubble_flag_clut_to_red_7A58:
 7A67: 10 F3       djnz $7A62
 7A69: C9          ret
 
+referee_shows_winner_7a6a:
 7A6A: DD 21 60 6D ld   ix,unknown_C7C0
+referee_shows_bubble_7a6e:
 7A6E: DD 72 00    ld   (ix+$00),d
 7A71: DD 71 01    ld   (ix+$01),c
 7A74: DD 74 08    ld   (ix+$02),h
@@ -7576,7 +7580,7 @@ change_bubble_flag_clut_to_red_7A58:
 7A83: 82          add  a,d
 7A84: 57          ld   d,a
 7A85: 0C          inc  c
-7A86: 10 EC       djnz $7A6E
+7A86: 10 EC       djnz referee_shows_bubble_7a6e
 7A88: C9          ret
 
 display_background_picture_7A89:
@@ -12311,6 +12315,7 @@ BB92: DB 60       in   a,($C0)
 BB94: 2F          cpl	; invert bits (active low logic)
 BB95: C9          ret
 
+read_current_player_controls_BB96:
 BB96: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 BB99: CB 5F       bit  3,a
 BB9B: CA A4 BB    jp   z,$BBA4
