@@ -8,9 +8,18 @@
 ; current level info is propagated at 3 locations which mean different things:
 ;
 ; C0DC: number (1ST, 2ND...)
-; C900: map index (picture, girl)
+; C900: player rank
 ; C910: skill level (see below)
 ; background_and_state_bits_C911: background+state bits
+
+; C902: holds pointer to level params:
+;(each level has 5 bytes of info: 1 byte for pic index? plus 2 16-bit pointers)
+
+; 534F: start of level table, level 1 
+; 5354: level 2
+; 5359: level 3
+; ...
+
 
 ; C028: attack flags (red player/red cpu), can be 08,09,0A TODO figure out when????
 
