@@ -5,7 +5,7 @@
 	.global	nb_suspended_tasks_C02A
 	.global	current_move_C24B
 	.global	level_number_C0DC
-	.global	map_index_C900
+	.global	player_rank_C900
 	.global	match_timer_C167
 	.global	nb_credits_minus_one_C024
 	.global	periodic_counter_16bit_C02E
@@ -69,7 +69,7 @@
 	.global referee_flags_and_bubbles_sprites_C7C0
 	.global unknown_C760
 	.global unknown_C780
-	.global	referee_x_pos_C700
+	.global	sprite_shadow_ram_C700
 
 	.global	ram_start_C000
 	.global	unknown_C001
@@ -446,7 +446,7 @@ stack_buffer_C6E0:
 	ds.b	32*STACK_INFLATION
 	.align	2
 stack_buffer_C700:
-referee_x_pos_C700:
+sprite_shadow_ram_C700:
 	ds.b	1
 unknown_C701:
 	ds.b	1
@@ -518,7 +518,7 @@ unknown_C7FB:
 	.align	2
 *task_struct_C800:
 	ds.b	256
-map_index_C900:
+player_rank_C900:
 	ds.b	1
 unknown_C901:
 	ds.b	7

@@ -232,8 +232,8 @@ for k,chardat in enumerate(block_dict["sprite"]["data"]):
                 except bitplanelib.BitplaneException:
                     pass
             else:
-                raise Exception("No matching palette for sprite {}, colors {}".format(k,colors))
-
+                print("Warning: No matching palette for sprite {0} ({0:0x}), colors {1}".format(k,colors))
+                sprite_codes.append(None)
             if dump_sprites:
                 scaled = ImageOps.scale(img,5,0)
                 scaled.save(os.path.join(sprite_dump_dir,f"sprite_{k:02}_{cidx}.png"))

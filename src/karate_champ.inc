@@ -15,6 +15,7 @@
 	OPT_SKIP_INTRO_SCREEN=0
 	OPT_SKIP_TITLE_SCREEN=0
 	OPT_SKIP_GAME_DEMO=0
+	* evade test triggers an "ERROR" in the end
 	OPT_EVADE_TEST=0
 
 ***

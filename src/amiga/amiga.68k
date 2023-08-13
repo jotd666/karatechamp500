@@ -1243,8 +1243,6 @@ osd_sound_start:
 
 	and.w	#0xFF,d0
 
-	move.b	d0,d1
-	move.w	d1,0x110
 
 	lea		_custom,a6
 	
@@ -1768,9 +1766,7 @@ update_bg_tile:
 	* get current level
 	moveq	#0,d2
 	* not working!!
-	move.b	map_index_C900,d2
-	cmp.b	#4,d2
-	beq.b	1f
+
 	move.b	background_and_state_bits_C911,d2
 	and.w	#0xF,d2
 1:

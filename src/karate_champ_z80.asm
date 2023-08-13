@@ -3591,9 +3591,9 @@ table_4F7F:
 5020: FD 36 02 00 ld   (iy+$08),$00
 5024: FD CB 03 4C bit  0,(iy+$09)
 5028: C2 9B 50    jp   nz,$503B
-502B: 3A 00 6D    ld   a,(referee_x_pos_C700)
+502B: 3A 00 6D    ld   a,(sprite_shadow_ram_C700)
 502E: D6 01       sub  $01
-5030: 32 00 6D    ld   (referee_x_pos_C700),a
+5030: 32 00 6D    ld   (sprite_shadow_ram_C700),a
 5033: 3A 04 6D    ld   a,(unknown_C704)
 5036: C6 01       add  a,$01
 5038: 32 04 6D    ld   (unknown_C704),a
@@ -3769,7 +3769,7 @@ table_5245:
 
 task_5250:
 5250: 3E 00       ld   a,$00
-5252: DD 21 00 63 ld   ix,map_index_C900
+5252: DD 21 00 63 ld   ix,player_rank_C900
 ; set background pic index (level 1)
 5256: DD 77 00    ld   (ix+$00),a
 5259: 21 66 59    ld   hl,table_53CC
@@ -3799,7 +3799,7 @@ task_5250:
 5297: A7          and  a
 ; after game over check if there are still credits
 5298: CA 50 58    jp   z,$5250
-529B: DD 21 00 63 ld   ix,map_index_C900
+529B: DD 21 00 63 ld   ix,player_rank_C900
 529F: FD 21 02 63 ld   iy,unknown_C908
 52A3: 3E 00       ld   a,$00
 52A5: DD 77 00    ld   (ix+$00),a
@@ -3918,7 +3918,7 @@ task_53d2:
 5406: CB 57       bit  2,a
 5408: CA 0E 54    jp   z,$540E
 ; copy the contents of C900 to C907 (8 bytes)
-540B: 21 00 63    ld   hl,map_index_C900
+540B: 21 00 63    ld   hl,player_rank_C900
 540E: 11 10 63    ld   de,computer_skill_C910
 5411: 01 02 00    ld   bc,$0008
 5414: ED B0       ldir
@@ -4577,7 +4577,7 @@ start_round_58c7:
 59A1: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 59A4: CB 57       bit  2,a
 59A6: CA 65 53    jp   z,$59C5
-59A9: DD 21 00 63 ld   ix,map_index_C900
+59A9: DD 21 00 63 ld   ix,player_rank_C900
 59AD: 78          ld   a,b
 59AE: FE 01       cp   $01
 59B0: C2 F3 53    jp   nz,$59F9
@@ -4621,7 +4621,7 @@ start_round_58c7:
 5A0C: C2 C1 5A    jp   nz,$5A61
 5A0F: 21 76 60    ld   hl,level_number_C0DC
 5A12: 34          inc  (hl)
-5A13: DD 21 00 63 ld   ix,map_index_C900
+5A13: DD 21 00 63 ld   ix,player_rank_C900
 5A17: DD 34 00    inc  (ix+$00)
 5A1A: DD 46 01    ld   b,(ix+$01)
 5A1D: C5          push bc
@@ -4632,13 +4632,13 @@ start_round_58c7:
 5A29: FE FF       cp   $FF
 5A2B: C2 48 5A    jp   nz,$5A42
 5A2E: 21 63 59    ld   hl,table_53C9
-5A31: DD 21 00 63 ld   ix,map_index_C900
+5A31: DD 21 00 63 ld   ix,player_rank_C900
 5A35: 7E          ld   a,(hl)
 5A36: DD 77 01    ld   (ix+$01),a
 5A39: DD 75 08    ld   (ix+$02),l
 5A3C: DD 74 09    ld   (ix+$03),h
 5A3F: C3 43 5A    jp   $5A49
-5A42: DD 21 00 63 ld   ix,map_index_C900
+5A42: DD 21 00 63 ld   ix,player_rank_C900
 5A46: CD A1 5B    call init_level_params_5BA1
 5A49: 21 6C 59    ld   hl,table_53C6
 5A4C: C1          pop  bc
@@ -4674,7 +4674,7 @@ start_round_58c7:
 5A9D: CD A1 5B    call init_level_params_5BA1
 5AA0: 21 6C 59    ld   hl,table_53C6
 5AA3: C1          pop  bc
-5AA4: DD 21 00 63 ld   ix,map_index_C900
+5AA4: DD 21 00 63 ld   ix,player_rank_C900
 5AA8: DD 70 05    ld   (ix+$05),b
 5AAB: 7E          ld   a,(hl)
 5AAC: DD 77 01    ld   (ix+$01),a
@@ -4709,7 +4709,7 @@ start_round_58c7:
 5AF7: C3 DA 5B    jp   return_zero_in_A_5B7A
 5AFA: FE 55       cp   $55
 5AFC: C2 56 5B    jp   nz,$5B5C
-5AFF: DD 21 00 63 ld   ix,map_index_C900
+5AFF: DD 21 00 63 ld   ix,player_rank_C900
 5B03: DD 7E 01    ld   a,(ix+$01)
 5B06: FE 55       cp   $55
 5B08: CA 0F 5B    jp   z,$5B0F
@@ -4747,7 +4747,7 @@ start_round_58c7:
 5B5C: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5B5F: CB 57       bit  2,a
 5B61: CA CB 5B    jp   z,$5B6B
-5B64: DD 21 00 63 ld   ix,map_index_C900
+5B64: DD 21 00 63 ld   ix,player_rank_C900
 5B68: CD A1 5B    call init_level_params_5BA1
 5B6B: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5B6E: CB 5F       bit  3,a
@@ -4762,7 +4762,7 @@ return_zero_in_A_5B7A:
 5B81: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5B84: CB 57       bit  2,a
 5B86: CA 27 5B    jp   z,$5B8D
-5B89: DD 21 00 63 ld   ix,map_index_C900
+5B89: DD 21 00 63 ld   ix,player_rank_C900
 5B8D: DD 46 01    ld   b,(ix+$01)
 5B90: DD 70 05    ld   (ix+$05),b
 5B93: 21 6C 59    ld   hl,table_53C6
@@ -4842,7 +4842,7 @@ init_level_params_5BA1:
 5C2C: 4F          ld   c,a
 5C2D: 06 00       ld   b,$00
 5C2F: 21 8D 57    ld   hl,table_5D27
-5C32: 11 00 6D    ld   de,referee_x_pos_C700
+5C32: 11 00 6D    ld   de,sprite_shadow_ram_C700
 5C35: ED B0       ldir
 5C37: DD 21 E0 60 ld   ix,unknown_C0E0
 5C3B: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
@@ -4878,7 +4878,7 @@ init_level_params_5BA1:
 5C90: 3A 10 63    ld   a,(computer_skill_C910)
 5C93: 3D          dec  a
 5C94: 32 43 61    ld   (unknown_C149),a
-5C97: FD 21 00 6D ld   iy,referee_x_pos_C700
+5C97: FD 21 00 6D ld   iy,sprite_shadow_ram_C700
 5C9B: 3A 43 61    ld   a,(unknown_C149)
 5C9E: FE FF       cp   $FF
 5CA0: CA 7F 56    jp   z,$5CDF
@@ -5813,7 +5813,7 @@ table_65FB:
 66CA: CD 57 B0    call set_next_task_B05D
 66CD: A7          and  a
 66CE: C4 D5 B0    call nz,display_error_text_B075
-66D1: 3A 00 6D    ld   a,(referee_x_pos_C700)
+66D1: 3A 00 6D    ld   a,(sprite_shadow_ram_C700)
 66D4: D6 10       sub  $10
 66D6: 32 E6 61    ld   (unknown_C1EC),a
 66D9: C6 80       add  a,$20
@@ -6162,7 +6162,7 @@ table_6A07:
 	dc.b	0xd5,0x98,0xb3,0x9a,0xd3,0x10,0xd3,0x10 ; $6a0f
 	dc.b	0xfe,0x07,0x03,0xd3,0x10,0xd8,0x98,0xd9 ; $6a17
 	dc.b	0x98,0xda,0x98,0xd3,0x10,0xff ; $6a1f
-6A25: FD 21 00 6D ld   iy,referee_x_pos_C700
+6A25: FD 21 00 6D ld   iy,sprite_shadow_ram_C700
 6A29: 3D          dec  a
 6A2A: 87          add  a,a
 6A2B: 4F          ld   c,a
@@ -6198,7 +6198,7 @@ table_6A59:
 6A7A: DD 66 00    ld   h,(ix+$00)
 6A7D: DD 6E 01    ld   l,(ix+$01)
 6A80: DD 21 75 CA ld   ix,table_6AD5
-6A84: FD 21 00 6D ld   iy,referee_x_pos_C700
+6A84: FD 21 00 6D ld   iy,sprite_shadow_ram_C700
 6A88: FD 74 00    ld   (iy+$00),h
 6A8B: FD 74 04    ld   (iy+$04),h
 6A8E: FD 74 02    ld   (iy+$08),h
@@ -6240,7 +6240,7 @@ referee_start_position_table_6AE1:
 	dc.b	0x78,0x70,0x91,0x70,0x78,0x70,0x88,0x58 ; $6af1
 	dc.b	0x78,0x70,0x78,0x70,0x78,0x70,0x78,0x70 ; $6af9
 	dc.b	0x78,0x58 ; $6b01
-6B03: DD 21 00 6D ld   ix,referee_x_pos_C700
+6B03: DD 21 00 6D ld   ix,sprite_shadow_ram_C700
 6B07: 11 04 00    ld   de,$0004
 6B0A: 06 05       ld   b,$05
 6B0C: DD 7E 00    ld   a,(ix+$00)
@@ -6253,7 +6253,7 @@ referee_start_position_table_6AE1:
 6B1C: 32 0A 6D    ld   (unknown_C70A),a
 6B1F: C9          ret
 6B20: FD 21 E0 61 ld   iy,task_struct_C1E0
-6B24: 3A 00 6D    ld   a,(referee_x_pos_C700)
+6B24: 3A 00 6D    ld   a,(sprite_shadow_ram_C700)
 6B27: FD BE 06    cp   (iy+$0c)		; min referee x
 6B2A: D2 99 CB    jp   nc,$6B33
 6B2D: 3E FF       ld   a,$FF
@@ -6478,7 +6478,7 @@ table_6D3E:
 6D83: DD 09       add  ix,bc
 6D85: DD 66 00    ld   h,(ix+$00)
 6D88: DD 6E 01    ld   l,(ix+$01)
-6D8B: FD 21 00 6D ld   iy,referee_x_pos_C700
+6D8B: FD 21 00 6D ld   iy,sprite_shadow_ram_C700
 6D8F: FD 74 00    ld   (iy+$00),h
 6D92: FD 74 04    ld   (iy+$04),h
 6D95: FD 74 02    ld   (iy+$08),h
@@ -6506,7 +6506,7 @@ table_6D3E:
 6DCF: CD 5A B0    call suspend_this_task_B05A
 6DD2: FE 80       cp   $20
 6DD4: C4 D5 B0    call nz,display_error_text_B075
-6DD7: FD 21 00 6D ld   iy,referee_x_pos_C700
+6DD7: FD 21 00 6D ld   iy,sprite_shadow_ram_C700
 6DDB: FD 36 07 E6 ld   (iy+$0d),$EC
 6DDF: FD 36 05 EB ld   (iy+$05),$EB
 6DE3: 01 01 08    ld   bc,$0201
@@ -6838,7 +6838,7 @@ table_6f56:
 724D: 7D          ld   a,l
 724E: D6 80       sub  $20
 7250: 6F          ld   l,a
-7251: FD 21 00 6D ld   iy,referee_x_pos_C700
+7251: FD 21 00 6D ld   iy,sprite_shadow_ram_C700
 7255: FD 70 00    ld   (iy+$00),b
 7258: FD 70 04    ld   (iy+$04),b
 725B: FD 71 02    ld   (iy+$08),c
@@ -6915,7 +6915,7 @@ table_6f56:
 7313: FD 36 0E 65 ld   (iy+$0e),$C5
 7317: 0E 00       ld   c,$00
 7319: C5          push bc
-731A: DD 21 00 6D ld   ix,referee_x_pos_C700
+731A: DD 21 00 6D ld   ix,sprite_shadow_ram_C700
 731E: CB 41       bit  0,c
 7320: C2 83 D9    jp   nz,$7329
 7323: 21 3F D9    ld   hl,table_739f
@@ -7030,7 +7030,7 @@ table_73a5:
 7427: 4F          ld   c,a
 7428: 7D          ld   a,l
 7429: D6 10       sub  $10
-742B: FD 21 00 6D ld   iy,referee_x_pos_C700
+742B: FD 21 00 6D ld   iy,sprite_shadow_ram_C700
 742F: FD 70 00    ld   (iy+$00),b
 7432: FD 71 04    ld   (iy+$04),c
 7435: FD 70 02    ld   (iy+$08),b
@@ -7071,14 +7071,14 @@ table_73a5:
 7490: CD 5A B0    call suspend_this_task_B05A
 7493: A7          and  a
 7494: C4 D5 B0    call nz,display_error_text_B075
-7497: FD 21 00 6D ld   iy,referee_x_pos_C700
+7497: FD 21 00 6D ld   iy,sprite_shadow_ram_C700
 749B: FD 36 01 74 ld   (iy+$01),$D4
 749F: FD 36 05 75 ld   (iy+$05),$D5
 74A3: 3E 82       ld   a,$28
 74A5: CD 5A B0    call suspend_this_task_B05A
 74A8: A7          and  a
 74A9: C4 D5 B0    call nz,display_error_text_B075
-74AC: FD 21 00 6D ld   iy,referee_x_pos_C700
+74AC: FD 21 00 6D ld   iy,sprite_shadow_ram_C700
 74B0: FD 36 01 6E ld   (iy+$01),$CE
 74B4: FD 36 05 6F ld   (iy+$05),$CF
 74B8: C3 2E D4    jp   $748E
@@ -11131,7 +11131,7 @@ B2B1: C9          ret
 
 clear_C7xx_B2B2:
 B2B2: AF          xor  a
-B2B3: 21 00 6D    ld   hl,referee_x_pos_C700
+B2B3: 21 00 6D    ld   hl,sprite_shadow_ram_C700
 B2B6: 01 FB 6D    ld   bc,unknown_C7FB
 B2B9: CD 6A B8    call fill_zone_with_a_B2CA
 B2BC: C9          ret
@@ -11176,7 +11176,7 @@ B2E9: CB 25       sla  l
 B2EB: CB 14       rl   h
 B2ED: CB 25       sla  l
 B2EF: CB 14       rl   h
-B2F1: 11 00 6D    ld   de,referee_x_pos_C700
+B2F1: 11 00 6D    ld   de,sprite_shadow_ram_C700
 B2F4: 19          add  hl,de
 B2F5: C9          ret
 
@@ -11892,7 +11892,7 @@ B731: DD E5       push ix
 B733: FD E5       push iy
 B735: CD E8 BB    call disable_interrupts_BBE2
 ; update sprites into hardware registers
-B738: 21 00 6D    ld   hl,referee_x_pos_C700
+B738: 21 00 6D    ld   hl,sprite_shadow_ram_C700
 B73B: 11 00 72    ld   de,$D800
 B73E: 01 F6 00    ld   bc,$00FC
 B741: ED B0       ldir
@@ -12536,7 +12536,7 @@ E153: FD 77 1F    ld   (iy+$1f),a
 E156: FD 77 0A    ld   (iy+$0a),a
 E159: FD E5       push iy
 E15B: DD E5       push ix
-E15D: DD 21 00 6D ld   ix,referee_x_pos_C700
+E15D: DD 21 00 6D ld   ix,sprite_shadow_ram_C700
 E161: 3A 82 60    ld   a,(current_task_index_C028)
 E164: FE 08       cp   $02
 E166: CA C7 E1    jp   z,$E16D
@@ -12949,14 +12949,14 @@ E57F: 3E 04       ld   a,$04
 E581: CD 80 BC    call schedule_task_to_start_B620
 E584: 21 C0 C2    ld   hl,$6860		; immediate
 E587: FD 21 C7 EC ld   iy,table_E66D
-E58B: DD 21 00 6D ld   ix,referee_x_pos_C700
+E58B: DD 21 00 6D ld   ix,sprite_shadow_ram_C700
 E58F: AF          xor  a
 E590: CD 5E E5    call $E55E
 E593: 3E 90       ld   a,$30
 E595: CD 5E BC    call suspend_this_task_B65E
 E598: 21 C0 C2    ld   hl,$6860		; immediate
 E59B: FD 21 C7 EC ld   iy,table_E66D
-E59F: DD 21 00 6D ld   ix,referee_x_pos_C700
+E59F: DD 21 00 6D ld   ix,sprite_shadow_ram_C700
 E5A3: E5          push hl
 E5A4: FD E5       push iy
 E5A6: DD E5       push ix
@@ -14368,7 +14368,7 @@ F638: CD 5E BC    call suspend_this_task_B65E
 F63B: CD F0 F8    call $F2F0
 F63E: 01 96 D0    ld   bc,$703C
 F641: CD 1C B9    call fill_video_and_attribute_memory_B316
-F644: DD 21 00 6D ld   ix,referee_x_pos_C700
+F644: DD 21 00 6D ld   ix,sprite_shadow_ram_C700
 F648: 06 40       ld   b,$40
 F64A: DD 36 00 00 ld   (ix+$00),$00
 F64E: DD 23       inc  ix
@@ -14815,7 +14815,7 @@ FD50: FE 09       cp   $03
 FD52: C2 CC F7    jp   nz,$FD66
 FD55: 1E 08       ld   e,$02
 FD57: 16 32       ld   d,$98
-FD59: 21 00 63    ld   hl,map_index_C900
+FD59: 21 00 63    ld   hl,player_rank_C900
 FD5C: CD CA F7    call display_player_rank_FD6A
 FD5F: 1E 0C       ld   e,$06
 FD61: 16 30       ld   d,$90
