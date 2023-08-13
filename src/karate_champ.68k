@@ -1770,6 +1770,7 @@ l_44b9:
 	move.b	d0,d6                           	| [$44da: ld   l,a]
 
 	move.l	a3,-(sp)                        	| [$44db: push iy]
+	* player won the round: jumps in joy
 l_44dd:
 	movem.w	d1/d2,-(sp)                    	| [$44dd: push bc]
 
@@ -1789,7 +1790,7 @@ l_44f0:
 	move.b	#0x10,d0                        	| [$44f4: ld   a,$10]
 	jbsr	suspend_this_task_B05A            	| [$44f6: call suspend_this_task_B05A]
 	move.l	(sp),a2                        	| [$44f9: pop  ix]
-	movem.w	(sp),d5/d6                        	| [$44fb: pop  hl]
+	movem.w	(4,sp),d5/d6                        	| [$44fb: pop  hl]
 
 												| [$44fc: push hl]
 												| [$44fd: push ix]
@@ -12977,7 +12978,7 @@ table_F6F1:
 	dc.b	0x2f,0xb0,0x00,0x01 | $f759
 	
 * < A2: sprite 4-byte data (0xC7xx)
-* < D0: movement index in table
+* < D0: movement index in table: example: win jump: alternates 0x16,0x17
 * < D5,D6: X,Y
 animate_guided_character_F75D:
 animate_guided_character_B0A2:
@@ -12989,11 +12990,7 @@ animate_guided_character_B0A2:
 	add.w	d3,a3                            	| [$f769: add  iy,de]
 	move.w	(a3),d3                    	| [$f76b: ld   e,(iy+$00)]
 	SWAP_WORD	d3
-	* remove MSW just in case
-	* (we have to do move.l	as we need unsigned 16 bits)
-	swap	d3
-	clr		d3
-	swap	d3
+	* we have to do move.l	as we need unsigned 16 bits
 	move.l	d3,a3
 	add.l	#game_mem+2,a3
 										| [$f76e: ld   d,(iy+$01)]
