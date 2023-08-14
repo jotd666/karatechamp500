@@ -4608,12 +4608,12 @@ l_5e36:
 	jra	l_5e2e                             	| [$5e53: jp   $5E2E]
 l_5e56:
 	lea	unknown_C0DD,a2                	| [$5e56: ld   ix,unknown_C0DD]
-	add.b	(0x01,a2),d0                     	| [$5e5a: add  a,(ix+$01)]
-**daa
+	move.b	(0x01,a2),d7                     	| [$5e5a: add  a,(ix+$01)]
+	abcd	d7,d0   | daa
 	move.b	d0,(0x01,a2)                    	| [$5e5e: ld   (ix+$01),a]
 	move.b	(0x00,a2),d0                    	| [$5e61: ld   a,(ix+$00)]
-**adc  a,$00
-**daa
+	clr.b	d7			| adc  a,$00
+	abcd	d7,d0		| daa
 	move.b	d0,(0x00,a2)                    	| [$5e67: ld   (ix+$00),a]
 	lea	unknown_C0DD,a0                	| [$5e6a: ld   hl,unknown_C0DD]
 	move.b	#0x98,d3                        	| [$5e6d: ld   d,$98]
@@ -4656,15 +4656,17 @@ l_5e78:
 	move.b	#0x06,d2                        	| [$5eaa: ld   bc,$1406] 5126
 	lea	player_2_score_C0D0,a2         	| [$5ead: ld   ix,player_2_score_C0D0]
 l_5eb1:
+	* add girl bonus to final score before highscore entry
 	lea	unknown_C0DD,a3                	| [$5eb1: ld   iy,unknown_C0DD]
 	move.b	(0x01,a2),d0                    	| [$5eb5: ld   a,(ix+$01)]
-	add.b	(0x01,a3),d0                     	| [$5eb8: add  a,(iy+$01)]
-*daa
+	move.b	(0x01,a3),d7                     	| [$5eb8: add  a,(iy+$01)]
+	abcd	d7,d0
 	move.b	d0,(0x01,a2)                    	| [$5ebc: ld   (ix+$01),a]
 	move.b	(0x00,a2),d0                    	| [$5ebf: ld   a,(ix+$00)]
-*adc  a,(iy+$00)
-*daa
-	move.b	d0,(0x00,a2)                    	| [$5ec6: ld   (ix+$00),a]
+	move.b	(a3),d7						| adc  a,(iy+$00)
+	abcd	d7,d0  | daa
+
+	move.b	d0,(a2)                    	| [$5ec6: ld   (ix+$00),a]
 	movem.w	d1/d2,-(sp)                    	| [$5ec9: push bc]
 
 	move.l	a2,-(sp)                        	| [$5eca: push ix]
@@ -12709,8 +12711,7 @@ l_f355:
 	move.b	d0,(0x02,a2)                    	| [$f364: ld   (ix+$02),a]
 	move.b	computer_skill_C910,d0          	| [$f367: ld   a,(computer_skill_C910)]
 	move.b	d0,(0x11,a2)                    	| [$f36a: ld   (ix+$11),a]
-	* I'd say that it's a bug, CF06 is stored as pointer, and read as bytes...
-	**move.l	a2,unknown_pointer_CF06                 	| [$f36d: ld   (unknown_pointer_CF06),ix]
+	move.l	a2,unknown_pointer_CF06                 	| [$f36d: ld   (unknown_pointer_CF06),ix]
 	move.w	#0x0006,d1                      	| [$f371: ld   bc,$0006] 6
 	add.w	d1,a2                            	| [$f374: add  ix,bc]
 	move.b	#0x3C,(0x00,a2)                 	| [$f376: ld   (ix+$00),$3C]
@@ -12983,17 +12984,15 @@ l_f584:
 	move.l	(sp)+,a0                        	| [$f58a: pop  hl]
 	tst.b	d0                               	| [$f58b: and  a]
 	sub.w	d3,a0								| [sbc  hl,de]
-	* screen shit, ends with read on CF06 WTF!
-	jbsr	osd_break
-	trap	#14
-	move.l	a0,-(sp)                        	| [$f58e: push hl]
-	move.l	(sp)+,a3                        	| [$f58f: pop  iy]
+	* letter entered in highscore table
+	move.l	a0,a3                        	| [$f58e: push hl]
+	                        	| [$f58f: pop  iy]
 	move.l	(sp)+,a2                        	| [$f591: pop  ix]
 	move.b	(0x00,a2),d0                    	| [$f593: ld   a,(ix+$00)]
 	move.b	d0,(0x00,a3)                    	| [$f596: ld   (iy+$00),a]
 	move.w  #0x400,d1                      	| [$f599: ld   bc,$0400]
 	add.w	d1,a3                            	| [$f59c: add  iy,bc]
-	move.b	#0xA8,(0x00,a3)                 	| [$f59e: ld   (iy+$00),$A8]
+	move.b	#0xA8,(a3)                 	| [$f59e: ld   (iy+$00),$A8]
 	move.l	unknown_pointer_CF06,a3             	| [$f5a2: ld   iy,(unknown_pointer_CF06)]
 	move.b	temp_buffer_CF00+5,d0                 	| [$f5a6: ld   a,(temp_buffer_CF00+5)]
 	cmp.b	#0x03,d0                         	| [$f5a9: cp   $03]
@@ -13007,7 +13006,7 @@ l_f5af:
 	add.w	d1,a3                            	| [$f5b6: add  iy,bc]
 
 	move.b	(0x00,a2),d0                    	| [$f5b8: ld   a,(ix+$00)]
-	move.b	d0,(0x00,a3)                    	| [$f5bb: ld   (iy+$00),a]
+	move.b	d0,(a3)                    	| [$f5bb: ld   (iy+$00),a]
 	move.b	(0x01,a2),d0                    	| [$f5be: ld   a,(ix+$01)]
 	move.b	d0,(0x01,a3)                    	| [$f5c1: ld   (iy+$01),a]
 	move.b	temp_buffer_CF00+5,d0                 	| [$f5c4: ld   a,(temp_buffer_CF00+5)]

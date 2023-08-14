@@ -37,7 +37,8 @@ _expmem
 ;---
 _config
 	dc.b    "C1:X:cheat keys F1-F2:0;"
-	dc.b    "C2:L:start level:pier,fuji,bamboo,bridge,boat,field,mill,city,indian,dojo,moonlight;"    
+	dc.b    "C2:L:start level:pier,fuji,bamboo,bridge,"
+	dc.b	"boat,field,mill,city,indian,temple,dojo,moonlight;"    
 ;;	dc.b    "C4:L:in-game music:no,j.m.d,Lotus 3,Lotus;"
 ;;	dc.b    "C5:X:skip intro:0;"
 	dc.b	0
