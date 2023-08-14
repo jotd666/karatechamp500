@@ -6401,6 +6401,7 @@ girl_hesitating_task_6f89:
 	move.b	#0x98,d3                        	| [$6fb7: ld   d,$98]
 	jbsr	display_text_B039                 	| [$6fb9: call display_text_B039]
 l_6fbc:
+	jbsr	osd_break
 	move.b	background_and_state_bits_C911,d0	| [$6fbc: ld   a,(background_and_state_bits_C911)]
 	bclr.b	#7,d0                           	| [$6fbf: res  7,a]
 	sub.b	#0x20,d0                         	| [$6fc1: sub  $20]
