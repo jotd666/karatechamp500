@@ -36,10 +36,8 @@ _expmem
     dc.w    _config-_base
 ;---
 _config
-;;	dc.b    "C1:B:enable permanent cheat mode;"
-;;	dc.b    "C2:X:joypad controls player 1:0;"
-;;	dc.b    "C2:X:joypad controls player 2:1;"    
-;;	dc.b    "C3:L:first course:1,2,3,4,5,6,7;"    
+	dc.b    "C1:X:cheat keys F1-F2:0;"
+	dc.b    "C2:L:start level:pier,fuji,bamboo,bridge,boat,field,mill,city,indian,dojo,moonlight;"    
 ;;	dc.b    "C4:L:in-game music:no,j.m.d,Lotus 3,Lotus;"
 ;;	dc.b    "C5:X:skip intro:0;"
 	dc.b	0

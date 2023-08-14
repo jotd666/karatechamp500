@@ -17,7 +17,8 @@
 	OPT_SKIP_GAME_DEMO=0
 	* evade test triggers an "ERROR" in the end
 	OPT_EVADE_TEST=0
-
+	OPT_BULL_TEST=0
+	
 ***
 *** end of BUILD OPTIONS
 ***

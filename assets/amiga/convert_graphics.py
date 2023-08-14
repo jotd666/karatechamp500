@@ -1,10 +1,16 @@
-import os,re,bitplanelib,ast,json
+import os,re,bitplanelib,ast,json,glob
 from PIL import Image,ImageOps
 
 
 import collections
 
 
+def ensure_empty(d):
+    if os.path.exists(d):
+        for p in glob.glob(os.path.join(d,"*.png")):
+            os.remove(p)
+    else:
+        os.mkdir(d)
 
 this_dir = os.path.dirname(__file__)
 src_dir = os.path.join(this_dir,"../../src/amiga")
@@ -21,13 +27,7 @@ if os.path.exists(rw_json):
     used_sprite_cluts = {int(k):set(v) for k,v in used_cluts["sprites"].items()}
 
 
-    # if sprite is used with clut 1, then it's used with clut 2 (white/red)
-    for k,v in used_sprite_cluts.items():
-        if k < 1121:
-            if v == {2}:
-                v.add(1)
-            elif v == {1}:
-                v.add(2)
+
     # add score points in 2 colors too
     for i in range(1009,1019):
         used_sprite_cluts[i] = {1,2}
@@ -35,6 +35,18 @@ else:
     print("Warning: no {} file, no tile/clut filter, expect BIG graphics.68k file")
     used_tile_cluts = None
     used_sprite_cluts = None
+
+used_sprite_cluts = {k:v for k,v in used_sprite_cluts.items() if k not in range(929,945)}
+# counter a lot of parasites
+for k,v in used_sprite_cluts.items():
+    if k < 1121 and k not in {1023,1024}:
+        used_sprite_cluts[k] = {1,2}
+
+# if sprite is used with clut 1, then it's used with clut 2 (white/red)
+parasite_sprites = set(range(1034,1098))
+parasite_sprites.update(range(21,26))
+
+used_sprite_cluts = {k:v for k,v in used_sprite_cluts.items() if k not in parasite_sprites}
 
 dump_tiles = True
 dump_sprites = True
@@ -45,12 +57,9 @@ if dump_tiles or dump_sprites:
         os.mkdir(dump_dir)
     if dump_tiles:
         tile_dump_dir = os.path.join(dump_dir,"tiles")
-        if not os.path.exists(tile_dump_dir):
-            os.mkdir(tile_dump_dir)
-    if dump_sprites:
         sprite_dump_dir = os.path.join(dump_dir,"sprites")
-        if not os.path.exists(sprite_dump_dir):
-            os.mkdir(sprite_dump_dir)
+        ensure_empty(tile_dump_dir)
+        ensure_empty(sprite_dump_dir)
 
 def dump_asm_bytes(*args,**kwargs):
     bitplanelib.dump_asm_bytes(*args,**kwargs,mit_format=True)

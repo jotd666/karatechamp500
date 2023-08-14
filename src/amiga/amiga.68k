@@ -365,18 +365,18 @@ _user:
 *	btst	#3,d1
 *	sne.b	alternate_music_flag
 	
-*	move.l	start_level_option(pc),d0
-*	and.b	#0x0F,d0
-*	move.b	d0,start_level		| 0-15 => 1-16
-	
+	move.l	start_level_option(pc),d0
+	cmp.w	#13,d0
+	bcc.b	0f
+	move.b	d0,start_level		| 0-15 => 1-16
+0:
+
 *	move.l	cheat_flags,d0
 *	btst	#0,d0
 *	sne		invincible_flag
 *	btst	#1,cheat_flags
 *	sne		infinite_lives_flag
 	
-	* doesn't work!!! (only changes the player rank!)
-	move.b	#0,start_level
 	
 	jsr	 _detect_controller_types 
 
@@ -820,6 +820,12 @@ osd_update_sprites:
 	rts
 12:
 	.ifne	OPT_ENABLE_LOGGING
+	lsr.l	#2,d2
+	lsr.l	#1,d4
+	* tile code
+	move.l	d2,d0
+	* tile color
+	move.l	d4,d1
 	move.w	#0xF00,0xDFF180
 	.endif
 	bra.b	1b

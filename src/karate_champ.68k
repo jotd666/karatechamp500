@@ -3252,7 +3252,17 @@ l_5287:
 	move.b	start_level,d0                               	| [$52a3: ld   a,$00]
 	move.b	d0,(0x00,a2)                    	| [$52a5: ld   (ix+$00),a]
 	move.b	d0,(0x00,a3)                    	| [$52a8: ld   (iy+$00),a]
+	* make it point on level 1 (534D)
 	lea	game_mem+0x534d,a0                  	| [$52ab: ld   hl,table_534d]
+	moveq	#0,d0
+	move.b	start_level,d0
+	* times 5
+	move.b	d0,d1
+	add.b	d0,d0
+	add.b	d0,d0
+	add.b	d1,d0
+	add.w	d0,a0
+	
 	move.b	(a0),d0                         	| [$52ae: ld   a,(hl)]
 	move.b	d0,(0x01,a2)                    	| [$52af: ld   (ix+$01),a]
 	move.b	d0,(0x01,a3)                    	| [$52b2: ld   (iy+$01),a]
@@ -3522,6 +3532,9 @@ jump_table_547B:
 l_5529:
 	.ifne	OPT_EVADE_TEST
 	jra		evade_56f8
+	.endif
+	.ifne	OPT_BULL_TEST
+	jra		bull_task_50f2
 	.endif
 	
 	
@@ -4409,7 +4422,7 @@ init_level_params_5BA1:
 	bsr		load_a1_from_a0                  	| [$5bba: ld   c,(hl)]
 												| [$5bbb: inc  hl]
 												| [$5bbc: ld   b,(hl)]
-	movel	a1,a0            	        	| [$5bbd: push bc]
+	move.l	a1,a0            	        	| [$5bbd: push bc]
 												| [$5bbe: pop  hl]
 	move.b	(a0),d0                         	| [$5bbf: ld   a,(hl)]
 l_5bc0:
@@ -4433,6 +4446,7 @@ l_5bca:
 	move.b	d0,d1                           	| [$5be1: ld   b,a]
 l_5be2:
 	move.b	d1,(0x01,a2)                    	| [$5be2: ld   (ix+$01),b]
+	* store pointer on level data (534E-534F, then +5)
 	bsr		store_a0_in_a2_structure_02_address | [$5be5: ld   (ix+$02),l]
 												| [$5be8: ld   (ix+$03),h]
 	addq.w	#1,a0                           	| [$5beb: inc  hl]
@@ -11914,8 +11928,6 @@ l_e8be:
 	move.b	#0x17,d0                        	| [$e928: ld   a,$17]
 	jbsr	set_next_task_B6AE            	| [$e92a: call set_next_task_B6AE]
 	jbsr	task_yield_B5A5                   	| [$e92d: call task_yield_B5A5]
-table_E92E:
-	dc.b	0xa5,0xb5 | $e92e
 l_e930:
 	move.b	#0x04,d0                        	| [$e930: ld   a,$04]
 	jbsr	schedule_task_to_start_B620       	| [$e932: call schedule_task_to_start_B620]

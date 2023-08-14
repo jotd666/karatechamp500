@@ -1,15 +1,11 @@
-import json,os,collections,copy
+import json,os,collections,copy,struct
+
+this_dir = os.path.dirname(__file__)
 
 dump_dir = r"C:\Users\Public\Documents\Amiga Files\WinUAE"
 clut_tile_dump = os.path.join(dump_dir,"used_tiles")
 clut_sprite_dump = os.path.join(dump_dir,"used_sprites")
-
-this_dir = os.path.dirname(__file__)
-
-rw_json = os.path.join(this_dir,"used_tiles_and_sprites.json")
-
 tile_dump = None
-
 if os.path.exists(clut_tile_dump):
     with open(clut_tile_dump,"rb") as f:
         tile_dump = f.read()
@@ -18,6 +14,21 @@ sprite_dump = None
 if os.path.exists(clut_sprite_dump):
     with open(clut_sprite_dump,"rb") as f:
         sprite_dump = f.read()
+
+whdload_dump = os.path.join(this_dir,os.pardir,os.pardir,".whdl_memory")
+if os.path.exists(whdload_dump):
+    print(f"using {whdload_dump}")
+    with open(whdload_dump,"rb") as f:
+        dump = f.read()
+        tile_address,sprite_address = struct.unpack_from(">II",dump,0x100)
+        # tile & sprites are contiguous. Check if logger was activated on that dump
+        if tile_address-sprite_address   != 0x10000:
+            raise Exception("bad whdload dump")
+        sprite_dump = dump[sprite_address:sprite_address+0x10000]
+        tile_dump = dump[tile_address:tile_address+0x10000]
+
+rw_json = os.path.join(this_dir,"used_tiles_and_sprites.json")
+
 
 used_cluts_ = dict()
 if os.path.exists(rw_json):
@@ -31,7 +42,7 @@ for kn,tv in used_cluts_.items():
 
 
 used_cluts_ = None
-print(used_cluts["tiles"][705])
+
 
 # all alphanum chars can use those cluts
 alpha_clut = {0,
@@ -44,6 +55,7 @@ alpha_clut = {0,
 for k in range(10+26+1):
     used_cluts["tiles"][k].update(alpha_clut)
 
+
 used_cluts_copy = copy.deepcopy(used_cluts)
 
 if tile_dump:
@@ -54,6 +66,7 @@ if tile_dump:
                 color_code = (clut_index>> 3) & 0x1f
                 tile_code =  tile_index + ((clut_index & 7) << 8);
                 used_cluts["tiles"][tile_code].add(color_code)
+
 
 
 nb_updates = 0
@@ -68,10 +81,22 @@ if sprite_dump:
                 tile_code = sprite_index + ((attr & 0x10) << 4) +  bank*512
                 if tile_code not in used_cluts["sprites"]:
                     nb_updates+=1
-                    print(hex(sprite_index),hex(attr))
                 elif color_code not in used_cluts["sprites"][tile_code]:
                     nb_updates+=1
                 used_cluts["sprites"][tile_code].add(color_code)
+
+# remove parasite
+parasite_json = os.path.join(this_dir,"parasite_tiles_and_sprites.json")
+if os.path.exists(parasite_json):
+    with open(parasite_json) as f:
+        parasites = json.load(f)
+    psprites = {int(k):set(v) for k,v in parasites["sprites"].items()}
+    usprites = used_cluts["sprites"]
+    for k,v in usprites.items():
+        pv = psprites.get(k)
+        if pv:
+            v.difference_update(pv)
+    usprites = {k:v for k,v in usprites.items() if v}
 
 for k in ["tiles","sprites"]:
     used_cluts[k] = {k:sorted(v) for k,v in sorted(used_cluts[k].items())}
