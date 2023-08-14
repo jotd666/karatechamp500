@@ -1712,7 +1712,7 @@ osd_r_colorram:
 
 osd_w_videoram:
     .ifeq OPT_DISABLE_BG_LAYER
-	movem.l	d0-d3/d6/a0-a2,-(a7)
+	movem.l	d0-d3/d6/a0-a3,-(a7)
 	
 	sub.w	#SCREEN_ADDRESS,d6
 	cmp.w	#0x400,d6
@@ -1732,7 +1732,7 @@ osd_w_videoram:
 	move.b	(a1,d6.W),d1
 	jbsr		update_bg_tile
 0:
-	movem.l	(a7)+,d0-d3/d6/a0-a2
+	movem.l	(a7)+,d0-d3/d6/a0-a3
     .endif | OPT_DISABLE_BG_LAYER
 	rts
 
@@ -1742,7 +1742,7 @@ osd_w_videoram:
 
 osd_w_colorram:
     .ifeq OPT_DISABLE_BG_LAYER
-	movem.l	d0-d3/d6/a0-a2,-(a7)
+	movem.l	d0-d3/d6/a0-a3,-(a7)
 	sub.w	#SCREEN_ADDRESS+0x400,d6
 	cmp.w	#0x400,d6
 	bcs.b	1f
@@ -1761,7 +1761,7 @@ osd_w_colorram:
 	
 	jbsr		update_bg_tile
 0:
-	movem.l	(a7)+,d0-d3/d6/a0-a2
+	movem.l	(a7)+,d0-d3/d6/a0-a3
     .endif | OPT_DISABLE_BG_LAYER
 	rts
 
@@ -1863,12 +1863,18 @@ update_bg_tile:
 	move.l	(a0,d0.w),d0
 	jeq	1f
 	move.l	d0,a0		| pointer on clut table
-	* now we use d1 (attribute)
-	add.w	d1,d1
-	add.w	(a0,d1.w),a0
+	* now we use d1 (attribute) to get byte displacement on relative pointer
+	* (this sounds complex but allows to save 60k+ memory vs the direct word
+	* relative pointer previous solution. Access to tiles is less time critical
+	* so it's acceptable)
+	and.w	#0x1F,d1
+	move.b	(a0,d1.w),d1
+	add.w	d1,a0
 	cmp.l	d0,a0
 	jeq		12f		| should not happen
 	move.w	#BG_SCREEN_PLANE_SIZE,d1
+	* compute absolute pointer on bitmap data
+	add.w	(a0),a0
 4:
 	.set	offset,0
 	.rept	8

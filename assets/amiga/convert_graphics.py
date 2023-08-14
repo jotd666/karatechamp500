@@ -276,9 +276,13 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
             # this is a table
             for j,cc in enumerate(c):
                 if cc is None:
-                    f.write(f"\t.word\t0\n")
+                    f.write(f"\t.byte\t0\n")
                 else:
-                    f.write(f"\t.word\tchar_{i}_{j}-char_{i}\n")
+                    f.write(f"\t.byte\tchar_{i}_{j}_bptr-char_{i}\n")
+            for j,cc in enumerate(c):
+                if cc is not None:
+                    f.write(f"char_{i}_{j}_bptr:\n")
+                    f.write(f"\t.word\tchar_{i}_{j}-char_{i}_{j}_bptr\n")
 
             for j,cc in enumerate(c):
                 if cc is not None:
