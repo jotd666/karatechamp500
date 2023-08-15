@@ -30,6 +30,8 @@ for nm in no_mirror_list:
         no_mirror_sprites.update(range(s,e+1))
 
 
+white_red_only_sprites = set()
+
 rw_json = os.path.join(this_dir,"used_tiles_and_sprites.json")
 if os.path.exists(rw_json):
     with open(rw_json) as f:
@@ -41,8 +43,8 @@ if os.path.exists(rw_json):
 
 
     # add score points in 2 colors too
-    for i in range(1009,1019):
-        used_sprite_cluts[i] = {1,2}
+    white_red_only_sprites.update(range(1009,1019))
+
 else:
     print("Warning: no {} file, no tile/clut filter, expect BIG graphics.68k file")
     used_tile_cluts = None
@@ -52,7 +54,10 @@ used_sprite_cluts = {k:v for k,v in used_sprite_cluts.items() if k not in range(
 # counter a lot of parasites
 for k,v in used_sprite_cluts.items():
     if k < 1121 and k not in {1023,1024}:
-        used_sprite_cluts[k] = {1,2}
+        white_red_only_sprites.add(k)
+
+for k in white_red_only_sprites:
+    used_sprite_cluts[k] = {1,2}
 
 # if sprite is used with clut 1, then it's used with clut 2 (white/red)
 parasite_sprites = set(range(1034,1098))
@@ -60,8 +65,8 @@ parasite_sprites.update(range(21,26))
 
 used_sprite_cluts = {k:v for k,v in used_sprite_cluts.items() if k not in parasite_sprites}
 
-dump_tiles = True
-dump_sprites = True
+dump_tiles = False
+dump_sprites = False
 
 if dump_tiles or dump_sprites:
     dump_dir = os.path.join(this_dir,"dumps")
@@ -274,8 +279,8 @@ nb_bitplanes = 4+1
 # 16*16 on 4 bitplanes with 16 bits blit padding
 chunk_size = 16*4
 with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
-    f.write("\t.global\tcharacter_table\n")
-    f.write("\t.global\tsprite_table\n")
+    for x in ["red_white_sprites","character_table","sprite_table"]:
+        f.write(f"\t.global\t{x}\n")
 
 
     f.write("character_table:\n")
@@ -355,7 +360,15 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
                                 plane_cache_id += 1
                                 bitplane_cache[plane] = plane_name
 
+                            if j==nb_bitplanes-1 and not any(plane):
+                                # mask plane: make it zero if all zeroes, so game code
+                                # detects it and skips the tile altogether
+                                plane_name = "0x0"
                             f.write(f"\t.long   {plane_name}\n")
+
+    red_white_block = [bool(i in white_red_only_sprites) for i in range(0,0x600)]
+    f.write("* table of sprites that can only be white or red (players, scores) \nred_white_sprites:")
+    bitplanelib.dump_asm_bytes(red_white_block,f,mit_format=True)
 
     f.write("\n\t.section\t.datachip\n")
     for plane,plane_name in sorted(bitplane_cache.items(),key=lambda d:d[1]):
