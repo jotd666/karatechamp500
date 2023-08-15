@@ -15,18 +15,18 @@ if os.path.exists(clut_sprite_dump):
     with open(clut_sprite_dump,"rb") as f:
         sprite_dump = f.read()
 
-whdload_dump = os.path.join(this_dir,os.pardir,os.pardir,".whdl_memory")
-if os.path.exists(whdload_dump):
-    print(f"using {whdload_dump}")
-    with open(whdload_dump,"rb") as f:
-        dump = f.read()
-        sprite_address,tile_address = struct.unpack_from(">II",dump,0x100)
-        # tile & sprites are contiguous. Check if logger was activated on that dump
-        if sprite_address-tile_address  != 0x10000:
-            raise Exception("bad whdload dump")
-        sprite_dump = dump[sprite_address:sprite_address+0x10000]
-        tile_dump = dump[tile_address:tile_address+0x10000]
-
+##whdload_dump = os.path.join(this_dir,os.pardir,os.pardir,".whdl_memory")
+##if os.path.exists(whdload_dump):
+##    print(f"using {whdload_dump}")
+##    with open(whdload_dump,"rb") as f:
+##        dump = f.read()
+##        sprite_address,tile_address = struct.unpack_from(">II",dump,0x100)
+##        # tile & sprites are contiguous. Check if logger was activated on that dump
+##        if sprite_address-tile_address  != 0x10000:
+##            raise Exception("bad whdload dump")
+##        sprite_dump = dump[sprite_address:sprite_address+0x10000]
+##        tile_dump = dump[tile_address:tile_address+0x10000]
+##
 rw_json = os.path.join(this_dir,"used_tiles_and_sprites.json")
 
 

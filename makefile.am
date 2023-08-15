@@ -38,12 +38,12 @@ all: $(AMIGASRC)/graphics.68k $(AMIGASRC)/sounds.68k $(MAIN) $(WHDLOADER) $(WHDL
 clean:
 	del $(OBJS) "$(MAIN)"
 	
-#$(AMIGASRC)/graphics.68k: $(ASSETS)/used_cluts.json $(ASSETS)/convert_graphics.py $(ASSETS)/../pengo_gfx.c $(ASSETS)/sprite_config.json
-#	cmd /c $(ASSETS)\convert_graphics.py
+$(AMIGASRC)/graphics.68k: $(ASSETS)/used_tiles_and_sprites.json $(ASSETS)/convert_graphics.py $(ASSETS)/../kchampvs2_gfx.c $(ASSETS)/no_mirror.json
+	cmd /c $(ASSETS)\convert_graphics.py
 
 
-#$(AMIGASRC)/sounds.68k: $(ASSETS)/convert_sounds.py $(ASSETS)/../sounds/pengo_conv.mod
-#	cmd /c $(ASSETS)\convert_sounds.py
+$(AMIGASRC)/sounds.68k: $(ASSETS)/convert_sounds.py $(ASSETS)/../sounds/$(PROGNAME)_conv.mod
+	cmd /c $(ASSETS)\convert_sounds.py
 	
 $(MAIN): $(OBJS)
 	$(GCC_BIN)/m68k-amigaos-ld $(OPT_RELEASE_LINK) -o $(MAIN) $(OBJS)

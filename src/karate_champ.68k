@@ -697,6 +697,7 @@ l_3bc7:
 	jbsr	player_management_routine_46FD    	| [$3bc7: call player_management_routine_46FD]
 	tst.b	d0                               	| [$3bca: and  a]
 	jeq	l_3ad4                             	| [$3bcb: jp   z,$3AD4]
+	* reaches here with D0!=0 when player is hit (evade, bull, fight)
 	cmp.b	#0x03,d0                         	| [$3bce: cp   $03]
 	jeq	l_3bec                             	| [$3bd0: jp   z,$3BEC]
 	cmp.b	#0x04,d0                         	| [$3bd3: cp   $04]
@@ -783,7 +784,7 @@ l_3c5d:
 
 	move.l	a2,a0                        	| [$3c65: push ix]
 											| [$3c67: pop  hl]
-	move.w	#0x0004,d1                      	| [$3c68: ld   bc,$0004] 4
+	moveq	#4,d1                      	| [$3c68: ld   bc,$0004] 4
 	jbsr	ldir                              	| [$3c6b: ldir]
 	jbsr	l_40b3                            	| [$3c6d: call $40B3]
 	jbsr	display_player_sprite_4153                            	| [$3c70: call $4153]
@@ -1598,8 +1599,8 @@ l_4358:
 	move.b	d1,d0                           	| [$4358: ld   a,b]
 	jra	l_436c                             	| [$4359: jp   $436C]
 l_435c:
-	move.w	#0x0004,d1                      	| [$435c: ld   bc,$0004] 4
-	add.w	d1,a2                            	| [$435f: add  ix,bc]
+												| [$435c: ld   bc,$0004] 4
+	addq.w	#4,a2                            	| [$435f: add  ix,bc]
 	jbsr	is_point_in_rectangle_B042        	| [$4361: call is_point_in_rectangle_B042]
 	tst.b	d0                               	| [$4364: and  a]
 	jeq	l_436c                             	| [$4365: jp   z,$436C]
@@ -1653,7 +1654,6 @@ l_43b6:
 	rts                                    	| [$43b6: ret]
 	
 l_4405:
-
 	move.l	a3,-(sp)                        	| [$4405: push iy]
 	lea	player_1_struct_C240,a3        	| [$4407: ld   iy,player_1_struct_C240]
 	move.b	current_task_index_C028,d0   	| [$440b: ld   a,(current_task_index_C028)]
@@ -1671,6 +1671,7 @@ l_4422:
 	move.l	a3,-(sp)                        	| [$4424: push iy]
 	jbsr	suspend_this_task_B05A            	| [$4426: call suspend_this_task_B05A]
 	move.l	(sp)+,a3                        	| [$4429: pop  iy]
+	* resumes here when player is hit by evade object
 	cmp.b	#0x0D,d0                         	| [$442b: cp   $0D]
 	jeq	l_4422                             	| [$442d: jp   z,$4422]
 	tst.b	d0                               	| [$4430: and  a]
@@ -2124,7 +2125,7 @@ l_477c:
 l_4783:
 	move.b	#0x01,d0                        	| [$4783: ld   a,$01]
 l_4785:
-
+	* wait a few frames (player animation speed)
 	move.l	a3,-(sp)                        	| [$4785: push iy]
 	jbsr	suspend_this_task_B05A            	| [$4787: call suspend_this_task_B05A]
 	move.l	(sp)+,a3                        	| [$478a: pop  iy]
@@ -2213,9 +2214,14 @@ l_47f7:
 	move.w	(sp)+,d0                        	| [$4813: pop  af]
 	tst.b	d0                               	| [$4814: and  a]
 	jeq	l_47f7                             	| [$4815: jp   z,$47F7]
+	* reached when evade object hits player
+	* D0=1: player killed
+	* D0=2: object destroyed
 	cmp.b	#0x02,d0                         	| [$4818: cp   $02]
 	jeq	l_4851                             	| [$481a: jp   z,$4851]
-
+	.ifne	OPT_INVINCIBLE_EVADE
+	jra	l_4851
+	.endif
 	move.l	a3,-(sp)                        	| [$481d: push iy]
 	move.b	#0x0A,d0                        	| [$481f: ld   a,$0A]
 	lea	players_type_human_or_cpu_flags_C02D,a0	| [$4821: ld   hl,players_type_human_or_cpu_flags_C02D]
@@ -2237,8 +2243,9 @@ l_482b:
 	jbsr	display_error_text_B075           	| [$483c: call nz,display_error_text_B075]
 0:
 	move.l	(sp),a3                        	| [$483f: pop  iy]
-
+	* restores IY to C300
 										| [$4841: push iy]
+	* and blocks (another task handles the animation)
 	move.b	#0x3C,d0                        	| [$4843: ld   a,$3C]
 	jbsr	suspend_this_task_B05A            	| [$4845: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$4848: and  a]
@@ -3533,9 +3540,6 @@ l_5529:
 	.ifne	OPT_EVADE_TEST
 	jra		evade_56f8
 	.endif
-	.ifne	OPT_BULL_TEST
-	jra		bull_task_50f2
-	.endif
 	
 	
 	clr.b	d0                               	| [$5529: ld   a,$00]
@@ -3914,6 +3918,8 @@ l_57cc:
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$57ce: call nz,display_error_text_B075]
 0:
+	* reached when evade object kills the player
+	* resume all lower tasks
 	move.b	#0x0C,d0                        	| [$57d1: ld   a,$0C]
 	jbsr	resume_tasks_b015                 	| [$57d3: call resume_tasks_b015]
 	move.b	#0x3C,d0                        	| [$57d6: ld   a,$3C]
@@ -4472,8 +4478,8 @@ l_5c05:
 	jbsr	set_next_task_B05D                	| [$5c09: call set_next_task_B05D]
 	jbsr	task_yield_B051                   	| [$5c0c: call task_yield_B051]
 l_5c0f:
-	move.b	#0xa0,d1                        	| [$5c0f: ld   bc,$A03E] 41022
-	move.b	#0x3e,d2                        	| [$5c0f: ld   bc,$A03E] 41022
+	* green background to show scored girls
+	move.w	#0xa03e,d1                        	| [$5c0f: ld   bc,$A03E] 41022
 	jbsr	fill_video_and_attribute_memory_B030	| [$5c12: call fill_video_and_attribute_memory_B030]
 	lea	game_mem+0x7D36,a0                  	| [$5c15: ld   hl,table_7D36]
 	jbsr	display_multicolor_text_B03C      	| [$5c18: call display_multicolor_text_B03C]
@@ -5274,7 +5280,7 @@ task_6491:
 * when resumes, shows blue "karate champ" title screen
 * initialize match timer to 30 seconds (BCD)
 l_649e:
-	*move.w	#0x0030,d5                      	| [$649e: ld   hl,$0030] 48
+										| [$649e: ld   hl,$0030] 48
 	lea	match_timer_C167,a2            	| [$64a1: ld   ix,match_timer_C167]
 	move.b	#0x30,(0x00,a2)                    	| [$64a5: ld   (ix+$00),l]
 	* probably useless
@@ -6334,7 +6340,9 @@ l_6d8b:
 	lea	sprite_shadow_ram_C700,a3          	| [$6dd7: ld   iy,sprite_shadow_ram_C700]
 	move.b	#0xEC,(0x0d,a3)                 	| [$6ddb: ld   (iy+$0d),$EC]
 	move.b	#0xEB,(0x05,a3)                 	| [$6ddf: ld   (iy+$05),$EB]
-	move.w	#0x201,d1                      	| [$6de3: ld   bc,$0201]
+	* "very good" bubble
+	move.b	#0x02,d1
+	move.b	#0x01,d2                      	| [$6de3: ld   bc,$0201]
 	move.b	(0x00,a3),d0                    	| [$6de6: ld   a,(iy+$00)]
 	add.b	#0x10,d0                         	| [$6de9: add  a,$10]
 	move.b	d0,d3                           	| [$6deb: ld   d,a]
@@ -7046,6 +7054,7 @@ l_75cd:
 	beq.b	0f
 	jbsr	display_error_text_B075           	| [$75d9: call nz,display_error_text_B075]
 0:
+	* also active during evade
 	jbsr	read_players_joysticks_3bd7                            	| [$75dc: call $3DB7]
 	move.b	d0,current_move_C24B            	| [$75df: ld   (current_move_C24B),a]
 	clr.b	d0                               	| [$75e2: xor  a]
@@ -7072,7 +7081,7 @@ l_75fe:
 0:
 	movem.w	(sp)+,d1/d2                    	| [$7608: pop  bc]
 	move.l	(sp)+,a2                        	| [$7609: pop  ix]
-	move.b	(0x00,a2),d0                    	| [$760b: ld   a,(ix+$00)]
+	move.b	(a2),d0                    	| [$760b: ld   a,(ix+$00)]
 	move.b	d0,current_move_C24B            	| [$760e: ld   (current_move_C24B),a]
 	subq.b	#1,d1                           	| [$7611: dec  b]
 	jeq	l_7626                             	| [$7612: jp   z,$7626]
@@ -7351,7 +7360,7 @@ l_7a98:
 0:
 	move.b	(0x01,a2),d1                    	| [$7ab1: ld   b,(ix+$01)]
 	lsl.w	#8,d1
-	move.b	(0x00,a2),d1                    	| [$7aae: ld   c,(ix+$00)]
+	move.b	(a2),d1                    	| [$7aae: ld   c,(ix+$00)]
 	move.l	a2,-(sp)                        	| [$7ab4: push ix]
 	jbsr	fill_video_and_attribute_memory_B030	| [$7ab6: call fill_video_and_attribute_memory_B030]
 	move.l	(sp)+,a2                        	| [$7ab9: pop  ix]
@@ -9570,7 +9579,7 @@ l_b16b:
 	jne	l_b16b                             	| [$b16e: djnz $B16B]
 	rts                                    	| [$b170: ret]
 	
-* try to resume all tasks
+* try to resume all tasks up to task passed in parameter (D0)
 resume_tasks_b015:
 resume_tasks_b171:
 	cmp.b	#0x18,d0                         	| [resume_tasks_b171: cp   $18]
@@ -11850,7 +11859,7 @@ l_e876:
 	move.l	(sp)+,a3                        	| [$e88f: pop  iy]
 	movem.w	(sp)+,d5/d6                        	| [$e891: pop  hl]
 	addq.w	#3,a3                           	| [$e892: inc  iy] * 3
-	move.b	(0x00,a3),d0                    	| [$e898: ld   a,(iy+$00)]
+	move.b	(a3),d0                    	| [$e898: ld   a,(iy+$00)]
 	cmp.b	#0xFD,d0                         	| [$e89b: cp   $FD]
 	jne	l_e8a4                             	| [$e89d: jp   nz,$E8A4]
 	lea	table_EA06(pc),a3                  	| [$e8a0: ld   iy,table_EA06]
@@ -11858,7 +11867,7 @@ l_e8a4:
 	move.b	(0x01,a3),d0                    	| [$e8a4: ld   a,(iy+$01)]
 	add.b	d5,d0                            	| [$e8a7: add  a,h]
 	move.b	d0,d5                           	| [$e8a8: ld   h,a]
-	move.b	(0x00,a3),d0                    	| [$e8a9: ld   a,(iy+$00)]
+	move.b	(a3),d0                    	| [$e8a9: ld   a,(iy+$00)]
 	add.b	d6,d0                            	| [$e8ac: add  a,l]
 	move.b	d0,d6                           	| [$e8ad: ld   l,a]
 	move.b	#0x04,d1                        	| [$e8ae: ld   b,$04]
@@ -11876,12 +11885,11 @@ l_e8be:
 	jbsr	suspend_this_task_B65E            	| [$e8c5: call suspend_this_task_B65E]
 	move.w	(sp)+,d0                        	| [$e8c8: pop  af]
 	move.l	(sp)+,a2                        	| [$e8c9: pop  ix]
-	move.l	(sp),a3                        	| [$e8cb: pop  iy]
-	move.l	(4,sp),a0                        	| [$e8cd: pop  hl]
-
-												| [$e8ce: push iy]
-				
-												| [$e8d0: push hl]
+	move.l	(sp)+,a3                        	| [$e8cb: pop  iy]
+	move.l	(sp)+,a0                        	| [$e8cd: pop  hl]
+	* push again, but will pop with exchanged a0/a3
+	move.l	a3,-(sp)                        	| [$e8ce: push iy]
+	move.l	a0,-(sp)                        	| [$e8d0: push hl]
 	jbsr	load_iy_with_player_structure_B574	| [$e8d1: call load_iy_with_player_structure_B574]
 	move.b	(0x08,a3),d0                    	| [$e8d4: ld   a,(iy+$08)]
 	move.l	(sp)+,a0                        	| [$e8d7: pop  hl]
@@ -11905,6 +11913,7 @@ l_e8be:
 	lea	unknown_C740,a2                	| [$e8f6: ld   ix,unknown_C740]
 	move.b	#0x01,d0                        	| [$e8fa: ld   a,$01]
 
+
 	movem.w	d5/d6,-(sp)                        	| [$e8fc: push hl]
 	jbsr	display_something_ebff                            	| [$e8fd: call $EBFF]
 	move.b	#0x02,d0                        	| [$e900: ld   a,$02]
@@ -11921,10 +11930,12 @@ l_e8be:
 	move.b	#0x02,d0                        	| [$e914: ld   a,$02]
 	jbsr	suspend_this_task_B65E            	| [$e916: call suspend_this_task_B65E]
 	movem.w	(sp)+,d5/d6                        	| [$e919: pop  hl]
+
 	lea	unknown_C740,a2                	| [$e91a: ld   ix,unknown_C740]
 	move.b	#0x03,d0                        	| [$e91e: ld   a,$03]
 	jbsr	display_something_ebff                            	| [$e920: call $EBFF]
 	move.l	(sp)+,a3                        	| [$e923: pop  iy]
+
 	move.b	(0x02,a3),d1                    	| [$e925: ld   b,(iy+$02)]
 	move.b	#0x17,d0                        	| [$e928: ld   a,$17]
 	jbsr	set_next_task_B6AE            	| [$e92a: call set_next_task_B6AE]
@@ -12785,7 +12796,7 @@ l_f3f3:
 	move.b	d0,temp_buffer_CF00+3                 	| [$f3fe: ld   (temp_buffer_CF00+3),a]
 	move.b	temp_buffer_CF00+2,d0                 	| [$f401: ld   a,(temp_buffer_CF00+2)]
 	clr.b	d7
-	sbcd.b	d7,d0                        	| [$f404: sbc  a,$00]
+	sbcd	d7,d0                        	| [$f404: sbc  a,$00]
 	move.b	d0,temp_buffer_CF00+2                 	| [$f407: ld   (temp_buffer_CF00+2),a]
 	move.b	#0x18,d5                        	| [$f40a: ld   h,$18]
 	move.b	#0x03,d6                        	| [$f40c: ld   l,$03]
@@ -12817,17 +12828,18 @@ l_f3f3:
 	subq.b	#1,d0                           	| [$f442: dec  a]
 	rts                                    	| [$f443: ret]
 l_f444:
+	* high score screen read controls
 	jbsr	read_current_player_controls_BB96 	| [$f444: call read_current_player_controls_BB96]
 	tst.b	d0                               	| [$f447: and  a]
 	jeq	l_f3f3                             	| [$f448: jp   z,$F3F3]
 	move.w	d0,-(sp)                        	| [$f44b: push af]
 	clr.b	d0                               	| [$f44c: ld   a,$00]
 	jbsr	l_f39f                            	| [$f44e: call $F39F]
-	move.w	(sp)+,d0                        	| [$f451: pop  af]
-	move.w	d0,-(sp)                        	| [$f452: push af]
+	move.w	(sp),d0                        	| [$f451: pop  af]
+											| [$f452: push af]
 	and.b	#0xF0,d0                         	| [$f453: and  $F0]
 	cmp.b	#0x80,d0                         	| [$f455: cp   $80]
-	jeq	l_f490                             	| [$f457: jp   z,$F490]
+	jeq	down_pressed_f490                             	| [$f457: jp   z,$F490]
 	cmp.b	#0x40,d0                         	| [$f45a: cp   $40]
 	jeq	l_f4a2                             	| [$f45c: jp   z,$F4A2]
 	cmp.b	#0x20,d0                         	| [$f45f: cp   $20]
@@ -12851,7 +12863,7 @@ l_f487:
 	jra	l_f4e3                             	| [$f48a: jp   $F4E3]
 l_f48d:
 	jra	l_f4e3                             	| [$f48d: jp   $F4E3]
-l_f490:
+down_pressed_f490:
 	move.b	temp_buffer_CF00+1,d0                 	| [$f490: ld   a,(temp_buffer_CF00+1)]
 	addq.b	#2,d0                           	| [$f493: inc  a] * 2
 	cmp.b	#0x0D,d0                         	| [$f495: cp   $0D]
@@ -12926,7 +12938,6 @@ l_f501:
 	move.b	temp_buffer_CF00+5,d0                 	| [$f52a: ld   a,(temp_buffer_CF00+5)]
 	move.b	d0,d4                           	| [$f52d: ld   e,a]
 	move.b	#0x20,d3                        	| [$f52e: ld   d,$20]
-l_F530:
 	jbsr	multiply_de_B0C3                  	| [$f530: call multiply_de_B0C3]
 	movem.w	(sp)+,d5/d6                        	| [$f533: pop  hl]
 											| [$f534: and  a]
@@ -12937,14 +12948,13 @@ l_F530:
 	add.w	d3,d6                            	| [$f53c: add  hl,de]
 	move.b	#0xB0,d0                      	| [$f53d: ld   (hl),$B0]
 	jbsr		osd_w_colorram
-	jbsr	osd_break
-	trap	#13
+
 	move.l	unknown_pointer_CF06,a0             	| [$f53f: ld   hl,(unknown_pointer_CF06)]
 	move.b	temp_buffer_CF00+5,d0                 	| [$f542: ld   a,(temp_buffer_CF00+5)]
 	asl.b	#1,d0                            	| [$f545: sla  a]
 	addq.b	#0x06,d0                        	| [$f547: add  a,$06]
-	clr.b	d1                               	| [$f549: ld   b,$00]
-	move.b	d0,d2                           	| [$f54b: ld   c,a]
+	clr.w	d1                               	| [$f549: ld   b,$00]
+	move.b	d0,d1                           	| [$f54b: ld   c,a]
 	add.w	d1,a0                            	| [$f54c: add  hl,bc]
 	move.b	#0x24,(a0)+                      	| [$f54d: ld   (hl),$24]
 												| [$f54f: inc  hl]
@@ -12959,19 +12969,20 @@ l_f555:
 	move.b	#0x0B,d4                        	| [$f560: ld   e,$0B]
 	jbsr	multiply_de_B0C3                  	| [$f562: call multiply_de_B0C3]
 	clr.b	d5                               	| [$f565: ld   h,$00]
+	moveq	#0,d0
 	move.b	temp_buffer_CF00,d0     	| [$f567: ld   a,(temp_buffer_CF00)]
 	subq.b	#0x05,d0                        	| [$f56a: sub  $05]
-	move.b	d0,d6                           	| [$f56c: ld   l,a]
+	move.w	d0,a0                           	| [$f56c: ld   l,a]
 	add.w	d3,a0                            	| [$f56d: add  hl,de]
 	lea	table_F131(pc),a1                  	| [$f56e: ld   de,table_F131]
-	add.w	d3,a0                            	| [$f571: add  hl,de]
+	add.l	a1,a0                            	| [$f571: add  hl,de]
 
 	move.l	a0,-(sp)                        	| [$f572: push hl]
 	move.b	#0x0E,d5                        	| [$f573: ld   h,$0E]
 	move.b	#0x04,d6                        	| [$f575: ld   l,$04]
 	jbsr	compute_screen_address_from_XY_B2F6	| [$f577: call compute_screen_address_from_XY_B2F6]
 
-	move.l	a0,-(sp)                        	| [$f57a: push hl]
+	movem.w	d5/d6,-(sp)                        	| [$f57a: push hl]
 	move.b	temp_buffer_CF00+5,d0                 	| [$f57b: ld   a,(temp_buffer_CF00+5)]
 	cmp.b	#0x03,d0                         	| [$f57e: cp   $03]
 	jne	l_f584                             	| [$f580: jp   nz,$F584]
@@ -12980,18 +12991,20 @@ l_f584:
 	move.b	d0,d3                           	| [$f584: ld   d,a]
 	move.b	#0x20,d4                        	| [$f585: ld   e,$20]
 	jbsr	multiply_de_B0C3                  	| [$f587: call multiply_de_B0C3]
-	move.l	(sp)+,a0                        	| [$f58a: pop  hl]
+	movem.w	(sp)+,d5/d6                        	| [$f58a: pop  hl]
 	tst.b	d0                               	| [$f58b: and  a]
-	sub.w	d3,a0								| [sbc  hl,de]
+	* D6.W is screen real address
+	sub.w	d3,d6								| [sbc  hl,de]
 	* letter entered in highscore table
-	move.l	a0,a3                        	| [$f58e: push hl]
+	                        	| [$f58e: push hl]
 	                        	| [$f58f: pop  iy]
 	move.l	(sp)+,a2                        	| [$f591: pop  ix]
-	move.b	(0x00,a2),d0                    	| [$f593: ld   a,(ix+$00)]
-	move.b	d0,(0x00,a3)                    	| [$f596: ld   (iy+$00),a]
+	move.b	(a2),d0                    	| [$f593: ld   a,(ix+$00)]
+	jbsr	osd_w_videoram                   	| [$f596: ld   (iy+$00),a]
 	move.w  #0x400,d1                      	| [$f599: ld   bc,$0400]
-	add.w	d1,a3                            	| [$f59c: add  iy,bc]
-	move.b	#0xA8,(a3)                 	| [$f59e: ld   (iy+$00),$A8]
+	add.w	d1,d6                            	| [$f59c: add  iy,bc]
+	move.b	#0xA8,d0                 	| [$f59e: ld   (iy+$00),$A8]
+	jbsr	osd_w_colorram
 	move.l	unknown_pointer_CF06,a3             	| [$f5a2: ld   iy,(unknown_pointer_CF06)]
 	move.b	temp_buffer_CF00+5,d0                 	| [$f5a6: ld   a,(temp_buffer_CF00+5)]
 	cmp.b	#0x03,d0                         	| [$f5a9: cp   $03]
@@ -13004,7 +13017,7 @@ l_f5af:
 	move.b	d0,d1                           	| [$f5b5: ld   c,a]
 	add.w	d1,a3                            	| [$f5b6: add  iy,bc]
 
-	move.b	(0x00,a2),d0                    	| [$f5b8: ld   a,(ix+$00)]
+	move.b	(a2),d0                    	| [$f5b8: ld   a,(ix+$00)]
 	move.b	d0,(a3)                    	| [$f5bb: ld   (iy+$00),a]
 	move.b	(0x01,a2),d0                    	| [$f5be: ld   a,(ix+$01)]
 	move.b	d0,(0x01,a3)                    	| [$f5c1: ld   (iy+$01),a]
