@@ -2281,6 +2281,8 @@ handle_keyboard:
 	* next hit (even in the air), P1 wins round
 	move.w	#0x101,player_1_points_C91A
 	st.b	fake_p1_hit_flag
+	* faster countdown
+	move.b	#2,match_timer_C167
 	move.w	#0xFFF,_custom+color
 0:
 	cmp.b	#0x51,d0	| F2 key
@@ -2289,6 +2291,7 @@ handle_keyboard:
 	st.b	cheat_used
 	move.w	#0x101,player_2_points_C91C
 	st.b	fake_p2_hit_flag
+	move.b	#2,match_timer_C167
 	move.w	#0xF00,_custom+color
 0:
 	cmp.b	#0x52,d0	| F3 key

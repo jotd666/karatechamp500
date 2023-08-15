@@ -2821,6 +2821,9 @@ get_current_frame_contents_478D:
 4813: F1          pop  af
 4814: A7          and  a
 4815: CA FD 4D    jp   z,$47F7
+; reached when evade object hits player
+; D0=1: player killed
+; D0=2: object destroyed
 4818: FE 08       cp   $02
 481A: CA 51 42    jp   z,$4851
 481D: FD E5       push iy

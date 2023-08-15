@@ -66,7 +66,7 @@ parasite_sprites.update(range(21,26))
 used_sprite_cluts = {k:v for k,v in used_sprite_cluts.items() if k not in parasite_sprites}
 
 dump_tiles = False
-dump_sprites = False
+dump_sprites = True
 
 if dump_tiles or dump_sprites:
     dump_dir = os.path.join(this_dir,"dumps")
@@ -74,8 +74,9 @@ if dump_tiles or dump_sprites:
         os.mkdir(dump_dir)
     if dump_tiles:
         tile_dump_dir = os.path.join(dump_dir,"tiles")
-        sprite_dump_dir = os.path.join(dump_dir,"sprites")
         ensure_empty(tile_dump_dir)
+    if dump_sprites:
+        sprite_dump_dir = os.path.join(dump_dir,"sprites")
         ensure_empty(sprite_dump_dir)
 
 def dump_asm_bytes(*args,**kwargs):

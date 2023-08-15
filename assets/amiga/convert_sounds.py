@@ -138,10 +138,10 @@ with open(sndfile,"w") as fst,open(outfile,"w") as fw:
             minsigned = min(signed_data)
 
             amp_ratio = max(maxsigned,abs(minsigned))/128
-
-
+            amp_ratio_64 = 64*amp_ratio*(64/38)
+            print(wav_name,amp_ratio_64)
             wav = os.path.splitext(wav_name)[0]
-            sound_table[sound_index] = "    SOUND_ENTRY {},{},{},{},{},{}\n".format(wav,len(signed_data)//2,channel,used_sampling_rate,int(64*amp_ratio),used_priority)
+            sound_table[sound_index] = "    SOUND_ENTRY {},{},{},{},{},{}\n".format(wav,len(signed_data)//2,channel,used_sampling_rate,int(amp_ratio_64),used_priority)
             sound_table_set_1[sound_index] = f"\t.word\t1,{int(details.get('loops',0))}\n\t.long\t{wav}_sound"
 
             if amp_ratio > 0:
