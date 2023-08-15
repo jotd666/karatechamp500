@@ -233,6 +233,12 @@ sprites = collections.defaultdict(dict)
 side = 16
 transparent = (202,0,202)
 
+# very few colors on bonus stages need to be changed so we can always match the scenery
+# 16-color palette. So very few compromises!
+replacement_color_dict = {
+(0xF0,0x80,0x80):(0xF0,0xC0,0xC0)  # bonzai leaves but also a color in planks
+}
+
 for k,chardat in enumerate(block_dict["sprite"]["data"]):
     img = Image.new('RGB',(side,side))
 
@@ -247,7 +253,8 @@ for k,chardat in enumerate(block_dict["sprite"]["data"]):
             for i in range(side):
                 for j in range(side):
                     v = next(d)
-                    img.putpixel((j,i),colors[v])
+                    pc = replacement_color_dict.get(colors[v],colors[v])
+                    img.putpixel((j,i),pc)
 
             for pal in palettes_to_try:
                 try:
