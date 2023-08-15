@@ -18,6 +18,18 @@ ripped_tiles_dir = os.path.join(this_dir,"../tiles")
 
 NB_POSSIBLE_SPRITES = 1536  #64+64 alternate
 
+with open(os.path.join(this_dir,"no_mirror.json")) as f:
+    no_mirror_list = json.load(f)
+
+no_mirror_sprites = set()
+for nm in no_mirror_list:
+    if nm.isdigit():
+        no_mirror_sprites.add(nm)
+    else:
+        s,e = map(int,nm.split("-"))
+        no_mirror_sprites.update(range(s,e+1))
+
+
 rw_json = os.path.join(this_dir,"used_tiles_and_sprites.json")
 if os.path.exists(rw_json):
     with open(rw_json) as f:
@@ -235,7 +247,10 @@ for k,chardat in enumerate(block_dict["sprite"]["data"]):
             for pal in palettes_to_try:
                 try:
                     left = bitplanelib.palette_image2raw(img,None,pal,blit_pad=True,generate_mask=True,mask_color=transparent)
-                    right = bitplanelib.palette_image2raw(ImageOps.mirror(img),None,pal,blit_pad=True,generate_mask=True,mask_color=transparent)
+                    if k in no_mirror_sprites:
+                        right = left
+                    else:
+                        right = bitplanelib.palette_image2raw(ImageOps.mirror(img),None,pal,blit_pad=True,generate_mask=True,mask_color=transparent)
                     sprite_codes.append([left,right])
                     break
                 except bitplanelib.BitplaneException:
@@ -303,10 +318,10 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
         f.write("\n")
 
     plane_cache_id = 0
-    for i in range(NB_POSSIBLE_SPRITES):
-        sprite = sprites.get(i)
+    for sprite_index in range(NB_POSSIBLE_SPRITES):
+        sprite = sprites.get(sprite_index)
         if sprite:
-            name = sprite_names[i]
+            name = sprite_names[sprite_index]
             f.write(f"{name}:\n")
             data = sprite["data"]
 
@@ -321,9 +336,14 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
                 if blocks:
                     f.write(f"{name}_{i}:\n")
                     for lr in ["left","right"]:
+                        if lr=="right" and sprite_index in no_mirror_sprites:
+                            lr = "left"
                         f.write(f"\t.word\t{name}_{lr}_{i}-{name}_{i}\n")
 
+
                     for lr,block in zip(["left","right"],blocks):
+                        if lr=="right" and sprite_index in no_mirror_sprites:
+                            break
                         f.write(f"{name}_{lr}_{i}:\n")
                         for j in range(0,nb_bitplanes):
                             plane = block[j*chunk_size:(j+1)*chunk_size]

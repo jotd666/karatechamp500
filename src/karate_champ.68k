@@ -2198,7 +2198,7 @@ task_47d6:
 0:
 l_47f7:
 	jbsr	l_4b15                            	| [$47f7: call $4B15]
-	jbsr	l_4b5c                            	| [$47fa: call $4B5C]
+	jbsr	move_bull_and_collision_4b5c                            	| [$47fa: call $4B5C]
 	cmp.b	#0xFF,d0                         	| [$47fd: cp   $FF]
 	jeq	l_48a8                             	| [$47ff: jp   z,$48A8]
 	jbsr	load_evade_object_sprite_pointer_4968                            	| [$4802: call $4968]
@@ -2294,8 +2294,7 @@ l_4888:
 l_48a8:
 	move.b	(0x0e,a3),d6                    	| [$48a8: ld   l,(iy+$0e)]
 	move.b	(0x0f,a3),d5                    	| [$48ab: ld   h,(iy+$0f)]
-	move.b	#0x00,d1                        	| [$48ae: ld   bc,$0010] 16
-	move.b	#0x10,d2                        	| [$48ae: ld   bc,$0010] 16
+	move.w	#0x0010,d1                        	| [$48ae: ld   bc,$0010] 16
 	jbsr	clear_zone_B021                   	| [$48b1: call clear_zone_B021]
 	jbsr	task_yield_B051                   	| [$48b4: call task_yield_B051]
 * evade sequence index
@@ -2594,6 +2593,7 @@ l_4b15:
 	move.b	d3,(0x08,a3)                    	| [$4b36: ld   (iy+$08),d]
 	jra	l_4b4e                             	| [$4b39: jp   $4B4E]
 l_4b3c:
+	* move bull
 	move.b	(0x06,a2),d3                    	| [$4b3c: ld   d,(ix+$06)]
 	move.b	d3,(0x07,a3)                    	| [$4b3f: ld   (iy+$07),d]
 	move.b	(0x07,a2),d3                    	| [$4b42: ld   d,(ix+$07)]
@@ -2601,13 +2601,14 @@ l_4b3c:
 	bset.b	#7,(0x08,a3)                    	| [$4b48: set  7,(iy+$08)]
 	neg.b	d0                               	| [$4b4c: neg]
 l_4b4e:
+	* increase/decrease X according to bull direction
 	add.b	(0x09,a3),d0                     	| [$4b4e: add  a,(iy+$09)]
 	move.b	d0,(0x09,a3)                    	| [$4b51: ld   (iy+$09),a]
 	move.b	d2,d0                           	| [$4b54: ld   a,c]
 	add.b	(0x0a,a3),d0                     	| [$4b55: add  a,(iy+$0a)]
 	move.b	d0,(0x0a,a3)                    	| [$4b58: ld   (iy+$0a),a]
 	rts                                    	| [$4b5b: ret]
-l_4b5c:
+move_bull_and_collision_4b5c:
 	lea	table_4B75(pc),a2                  	| [$4b5c: ld   ix,table_4B75]
 	btst.b	#7,(0x08,a3)                    	| [$4b60: bit  7,(iy+$08)]
 	jne	l_4b6b                             	| [$4b64: jp   nz,$4B6B]
@@ -3079,7 +3080,7 @@ l_513c:
 	jbsr	l_4d5e                            	| [$5147: call $4D5E]
 l_514a:
 	jbsr	l_4b15                            	| [$514a: call $4B15]
-	jbsr	l_4b5c                            	| [$514d: call $4B5C]
+	jbsr	move_bull_and_collision_4b5c                            	| [$514d: call $4B5C]
 	cmp.b	#0xFF,d0                         	| [$5150: cp   $FF]
 	jeq	l_5236                             	| [$5152: jp   z,$5236]
 	move.b	(0x12,a3),d0                    	| [$5155: ld   a,(iy+$12)]
@@ -3198,8 +3199,7 @@ l_5236:
 
 	move.l	a2,a0                        	| [$5239: push ix]
 											| [$523b: pop  hl]
-	move.b	#0x00,d1                        	| [$523c: ld   bc,$0050] 80
-	move.b	#0x50,d2                        	| [$523c: ld   bc,$0050] 80
+	move.w	#0x50,d1                        	| [$523c: ld   bc,$0050] 80
 	jbsr	clear_zone_B021                   	| [$523f: call clear_zone_B021]
 l_5242:
 	jbsr	task_yield_B051                   	| [$5242: call task_yield_B051]
@@ -9340,8 +9340,6 @@ clear_player_structure_partial_b012:
 
 clear_sprite_shadow_ram_C7xx_B01E:
 	jra	clear_C7xx_B2B2                    	| [$b01e: jp   clear_C7xx_B2B2]
-clear_zone_B021:
-	jra	clear_zone_B2BD                    	| [$b021: jp   clear_zone_B2BD]
 
 
 
@@ -9796,6 +9794,7 @@ clear_C7xx_B2B2:
 
 * < HL: pointer on zone to clear
 * < BC: size
+clear_zone_B021:
 clear_zone_B2BD:
 	move.l	(sp)+,a2                        	| [$b2bd: pop  ix] return address in ix
 l_b2bf:
