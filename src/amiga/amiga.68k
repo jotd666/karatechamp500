@@ -328,16 +328,10 @@ _user:
 .no_forbid:
 	
 	move.l	dip_switch_difficulty(pc),d0
-	lsl.b	#6,d0
+	lsl.b	#3,d0		| to match what game expects
 	
-
-	move.l	misc_options,d1
-	btst	#0,d1
-	bne.b	0f
-	bset	#0,d0
-0:
 	not.b	d0		| active low
-	move.b	d0,dip_switches+1
+	move.b	d0,dip_switches
 
 *	btst	#1,d1
 *	sne.b	quick_maze_draw_flag
@@ -2013,8 +2007,7 @@ osd_debug_hook:
 	
 	
 osd_read_dipswitches:
-	moveq	#-1,d0
-	*bclr	#7,d0	| free play
+	move.b	dip_switches(pc),d0
 	rts
 	
 * reads most inputs in one call

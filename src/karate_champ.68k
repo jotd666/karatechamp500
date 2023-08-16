@@ -244,6 +244,12 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address:
 	st	d7
 	roxl.b	#1,d7
 	.endm
+
+
+	.macro FATAL_ERROR   address
+	move.l	#0x\address,D7
+	bsr		display_error_text_B075
+	.endm
 	
 	.macro LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS_MASK   ax,ay,zz
 load_\ax\()_from_\ay\()_structure_\zz\()_address_mask:
@@ -265,6 +271,7 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address_mask:
 	.macro	SWAP_WORD	reg
 	rol.w	#8,\reg
 	.endm
+
 
 	STORE_AX_IN_AY_STRUCTURE_ZZ_ADDRESS	a0,a3,02
 	STORE_AX_IN_AY_STRUCTURE_ZZ_ADDRESS	a0,a2,02
@@ -293,7 +300,7 @@ check_d7_in_rom_range:
 	bcs.b	0f
 	cmp.w	#0xD800,d7
 	bcc.b	0f
-	bsr		display_error_text_B075
+	FATAL_ERROR		0
 0:
 	rts
 
@@ -545,7 +552,7 @@ l_3aa5:
 	jeq	l_3bf8                             	| [$3acc: jp   z,$3BF8]
 	cmp.b	#0x0A,d0                         	| [$3acf: cp   $0A]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3ad1: call nz,display_error_text_B075]
+	FATAL_ERROR   3ad1 | [$3ad1: call nz,display_error_text_B075]
 0:
 l_3ad4:
 
@@ -562,7 +569,7 @@ l_3ae4:
 	jbsr	set_next_task_B05D            	| [$3ae4: call set_next_task_B05D]
 	tst.b	d0                               	| [$3ae7: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3ae8: call nz,display_error_text_B075]
+	FATAL_ERROR   3ae8 | [$3ae8: call nz,display_error_text_B075]
 0:
 	clr.b	d0                               	| [$3aeb: xor  a]
 	jbsr	suspend_this_task_B05A            	| [$3aec: call suspend_this_task_B05A]
@@ -581,7 +588,7 @@ l_3ae4:
 	jeq	l_3bf2                             	| [$3b0c: jp   z,$3BF2]
 	cmp.b	#0x0D,d0                         	| [$3b0f: cp   $0D]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3b11: call nz,display_error_text_B075]
+	FATAL_ERROR   3b11 | [$3b11: call nz,display_error_text_B075]
 0:
 	
 	jbsr	handle_player_movement_3ea7                            	| [$3b14: call $3EA7]
@@ -606,7 +613,7 @@ l_3ae4:
 	jbsr	set_next_task_B05D            	| [$3b35: call set_next_task_B05D]
 	tst.b	d0                               	| [$3b38: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3b39: call nz,display_error_text_B075]
+	FATAL_ERROR   3b39 | [$3b39: call nz,display_error_text_B075]
 0:
 	move.w	(sp)+,d0                        	| [$3b3c: pop  af]
 	movem.w	(sp)+,d5/d6                        	| [$3b3d: pop  hl]
@@ -628,21 +635,21 @@ l_3b4d:
 	jbsr	set_next_task_B05D            	| [$3b51: call set_next_task_B05D]
 	tst.b	d0                               	| [$3b54: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3b55: call nz,display_error_text_B075]
+	FATAL_ERROR   3b55 | [$3b55: call nz,display_error_text_B075]
 0:
 	move.b	#0x08,d0                        	| [$3b58: ld   a,$08]
 	move.b	#0x09,d1                        	| [$3b5a: ld   b,$09]
 	jbsr	set_next_task_B05D            	| [$3b5c: call set_next_task_B05D]
 	tst.b	d0                               	| [$3b5f: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3b60: call nz,display_error_text_B075]
+	FATAL_ERROR   3b60 | [$3b60: call nz,display_error_text_B075]
 0:
 	move.b	#0x09,d0                        	| [$3b63: ld   a,$09]
 	move.b	#0x09,d1                        	| [$3b65: ld   b,$09]
 	jbsr	set_next_task_B05D            	| [$3b67: call set_next_task_B05D]
 	tst.b	d0                               	| [$3b6a: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3b6b: call nz,display_error_text_B075]
+	FATAL_ERROR   3b6b | [$3b6b: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$3b6e: pop  iy]
 	move.b	(0x07,a3),d0                    	| [$3b70: ld   a,(iy+$07)]
@@ -657,7 +664,7 @@ l_3b4d:
 	jbsr	set_next_task_B05D            	| [$3b84: call set_next_task_B05D]
 	tst.b	d0                               	| [$3b87: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3b88: call nz,display_error_text_B075]
+	FATAL_ERROR   3b88 | [$3b88: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$3b8b: pop  iy]
 	movem.w	(sp)+,d5/d6                        	| [$3b8d: pop  hl]
@@ -671,7 +678,7 @@ l_3b4d:
 l_3ba4:
 	cmp.b	#0x0B,d0                         	| [$3ba4: cp   $0B]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3ba6: call nz,display_error_text_B075]
+	FATAL_ERROR   3ba6 | [$3ba6: call nz,display_error_text_B075]
 0:
 	btst.b	#3,(0x00,a2)                    	| [$3ba9: bit  3,(ix+$00)]
 	jeq	l_3c15                             	| [$3bad: jp   z,$3C15]
@@ -686,7 +693,7 @@ l_3bb0:
 	jbsr	set_next_task_B05D            	| [$3bb6: call set_next_task_B05D]
 	tst.b	d0                               	| [$3bb9: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3bba: call nz,display_error_text_B075]
+	FATAL_ERROR   3bba | [$3bba: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$3bbd: pop  iy]
 	movem.w	(sp)+,d1/d2                    	| [$3bbf: pop  bc]
@@ -710,7 +717,7 @@ l_3bc7:
 	jeq	l_3bf2                             	| [$3be4: jp   z,$3BF2]
 	cmp.b	#0x10,d0                         	| [$3be7: cp   $10]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3be9: call nz,display_error_text_B075]
+	FATAL_ERROR   3be9 | [$3be9: call nz,display_error_text_B075]
 0:
 l_3bec:
 	jbsr	l_4405                            	| [$3bec: call $4405]
@@ -727,14 +734,14 @@ l_3bf8:
 	jbsr	set_next_task_B05D            	| [$3c01: call set_next_task_B05D]
 	tst.b	d0                               	| [$3c04: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3c05: call nz,display_error_text_B075]
+	FATAL_ERROR   3c05 | [$3c05: call nz,display_error_text_B075]
 0:
 	move.b	#0x08,d0                        	| [$3c08: ld   a,$08]
 	move.b	#0x09,d1                        	| [$3c0a: ld   b,$09]
 	jbsr	set_next_task_B05D            	| [$3c0c: call set_next_task_B05D]
 	tst.b	d0                               	| [$3c0f: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3c10: call nz,display_error_text_B075]
+	FATAL_ERROR   3c10 | [$3c10: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$3c13: pop  iy]
 l_3c15:
@@ -751,7 +758,7 @@ l_3c15:
 	jeq	l_3c3b                             	| [$3c28: jp   z,$3C3B]
 	cmp.b	#0x12,d0                         	| [$3c2b: cp   $12]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3c2d: call nz,display_error_text_B075]
+	FATAL_ERROR   3c2d | [$3c2d: call nz,display_error_text_B075]
 0:
 l_3c30:
 	move.b	#0x01,d0                        	| [$3c30: ld   a,$01]
@@ -797,7 +804,7 @@ l_3c76:
 	jbsr	player_management_routine_46FD    	| [$3c82: call player_management_routine_46FD]
 	tst.b	d0                               	| [$3c85: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3c86: call nz,display_error_text_B075]
+	FATAL_ERROR   3c86 | [$3c86: call nz,display_error_text_B075]
 0:
 	move.b	(0x08,a3),d5                    	| [$3c8c: ld   h,(iy+$08)]
 	bclr.b	#7,d5                           	| [$3c8f: res  7,h]
@@ -813,7 +820,7 @@ l_3c76:
 	jbsr	suspend_this_task_B05A            	| [$3c9e: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$3ca1: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3ca2: call nz,display_error_text_B075]
+	FATAL_ERROR   3ca2 | [$3ca2: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$3ca5: pop  iy]
 l_3ca7:
@@ -844,7 +851,7 @@ l_3cd7:
 	lea	game_mem+0x3D37,a0                  	| [$3cd7: ld   hl,table_3D37]
 	cmp.b	#0x30,d0                         	| [$3cda: cp   $30]
 	bcs.b	0f
-	jbsr	display_error_text_B075           	| [$3cdc: call nc,display_error_text_B075]
+	FATAL_ERROR   3cdc | [$3cdc: call nc,display_error_text_B075]
 0:
 	cmp.b	#0x20,d0                         	| [$3cdf: cp   $20]
 	jcs	l_3ce6                             	| [$3ce1: jp   c,$3CE6]
@@ -897,7 +904,7 @@ read_players_joysticks_3bd7:
 l_3dc8:
 	cmp.b	#0x09,d0                         	| [$3dc8: cp   $09]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3dca: call nz,display_error_text_B075]
+	FATAL_ERROR   3dca | [$3dca: call nz,display_error_text_B075]
 0:
 	jbsr	read_p2_controls_B0BA             	| [$3dcd: call read_p2_controls_B0BA]
 l_3dd0:
@@ -960,7 +967,7 @@ handle_player_hit_sequence_3e43:
 	and.b	#0x7F,d0                         	| [$3e5d: and  $7F]
 	cmp.b	#0x20,d0                         	| [$3e5f: cp   $20]
 	bcs.b	0f
-	jbsr	display_error_text_B075           	| [$3e61: call nc,display_error_text_B075]
+	FATAL_ERROR   3e61 | [$3e61: call nc,display_error_text_B075]
 0:
 	add.b	d0,d0                            	| [$3e64: add  a,a]
 	add.b	d0,d0                            	| [$3e65: add  a,a]
@@ -1148,7 +1155,7 @@ l_3f93:
 	move.b	d6,d0                           	| [$3fd5: ld   a,l]
 	or.b	d5,d0                             	| [$3fd6: or   h]
 	bne.b	0f
-	jbsr	display_error_text_B075           	| [$3fd7: call z,display_error_text_B075]
+	FATAL_ERROR   3fd7 | [$3fd7: call z,display_error_text_B075]
 0:
 	move.b	d6,(0x07,a3)                    	| [$3fda: ld   (iy+$07),l]
 	move.b	d5,(0x08,a3)                    	| [$3fdd: ld   (iy+$08),h]
@@ -1168,7 +1175,7 @@ l_3f93:
 	jbsr	key_value_linear_search_B00C      	| [$3ff2: call key_value_linear_search_B00C]
 	tst.b	d0                               	| [$3ff5: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$3ff6: call nz,display_error_text_B075]
+	FATAL_ERROR   3ff6 | [$3ff6: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a2                        	| [$3ff9: pop  ix]
 	* D5 and D6 contain retrieved data now
@@ -1291,7 +1298,7 @@ display_player_sprite_4153:
 	tst.b	d0                               	| [$4162: and  a]
 	beq.b	0f
 	* error if there's a remainder in the division!
-	jbsr	display_error_text_B075           	| [$4163: call nz,display_error_text_B075]
+	FATAL_ERROR   4163 | [$4163: call nz,display_error_text_B075]
 0:
 	bsr		change_d5_d6_to_d5_16
 	* D5 times 4
@@ -1475,7 +1482,7 @@ l_427b:
 	jbsr	key_value_linear_search_B00C      	| [$4288: call key_value_linear_search_B00C]
 	tst.b	d0                               	| [$428b: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$428c: call nz,display_error_text_B075]
+	FATAL_ERROR   428c | [$428c: call nz,display_error_text_B075]
 0:
 	move.b	(0x0a,a3),d0                    	| [$428f: ld   a,(iy+$0a)]
 	add.b	d5,d0                            	| [$4292: add  a,h]
@@ -1512,7 +1519,7 @@ l_42bd:
 	jbsr	divide_hl_by_d_b003                            	| [$42cc: call $B003]
 	tst.b	d0                               	| [$42cf: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$42d0: call nz,display_error_text_B075]
+	FATAL_ERROR   42d0 | [$42d0: call nz,display_error_text_B075]
 0:
 	bsr		change_d5_d6_to_d5_16
 	add.w	d5,d5                            	| [$42d3: add  hl,hl]
@@ -1676,7 +1683,7 @@ l_4422:
 	jeq	l_4422                             	| [$442d: jp   z,$4422]
 	tst.b	d0                               	| [$4430: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4431: call nz,display_error_text_B075]
+	FATAL_ERROR   4431 | [$4431: call nz,display_error_text_B075]
 0:
 	move.b	d1,d0                           	| [$4434: ld   a,b]
 	cmp.b	#0x0C,d0                         	| [$4435: cp   $0C]
@@ -1697,7 +1704,7 @@ l_444c:
 	jeq	l_445d                             	| [$4456: jp   z,$445D]
 	tst.b	d0                               	| [$4459: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$445a: call nz,display_error_text_B075]
+	FATAL_ERROR   445a | [$445a: call nz,display_error_text_B075]
 0:
 l_445d:
 	jbsr	handle_player_movement_3ea7                            	| [$445d: call $3EA7]
@@ -1711,7 +1718,7 @@ l_446c:
 	jeq	l_446c                             	| [$4471: jp   z,$446C]
 	tst.b	d0                               	| [$4474: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4475: call nz,display_error_text_B075]
+	FATAL_ERROR   4475 | [$4475: call nz,display_error_text_B075]
 0:
 	jbsr	get_current_frame_contents_478D   	| [$4478: call get_current_frame_contents_478D]
 	lea	game_mem+0x461A,a2                  	| [$447b: ld   ix,table_461A]
@@ -1723,7 +1730,7 @@ l_4487:
 	jbsr	player_management_routine_46FD    	| [$4487: call player_management_routine_46FD]
 	tst.b	d0                               	| [$448a: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$448b: call nz,display_error_text_B075]
+	FATAL_ERROR   448b | [$448b: call nz,display_error_text_B075]
 0:
 * reached when player is hit, same c42B (technique index)
 * value written with 2 now...
@@ -1739,7 +1746,7 @@ l_4495:
 	jbsr	player_management_routine_46FD    	| [$44a2: call player_management_routine_46FD]
 	tst.b	d0                               	| [$44a5: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$44a6: call nz,display_error_text_B075]
+	FATAL_ERROR   44a6 | [$44a6: call nz,display_error_text_B075]
 0:
 	movem.w	(sp)+,d1/d2                    	| [$44a9: pop  bc]
 	* get frame animation pointer as D5/D6
@@ -1860,7 +1867,7 @@ l_4575:
 	and.b	d5,d0                            	| [$457c: and  h]
 	cmp.b	#0xFF,d0                         	| [$457d: cp   $FF]
 	bne.b	0f
-	jbsr	display_error_text_B075           	| [$457f: call z,display_error_text_B075]
+	FATAL_ERROR   457f | [$457f: call z,display_error_text_B075]
 0:
 	bsr		change_d5_d6_to_d5_16                               	| [$4582: and  a]
 	sub.w	d3,d5							| [sbc  hl,de]
@@ -1929,7 +1936,7 @@ l_45ff:
 	jbsr	divide_hl_by_d_b003                            	| [$460a: call $B003]
 	tst.b	d0                               	| [$460d: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$460e: call nz,display_error_text_B075]
+	FATAL_ERROR   460e | [$460e: call nz,display_error_text_B075]
 0:
 	bsr		change_d5_d6_to_d5_16
 	add.w	d5,d5                            	| [$4611: add  hl,hl]
@@ -2052,7 +2059,7 @@ player_management_routine_46FD:
 	jeq	l_477b                             	| [$4729: jp   z,$477B] attacking: skip
 	cmp.b	#0x0B,d0                         	| [$472c: cp   $0B] not attacking / standing guard?
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$472e: call nz,display_error_text_B075] sanity check, has to be 0B
+	FATAL_ERROR   472e | [$472e: call nz,display_error_text_B075] sanity check, has to be 0B
 0:
 	jra	l_4743                             	| [$4731: jp   $4743] the other player is human, skip below
 
@@ -2067,7 +2074,7 @@ l_4734:
 	jeq	l_477b                             	| [$473b: jp   z,$477B] not attacking: skip
 	cmp.b	#0x0A,d0                         	| [$473e: cp   $0A]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4740: call nz,display_error_text_B075]
+	FATAL_ERROR   4740 | [$4740: call nz,display_error_text_B075]
 0:
 * check skill level (just for moves speed, not for A.I)
 l_4743:
@@ -2080,7 +2087,7 @@ l_4743:
 	move.b	dip_switches_copy_C030,d0       	| [$4750: ld   a,(dip_switches_copy_C030)]
 	lsr.b	#3,d0                            	| [$4753: srl  a] * 3
 	and.b	#0x06,d0                         	| [$4759: and  $06]
-* difficulty level 00 easy ... 06 hardest to pick one of the 4 tables
+* difficulty level 00 easy, 02 medium, 04 hard, 06 hardest to pick one of the 4 tables
 	clr.w	d3                               	| [$475c: ld   d,$00]
 	move.b	d0,d3                           	| [$475b: ld   e,a]
 	add.w	d3,a0                            	| [$475e: add  hl,de]
@@ -2151,7 +2158,7 @@ l_479a:
 	jeq	l_47a8                             	| [$47a0: jp   z,$47A8]
 	cmp.b	#0x0B,d0                         	| [$47a3: cp   $0B]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$47a5: call nz,display_error_text_B075]
+	FATAL_ERROR   47a5 | [$47a5: call nz,display_error_text_B075]
 0:
 l_47a8:
 	jbsr	get_current_frame_contents_478D   	| [$47a8: call get_current_frame_contents_478D]	
@@ -2195,7 +2202,7 @@ task_47d6:
 	move.l	(sp)+,a3                        	| [$47f1: pop  iy]
 	tst.b	d0                               	| [$47f3: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$47f4: call nz,display_error_text_B075]
+	FATAL_ERROR   47f4 | [$47f4: call nz,display_error_text_B075]
 0:
 l_47f7:
 	jbsr	l_4b15                            	| [$47f7: call $4B15]
@@ -2204,12 +2211,12 @@ l_47f7:
 	jeq	l_48a8                             	| [$47ff: jp   z,$48A8]
 	jbsr	load_evade_object_sprite_pointer_4968                            	| [$4802: call $4968]
 	jbsr	animate_evade_object_4978                            	| [$4805: call $4978]
-	jbsr	l_4bfc                            	| [$4808: call $4BFC]
+	jbsr	evade_check_current_player_vs_object_4bfc                            	| [$4808: call $4BFC]
 	move.w	d0,-(sp)                        	| [$480b: push af]
-	jbsr	l_4d5e                            	| [$480c: call $4D5E]
+	jbsr	let_player_move_4d5e                            	| [$480c: call $4D5E]
 	tst.b	d0                               	| [$480f: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4810: call nz,display_error_text_B075]
+	FATAL_ERROR   4810 | [$4810: call nz,display_error_text_B075]
 0:
 	move.w	(sp)+,d0                        	| [$4813: pop  af]
 	tst.b	d0                               	| [$4814: and  a]
@@ -2233,14 +2240,14 @@ l_482b:
 	jbsr	set_next_task_B05D                	| [$482d: call set_next_task_B05D]
 	tst.b	d0                               	| [$4830: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4831: call nz,display_error_text_B075]
+	FATAL_ERROR   4831 | [$4831: call nz,display_error_text_B075]
 0:
 	move.b	#0x02,d0                        	| [$4834: ld   a,$02]
 	move.b	#0x03,d1                        	| [$4836: ld   b,$03]
 	jbsr	set_next_task_B05D                	| [$4838: call set_next_task_B05D]
 	tst.b	d0                               	| [$483b: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$483c: call nz,display_error_text_B075]
+	FATAL_ERROR   483c | [$483c: call nz,display_error_text_B075]
 0:
 	move.l	(sp),a3                        	| [$483f: pop  iy]
 	* restores IY to C300
@@ -2250,7 +2257,7 @@ l_482b:
 	jbsr	suspend_this_task_B05A            	| [$4845: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$4848: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4849: call nz,display_error_text_B075]
+	FATAL_ERROR   4849 | [$4849: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$484c: pop  iy]
 	jra	l_48a8                             	| [$484e: jp   $48A8]
@@ -2261,10 +2268,10 @@ l_4851:
 l_4859:
 	jbsr	load_evade_object_sprite_pointer_4968                            	| [$4859: call $4968]
 	jbsr	animate_evade_object_4978                            	| [$485c: call $4978]
-	jbsr	l_4d5e                            	| [$485f: call $4D5E]
+	jbsr	let_player_move_4d5e                            	| [$485f: call $4D5E]
 	tst.b	d0                               	| [$4862: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4863: call nz,display_error_text_B075]
+	FATAL_ERROR   4863 | [$4863: call nz,display_error_text_B075]
 0:
 	bsr		load_a0_from_a3_structure_07_address_mask
 												| [$4866: ld   l,(iy+$07)]
@@ -2310,7 +2317,7 @@ l_48b7:
 	cmp.b	#0x06,d0                         	| [$48ba: cp   $06]
 * not possible that it's >= 06
 	bcs.b	0f
-	jbsr	display_error_text_B075           	| [$48bc: call nc,display_error_text_B075]
+	FATAL_ERROR   48bc | [$48bc: call nc,display_error_text_B075]
 0:
 	cmp.b	#0x03,d0                         	| [$48bf: cp   $03]
 	jcs	l_48c6                             	| [$48c1: jp   c,$48C6]
@@ -2347,7 +2354,7 @@ l_48e7:
 	move.b	unknown_C919,d0                 	| [$4900: ld   a,(unknown_C919)]
 	cmp.b	#0x07,d0                         	| [$4903: cp   $07]
 	bcs.b	0f
-	jbsr	display_error_text_B075           	| [$4905: call nc,display_error_text_B075]
+	FATAL_ERROR   4905 | [$4905: call nc,display_error_text_B075]
 0:
 	move.b	d0,(0x0c,a3)                    	| [$4908: ld   (iy+$0c),a]
 	move.b	d0,d2                           	| [$490b: ld   c,a]
@@ -2631,8 +2638,9 @@ table_4B75:
 table_4B79:
 	dc.b	0x00,0x0f,0x00,0xff | table_4B79
 
-l_4b7d:
-
+* check collisions
+* > D0: 1 if object wins, 2 if player wins
+evade_check_player_vs_object_4b7d:
 	move.l	a3,-(sp)                        	| [$4b7d: push iy]
 	bsr		load_address_of_current_player_from_a3_10_to_a0
 											| [$4b7f: ld   l,(iy+$10)]
@@ -2655,6 +2663,7 @@ l_4ba0:
 	move.b	current_task_index_C028,d0      	| [$4ba3: ld   a,(current_task_index_C028)]
 	cmp.b	#0x14,d0                         	| [$4ba6: cp   $14]
 	jne	l_4bec                             	| [$4ba8: jp   nz,$4BEC]
+	* player
 	move.b	(0x09,a3),d0                    	| [$4bab: ld   a,(iy+$09)]
 	sub.b	#0x10,d0                         	| [$4bae: sub  $10]
 	btst.b	#7,(0x08,a3)                    	| [$4bb0: bit  7,(iy+$08)]
@@ -2685,17 +2694,19 @@ l_4bd5:
 	move.b	d0,d4                           	| [$4be8: ld   e,a]
 	jra	l_4bf2                             	| [$4be9: jp   $4BF2]
 l_4bec:
+	* object
 	move.b	(0x09,a3),d3                    	| [$4bec: ld   d,(iy+$09)]
 	move.b	(0x0a,a3),d4                    	| [$4bef: ld   e,(iy+$0a)]
 l_4bf2:
 	jbsr	is_point_in_rectangle_B042        	| [$4bf2: call is_point_in_rectangle_B042]
 	tst.b	d0                               	| [$4bf5: and  a]
 	jeq	l_4bfb                             	| [$4bf6: jp   z,$4BFB]
+	* object detects player => object hits player
 l_4bf9:
 	move.b	#0x01,d0                        	| [$4bf9: ld   a,$01]
 l_4bfb:
 	rts                                    	| [$4bfb: ret]
-l_4bfc:
+evade_check_current_player_vs_object_4bfc:
 	lea	player_1_struct_C240,a0        	| [$4bfc: ld   hl,player_1_struct_C240]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$4bff: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	btst.b	#2,d0                           	| [$4c02: bit  2,a]
@@ -2705,7 +2716,7 @@ l_4c0a:
 	bsr		store_address_of_current_player_in_a3_10
 												| [$4c0a: ld   (iy+$10),l]
 												| [$4c0d: ld   (iy+$11),h]
-	jbsr	l_4b7d                            	| [$4c10: call $4B7D]
+	jbra	evade_check_player_vs_object_4b7d                            	| [$4c10: call $4B7D]
 	rts                                    	| [$4c13: ret]
 
 l_4c14:
@@ -2799,7 +2810,7 @@ l_4cc5:
 	jbsr	divide_hl_by_d_b003               	| [$4cf4: call divide_hl_by_d_b003]
 	tst.b	d0                               	| [$4cf7: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4cf8: call nz,display_error_text_B075]
+	FATAL_ERROR   4cf8 | [$4cf8: call nz,display_error_text_B075]
 0:
 	bsr		change_d5_d6_to_d5_16
 	add.w	d5,d5                            	| [$4cfb: add  hl,hl]
@@ -2823,11 +2834,9 @@ l_4d1c:
 	move.b	(0x0c,a3),d1                    	| [$4d20: ld   c,(iy+$0c)]
 	add.w	d1,a2                            	| [$4d25: add  ix,bc]
 	add.w	d1,a2                            	| [$4d27: add  ix,bc]
-	bsr		load_a0_from_a2_structure_00_address
-	* we need A0 AND D5/D6
 	move.b	(0x00,a2),d6					| [$4d29: ld   l,(ix+$00)]
 	move.b	(0x01,a2),d5					| [$4d2c: ld   h,(ix+$01)]
-
+	bsr		change_d5_d6_to_a0
 	move.l	a0,a2                        	| [$4d2f: push hl]
 											| [$4d30: pop  ix]
 	move.b	d6,(0x07,a3)                    	| [$4d32: ld   (iy+$07),l]
@@ -2848,13 +2857,15 @@ l_4d50:
 	add.b	(0x0a,a3),d0                     	| [$4d57: add  a,(iy+$0a)]
 	move.b	d0,(0x0a,a3)                    	| [$4d5a: ld   (iy+$0a),a]
 	rts                                    	| [$4d5d: ret]
-l_4d5e:
+	
+	
+let_player_move_4d5e:
 	bsr		load_a0_from_a3_structure_07_address_mask
 									| [$4d5e: ld   l,(iy+$07)]
 									| [$4d61: ld   h,(iy+$08)]
 									| [$4d64: res  7,h]
-	move.w	#0x0008,d3                      	| [$4d66: ld   de,$0008] 8
-	add.w	d3,a0                            	| [$4d69: add  hl,de]
+									| [$4d66: ld   de,$0008] 8
+	addq.w	#8,a0                            	| [$4d69: add  hl,de]
 	move.b	(a0),d0                         	| [$4d6a: ld   a,(hl)]
 	                                    	| [$4d6b: nop]
 
@@ -2878,7 +2889,7 @@ l_4d97:
 	jbsr	schedule_task_to_start_B057       	| [$4d97: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$4d9a: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4d9b: call nz,display_error_text_B075]
+	FATAL_ERROR   4d9b | [$4d9b: call nz,display_error_text_B075]
 0:
 	move.b	#0x0A,d0                        	| [$4d9e: ld   a,$0A]
 	lea	players_type_human_or_cpu_flags_C02D,a0	| [$4da0: ld   hl,players_type_human_or_cpu_flags_C02D]
@@ -2889,20 +2900,20 @@ l_4da9:
 	jbsr	schedule_task_to_start_B057       	| [$4da9: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$4dac: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4dad: call nz,display_error_text_B075]
+	FATAL_ERROR   4dad | [$4dad: call nz,display_error_text_B075]
 0:
 	move.b	#0x04,d0                        	| [$4db0: ld   a,$04]
 	jbsr	schedule_task_to_start_B057       	| [$4db2: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$4db5: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4db6: call nz,display_error_text_B075]
+	FATAL_ERROR   4db6 | [$4db6: call nz,display_error_text_B075]
 0:
 	move.b	#0x14,d0                        	| [$4db9: ld   a,$14]
 	jbsr	schedule_task_to_start_B057       	| [$4dbb: call schedule_task_to_start_B057]
 l_4dbe:
 	tst.b	d0                               	| [$4dbe: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4dbf: call nz,display_error_text_B075]
+	FATAL_ERROR   4dbf | [$4dbf: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$4dc2: pop  iy]
 
@@ -2913,14 +2924,14 @@ l_4dbe:
 	jeq	l_4de0                             	| [$4dcd: jp   z,$4DE0]
 	cmp.b	#0x01,d0                         	| [$4dd0: cp   $01]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4dd2: call nz,display_error_text_B075]
+	FATAL_ERROR   4dd2 | [$4dd2: call nz,display_error_text_B075]
 0:
 	move.b	#0x0F,d0                        	| [$4dd5: ld   a,$0F]
 	move.b	#0x20,d1                        	| [$4dd7: ld   b,$20]
 	jbsr	set_next_task_B05D            	| [$4dd9: call set_next_task_B05D]
 	tst.b	d0                               	| [$4ddc: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4ddd: call nz,display_error_text_B075]
+	FATAL_ERROR   4ddd | [$4ddd: call nz,display_error_text_B075]
 0:
 l_4de0:
 	move.l	(sp)+,a3                        	| [$4de0: pop  iy]
@@ -2930,7 +2941,7 @@ l_4de0:
 	jbsr	suspend_this_task_B05A            	| [$4de6: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$4de9: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4dea: call nz,display_error_text_B075]
+	FATAL_ERROR   4dea | [$4dea: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$4ded: pop  iy]
 	move.b	#0x01,d0                        	| [$4def: ld   a,$01]
@@ -2938,7 +2949,7 @@ l_4de0:
 	jbsr	set_next_task_B05D            	| [$4df3: call set_next_task_B05D]
 	tst.b	d0                               	| [$4df6: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$4df7: call nz,display_error_text_B075]
+	FATAL_ERROR   4df7 | [$4df7: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                  	| [$4dfa: call task_yield_B051]
 	move.b	#0x0A,d1
@@ -3084,7 +3095,7 @@ l_513c:
 	jbsr	play_sound_B072                   	| [$513e: call play_sound_B072]
 	jbsr	load_evade_object_sprite_pointer_4968	| [$5141: call load_evade_object_sprite_pointer_4968]
 	jbsr	animate_evade_object_4978                            	| [$5144: call $4978]
-	jbsr	l_4d5e                            	| [$5147: call $4D5E]
+	jbsr	let_player_move_4d5e                            	| [$5147: call $4D5E]
 l_514a:
 	jbsr	l_4b15                            	| [$514a: call $4B15]
 	jbsr	move_bull_and_collision_4b5c                            	| [$514d: call $4B5C]
@@ -3098,17 +3109,18 @@ l_514a:
 l_5161:
 	jbsr	load_evade_object_sprite_pointer_4968	| [$5161: call load_evade_object_sprite_pointer_4968]
 	jbsr	animate_evade_object_4978                            	| [$5164: call $4978]
-	jbsr	l_4bfc                            	| [$5167: call $4BFC]
+	jbsr	evade_check_current_player_vs_object_4bfc                            	| [$5167: call $4BFC]
 	move.w	d0,-(sp)                        	| [$516a: push af]
-	jbsr	l_4d5e                            	| [$516b: call $4D5E]
+	jbsr	let_player_move_4d5e                            	| [$516b: call $4D5E]
 	move.w	(sp)+,d0                        	| [$516e: pop  af]
+	* now check return code of collision test
 	tst.b	d0                               	| [$516f: and  a]
 	jeq	l_514a                             	| [$5170: jp   z,$514A]
 	cmp.b	#0x02,d0                         	| [$5173: cp   $02]
 	jeq	l_51ae                             	| [$5175: jp   z,$51AE]
 	cmp.b	#0x01,d0                         	| [$5178: cp   $01]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$517a: call nz,display_error_text_B075]
+	FATAL_ERROR   517a | [$517a: call nz,display_error_text_B075]
 0:
 	move.b	(0x12,a3),d0                    	| [$517d: ld   a,(iy+$12)]
 	tst.b	d0                               	| [$5180: and  a]
@@ -3125,18 +3137,19 @@ l_5191:
 	jbsr	set_next_task_B05D                	| [$5193: call set_next_task_B05D]
 	tst.b	d0                               	| [$5196: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5197: call nz,display_error_text_B075]
+	FATAL_ERROR   5197 | [$5197: call nz,display_error_text_B075]
 0:
 	move.b	#0x02,d0                        	| [$519a: ld   a,$02]
 	move.b	#0x10,d1                        	| [$519c: ld   b,$10]
 	jbsr	set_next_task_B05D                	| [$519e: call set_next_task_B05D]
 	tst.b	d0                               	| [$51a1: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$51a2: call nz,display_error_text_B075]
+	FATAL_ERROR   51a2 | [$51a2: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$51a5: pop  iy]
 	move.b	#0xFF,(0x12,a3)                 	| [$51a7: ld   (iy+$12),$FF]
 	jra	l_514a                             	| [$51ab: jp   $514A]
+	* player breaks evade object
 l_51ae:
 	jbsr	l_4d1c                            	| [$51ae: call $4D1C]
 	move.b	#0x12,d0                        	| [$51b1: ld   a,$12]
@@ -3144,7 +3157,7 @@ l_51ae:
 l_51b6:
 	jbsr	load_evade_object_sprite_pointer_4968	| [$51b6: call load_evade_object_sprite_pointer_4968]
 	jbsr	animate_evade_object_4978                            	| [$51b9: call $4978]
-	jbsr	l_4d5e                            	| [$51bc: call $4D5E]
+	jbsr	let_player_move_4d5e                            	| [$51bc: call $4D5E]
 	bsr		load_a0_from_a3_structure_07_address_mask      	| [$51bf: ld   l,(iy+$07)]
 	                   	| [$51c2: ld   h,(iy+$08)]
 	                   	| [$51c5: res  7,h]
@@ -3180,7 +3193,7 @@ l_51e6:
 	jbsr	suspend_this_task_B05A            	| [$5209: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$520c: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$520d: call nz,display_error_text_B075]
+	FATAL_ERROR   520d | [$520d: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$5210: pop  iy]
 	subq.b	#1,(0x13,a3)                    	| [$5212: dec  (iy+$13)]
@@ -3198,7 +3211,7 @@ l_522c:
 	jbsr	set_next_task_B05D                	| [$522c: call set_next_task_B05D]
 	tst.b	d0                               	| [$522f: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5230: call nz,display_error_text_B075]
+	FATAL_ERROR   5230 | [$5230: call nz,display_error_text_B075]
 0:
 	jra	l_5242                             	| [$5233: jp   $5242]
 l_5236:
@@ -3233,7 +3246,7 @@ l_5266:
 	jbsr	schedule_task_to_start_B057                 	| [$526e: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5271: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5272: call nz,display_error_text_B075]
+	FATAL_ERROR   5272 | [$5272: call nz,display_error_text_B075]
 0:
 	move.b	#0x80,d0                        	| [$5275: ld   a,$80]
 	jbsr	issue_sound_lowlevel_B0AE                            	| [$5277: call $B0AE]
@@ -3375,7 +3388,7 @@ l_53ee:
 	jbsr	suspend_this_task_B05A                 	| [$53f3: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$53f6: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$53f7: call nz,display_error_text_B075]
+	FATAL_ERROR   53f7 | [$53f7: call nz,display_error_text_B075]
 0:
 	move.w	#0x003C,d1                      	| [$53fa: ld   bc,$003C] 60
 	jbsr	fill_video_and_attribute_memory_B030	| [$53fd: call fill_video_and_attribute_memory_B030]
@@ -3394,25 +3407,25 @@ l_540e:
 	jbsr	schedule_task_to_start_B057       	| [$5418: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$541b: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$541c: call nz,display_error_text_B075]
+	FATAL_ERROR   541c | [$541c: call nz,display_error_text_B075]
 0:
 	move.b	#0x02,d0                        	| [$541f: ld   a,$02]
 	jbsr	schedule_task_to_start_B057       	| [$5421: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5424: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5425: call nz,display_error_text_B075]
+	FATAL_ERROR   5425 | [$5425: call nz,display_error_text_B075]
 0:
 	move.b	#0x05,d0                        	| [$5428: ld   a,$05]
 	jbsr	schedule_task_to_start_B057       	| [$542a: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$542d: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$542e: call nz,display_error_text_B075]
+	FATAL_ERROR   542e | [$542e: call nz,display_error_text_B075]
 0:
 	move.b	#0x0F,d0                        	| [$5431: ld   a,$0F]
 	jbsr	schedule_task_to_start_B057       	| [$5433: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5436: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5437: call nz,display_error_text_B075]
+	FATAL_ERROR   5437 | [$5437: call nz,display_error_text_B075]
 0:
 	clr.b	d0                               	| [$543a: ld   a,$00]
 	jbsr	suspend_this_task_B05A                 	| [$543c: call suspend_this_task_B05A]
@@ -3550,13 +3563,13 @@ l_5531:
 	jbsr	schedule_task_to_start_B057       	| [$5533: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5536: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5537: call nz,display_error_text_B075]
+	FATAL_ERROR   5537 | [$5537: call nz,display_error_text_B075]
 0:
 	move.b	#0x0B,d0                        	| [$553a: ld   a,$0B]
 	jbsr	schedule_task_to_start_B057       	| [$553c: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$553f: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5540: call nz,display_error_text_B075]
+	FATAL_ERROR   5540 | [$5540: call nz,display_error_text_B075]
 0:
 	move.b	#0x04,d0                        	| [$5543: ld   a,$04]
 	jbsr	schedule_task_to_start_B057       	| [$5545: call schedule_task_to_start_B057]
@@ -3566,19 +3579,19 @@ l_5531:
 	jbsr	schedule_task_to_start_B057       	| [$554f: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5552: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5553: call nz,display_error_text_B075]
+	FATAL_ERROR   5553 | [$5553: call nz,display_error_text_B075]
 0:
 	move.b	#0x08,d0                        	| [$5556: ld   a,$08]
 	jbsr	schedule_task_to_start_B057       	| [$5558: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$555b: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$555c: call nz,display_error_text_B075]
+	FATAL_ERROR   555c | [$555c: call nz,display_error_text_B075]
 0:
 	move.b	#0x09,d0                        	| [$555f: ld   a,$09]
 	jbsr	schedule_task_to_start_B057       	| [$5561: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5564: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5565: call nz,display_error_text_B075]
+	FATAL_ERROR   5565 | [$5565: call nz,display_error_text_B075]
 0:
 l_5568:
 	clr.b	d0                               	| [$5568: ld   a,$00]
@@ -3602,7 +3615,7 @@ l_5568:
 	jbsr	set_next_task_B05D            	| [$5592: call set_next_task_B05D]
 	tst.b	d0                               	| [$5595: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5596: call nz,display_error_text_B075]
+	FATAL_ERROR   5596 | [$5596: call nz,display_error_text_B075]
 0:
 	jra	l_5568                             	| [$5599: jp   $5568]
 l_559c:
@@ -3610,7 +3623,7 @@ l_559c:
 	jeq	l_55a9                             	| [$559e: jp   z,$55A9]
 	cmp.b	#0x02,d0                         	| [$55a1: cp   $02]
 	jeq	l_5650                             	| [$55a3: jp   z,$5650]
-	jbsr	display_error_text_B075           	| [$55a6: call display_error_text_B075]
+	FATAL_ERROR   55a6 | [$55a6: call display_error_text_B075]
 l_55a9:
 	move.b	#0x80,d0                        	| [$55a9: ld   a,$80]
 	jbsr	play_sound_B072                   	| [$55ab: call play_sound_B072]
@@ -3685,7 +3698,7 @@ l_5643:
 	jbsr	set_next_task_B05D            	| [$5646: call set_next_task_B05D]
 	tst.b	d0                               	| [$5649: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$564a: call nz,display_error_text_B075]
+	FATAL_ERROR   564a | [$564a: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                  	| [$564d: call task_yield_B051]
 l_5650:
@@ -3761,7 +3774,7 @@ l_56ea:
 	jbsr	set_next_task_B05D            	| [$56ee: call set_next_task_B05D]
 	tst.b	d0                               	| [$56f1: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$56f2: call nz,display_error_text_B075]
+	FATAL_ERROR   56f2 | [$56f2: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                  	| [$56f5: call task_yield_B051]
 
@@ -3778,7 +3791,7 @@ l_5709:
 	jbsr	schedule_task_to_start_B057       	| [$5709: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$570c: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$570d: call nz,display_error_text_B075]
+	FATAL_ERROR   570d | [$570d: call nz,display_error_text_B075]
 0:
 	move.b	#0x08,d0                        	| [$5710: ld   a,$08]
 	lea	players_type_human_or_cpu_flags_C02D,a0	| [$5712: ld   hl,players_type_human_or_cpu_flags_C02D]
@@ -3789,19 +3802,19 @@ l_571b:
 	jbsr	schedule_task_to_start_B057       	| [$571b: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$571e: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$571f: call nz,display_error_text_B075]
+	FATAL_ERROR   571f | [$571f: call nz,display_error_text_B075]
 0:
 	move.b	#0x04,d0                        	| [$5722: ld   a,$04]
 	jbsr	schedule_task_to_start_B057       	| [$5724: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5727: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5728: call nz,display_error_text_B075]
+	FATAL_ERROR   5728 | [$5728: call nz,display_error_text_B075]
 0:
 	move.b	#0x78,d0                        	| [$572b: ld   a,$78]
 	jbsr	suspend_this_task_B05A            	| [$572d: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$5730: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5731: call nz,display_error_text_B075]
+	FATAL_ERROR   5731 | [$5731: call nz,display_error_text_B075]
 0:
 	move.b	#0x06,d0                        	| [$5734: ld   a,$06]
 	move.b	d0,unknown_C148                 	| [$5736: ld   (unknown_C148),a]
@@ -3838,7 +3851,7 @@ l_5757:
 	jbsr	schedule_task_to_start_B057       	| [$5770: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5773: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5774: call nz,display_error_text_B075]
+	FATAL_ERROR   5774 | [$5774: call nz,display_error_text_B075]
 0:
 	jra	l_57a7                             	| [$5777: jp   $57A7]
 l_577a:
@@ -3848,7 +3861,7 @@ l_577a:
 	jbsr	schedule_task_to_start_B057       	| [$5780: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5783: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5784: call nz,display_error_text_B075]
+	FATAL_ERROR   5784 | [$5784: call nz,display_error_text_B075]
 0:
 	jra	l_57a7                             	| [$5787: jp   $57A7]
 l_578a:
@@ -3858,7 +3871,7 @@ l_578a:
 	jbsr	schedule_task_to_start_B057       	| [$5790: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5793: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5794: call nz,display_error_text_B075]
+	FATAL_ERROR   5794 | [$5794: call nz,display_error_text_B075]
 0:
 	jra	l_57a7                             	| [$5797: jp   $57A7]
 l_579a:
@@ -3868,7 +3881,7 @@ l_579a:
 	jbsr	schedule_task_to_start_B057       	| [$57a0: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$57a3: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$57a4: call nz,display_error_text_B075]
+	FATAL_ERROR   57a4 | [$57a4: call nz,display_error_text_B075]
 0:
 l_57a7:
 	lea	unknown_C147,a0                	| [$57a7: ld   hl,unknown_C147]
@@ -3916,7 +3929,7 @@ l_57bb:
 l_57cc:
 	cmp.b	#0x03,d0                         	| [$57cc: cp   $03]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$57ce: call nz,display_error_text_B075]
+	FATAL_ERROR   57ce | [$57ce: call nz,display_error_text_B075]
 0:
 	* reached when evade object kills the player
 	* resume all lower tasks
@@ -3926,14 +3939,14 @@ l_57cc:
 	jbsr	suspend_this_task_B05A            	| [$57d8: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$57db: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$57dc: call nz,display_error_text_B075]
+	FATAL_ERROR   57dc | [$57dc: call nz,display_error_text_B075]
 0:
 	move.b	#0x01,d0                        	| [$57df: ld   a,$01]
 	move.b	d0,d1                           	| [$57e1: ld   b,a]
 	jbsr	set_next_task_B05D                	| [$57e2: call set_next_task_B05D]
 	tst.b	d0                               	| [$57e5: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$57e6: call nz,display_error_text_B075]
+	FATAL_ERROR   57e6 | [$57e6: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                   	| [$57e9: call task_yield_B051]
 l_57ec:
@@ -3956,27 +3969,27 @@ l_57f3:
 	jra	l_57f3                             	| [$580f: jp   $57F3]
 l_5812:
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5812: call nz,display_error_text_B075]
+	FATAL_ERROR   5812 | [$5812: call nz,display_error_text_B075]
 0:
 	move.b	#0x0F,d0                        	| [$5815: ld   a,$0F]
 	move.b	#0x20,d1                        	| [$5817: ld   b,$20]
 	jbsr	set_next_task_B05D                	| [$5819: call set_next_task_B05D]
 	tst.b	d0                               	| [$581c: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$581d: call nz,display_error_text_B075]
+	FATAL_ERROR   581d | [$581d: call nz,display_error_text_B075]
 0:
 	move.b	#0x82,d0                        	| [$5820: ld   a,$82]
 	jbsr	suspend_this_task_B05A            	| [$5822: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$5825: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5826: call nz,display_error_text_B075]
+	FATAL_ERROR   5826 | [$5826: call nz,display_error_text_B075]
 0:
 	move.b	#0x01,d0                        	| [$5829: ld   a,$01]
 	move.b	d0,d1                           	| [$582b: ld   b,a]
 	jbsr	set_next_task_B05D                	| [$582c: call set_next_task_B05D]
 	tst.b	d0                               	| [$582f: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5830: call nz,display_error_text_B075]
+	FATAL_ERROR   5830 | [$5830: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                   	| [$5833: call task_yield_B051]
 l_5836:
@@ -4049,7 +4062,7 @@ l_58b9:
 	jbsr	set_next_task_B05D                	| [$58bd: call set_next_task_B05D]
 	tst.b	d0                               	| [$58c0: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$58c1: call nz,display_error_text_B075]
+	FATAL_ERROR   58c1 | [$58c1: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                   	| [$58c4: call task_yield_B051]
 
@@ -4061,13 +4074,13 @@ start_round_58c7:
 	jbsr	schedule_task_to_start_B057       	| [$58ce: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$58d1: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$58d2: call nz,display_error_text_B075]
+	FATAL_ERROR   58d2 | [$58d2: call nz,display_error_text_B075]
 0:
 	move.b	#0x0B,d0                        	| [$58d5: ld   a,$0B]
 	jbsr	schedule_task_to_start_B057       	| [$58d7: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$58da: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$58db: call nz,display_error_text_B075]
+	FATAL_ERROR   58db | [$58db: call nz,display_error_text_B075]
 0:
 	move.b	#0x06,d0                        	| [$58de: ld   a,$06]
 	jbsr	schedule_task_to_start_B057       	| [$58e0: call schedule_task_to_start_B057]
@@ -4078,7 +4091,7 @@ l_58e5:
 	jbsr	suspend_this_task_B05A            	| [$58e8: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$58eb: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$58ec: call nz,display_error_text_B075]
+	FATAL_ERROR   58ec | [$58ec: call nz,display_error_text_B075]
 0:
 	movem.w	(sp)+,d1/d2                    	| [$58ef: pop  bc]
 	subq.b	#1,d1                           	| [...]
@@ -4088,7 +4101,7 @@ l_58e5:
 	jbsr	set_next_task_B05D            	| [$58f5: call set_next_task_B05D]
 	tst.b	d0                               	| [$58f8: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$58f9: call nz,display_error_text_B075]
+	FATAL_ERROR   58f9 | [$58f9: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                   	| [$58fc: call task_yield_B051]
 l_58ff:
@@ -4103,7 +4116,7 @@ l_590b:
 	jbsr	suspend_this_task_B05A            	| [$590e: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$5911: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5912: call nz,display_error_text_B075]
+	FATAL_ERROR   5912 | [$5912: call nz,display_error_text_B075]
 0:
 	movem.w	(sp)+,d1/d2                    	| [$5915: pop  bc]
 	subq.b	#1,d1                           	| [...]
@@ -4113,7 +4126,7 @@ l_590b:
 	jbsr	set_next_task_B05D            	| [$591b: call set_next_task_B05D]
 	tst.b	d0                               	| [$591e: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$591f: call nz,display_error_text_B075]
+	FATAL_ERROR   591f | [$591f: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                   	| [$5922: call task_yield_B051]
 l_5925:
@@ -4128,7 +4141,7 @@ l_5931:
 	jbsr	suspend_this_task_B05A            	| [$5934: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$5937: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5938: call nz,display_error_text_B075]
+	FATAL_ERROR   5938 | [$5938: call nz,display_error_text_B075]
 0:
 	movem.w	(sp)+,d1/d2                    	| [$593b: pop  bc]
 	subq.b	#1,d1                           	| [...]
@@ -4150,14 +4163,14 @@ l_5959:
 	jbsr	suspend_this_task_B05A            	| [$5960: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$5963: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5964: call nz,display_error_text_B075]
+	FATAL_ERROR   5964 | [$5964: call nz,display_error_text_B075]
 0:
 	move.b	#0x01,d0                        	| [$5967: ld   a,$01]
 	move.b	d0,d1                           	| [$5969: ld   b,a]
 	jbsr	set_next_task_B05D            	| [$596a: call set_next_task_B05D]
 	tst.b	d0                               	| [$596d: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$596e: call nz,display_error_text_B075]
+	FATAL_ERROR   596e | [$596e: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                   	| [$5971: call task_yield_B051]
 
@@ -4202,7 +4215,7 @@ l_599c:
 l_59c5:
 	btst.b	#3,d0                           	| [$59c5: bit  3,a]
 	bne	0f
-	jbsr	display_error_text_B075           	| [$59c7: call z,display_error_text_B075]
+	FATAL_ERROR   59c7 | [$59c7: call z,display_error_text_B075]
 0:
 	lea	unknown_C908,a2                	| [$59ca: ld   ix,unknown_C908]
 	move.b	d1,d0                           	| [$59ce: ld   a,b]
@@ -4269,7 +4282,7 @@ l_5a49:
 l_5a61:
 	cmp.b	#0x02,d0                         	| [$5a61: cp   $02]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5a63: call nz,display_error_text_B075]
+	FATAL_ERROR   5a63 | [$5a63: call nz,display_error_text_B075]
 0:
 	lea	level_number_C0DC,a0           	| [$5a66: ld   hl,level_number_C0DC]
 	addq.b	#1,(a0)                         	| [$5a69: inc  (hl)]
@@ -4327,7 +4340,7 @@ l_5ad5:
 l_5ae9:
 	btst.b	#3,d0                           	| [$5ae9: bit  3,a]
 	bne.b	0f
-	jbsr	display_error_text_B075           	| [$5aeb: call z,display_error_text_B075]
+	FATAL_ERROR   5aeb | [$5aeb: call z,display_error_text_B075]
 0:
 	bclr.b	#1,d0                           	| [$5aee: res  1,a]
 	bclr.b	#3,d0                           	| [$5af0: res  3,a]
@@ -4531,7 +4544,7 @@ l_5c47:
 	jbsr	suspend_this_task_B05A            	| [$5c89: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$5c8c: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5c8d: call nz,display_error_text_B075]
+	FATAL_ERROR   5c8d | [$5c8d: call nz,display_error_text_B075]
 0:
 	move.b	computer_skill_C910,d0          	| [$5c90: ld   a,(computer_skill_C910)]
 	subq.b	#1,d0                           	| [$5c93: dec  a]
@@ -4581,7 +4594,7 @@ l_5cdf:
 	jbsr	suspend_this_task_B05A            	| [$5ce9: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$5cec: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5ced: call nz,display_error_text_B075]
+	FATAL_ERROR   5ced | [$5ced: call nz,display_error_text_B075]
 0:
 	move.b	#0x01,d0                        	| [$5cf0: ld   a,$01]
 	move.b	#0x01,d1                        	| [$5cf2: ld   b,$01]
@@ -4637,7 +4650,7 @@ l_5e78:
 	jbsr	suspend_this_task_B05A            	| [$5e80: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$5e83: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5e84: call nz,display_error_text_B075]
+	FATAL_ERROR   5e84 | [$5e84: call nz,display_error_text_B075]
 0:
 	lea	game_mem+0x5F00,a0                  	| [$5e87: ld   hl,table_5F00]
 	move.b	#0x98,d3                        	| [$5e8a: ld   d,$98]
@@ -4646,7 +4659,7 @@ l_5e78:
 	jbsr	suspend_this_task_B05A            	| [$5e91: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$5e94: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5e95: call nz,display_error_text_B075]
+	FATAL_ERROR   5e95 | [$5e95: call nz,display_error_text_B075]
 0:
 
 	movem.w	(sp)+,d1/d2                    	| [$5e98: pop  bc]
@@ -4768,7 +4781,7 @@ l_5f65:
 	jbsr	suspend_this_task_B05A            	| [$5f68: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$5f6b: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5f6c: call nz,display_error_text_B075]
+	FATAL_ERROR   5f6c | [$5f6c: call nz,display_error_text_B075]
 0:
 	jbsr	check_coin_ports_B069             	| [$5f6f: call check_coin_ports_B069]
 	* a good idea would be to also check fire button
@@ -4795,27 +4808,27 @@ l_5f7b:
 	jbsr	schedule_task_to_start_B057       	| [$5f90: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5f93: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5f94: call nz,display_error_text_B075]
+	FATAL_ERROR   5f94 | [$5f94: call nz,display_error_text_B075]
 0:
 	move.b	#0x0B,d0                        	| [$5f97: ld   a,$0B]
 	jbsr	schedule_task_to_start_B057       	| [$5f99: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5f9c: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5f9d: call nz,display_error_text_B075]
+	FATAL_ERROR   5f9d | [$5f9d: call nz,display_error_text_B075]
 0:
 	* player 1/computer task
 	move.b	#0x08,d0                        	| [$5fa0: ld   a,$08]
 	jbsr	schedule_task_to_start_B057       	| [$5fa2: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5fa5: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5fa6: call nz,display_error_text_B075]
+	FATAL_ERROR   5fa6 | [$5fa6: call nz,display_error_text_B075]
 0:
 	* player 2/computer task
 	move.b	#0x09,d0                        	| [$5fa9: ld   a,$09]
 	jbsr	schedule_task_to_start_B057       	| [$5fab: call schedule_task_to_start_B057]
 	tst.b	d0                               	| [$5fae: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5faf: call nz,display_error_text_B075]
+	FATAL_ERROR   5faf | [$5faf: call nz,display_error_text_B075]
 0:
 	jbsr	check_coin_ports_B069             	| [$5fb2: call check_coin_ports_B069]
 	and.b	#0x0C,d0                         	| [$5fb5: and  $0C]
@@ -4841,13 +4854,13 @@ l_5fd1:
 	jbsr	set_next_task_B05D            	| [$5fda: call set_next_task_B05D]
 	tst.b	d0                               	| [$5fdd: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5fde: call nz,display_error_text_B075]
+	FATAL_ERROR   5fde | [$5fde: call nz,display_error_text_B075]
 0:
 	move.b	#0x78,d0                        	| [$5fe1: ld   a,$78]
 	jbsr	suspend_this_task_B05A            	| [$5fe3: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$5fe6: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5fe7: call nz,display_error_text_B075]
+	FATAL_ERROR   5fe7 | [$5fe7: call nz,display_error_text_B075]
 0:
 l_5fea:
 	move.b	#0x01,d0                        	| [$5fea: ld   a,$01]
@@ -4855,7 +4868,7 @@ l_5fea:
 	jbsr	set_next_task_B05D            	| [$5fee: call set_next_task_B05D]
 	tst.b	d0                               	| [$5ff1: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$5ff2: call nz,display_error_text_B075]
+	FATAL_ERROR   5ff2 | [$5ff2: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                   	| [$5ff5: call task_yield_B051]
 l_5ff8:
@@ -4898,7 +4911,7 @@ l_6096:
 	jbsr	suspend_this_task_B05A            	| [$60a0: call suspend_this_task_B05A]
 	cmp.b	#0x0C,d0                         	| [$60a3: cp   $0C]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$60a5: call nz,display_error_text_B075]
+	FATAL_ERROR   60a5 | [$60a5: call nz,display_error_text_B075]
 0:
 	* this tries to compare (7,a2).W in player struct to value
 	* read from the below table
@@ -4944,7 +4957,7 @@ l_60e6:
 	jbsr	suspend_this_task_B05A            	| [$60f9: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$60fc: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$60fd: call nz,display_error_text_B075]
+	FATAL_ERROR   60fd | [$60fd: call nz,display_error_text_B075]
 0:
 	lea	unknown_C220,a3                	| [$6100: ld   iy,unknown_C220]
 	move.b	(0x0a,a3),d0                    	| [$6104: ld   a,(iy+$0a)] current practice technique index (decreasing to $FF)
@@ -4963,7 +4976,7 @@ l_6117:
 	jbsr	suspend_this_task_B05A            	| [$611a: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$611d: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$611e: call nz,display_error_text_B075]
+	FATAL_ERROR   611e | [$611e: call nz,display_error_text_B075]
 0:
 	movem.w	(sp)+,d1/d2                    	| [$6121: pop  bc]
 	subq.b	#1,d1                           	| [$6122: dec  b]
@@ -5003,7 +5016,7 @@ l_6166:
 	jbsr	set_next_task_B05D            	| [$616a: call set_next_task_B05D]
 	tst.b	d0                               	| [$616d: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$616e: call nz,display_error_text_B075]
+	FATAL_ERROR   616e | [$616e: call nz,display_error_text_B075]
 0:
 	jra	l_6096                             	| [$6171: jp   $6096]
 l_6174:
@@ -5015,7 +5028,7 @@ l_6174:
 	jbsr	set_next_task_B05D            	| [$617f: call set_next_task_B05D]
 	tst.b	d0                               	| [$6182: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$6183: call nz,display_error_text_B075]
+	FATAL_ERROR   6183 | [$6183: call nz,display_error_text_B075]
 0:
 	jra	l_6096                             	| [$6186: jp   $6096]
 l_6189:
@@ -5027,7 +5040,7 @@ l_6189:
 	jeq	l_6189                             	| [$6194: jp   z,$6189]
 	cmp.b	#0x0C,d0                         	| [$6197: cp   $0C]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$6199: call nz,display_error_text_B075]
+	FATAL_ERROR   6199 | [$6199: call nz,display_error_text_B075]
 0:
 	jbsr	read_players_joysticks_3bd7                            	| [$619c: call $3DB7]
 	move.b	d0,current_move_p2_C26B                 	| [$619f: ld   (current_move_p2_C26B),a]
@@ -5038,7 +5051,7 @@ l_6189:
 	jbsr	set_next_task_B05D            	| [$61aa: call set_next_task_B05D]
 	tst.b	d0                               	| [$61ad: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$61ae: call nz,display_error_text_B075]
+	FATAL_ERROR   61ae | [$61ae: call nz,display_error_text_B075]
 0:
 	jra	l_6189                             	| [$61b1: jp   $6189]
 l_61b4:
@@ -5293,7 +5306,7 @@ l_64ae:
 	jeq	l_64ae                             	| [$64b5: jp   z,$64AE]
 	cmp.b	#0x0A,d0                         	| [$64b8: cp   $0A]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$64ba: call nz,display_error_text_B075]
+	FATAL_ERROR   64ba | [$64ba: call nz,display_error_text_B075]
 0:
 l_64bd:
 	move.b	#0x3C,d0                        	| [$64bd: ld   a,$3C]
@@ -5302,7 +5315,7 @@ l_64bd:
 	jeq	l_64ae                             	| [$64c4: jp   z,$64AE]
 	tst.b	d0                               	| [$64c7: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$64c8: call nz,display_error_text_B075]
+	FATAL_ERROR   64c8 | [$64c8: call nz,display_error_text_B075]
 0:
 	move.b	match_timer_C167,d0             	| [$64cb: ld   a,(match_timer_C167)]
 	moveq	#1,d7
@@ -5324,7 +5337,7 @@ l_64e8:
 	jbsr	set_next_task_B05D            	| [$64f1: call set_next_task_B05D]
 	tst.b	d0                               	| [$64f4: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$64f5: call nz,display_error_text_B075]
+	FATAL_ERROR   64f5 | [$64f5: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                  	| [$64f8: call task_yield_B051]
 
@@ -5415,7 +5428,7 @@ l_6581:
 	* human player has hit the opponent
 	cmp.b	#0x0D,d0                         	| [$658a: cp   $0D]
 	bcs.b	0f
-	jbsr	display_error_text_B075           	| [$658c: call nc,display_error_text_B075]
+	FATAL_ERROR   658c | [$658c: call nc,display_error_text_B075]
 0:
 	clr.w	d1                               	| [$6593: ld   b,$00]
 	* d0 times 3 to get offset
@@ -5495,7 +5508,7 @@ l_665f:
 	jbsr	suspend_this_task_B05A            	| [$6661: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$6664: and  a]
 	jeq	0f
-	jbsr	display_error_text_B075           	| [$6665: call nz,display_error_text_B075]
+	FATAL_ERROR   6665 | [$6665: call nz,display_error_text_B075]
 0:
 l_6668:
 	move.b	#0x02,d1
@@ -5528,7 +5541,7 @@ l_6668:
 	jbsr	set_next_task_B05D            	| [$66a4: call set_next_task_B05D]
 	tst.b	d0                               	| [$66a7: and  a]
 	beq	0f
-	jbsr	display_error_text_B075           	| [$66a8: call nz,display_error_text_B075]
+	FATAL_ERROR   66a8 | [$66a8: call nz,display_error_text_B075]
 0:
 	move.b	#0x3C,d0                        	| [$66ab: ld   a,$3C]
 	jbsr	suspend_this_task_B05A            	| [$66ad: call suspend_this_task_B05A]
@@ -5544,14 +5557,14 @@ l_6668:
 	jbsr	set_next_task_B05D            	| [$66bf: call set_next_task_B05D]
 	tst.b	d0                               	| [$66c2: and  a]
 	beq	0f
-	jbsr	display_error_text_B075           	| [$66c3: call nz,display_error_text_B075]
+	FATAL_ERROR   66c3 | [$66c3: call nz,display_error_text_B075]
 0:
 	move.b	#0x0B,d0                        	| [$66c6: ld   a,$0B]
 	move.b	#0x0A,d1                        	| [$66c8: ld   b,$0A]
 	jbsr	set_next_task_B05D            	| [$66ca: call set_next_task_B05D]
 	tst.b	d0                               	| [$66cd: and  a]
 	beq	0f
-	jbsr	display_error_text_B075           	| [$66ce: call nz,display_error_text_B075]
+	FATAL_ERROR   66ce | [$66ce: call nz,display_error_text_B075]
 0:
 	move.b	sprite_shadow_ram_C700,d0           	| [$66d1: ld   a,(sprite_shadow_ram_C700)]
 	sub.b	#0x10,d0                         	| [$66d4: sub  $10]
@@ -5613,7 +5626,7 @@ l_6700:
 	jbsr	suspend_this_task_B05A            	| [$674b: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$674e: and  a]
 	beq	0f
-	jbsr	display_error_text_B075           	| [$674f: call nz,display_error_text_B075]
+	FATAL_ERROR   674f | [$674f: call nz,display_error_text_B075]
 0:
 	jbsr	clear_all_referee_bubbles_7a4d                            	| [$6752: call $7A4D]
 	jbsr	l_6a6b                            	| [$6755: call $6A6B]
@@ -5680,7 +5693,7 @@ l_67b8:
 	jbsr	set_next_task_B05D            	| [$67e0: call set_next_task_B05D]
 	tst.b	d0                               	| [$67e3: and  a]
 	beq	0f
-	jbsr	display_error_text_B075           	| [$67e4: call nz,display_error_text_B075]
+	FATAL_ERROR   67e4 | [$67e4: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                   	| [$67e7: call task_yield_B051]
 l_67ea:
@@ -5704,7 +5717,7 @@ l_67ea:
 	jbsr	set_next_task_B05D            	| [$6813: call set_next_task_B05D]
 	tst.b	d0                               	| [$6816: and  a]
 	beq	0f
-	jbsr	display_error_text_B075           	| [$6817: call nz,display_error_text_B075]
+	FATAL_ERROR   6817 | [$6817: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                   	| [$681a: call task_yield_B051]
 l_681d:
@@ -5714,7 +5727,7 @@ l_681d:
 	jbsr	suspend_this_task_B05A            	| [$6821: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$6824: and  a]
 	beq	0f
-	jbsr	display_error_text_B075           	| [$6825: call nz,display_error_text_B075]
+	FATAL_ERROR   6825 | [$6825: call nz,display_error_text_B075]
 0:
 	move.b	#0x0F,d0                        	| [$6828: ld   a,$0F]
 	move.b	#0x09,d1                        	| [$682a: ld   b,$09]
@@ -5726,7 +5739,7 @@ l_681d:
 	jeq	l_683f                             	| [$6834: jp   z,$683F]
 	cmp.b	#0x05,d0                         	| [$6837: cp   $05]
 	jeq	l_68ea                             	| [$6839: jp   z,$68EA]
-	jbsr	display_error_text_B075           	| [$683c: call display_error_text_B075]
+	FATAL_ERROR   683c | [$683c: call display_error_text_B075]
 l_683f:
 	move.b	#0x27,d0                        	| [$683f: ld   a,$27]
 	jbsr	play_sound_B072                   	| [$6841: call play_sound_B072]
@@ -5735,7 +5748,7 @@ l_683f:
 	jbsr	set_next_task_B05D            	| [$6848: call set_next_task_B05D]
 	tst.b	d0                               	| [$684b: and  a]
 	beq	0f
-	jbsr	display_error_text_B075           	| [$684c: call nz,display_error_text_B075]
+	FATAL_ERROR   684c | [$684c: call nz,display_error_text_B075]
 0:
 	jbsr	clear_text_6C2C                   	| [$684f: call clear_text_6C2C]
 	movem.w	(sp)+,d1/d2                    	| [$6852: pop  bc]
@@ -5766,7 +5779,7 @@ l_686e:
 	jbsr	set_next_task_B05D            	| [$688d: call set_next_task_B05D]
 	tst.b	d0                               	| [$6890: and  a]
 	beq	0f
-	jbsr	display_error_text_B075           	| [$6891: call nz,display_error_text_B075]
+	FATAL_ERROR   6891 | [$6891: call nz,display_error_text_B075]
 0:
 	move.b	#0x03,d0                        	| [$6894: ld   a,$03]
 	jbsr	resume_task_B054                  	| [$6896: call resume_task_B054]
@@ -5799,7 +5812,7 @@ l_68b7:
 	jbsr	set_next_task_B05D            	| [$68d5: call set_next_task_B05D]
 	tst.b	d0                               	| [$68d8: and  a]
 	beq	0f
-	jbsr	display_error_text_B075           	| [$68d9: call nz,display_error_text_B075]
+	FATAL_ERROR   68d9 | [$68d9: call nz,display_error_text_B075]
 0:
 	move.b	#0x03,d0                        	| [$68dc: ld   a,$03]
 	jbsr	resume_task_B054                  	| [$68de: call resume_task_B054]
@@ -5815,7 +5828,7 @@ l_68ea:
 	jbsr	set_next_task_B05D            	| [$68f3: call set_next_task_B05D]
 	tst.b	d0                               	| [$68f6: and  a]
 	beq	0f
-	jbsr	display_error_text_B075           	| [$68f7: call nz,display_error_text_B075]
+	FATAL_ERROR   68f7 | [$68f7: call nz,display_error_text_B075]
 0:
 	jbsr	clear_text_6C2C                   	| [$68fa: call clear_text_6C2C]
 	movem.w	(sp)+,d1/d2                    	| [$68fd: pop  bc]
@@ -5866,21 +5879,21 @@ l_6959:
 	jbsr	suspend_this_task_B05A            	| [$6969: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$696c: and  a]
 	jeq	0f
-	jbsr	display_error_text_B075           	| [$696d: call nz,display_error_text_B075]
+	FATAL_ERROR   696d | [$696d: call nz,display_error_text_B075]
 0:
 	move.b	#0x0A,d0                        	| [$6970: ld   a,$0A]
 	clr.b	d1                               	| [$6972: ld   b,$00]
 	jbsr	set_next_task_B05D            	| [$6974: call set_next_task_B05D]
 	tst.b	d0                               	| [$6977: and  a]
 	jeq	0f
-	jbsr	display_error_text_B075           	| [$6978: call nz,display_error_text_B075]
+	FATAL_ERROR   6978 | [$6978: call nz,display_error_text_B075]
 0:
 	move.b	#0x0B,d0                        	| [$697b: ld   a,$0B]
 	clr.b	d1                               	| [$697d: ld   b,$00]
 	jbsr	set_next_task_B05D            	| [$697f: call set_next_task_B05D]
 	tst.b	d0                               	| [$6982: and  a]
 	jeq	0f
-	jbsr	display_error_text_B075           	| [$6983: call nz,display_error_text_B075]
+	FATAL_ERROR   6983 | [$6983: call nz,display_error_text_B075]
 0:
 	jbsr	l_6a6b                            	| [$6986: call $6A6B]
 	lea	game_mem+0x6f56,a0                  	| [$6989: ld   hl,table_6f56]
@@ -5895,7 +5908,7 @@ l_699c:
 	jbsr	suspend_this_task_B05A            	| [$699e: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$69a1: and  a]
 	jeq	0f
-	jbsr	display_error_text_B075           	| [$69a2: call nz,display_error_text_B075]
+	FATAL_ERROR   69a2 | [$69a2: call nz,display_error_text_B075]
 0:
 	jra	l_6668                             	| [$69a5: jp   $6668]
 l_69a8:
@@ -6144,14 +6157,14 @@ l_6bd1:
 	jbsr	suspend_this_task_B05A            	| [$6bd7: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$6bda: and  a]
 	jeq	0f
-	jbsr	display_error_text_B075           	| [$6bdb: call nz,display_error_text_B075]
+	FATAL_ERROR   6bdb | [$6bdb: call nz,display_error_text_B075]
 0:
 	jbsr	clear_text_6C2C                   	| [$6bde: call clear_text_6C2C]
 	move.b	#0x0F,d0                        	| [$6be1: ld   a,$0F]
 	jbsr	suspend_this_task_B05A            	| [$6be3: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$6be6: and  a]
 	jeq	0f
-	jbsr	display_error_text_B075           	| [$6be7: call nz,display_error_text_B075]
+	FATAL_ERROR   6be7 | [$6be7: call nz,display_error_text_B075]
 0:
 	movem.w	(sp)+,d1/d2                    	| [$6bea: pop  bc]
 	subq.b	#1,d1                           	| [...]
@@ -6271,7 +6284,7 @@ l_6cf0:
 	and.b	(0x01,a2),d0                     	| [$6d09: and  (ix+$01)]
 	cmp.b	#0xFF,d0                         	| [$6d0c: cp   $FF]
 	jne	l_6cf0                             	| [$6d0e: jp   nz,$6CF0]
-	jbsr	display_error_text_B075           	| [$6d11: call display_error_text_B075]
+	FATAL_ERROR   6d11 | [$6d11: call display_error_text_B075]
 l_6d14:
 	bsr		load_a0_from_a3_structure_00_address		                    	| [$6d14: ld   l,(iy+$00)]
 			                    	| [$6d17: ld   h,(iy+$01)]
@@ -6335,7 +6348,7 @@ l_6d8b:
 	jbsr	suspend_this_task_B05A            	| [$6dcf: call suspend_this_task_B05A]
 	cmp.b	#0x20,d0                         	| [$6dd2: cp   $20]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$6dd4: call nz,display_error_text_B075]
+	FATAL_ERROR   6dd4 | [$6dd4: call nz,display_error_text_B075]
 0:
 	lea	sprite_shadow_ram_C700,a3          	| [$6dd7: ld   iy,sprite_shadow_ram_C700]
 	move.b	#0xEC,(0x0d,a3)                 	| [$6ddb: ld   (iy+$0d),$EC]
@@ -6380,7 +6393,7 @@ l_6d8b:
 	jbsr	suspend_this_task_B05A            	| [$6e31: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$6e34: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$6e35: call nz,display_error_text_B075]
+	FATAL_ERROR   6e35 | [$6e35: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                   	| [$6e38: call task_yield_B051]
 
@@ -6390,11 +6403,11 @@ girl_hesitating_task_6f89:
 	bclr.b	#7,d0                           	| [$6f8c: res  7,a]
 	cmp.b	#0x20,d0                         	| [$6f8e: cp   $20]
 	jcc	0f
-	jbsr	display_error_text_B075           	| [$6f90: call c,display_error_text_B075]
+	FATAL_ERROR   6f90 | [$6f90: call c,display_error_text_B075]
 0:
 	cmp.b	#0x50,d0                         	| [$6f93: cp   $50]
 	jcs	0f
-	jbsr	display_error_text_B075           	| [$6f95: call nc,display_error_text_B075]
+	FATAL_ERROR   6f95 | [$6f95: call nc,display_error_text_B075]
 0:
 	cmp.b	#0x40,d0                         	| [$6f98: cp   $40]
 	jcc	l_73ab                             	| [$6f9a: jp   nc,$73AB]
@@ -6504,7 +6517,7 @@ l_707a:
 	jbsr	suspend_this_task_B05A            	| [$709c: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$709f: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$70a0: call nz,display_error_text_B075]
+	FATAL_ERROR   70a0 | [$70a0: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$70a3: pop  iy]
 	move.l	(sp)+,a2                        	| [$70a5: pop  ix]
@@ -6520,7 +6533,7 @@ l_707a:
 	jbsr	suspend_this_task_B05A            	| [$70bd: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$70c0: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$70c1: call nz,display_error_text_B075]
+	FATAL_ERROR   70c1 | [$70c1: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$70c4: pop  iy]
 	move.l	(sp)+,a2                        	| [$70c6: pop  ix]
@@ -6540,7 +6553,7 @@ l_707a:
 	jbsr	suspend_this_task_B05A            	| [$70ea: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$70ed: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$70ee: call nz,display_error_text_B075]
+	FATAL_ERROR   70ee | [$70ee: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$70f1: pop  iy]
 	move.l	(sp)+,a2                        	| [$70f3: pop  ix]
@@ -6557,7 +6570,7 @@ l_707a:
 	jbsr	suspend_this_task_B05A            	| [$710b: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$710e: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$710f: call nz,display_error_text_B075]
+	FATAL_ERROR   710f | [$710f: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$7112: pop  iy]
 	move.l	(sp)+,a2                        	| [$7114: pop  ix]
@@ -6577,7 +6590,7 @@ l_707a:
 	jbsr	suspend_this_task_B05A            	| [$7138: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$713b: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$713c: call nz,display_error_text_B075]
+	FATAL_ERROR   713c | [$713c: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$713f: pop  iy]
 	move.l	(sp)+,a2                        	| [$7141: pop  ix]
@@ -6593,7 +6606,7 @@ l_707a:
 	jbsr	suspend_this_task_B05A            	| [$7159: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$715c: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$715d: call nz,display_error_text_B075]
+	FATAL_ERROR   715d | [$715d: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$7160: pop  iy]
 	move.l	(sp)+,a2                        	| [$7162: pop  ix]
@@ -6613,7 +6626,7 @@ l_707a:
 	jbsr	suspend_this_task_B05A            	| [$7186: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$7189: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$718a: call nz,display_error_text_B075]
+	FATAL_ERROR   718a | [$718a: call nz,display_error_text_B075]
 0:
 	move.l	(sp),a3                        	| [$718d: pop  iy]
 	move.l	(sp),a2                        	| [$718f: pop  ix]
@@ -6629,7 +6642,7 @@ l_707a:
 	jbsr	suspend_this_task_B05A            	| [$71a7: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$71aa: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$71ab: call nz,display_error_text_B075]
+	FATAL_ERROR   71ab | [$71ab: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$71ae: pop  iy]
 	move.l	(sp)+,a2                        	| [$71b0: pop  ix]
@@ -6816,7 +6829,7 @@ l_7335:
 	jbsr	suspend_this_task_B05A            	| [$7340: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$7343: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$7344: call nz,display_error_text_B075]
+	FATAL_ERROR   7344 | [$7344: call nz,display_error_text_B075]
 0:
 	lea	task_struct_C1C0,a2                	| [$7347: ld   ix,task_struct_C1C0]
 	move.b	(0x09,a2),d0                    	| [$734b: ld   a,(ix+$09)]
@@ -6966,7 +6979,7 @@ l_748e:
 	jbsr	suspend_this_task_B05A            	| [$7490: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$7493: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$7494: call nz,display_error_text_B075]
+	FATAL_ERROR   7494 | [$7494: call nz,display_error_text_B075]
 0:
 	lea	sprite_shadow_ram_C700,a3          	| [$7497: ld   iy,sprite_shadow_ram_C700]
 	move.b	#0xD4,(0x01,a3)                 	| [$749b: ld   (iy+$01),$D4]
@@ -6975,7 +6988,7 @@ l_748e:
 	jbsr	suspend_this_task_B05A            	| [$74a5: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$74a8: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$74a9: call nz,display_error_text_B075]
+	FATAL_ERROR   74a9 | [$74a9: call nz,display_error_text_B075]
 0:
 	lea	sprite_shadow_ram_C700,a3          	| [$74ac: ld   iy,sprite_shadow_ram_C700]
 	move.b	#0xCE,(0x01,a3)                 	| [$74b0: ld   (iy+$01),$CE]
@@ -7052,7 +7065,7 @@ l_75cd:
 	jeq	l_75cd                             	| [$75d4: jp   z,$75CD]
 	cmp.b	#0x0C,d0                         	| [$75d7: cp   $0C]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$75d9: call nz,display_error_text_B075]
+	FATAL_ERROR   75d9 | [$75d9: call nz,display_error_text_B075]
 0:
 	* also active during evade
 	jbsr	read_players_joysticks_3bd7                            	| [$75dc: call $3DB7]
@@ -7064,7 +7077,7 @@ l_75cd:
 	jbsr	set_next_task_B05D            	| [$75ea: call set_next_task_B05D]
 	tst.b	d0                               	| [$75ed: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$75ee: call nz,display_error_text_B075]
+	FATAL_ERROR   75ee | [$75ee: call nz,display_error_text_B075]
 0:
 	jra	l_75cd                             	| [$75f1: jp   $75CD]
 	lea	table_7652(pc),a2                  	| [$75f4: ld   ix,table_7652]
@@ -7077,7 +7090,7 @@ l_75fe:
 	jbsr	suspend_this_task_B05A            	| [$7600: call suspend_this_task_B05A]
 	cmp.b	#0x0C,d0                         	| [$7603: cp   $0C]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$7605: call nz,display_error_text_B075]
+	FATAL_ERROR   7605 | [$7605: call nz,display_error_text_B075]
 0:
 	movem.w	(sp)+,d1/d2                    	| [$7608: pop  bc]
 	move.l	(sp)+,a2                        	| [$7609: pop  ix]
@@ -7093,7 +7106,7 @@ l_75fe:
 	jbsr	set_next_task_B05D            	| [$761c: call set_next_task_B05D]
 	tst.b	d0                               	| [$761f: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$7620: call nz,display_error_text_B075]
+	FATAL_ERROR   7620 | [$7620: call nz,display_error_text_B075]
 0:
 	jra	l_75fe                             	| [$7623: jp   $75FE]
 l_7626:
@@ -7104,7 +7117,7 @@ l_7626:
 	jbsr	set_next_task_B05D            	| [$762c: call set_next_task_B05D]
 	tst.b	d0                               	| [$762f: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$7630: call nz,display_error_text_B075]
+	FATAL_ERROR   7630 | [$7630: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a2                        	| [$7633: pop  ix]
 	addq.w	#2,a2                           	| [$7635: inc  ix] * 2
@@ -7196,7 +7209,7 @@ l_772c:
 	jeq	l_772c                             	| [$7733: jp   z,$772C]
 	cmp.b	#0x0C,d0                         	| [$7736: cp   $0C]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$7738: call nz,display_error_text_B075]
+	FATAL_ERROR   7738 | [$7738: call nz,display_error_text_B075]
 0:
 	jbsr	read_players_joysticks_3bd7                            	| [$773b: call $3DB7]
 	move.b	d0,current_move_p2_C26B                 	| [$773e: ld   (current_move_p2_C26B),a]
@@ -7207,7 +7220,7 @@ l_772c:
 	jbsr	set_next_task_B05D            	| [$7749: call set_next_task_B05D]
 	tst.b	d0                               	| [$774c: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$774d: call nz,display_error_text_B075]
+	FATAL_ERROR   774d | [$774d: call nz,display_error_text_B075]
 0:
 	jra	l_772c                             	| [$7750: jp   $772C]
 	
@@ -7225,7 +7238,7 @@ l_78ea:
 	jbsr	suspend_this_task_B05A            	| [$7903: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$7906: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$7907: call nz,display_error_text_B075]
+	FATAL_ERROR   7907 | [$7907: call nz,display_error_text_B075]
 0:
 	move.b	#0x08,d0                        	| [$790a: ld   a,$08]
 	jbsr	schedule_task_to_start_B057       	| [$790c: call schedule_task_to_start_B057]
@@ -7263,7 +7276,7 @@ l_7920:
 	jbsr	set_next_task_B05D            	| [$7953: call set_next_task_B05D]
 	tst.b	d0                               	| [$7956: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$7957: call nz,display_error_text_B075]
+	FATAL_ERROR   7957 | [$7957: call nz,display_error_text_B075]
 0:
 	jbsr	task_yield_B051                   	| [$795a: call task_yield_B051]
  * spaces
@@ -7607,7 +7620,7 @@ fight_mainloop_A37B:
 	jeq	fight_mainloop_A37B                	| [$a388: jp   z,fight_mainloop_A37B]
 	cmp.b	#0x0C,d0                         	| [$a38b: cp   $0C]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$a38d: call nz,display_error_text_B075]
+	FATAL_ERROR   a38d | [$a38d: call nz,display_error_text_B075]
 0:
 * this loops (outside the periodic interrupt)
 * when players are shown and fight. either in the intro/demo
@@ -7688,7 +7701,7 @@ cpu_move_done_opponent_can_react_A3E4:
 	jeq	l_a409                             	| [$a401: jp   z,$A409] 0
 	cmp.b	#0xFF,d0                         	| [$a404: cp   $FF]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$a406: call nz,display_error_text_B075]
+	FATAL_ERROR   a406 | [$a406: call nz,display_error_text_B075]
 0:
 * a = $FF: non jump counter attack has been launched by opponent
 * iy is C220
@@ -7714,7 +7727,7 @@ l_a41c:
 	jbsr	set_next_task_B05D            	| [$a41e: call set_next_task_B05D]
 	tst.b	d0                               	| [$a421: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$a422: call nz,display_error_text_B075]
+	FATAL_ERROR   a422 | [$a422: call nz,display_error_text_B075]
 0:
 	jra	fight_mainloop_A37B                	| [$a425: jp   fight_mainloop_A37B]
 
@@ -8346,7 +8359,7 @@ pick_cpu_attack_A802:
 	jbsr	select_cpu_attack_AB2E            	| [$a802: call select_cpu_attack_AB2E]
 	tst.b	d0                               	| [$a805: and  a]
 	bne.b	0f
-	jbsr	display_error_text_B075           	| [$a806: call z,display_error_text_B075] never called a != 0 always!
+	FATAL_ERROR   a806 | [$a806: call z,display_error_text_B075] never called a != 0 always!
 0:
 	jra	cpu_move_done_opponent_can_react_A3E4	| [$a809: jp   cpu_move_done_opponent_can_react_A3E4]
 
@@ -8391,7 +8404,7 @@ l_a84e:
 	jbsr	select_cpu_attack_AB2E            	| [$a84e: call select_cpu_attack_AB2E]
 	tst.b	d0                               	| [$a851: and  a]
 	bne.b	0f
-	jbsr	display_error_text_B075           	| [$a852: call z,display_error_text_B075]
+	FATAL_ERROR   a852 | [$a852: call z,display_error_text_B075]
 0:
 l_a855:
 	jra	cpu_move_done_opponent_can_react_A3E4	| [$a855: jp   cpu_move_done_opponent_can_react_A3E4]
@@ -8431,7 +8444,7 @@ l_a87b:
 l_a886:
 	jbsr	select_cpu_attack_AB2E            	| [$a886: call select_cpu_attack_AB2E]
 	bne.b	0f
-	jbsr	display_error_text_B075           	| [$abf9: call nz,display_error_text_B075]
+	FATAL_ERROR   abf9 | [$abf9: call nz,display_error_text_B075]
 0:
 l_a88d:
 	jra	cpu_move_done_opponent_can_react_A3E4	| [$a88d: jp   cpu_move_done_opponent_can_react_A3E4]
@@ -8994,7 +9007,7 @@ full_blown_hit_ABE3:
 	jeq	l_abfc                             	| [$abf4: jp   z,$ABFC]
 	cmp.b	#0xFF,d0                         	| [$abf7: cp   $FF]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$abf9: call nz,display_error_text_B075]
+	FATAL_ERROR   abf9 | [$abf9: call nz,display_error_text_B075]
 0:
 l_abfc:
 	jra	cpu_move_done_A410                 	| [$abfc: jp   cpu_move_done_A410]
@@ -9012,7 +9025,7 @@ computer_completed_a_blocking_move_ABFF:
 	jbsr	key_value_linear_search_B00C      	| [$ac09: call key_value_linear_search_B00C]
 	tst.b	d0                               	| [$ac0c: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$ac0d: call nz,display_error_text_B075]
+	FATAL_ERROR   ac0d | [$ac0d: call nz,display_error_text_B075]
 0:
 	* table returns a pointer D5/D6 on 16-bit ROM
 	* convert to a pointer
@@ -9039,7 +9052,7 @@ computer_completed_a_blocking_move_ABFF:
 	jeq	l_ac80                             	| [$ac33: jp   z,$AC80]
 	cmp.b	#0xFF,d0                         	| [$ac36: cp   $FF]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$ac38: call nz,display_error_text_B075]
+	FATAL_ERROR   ac38 | [$ac38: call nz,display_error_text_B075]
 0:
 	jra	l_ac80                             	| [$ac3b: jp   $AC80]
 
@@ -9055,7 +9068,7 @@ l_ac3e:
 	jbsr	key_value_linear_search_B00C      	| [$ac48: call key_value_linear_search_B00C]
 	tst.b	d0                               	| [$ac4b: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$ac4c: call nz,display_error_text_B075]
+	FATAL_ERROR   ac4c | [$ac4c: call nz,display_error_text_B075]
 0:
 
 	move.l	a0,-(sp)                        	| [$ac4f: push hl]
@@ -9082,7 +9095,7 @@ l_ac3e:
 	jeq	l_ac80                             	| [$ac78: jp   z,$AC80]
 	cmp.b	#0xFF,d0                         	| [$ac7b: cp   $FF]
 	beq.b	0f
-	jbsr	display_error_text_B075           	| [$ac7d: call nz,display_error_text_B075]
+	FATAL_ERROR   ac7d | [$ac7d: call nz,display_error_text_B075]
 0:
 l_ac80:
 	jra	cpu_move_done_A410                 	| [$ac80: jp   cpu_move_done_A410]
@@ -9188,7 +9201,7 @@ l_acff:
 	move.b	d1,d0                           	| [$ad0a: ld   a,b] restore read value of a (number of waiting frames)
 											| [$ad0b: and  a]
 	bne.b	0f
-	jbsr	display_error_text_B075           	| [$ad0c: call z,display_error_text_B075] can't happen! we just testedf it
+	FATAL_ERROR   ad0c | [$ad0c: call z,display_error_text_B075] can't happen! we just testedf it
 0:
 
 	move.l	a3,-(sp)                        	| [$ad0f: push iy]
@@ -9369,8 +9382,6 @@ set_normal_screen_b060:
 
 
 	
-display_error_text_B075:
-	jra	display_error_text_B186            	| [$b075: jp   display_error_text_B186]
 
 l_b07b:
 	jra	l_e029                             	| [$b07b: jp   $E029]
@@ -9584,7 +9595,7 @@ resume_tasks_b015:
 resume_tasks_b171:
 	cmp.b	#0x18,d0                         	| [resume_tasks_b171: cp   $18]
 	bcs.b	0f
-	jbsr	display_error_text_B186           	| [$b173: call nc,display_error_text_B186]
+	FATAL_ERROR   b173 | [$b173: call nc,display_error_text_B186]
 0:
 	move.l	a3,-(sp)                        	| [$b176: push iy]
 l_b178:
@@ -9597,6 +9608,9 @@ l_b178:
 	move.l	(sp)+,a3                        	| [$b183: pop  iy]
 	rts                                    	| [$b185: ret]
 
+display_error_text_misc:
+	moveq	#0,d7
+display_error_text_B075:
 display_error_text_B186:
 	move.l	(sp)+,a2                        	| [$b186: pop  ix]
 	jbsr	disable_interrupts_BBE2           	| [$b188: call disable_interrupts_BBE2]
@@ -9652,7 +9666,7 @@ l_b1c4:
 	tst.b	d0                   	| [$b1d3: and  a]
 	
 	beq.b	0f
-	jbsr	display_error_text_B186           	| [$b1d4: call nz,display_error_text_B186]
+	FATAL_ERROR   b1d4 | [$b1d4: call nz,display_error_text_B186]
 0:
 	jra	l_b1de                             	| [$b1d7: jp   $B1DE]
 l_b1da:
@@ -10890,7 +10904,7 @@ coin_inserted_bae6:
 	move.b	d0,(0x00,a2)                    	| [$baf0: ld   (ix+$00),a]
 	subq.b	#1,(a0)                         	| [$baf3: dec  (hl)]
 	beq.b	0f
-	jbsr	display_error_text_B186           	| [$baf4: call nz,display_error_text_B186]
+	FATAL_ERROR   baf4 | [$baf4: call nz,display_error_text_B186]
 0:
 	jra	l_bb40                             	| [$baf7: jp   $BB40]
 	* 2 credit per coin
@@ -10903,7 +10917,7 @@ l_bafa:
 	move.b	d0,(0x00,a2)                    	| [$bb05: ld   (ix+$00),a]
 	subq.b	#1,(a0)                         	| [$bb08: dec  (hl)]
 	beq.b	0f
-	jbsr	display_error_text_B186           	| [$bb09: call nz,display_error_text_B186]
+	FATAL_ERROR   bb09 | [$bb09: call nz,display_error_text_B186]
 0:
 	jra	l_bb40                             	| [$bb0c: jp   $BB40]
 l_bb0f:
@@ -10918,7 +10932,7 @@ l_bb0f:
 	move.b	d0,(0x00,a2)                    	| [$bb20: ld   (ix+$00),a]
 	subq.b	#2,(a0)                         	| [$bb23: dec  (hl)] * 2
 	beq.b	0f
-	jbsr	display_error_text_B186           	| [$bb25: call nz,display_error_text_B186]
+	FATAL_ERROR   bb25 | [$bb25: call nz,display_error_text_B186]
 0:
 	jra	l_bb40                             	| [$bb28: jp   $BB40]
 l_bb2b:
@@ -10931,7 +10945,7 @@ l_bb2b:
 	move.b	d0,(0x00,a2)                    	| [$bb37: ld   (ix+$00),a]
 	subq.b	#3,(a0)                         	| [$bb3a: dec  (hl)] * 3
 	beq.b	0f
-	jbsr	display_error_text_B186           	| [$bb3d: call nz,display_error_text_B186]
+	FATAL_ERROR   bb3d | [$bb3d: call nz,display_error_text_B186]
 0:
 l_bb40:
 	rts                                    	| [$bb40: ret]
@@ -11011,6 +11025,7 @@ play_sound_B072:
 play_sound_BBB5:
 	move.w	d0,-(sp)                        	| [$bbb5: push af]
 	move.b	dip_switches_copy_C030,d0       	| [$bbb6: ld   a,(dip_switches_copy_C030)]
+	* attract mode sound
 	btst.b	#6,d0                           	| [$bbb9: bit  6,a] demo sounds enabled
 	jne	l_bbc6                             	| [$bbbb: jp   nz,$BBC6] if demo sounds enabled, play anyway
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$bbbe: ld   a,(players_type_human_or_cpu_flags_C02D)]
@@ -11361,20 +11376,20 @@ l_e218:
 	jra	(a0)                               	| [$e227: jp   (hl)]
 address_table_E228:
 	.long	l_e32b                           	|  $e228
-	.long	display_error_text_B186          	|  $e22a
-	.long	display_error_text_B186          	|  $e22c
+	.long	display_error_text_misc          	|  $e22a
+	.long	display_error_text_misc          	|  $e22c
 	.long	l_e44f                           	|  $e22e
 	.long	l_f173                           	|  $e230
-	.long	display_error_text_B186          	|  $e232
+	.long	display_error_text_misc          	|  $e232
 	.long	l_ec89                           	|  $e234
 	.long	l_e68a                           	|  $e236
 	.long	l_e718                           	|  $e238
 	.long	l_e930                           	|  $e23a
-	.long	display_error_text_B186          	|  $e23c
-	.long	display_error_text_B186          	|  $e23e
+	.long	display_error_text_misc          	|  $e23c
+	.long	display_error_text_misc          	|  $e23e
 	.long	l_e32b                           	|  $e240
-	.long	-1
-	.long	display_error_text_B186          	|  $e244
+	.long	display_error_text_misc				|  $e242 (was -1)
+	.long	display_error_text_misc          	|  $e244
 	.long	l_ec89                           	|  $e246
 	.long	l_e32b                           	|  $e248
 	.long	l_e32b                           	|  $e24a
@@ -11985,7 +12000,7 @@ l_e96d:
 	jbsr	set_next_task_B6AE            	| [$e989: call set_next_task_B6AE]
 	tst.b	d0                               	| [$e98c: and  a]
 	beq.b	0f
-	jbsr	display_error_text_B186           	| [$e98d: call nz,display_error_text_B186]
+	FATAL_ERROR   e98d | [$e98d: call nz,display_error_text_B186]
 0:
 	move.b	#0x0B,d1                        	| [$e990: ld   b,$0B]
 l_e992:

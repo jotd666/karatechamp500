@@ -2813,7 +2813,7 @@ get_current_frame_contents_478D:
 47FF: CA A2 42    jp   z,$48A8
 4802: CD C2 43    call load_evade_object_sprite_pointer_4968
 4805: CD D2 43    call $4978
-4808: CD F6 4B    call $4BFC
+4808: CD F6 4B    call evade_check_current_player_vs_object_4bfc
 480B: F5          push af
 480C: CD 5E 47    call $4D5E
 480F: A7          and  a
@@ -3169,6 +3169,9 @@ table_4B75:
 table_4B79:
 	dc.b	0x00,0x0f,0x00,0xff ; table_4B79
 
+; check collisions
+; > D0: 1 if object wins, 2 if player wins
+evade_check_player_vs_object_4b7d:
 4B7D: FD E5       push iy
 4B7F: FD 6E 10    ld   l,(iy+$10)
 4B82: FD 66 11    ld   h,(iy+$11)
@@ -3222,6 +3225,8 @@ table_4B79:
 4BF6: CA FB 4B    jp   z,$4BFB
 4BF9: 3E 01       ld   a,$01
 4BFB: C9          ret
+
+evade_check_current_player_vs_object_4bfc:
 4BFC: 21 40 68    ld   hl,player_1_struct_C240
 4BFF: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 4C02: CB 57       bit  2,a
@@ -3229,7 +3234,7 @@ table_4B79:
 4C07: 21 C0 68    ld   hl,player_2_struct_C260
 4C0A: FD 75 10    ld   (iy+$10),l
 4C0D: FD 74 11    ld   (iy+$11),h
-4C10: CD D7 4B    call $4B7D
+4C10: CD D7 4B    call evade_check_player_vs_object_4b7d
 4C13: C9          ret
 
 4C14: FD 5E 0D    ld   e,(iy+$07)
@@ -3684,7 +3689,7 @@ bull_task_50F2:
 515E: CD D8 B0    call play_sound_B072
 5161: CD C2 43    call load_evade_object_sprite_pointer_4968
 5164: CD D2 43    call $4978
-5167: CD F6 4B    call $4BFC
+5167: CD F6 4B    call evade_check_current_player_vs_object_4bfc
 516A: F5          push af
 516B: CD 5E 47    call $4D5E
 516E: F1          pop  af

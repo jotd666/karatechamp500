@@ -26,23 +26,24 @@ LOSE_FIGHT_MUSIC = 1
 WIN_FIGHT_MUSIC = 2
 MAIN_THEME_MUSIC = 3
 
+music_vol = 24
 
 EMPTY_SND = "EMPTY_SND"
 sound_dict = {
-"INTRO_TUNE_SND"              :{"index":1,"pattern":MAIN_THEME_MUSIC,"loops":True,"volume":32},
-"LOSE_TUNE_SND"              :{"index":2,"pattern":LOSE_FIGHT_MUSIC,"loops":False,"volume":32},
-"START_TUNE_SND"              :{"index":3,"pattern":START_FIGHT_MUSIC,"loops":False,"volume":32},
-"WIN_TUNE_SND"             :{"index":0x04,"pattern":WIN_FIGHT_MUSIC,"loops":False,"volume":32},
+"INTRO_TUNE_SND"              :{"index":1,"pattern":MAIN_THEME_MUSIC,"loops":True,"volume":music_vol},
+"LOSE_TUNE_SND"              :{"index":2,"pattern":LOSE_FIGHT_MUSIC,"loops":False,"volume":music_vol},
+"START_TUNE_SND"              :{"index":3,"pattern":START_FIGHT_MUSIC,"loops":False,"volume":music_vol},
+"WIN_TUNE_SND"             :{"index":0x04,"pattern":WIN_FIGHT_MUSIC,"loops":False,"volume":music_vol},
 "BLOW_SND"               :{"index":0x11,"channel":0,"sample_rate":hq_sample_rate},
 "KIAI_1_SND"             :{"index":0x21,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "KIAI_2_SND"             :{"index":0x22,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "SECOND_SND"             :{"index":0x08,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
-"STOP_SND"             :{"index":9,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"STOP_SND"             :{"index":0x24,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "SWOOSH_1_SND"             :{"index":0x15,"channel":1,"loops":False,"sample_rate":hq_sample_rate},
 "SWOOSH_2_SND"             :{"index":0x16,"channel":1,"loops":False,"sample_rate":hq_sample_rate},
-"JUDGE_SND"             :{"index":12,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
-"FULL_POINT_SND"             :{"index":0x27,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
-"HALF_POINT_SND"             :{"index":13,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"JUDGE_SND"             :{"index":0x28,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"FULL_POINT_SND"             :{"index":0x27,"channel":3,"loops":False,"sample_rate":hq_sample_rate},
+"HALF_POINT_SND"             :{"index":0x26,"channel":3,"loops":False,"sample_rate":hq_sample_rate},
 #"BULL_SND"             :{"index":0x10,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "FALL_SND"             :{"index":0x10,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "EVADE_SND"             :{"index":0x13,"channel":0,"loops":False,"sample_rate":hq_sample_rate},

@@ -52,8 +52,14 @@ else:
 
 used_sprite_cluts = {k:v for k,v in used_sprite_cluts.items() if k not in range(929,945)}
 # counter a lot of parasites
+
+wr_exceptions = {1023,1024}
+# don't red/white some objects lost around player red/white frames
+wr_exceptions.update(range(500,513+1))
+wr_exceptions.update(range(900,916+1))
+wr_exceptions.update(range(1000,1007+1))
 for k,v in used_sprite_cluts.items():
-    if k < 1121 and k not in {1023,1024}:
+    if k < 1121 and k not in wr_exceptions:
         white_red_only_sprites.add(k)
 
 for k in white_red_only_sprites:
@@ -145,6 +151,13 @@ rgb4_dict = {bitplanelib.round_color(p,0xF0):p for p in palette_256}
 # basically, the 14 first colors of the palette are used, 2 extra colors are per level, and 0 to 2 colors aren't used
 # and can be replaced by colors that are used in this level
 
+# very few colors on bonus stages need to be changed so we can always match the scenery
+# 16-color palette. So very few compromises!
+replacement_color_dict = {
+(0xF0,0x80,0x80):(0xF0,0xC0,0xC0),  # bonzai leaves but also a color in planks
+(0xA0,0xA0,0xA0):(0xB0,0xB0,0xB0)  # rock
+}
+
 params = [
 [{},[0,0xCCC]],  # 0
 [{},[0xCA3,0xCCC]], #1
@@ -168,6 +181,9 @@ contextual_palettes = [[repl.get(c,c) for c in palette_16_rgb4[:14]+last_cols] f
 
 palette_16_rgb = [bitplanelib.rgb4_to_rgb_triplet(p) for p in palette_16_rgb4]
 palettes_to_try = [[bitplanelib.rgb4_to_rgb_triplet(p) for p in cp] for cp in contextual_palettes]
+if os.path.exists(dump_dir):
+    with open(os.path.join(dump_dir,"palettes.json"),"w") as f:
+        json.dump(palettes_to_try,f,indent=2)
 
 palette_256_as_rgb4 = [bitplanelib.to_rgb4_color(x) for x in palette_256]
 palette_256_rounded = [bitplanelib.round_color(x,0xF0) for x in palette_256]
@@ -234,11 +250,6 @@ sprites = collections.defaultdict(dict)
 side = 16
 transparent = (202,0,202)
 
-# very few colors on bonus stages need to be changed so we can always match the scenery
-# 16-color palette. So very few compromises!
-replacement_color_dict = {
-(0xF0,0x80,0x80):(0xF0,0xC0,0xC0)  # bonzai leaves but also a color in planks
-}
 
 for k,chardat in enumerate(block_dict["sprite"]["data"]):
     img = Image.new('RGB',(side,side))
