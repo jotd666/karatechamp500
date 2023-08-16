@@ -152,6 +152,7 @@
 	.global	unknown_C7F8
 	.global	unknown_C7FB
 	.global	unknown_C901
+	.global level_pointer_C902
 	.global	unknown_C908
 	.global	unknown_C909
 	.global	unknown_C914
@@ -521,7 +522,9 @@ unknown_C7FB:
 player_rank_C900:
 	ds.b	1
 unknown_C901:
-	ds.b	7
+	ds.b	1
+level_pointer_C902:
+	ds.b	6
 unknown_C908:
 	ds.b	1
 unknown_C909:

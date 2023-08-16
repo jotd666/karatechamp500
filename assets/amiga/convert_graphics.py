@@ -37,7 +37,7 @@ if os.path.exists(rw_json):
     with open(rw_json) as f:
         used_cluts = json.load(f)
     # key as integer, list as set for faster lookup (not that it matters...)
-    used_tile_cluts = {int(k):set(v) for k,v in used_cluts["tiles"].items()}
+    used_tile_cluts_ = {int(k):set(v) for k,v in used_cluts["tiles"].items()}
     used_sprite_cluts = {int(k):set(v) for k,v in used_cluts["sprites"].items()}
 
 
@@ -45,13 +45,25 @@ if os.path.exists(rw_json):
     # add score points in 2 colors too
     white_red_only_sprites.update(range(1009,1019))
 
+    used_tile_cluts = collections.defaultdict(set)
+    used_tile_cluts.update(used_tile_cluts_)
 else:
     print("Warning: no {} file, no tile/clut filter, expect BIG graphics.68k file")
     used_tile_cluts = None
     used_sprite_cluts = None
 
-used_sprite_cluts = {k:v for k,v in used_sprite_cluts.items() if k not in range(929,945)}
-# counter a lot of parasites
+
+# all alphanum chars can use those cluts
+alpha_clut = {0,
+    2,
+    14,
+    17,
+    18,
+    19,
+    22}
+for k in range(10+26+1):
+    used_tile_cluts[k].update(alpha_clut)
+
 
 wr_exceptions = {1023,1024}
 # don't red/white some objects lost around player red/white frames
@@ -71,8 +83,8 @@ parasite_sprites.update(range(21,26))
 
 used_sprite_cluts = {k:v for k,v in used_sprite_cluts.items() if k not in parasite_sprites}
 
-dump_tiles = False
-dump_sprites = True
+dump_tiles = True
+dump_sprites = False
 
 if dump_tiles or dump_sprites:
     dump_dir = os.path.join(this_dir,"dumps")
@@ -154,7 +166,7 @@ rgb4_dict = {bitplanelib.round_color(p,0xF0):p for p in palette_256}
 # load a dict of tile/code => level where it's used. It can be used in several levels it doesn't matter the same
 # colors should be always at the same location
 
-tile_code_per_level = dict()
+tile_code_per_level = collections.defaultdict(dict)
 
 level_tiles_dir = os.path.join(this_dir,"level_tiles")
 for level_index in range(0,12):
@@ -165,8 +177,10 @@ for level_index in range(0,12):
         for tile_index,clut_index in zip(tiles,attributes):
             color_code = (clut_index>> 3) & 0x1f
             tile_code =  tile_index + ((clut_index & 7) << 8);
-            tile_code_per_level[tile_code,color_code] = level_index
-
+            tile_code_per_level[tile_code][color_code] = level_index
+            if tile_code not in used_tile_cluts:
+                used_tile_cluts[tile_code] = set()
+            used_tile_cluts[tile_code].add(color_code)
 
 
 # very few colors on bonus stages need to be changed so we can always match the scenery
@@ -176,12 +190,12 @@ replacement_color_dict = {
 (0xA0,0xA0,0xA0):(0xB0,0xB0,0xB0)  # rock
 }
 
-params = [
+params_ = [
 [{},[0,0xCCC]],  # 0
 [{},[0xCA3,0xCCC]], #1
 [{},[0x0C0,0xCCC]], #2
 [{0xC0:0x80C},[0xCA3,0x8F0]], #3
-[{0xC0:0x80C,0x800:0x8F0},[0xCA3,0xCCC]], #4
+[{0xC0:0x80C},[0xCA3,0xCCC]], #4
 [{},[0xCA3,0xCCC]], #5
 [{0xC0:0x80C},[0xCA3,0x8F0]], #6
 [{0xC0:0x80C,0xCA3:0xC80},[0x8F0,0xCCC]], #7
@@ -193,9 +207,9 @@ params = [
 [{},[0,0xCCC]],  #13
 ]
 # invert mapping, data entered is reversed, but I don't want to swap it manually
-params = [[{v:k for k,v in d.items()},c] for d,c in params]
+params = [[{v:k for k,v in d.items()},c] for d,c in params_]
 
-contextual_palettes = [[repl.get(c,c) for c in palette_16_rgb4[:14]+last_cols] for repl,last_cols in params]
+contextual_palettes = [[repl.get(c,c) for c in palette_16_rgb4[:14]]+last_cols for repl,last_cols in params]
 
 palette_16_rgb = [bitplanelib.rgb4_to_rgb_triplet(p) for p in palette_16_rgb4]
 palettes_to_try = [[bitplanelib.rgb4_to_rgb_triplet(p) for p in cp] for cp in contextual_palettes]
@@ -233,22 +247,34 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
 
     for cidx,colors in enumerate(bg_cluts):
 
-        if not used_tile_cluts or (k in used_tile_cluts and cidx in used_tile_cluts[k]):
+        if used_tile_cluts is None or (k in used_tile_cluts and cidx in used_tile_cluts[k]):
             d = iter(chardat)
             for i in range(8):
                 for j in range(8):
                     v = next(d)
                     img.putpixel((j,i),colors[v])
 
-            for pal in palettes_to_try:
 
-                try:
-                    character_codes.append(bitplanelib.palette_image2raw(img,None,pal))
-                    break
-                except bitplanelib.BitplaneException:
-                    pass
+            sd = tile_code_per_level.get(k)
+
+            if sd is None:
+                level = 0
             else:
-                raise Exception("No matching palette for tile {}, colors {}".format(k,colors))
+                level = sd.get(cidx)
+                if level is None:
+                    level = 0
+                else:
+                    level += 1
+
+            pal = palettes_to_try[level]
+            try:
+                character_codes.append(bitplanelib.palette_image2raw(img,None,pal))
+            except (KeyError,bitplanelib.BitplaneException):
+                msg = "No matching palette for tile ${:x} col ${:x}, colors {} in level palette {}, palette={}, missing={}".format(k,cidx,colors,level,pal,set(colors)-set(pal))
+                if level==5:
+                    print(msg)
+                character_codes.append(bytes(32))
+
             if dump_tiles:
                 scaled = ImageOps.scale(img,5,0)
                 scaled.save(os.path.join(tile_dump_dir,f"char_{k:02}_{cidx}.png"))

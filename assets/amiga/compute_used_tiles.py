@@ -44,17 +44,6 @@ for kn,tv in used_cluts_.items():
 used_cluts_ = None
 
 
-# all alphanum chars can use those cluts
-alpha_clut = {0,
-    2,
-    14,
-    17,
-    18,
-    19,
-    22}
-for k in range(10+26+1):
-    used_cluts["tiles"][k].update(alpha_clut)
-
 
 used_cluts_copy = copy.deepcopy(used_cluts)
 
@@ -103,5 +92,5 @@ for k in ["tiles","sprites"]:
 
 if used_cluts_copy != used_cluts:
     print("clut data was updated!")
-with open(rw_json,"w") as f:
+with open(rw_json+"new.json","w") as f:
    json.dump(used_cluts,f,indent=2)

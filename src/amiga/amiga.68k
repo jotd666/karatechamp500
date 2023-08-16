@@ -1711,7 +1711,6 @@ osd_r_colorram:
 * should preserve all registers
 
 osd_w_videoram:
-	move.l	#bg_videoram,0x200   | DEBUG
      .ifeq OPT_DISABLE_BG_LAYER
 	movem.l	d0-d3/d6/a0-a3,-(a7)
 	
@@ -1781,19 +1780,37 @@ update_bg_tile:
 	moveq	#0,d2
 	* not working!!
 
-	move.b	background_and_state_bits_C911,d2
-	and.w	#0xF,d2
-1:
-	cmp.b	current_background,d2
-	beq.b	0f
-	move.b	d2,current_background
-	lea 	palette_table(pc),a0
-	move.b	(a0,d2.w),d2
-	lsl.w	#5,d2
+	move.b	#0,0x200
+	move.w	level_pointer_C902,d2
+	cmp.w	current_background,d2
+	beq.b	1f
+	move.w	d2,current_background
+
+	ror.w	#8,d2		| swap endianness
+	sub.l	#0x534d,d2	| pointer on level 1
+	bne.b	12f
+	* bamboo practice: same as level 3
+	move.w	#2,d2
+	bra.b	10f
+12:
+	divu	#5,d2
+	cmp.w	#24,d2		| not a level if >= 24
+	bcs.b	0f
+	* default palette (title, menu...)
+	moveq	#0,d2
+	bra.b	11f
+0:
+	cmp.w	#12,d2
+	bcs.b	10f
+	lsr.w	#1,d2		| same background, divide by 2
+10:
+	addq.w	#1,d2		| level palettes start at 1
+	lsl.w	#5,d2		| times 32 to select proper palette
+11:
 	lea		palette(pc),a0
 	add.w	d2,a0
 	bsr		load_palette_in_copperlist
-0:	
+1:	
 	* compute Y
 	and.w	#0xFF,d0	| mask up to 255
 	and.w	#0xFF,d1	| mask up to 255
@@ -2451,6 +2468,8 @@ bg_displayed_screen_ptr:
 	.else
 	.long	bg_screen_data_1
 	.endif
+current_background:
+	.word	0xFF
 
 
 	.include	"sound_entries.68k"
@@ -2469,8 +2488,6 @@ music_muted:
 	.byte	0
 cheat_used:
 	.byte	0
-current_background:
-	.byte	0xFF
 dosname:
 	.ascii	"dos.library"
 	.byte	0
@@ -2489,24 +2506,7 @@ _end_of_ng_code:
 	.align 2
 palette:
 	.include "palette.68k"
-palette_table:
-	dc.b	0		| 0: title but also level 4	palette is then different!
-	dc.b	11		| 1: dojo
-	dc.b	3		| 2: bamboos
-	dc.b	3       | 3: practice but also level 10
-	dc.b	2       | 4: fuji
-	dc.b	8       | 5: mills
-	dc.b	9       | 6: tipee
-	dc.b	1		| 7: pier
-	dc.b	6		| 8: field
-	dc.b	8		| 9: city
-	dc.b	5		| A: boat
-	dc.b	12		| B: moon
-	dc.b	0		| C:
-	dc.b	0		| D:
-	dc.b	0		| E:
-	dc.b	0		| F:
-	.align	2
+
 
 	
 	
