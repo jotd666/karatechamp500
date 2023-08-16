@@ -151,6 +151,24 @@ rgb4_dict = {bitplanelib.round_color(p,0xF0):p for p in palette_256}
 # basically, the 14 first colors of the palette are used, 2 extra colors are per level, and 0 to 2 colors aren't used
 # and can be replaced by colors that are used in this level
 
+# load a dict of tile/code => level where it's used. It can be used in several levels it doesn't matter the same
+# colors should be always at the same location
+
+tile_code_per_level = dict()
+
+level_tiles_dir = os.path.join(this_dir,"level_tiles")
+for level_index in range(0,12):
+    level_file = os.path.join(level_tiles_dir,f"{level_index+1:02d}.bin")
+    with open(level_file,"rb") as f:
+        tiles = f.read(0x400)
+        attributes = f.read(0x400)
+        for tile_index,clut_index in zip(tiles,attributes):
+            color_code = (clut_index>> 3) & 0x1f
+            tile_code =  tile_index + ((clut_index & 7) << 8);
+            tile_code_per_level[tile_code,color_code] = level_index
+
+
+
 # very few colors on bonus stages need to be changed so we can always match the scenery
 # 16-color palette. So very few compromises!
 replacement_color_dict = {
@@ -223,6 +241,7 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
                     img.putpixel((j,i),colors[v])
 
             for pal in palettes_to_try:
+
                 try:
                     character_codes.append(bitplanelib.palette_image2raw(img,None,pal))
                     break
@@ -230,14 +249,12 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
                     pass
             else:
                 raise Exception("No matching palette for tile {}, colors {}".format(k,colors))
-
             if dump_tiles:
                 scaled = ImageOps.scale(img,5,0)
                 scaled.save(os.path.join(tile_dump_dir,f"char_{k:02}_{cidx}.png"))
         else:
             character_codes.append(None)
     character_codes_list.append(character_codes)
-
 
 
 ##with open(os.path.join(this_dir,"sprite_config.json")) as f:

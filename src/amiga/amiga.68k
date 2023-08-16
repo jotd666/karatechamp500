@@ -1711,7 +1711,8 @@ osd_r_colorram:
 * should preserve all registers
 
 osd_w_videoram:
-    .ifeq OPT_DISABLE_BG_LAYER
+	move.l	#bg_videoram,0x200   | DEBUG
+     .ifeq OPT_DISABLE_BG_LAYER
 	movem.l	d0-d3/d6/a0-a3,-(a7)
 	
 	sub.w	#SCREEN_ADDRESS,d6
@@ -1741,7 +1742,7 @@ osd_w_videoram:
 * should preserve all registers
 
 osd_w_colorram:
-    .ifeq OPT_DISABLE_BG_LAYER
+   .ifeq OPT_DISABLE_BG_LAYER
 	movem.l	d0-d3/d6/a0-a3,-(a7)
 	sub.w	#SCREEN_ADDRESS+0x400,d6
 	cmp.w	#0x400,d6
@@ -1804,7 +1805,7 @@ update_bg_tile:
 	* then run the compute_used_cluts.py program again
 	
 	lea		tile_log_table,a0
-	move.l	a0,0x104
+	move.l	a0,0x104  | DEBUG
 	movem.l	d0-d1,-(a7)
 	and.l	#0xFFFF,d0
 	lsl.w	#8,d0

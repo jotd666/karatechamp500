@@ -6396,6 +6396,7 @@ l_6d8b:
 	sub.b	#0x18,d0                         	| [$6def: sub  $18]
 	move.b	d0,d4                           	| [$6df1: ld   e,a]
 	move.b	#0x01,d5                        	| [$6df2: ld   h,$01]
+	* "very"
 	jbsr	referee_shows_winner_7a6a                            	| [$6df4: call $7A6A]
 	move.b	#0x01,d1
 	move.b	#0x1A,d2                      	| [$6df7: ld   bc,$011A]
@@ -6407,6 +6408,7 @@ l_6d8b:
 	move.b	d0,d4                           	| [$6e05: ld   e,a]
 	move.b	#0x01,d5                        	| [$6e06: ld   h,$01]
 	lea	unknown_C7C8,a2                	| [$6e08: ld   ix,unknown_C7C8]
+	* "good"
 	jbsr	referee_shows_bubble_7a6e                            	| [$6e0c: call $7A6E]
 	move.b	#0x01,d1
 	move.b	#0x1B,d2                      	| [$6e0f: ld   bc,$011B]
@@ -6418,6 +6420,7 @@ l_6d8b:
 	move.b	d0,d4                           	| [$6e1d: ld   e,a]
 	lea	unknown_C7BC,a2                	| [$6e1e: ld   ix,unknown_C7BC]
 	move.b	#0x01,d5                        	| [$6e22: ld   h,$01]
+	* tip of "very good" bubble
 	jbsr	referee_shows_bubble_7a6e                            	| [$6e24: call $7A6E]
 	jbsr	change_bubble_flag_clut_to_red_7A58                	| [$6e27: call change_bubble_flag_clut_to_red_7A58]
 	lea	unknown_C7BE,a0                	| [$6e2a: ld   hl,unknown_C7BE]
@@ -7366,10 +7369,10 @@ l_7a62:
 referee_shows_winner_7a6a:
 	lea	referee_flags_and_bubbles_sprites_C7C0,a2                	| [$7a6a: ld   ix,referee_flags_and_bubbles_sprites_C7C0]
 referee_shows_bubble_7a6e:
-	move.b	d3,(0x00,a2)                    	| [$7a6e: ld   (ix+$00),d]
-	move.b	d2,(0x01,a2)                    	| [$7a71: ld   (ix+$01),c]
-	move.b	d5,(0x02,a2)                    	| [$7a74: ld   (ix+$02),h]
-	move.b	d4,(0x03,a2)                    	| [$7a77: ld   (ix+$03),e]
+	move.b	d3,(0x00,a2)                    	| [$7a6e: ld   (ix+$00),d] y (amiga: X)
+	move.b	d2,(0x01,a2)                    	| [$7a71: ld   (ix+$01),c] tile
+	move.b	d5,(0x02,a2)                    	| [$7a74: ld   (ix+$02),h] color
+	move.b	d4,(0x03,a2)                    	| [$7a77: ld   (ix+$03),e] x (amiga: y)
 	                    	| [$7a7a: push bc]
 										| [$7a7b: ld   bc,$0004] 4
 	addq.w	#4,a2                            	| [$7a7e: add  ix,bc]
@@ -11839,7 +11842,8 @@ l_e7d2:
 	move.b	(0x07,a3),d5                    	| [$e7fb: ld   h,(iy+$07)]
 	move.b	(0x08,a3),d6                    	| [$e7fe: ld   l,(iy+$08)]
 	lea	unknown_C740,a2                	| [$e801: ld   ix,unknown_C740]
-	jbsr	display_something_ebff                            	| [$e805: call $EBFF]
+	* TEMP TEMP
+	**jbsr	display_something_ebff                            	| [$e805: call $EBFF]
 	jbsr	load_iy_with_player_structure_B574	| [$e808: call load_iy_with_player_structure_B574]
 	move.b	(0x07,a3),d0                    	| [$e80b: ld   a,(iy+$07)]
 	add.b	#0x70,d0                         	| [$e80e: add  a,$70]
@@ -11862,6 +11866,7 @@ l_e7d2:
 	neg.b	d0                               	| [$e82a: neg]
 	move.b	d0,d5                           	| [$e82c: ld   h,a]
 l_e82d:												
+	* coords times 8
 	lsr.b	#3,d5                            	| [$e82f: srl  h] * 3
 	lsr.b	#3,d6                            	| [$e833: srl  l] * 3
 	move.b	background_and_state_bits_C911,d0	| [$e839: ld   a,(background_and_state_bits_C911)]
