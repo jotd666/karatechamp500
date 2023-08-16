@@ -230,6 +230,10 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address:
 	move.b	(0x\zz+1,\ay),d7                    	| [$5a93: ld   (ix+$03),h]
 	lsl.w	#8,d7
 	move.b	(0x\zz,\ay),d7                    	| [$5a90: ld   (ix+$02),l]
+	.ifndef	RELEASE
+	* check that it's in ROM range
+	bsr		check_d7_in_rom_range
+	.endif
 	add.l	#game_mem,d7
 	move.l	d7,\ax
 	rts
@@ -296,9 +300,9 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address_mask:
 	
 
 check_d7_in_rom_range:
-	cmp.w	#0xC000,d7
+	cmp.w	#0xC000,d7	| ram at C000, sprites at C800
 	bcs.b	0f
-	cmp.w	#0xD800,d7
+	cmp.w	#0xD800,d7  | end of attribute memory
 	bcc.b	0f
 	FATAL_ERROR		0
 0:
@@ -5114,7 +5118,7 @@ next_practice_technique_61EC:
 l_621a:
 	move.l	a2,-(sp)                        	| [$621a: push ix]
 	move.b	(0x01,a2),d0                    	| [$621c: ld   a,(ix+$01)]
-	jbsr	l_625e                            	| [$621f: call $625E]
+	jbsr	show_both_joysticks_positions_625e                            	| [$621f: call $625E]
 	move.l	(sp)+,a2                        	| [$6222: pop  ix]
 	bsr		load_a0_from_a2_structure_02_address
 												| [$6224: ld   l,(ix+$02)]
@@ -5141,14 +5145,24 @@ l_6230:
 	move.b	#0x98,d3                        	| [$6258: ld   d,$98]
 	jbsr	display_text_B039                 	| [$625a: call display_text_B039]
 	rts                                    	| [$625d: ret]
-l_625e:
-	lea	table_62DE(pc),a0                  	| [$625e: ld   hl,table_62DE]
+	
+* < D0: joystick position bits
+* for bits description see practice_table_6301
+show_both_joysticks_positions_625e:
+	lea	game_mem+0x62DE,a0                  	| [$625e: ld   hl,table_62DE]
 	lea	temp_buffer_CF00,a1    	| [$6261: ld   de,temp_buffer_CF00]
 	move.w	#0x0022,d1                      	| [$6264: ld   bc,$0022] 34
 	jbsr	ldir                              	| [$6267: ldir]
 	move.w	d0,-(sp)                        	| [$6269: push af]
-	rol.b	#5,d0                           	| [$626a: rla * 5]
+	* simulate 9-bit rotation rla (not so trivial!)
+	and.w	#0xFF,d0
+	rol.w	#5,d0                           	| [$626a: rla * 5]
+	move.w	d0,d1
+	lsr.w	#8,d1
+	lsr.w	#1,d1
+	or.b	d1,d0
 	and.b	#0x0F,d0                         	| [$626f: and  $0F]
+	* left joystick
 	jbsr	show_joystick_positions_6297                            	| [$6271: call $6297]
 	lea	temp_buffer_CF00,a2    	| [$6274: ld   ix,temp_buffer_CF00]
 	move.b	#0x12,d0                        	| [$6278: ld   a,$12]
@@ -5162,52 +5176,50 @@ l_625e:
 	move.b	d0,(0x1d,a2)                    	| [$628d: ld   (ix+$1d),a]
 	move.w	(sp)+,d0                        	| [$6290: pop  af]
 	and.b	#0x0F,d0                         	| [$6291: and  $0F]
-	jbsr	show_joystick_positions_6297                            	| [$6293: call $6297]
-	rts                                    	| [$6296: ret]
+	* right joystick
+	jbra	show_joystick_positions_6297                            	| [$6293: call $6297]
+	rts                                    	| [$6296: ret] 
+* < D0 first 4 bits
 show_joystick_positions_6297:
-	rts
-	
 	clr.b	d2                               	| [$6297: ld   c,$00]
-	CLEAR_XC_FLAGS
+	* find position of first non-zero bit in D0 (which is set direction)
+	* optim! return immediately if no bit set
+	tst.b	d0
+	bne.b	l_6299
+	rts
 l_6299:
-	roxr.b	#1,d0                           	| [$6299: rra]
+	* rra isn't really used here: Z80 C is cleared, and rotation
+	* stops as soon as bit 0 is 1
+	ror.b	#1,d0                          	| [$6299: rra]
+	* stops as soon as finds 1 bit
 	jcs	l_62a7                             	| [$629a: jp   c,$62A7]
 	addq.b	#1,d2                           	| [$629d: inc  c]
-	*move.w	d0,-(sp)                        	| [$629e: push af]
-	*move.b	d2,d0                           	| [$629f: ld   a,c]
-	** cmp => sub so X flag is properly set
-	*subq.b	#0x04,d0                         	| [$62a0: cp   $04]
-	*movem.w	(sp)+,d0                        	| [$62a2: pop  af]
+	* skips a part where nothing is actually done
 	jne	l_6299                             	| [$62a3: jp   nz,$6299]
 	rts                                    	| [$62a6: ret]
 l_62a7:
 	clr.w	d1                               	| [$62a9: ld   b,$00]
 	asl.b	#1,d2                            	| [$62a7: sla  c]
 	move.b	d2,d1
-	lea	table_62CE(pc),a2                  	| [$62ab: ld   ix,table_62CE]
+	* select arrow configuration depending on CPU character orientation
+	lea	game_mem+0x62CE,a2                  	| [$62ab: ld   ix,table_62CE]
 	lea	player_2_struct_C260,a3        	| [$62af: ld   iy,player_2_struct_C260]
 	btst.b	#7,(0x08,a3)                    	| [$62b3: bit  7,(iy+$08)]
 	jeq	l_62be                             	| [$62b7: jp   z,$62BE]
-	lea	table_62D6(pc),a2                  	| [$62ba: ld   ix,table_62D6]
+	lea	game_mem+0x62D6,a2                  	| [$62ba: ld   ix,table_62D6]
 l_62be:
 	add.w	d1,a2                            	| [$62be: add  ix,bc]
-	bsr		load_a0_from_a2_structure_00_address                    	| [$62c0: ld   l,(ix+$00)]
+	
+	* (A2).W contains the real game address of the buffer, starting from CF00
+	move.b	(0x00,a2),d6                    	| [$62c0: ld   l,(ix+$00)]
+	move.b	(0x01,a2),d5                    	| [$62c3: ld   h,(ix+$01)]
+	bsr		change_d5_d6_to_d5_16
+	add.l	#temp_buffer_CF00-0xCF00,d5
+	move.l	d5,a0
 											| [$62c3: ld   h,(ix+$01)]
+	* displays arrows
 	jbsr	display_multicolor_text_B03C      	| [$62c6: call display_multicolor_text_B03C]
 	rts                                    	| [$62c9: ret]
-table_62CE:
-	dc.b	0x0e,0xcf,0x18,0xcf,0x00,0xcf,0x07,0xcf | table_62CE
-table_62D6:
-	dc.b	0x18,0xcf,0x0e,0xcf,0x00,0xcf,0x07,0xcf | table_62D6
-table_62DE:
-	dc.b	0x0c,0x1c,0xac,0x88,0xad,0x88,0xff,0x0c | table_62DE
-	dc.b	0x1f,0xb6,0x88,0xb7,0x88,0xff,0x0e,0x1d | $62e6
-	dc.b	0xb1,0x88,0xfe,0x0e,0x1e,0xb5,0x88,0xff | $62ee
-	dc.b	0x0b,0x1d,0xae,0x88,0xfe,0x0b,0x1e,0xb2 | $62f6
-	dc.b	0x88,0xff | $62fe
-table_6300:
-	dc.b	0x2d | table_6300
-	.align	2
 * practice table of move names words (lunge, front, back ...) and ids
 * and positions to show them so the player(s) can execute them
 *
@@ -5220,6 +5232,17 @@ table_6300:
 * the sequences are iterated decreasing
 *
 * one possible sequence is (see <===) front kick, back kick,
+* table contents for each byte 0..3:
+* 0: technique id
+* 1: joystick positions
+*    - 4 low bits: attack joystick
+*    - 4 high bits: movement joystick
+*      0: forward (mask 1)
+*      1: back (mask 2)
+*      2: up   (mask 4)
+*      3: down (mask 8)
+* 2: ??
+* 3: ??
 practice_table_6301:
 	dc.b	0x11,0x14,0x44,0x64	| lunge punch (high, forward)
 	dc.b	0x05,0x02,0xC3,0x63	| back kick

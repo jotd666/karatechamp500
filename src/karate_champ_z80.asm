@@ -5429,7 +5429,7 @@ next_practice_technique_61EC:
 6217: 32 CB 68    ld   (current_move_p2_C26B),a
 621A: DD E5       push ix
 621C: DD 7E 01    ld   a,(ix+$01)
-621F: CD 5E C8    call $625E
+621F: CD 5E C8    call show_both_joysticks_positions_625e
 6222: DD E1       pop  ix
 6224: DD 6E 08    ld   l,(ix+$02)
 6227: DD 66 09    ld   h,(ix+$03)
@@ -5453,6 +5453,7 @@ next_practice_technique_61EC:
 6258: 16 32       ld   d,$98
 625A: CD 93 B0    call display_text_B039
 625D: C9          ret
+show_both_joysticks_positions_625e:
 625E: 21 7E C8    ld   hl,table_62DE
 6261: 11 00 6F    ld   de,temp_numeric_buffer_CF00
 6264: 01 88 00    ld   bc,$0022
@@ -5527,6 +5528,17 @@ table_6300:
 ; the sequences are iterated decreasing
 ;
 ; one possible sequence is (see <===) front kick, back kick,
+; table contents for each byte 0..3:
+; 0: technique id
+; 1: joystick positions
+;    - 4 low bits: attack joystick
+;    - 4 high bits: movement joystick
+;      0: forward (mask 1)
+;      1: back (mask 2)
+;      2: up   (mask 4)
+;      3: down (mask 8)
+; 2: ??
+; 3: ??
 practice_table_6301:
 	dc.b	0x11,0x14,0x44,0x64	; lunge punch (high, forward)
 	dc.b	0x05,0x02,0xC3,0x63	; back kick
