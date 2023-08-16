@@ -756,8 +756,8 @@ osd_update_sprites:
 	lsl.w	#4,d5
 	add.w	d5,d2		| extended tile code
 	add.w	d3,d2		| add bank offset to tile code
-	* now D2 is tile code (0-1536)
-	cmp.w	#0x601,d2
+	* now D2 is tile code (0-1535)
+	cmp.w	#0x600,d2
 	bcc.b	13f
 
 	*     D3 is tile color "table" (0-31)

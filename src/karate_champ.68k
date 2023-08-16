@@ -3848,7 +3848,9 @@ l_5757:
 	move.b	ram_start_C000+2,d0                 	| [$5764: ld   a,(unknown_C002)]
 	and.b	#0x0F,d0                         	| [$5767: and  $0F]
 	or.b	d1,d0                             	| [$5769: or   b]
-	CLEAR_XC_FLAGS
+	CLEAR_XC_FLAGS								| C/X is cleared by and above in Z80 code
+	* anything can be used instead of rra: we only shift 4 times
+	* and test last bit
 	roxr.b	#1,d0                           	| [$576a: rra]
 	jcs	l_577a                             	| [$576b: jp   c,$577A]
 	move.b	#0x10,d0                        	| [$576e: ld   a,$10]
@@ -3859,6 +3861,8 @@ l_5757:
 0:
 	jra	l_57a7                             	| [$5777: jp   $57A7]
 l_577a:
+	* anything can be used instead of rra: we only shift 4 times
+	* and test last bit
 	roxr.b	#1,d0                           	| [$577a: rra]
 	jcs	l_578a                             	| [$577b: jp   c,$578A]
 	move.b	#0x11,d0                        	| [$577e: ld   a,$11]
@@ -3869,6 +3873,8 @@ l_577a:
 0:
 	jra	l_57a7                             	| [$5787: jp   $57A7]
 l_578a:
+	* anything can be used instead of rra: we only shift 4 times
+	* and test last bit
 	roxr.b	#1,d0                           	| [$578a: rra]
 	jcs	l_579a                             	| [$578b: jp   c,$579A]
 	move.b	#0x12,d0                        	| [$578e: ld   a,$12]
@@ -3879,6 +3885,8 @@ l_578a:
 0:
 	jra	l_57a7                             	| [$5797: jp   $57A7]
 l_579a:
+	* anything can be used instead of rra: we only shift 4 times
+	* and test last bit
 	roxr.b	#1,d0                           	| [$579a: rra]
 	jcs	l_57ad                             	| [$579b: jp   c,$57AD]
 	move.b	#0x13,d0                        	| [$579e: ld   a,$13]
@@ -5155,6 +5163,8 @@ show_both_joysticks_positions_625e:
 	jbsr	ldir                              	| [$6267: ldir]
 	move.w	d0,-(sp)                        	| [$6269: push af]
 	* simulate 9-bit rotation rla (not so trivial!)
+	* $82 becomes $48
+	* $84 becomes $88
 	and.w	#0xFF,d0
 	rol.w	#5,d0                           	| [$626a: rla * 5]
 	move.w	d0,d1
@@ -10379,6 +10389,7 @@ task_yield_B5A5:
 	move.b	d0,d3                           	| [$b5b6: ld   e,a]
 	move.b	d2,d0                           	| [$b5b7: ld   a,c]
 	and.b	#0xF8,d0                         	| [$b5b8: and  $F8]
+	* ror is ok for rra is ok there, C was just cleared above
 	ror.b	#3,d0                           	| [$b5ba: rra] * 3
 	move.b	d0,d1                           	| [$b5bd: ld   c,a]
 	add.w	d1,a0                            	| [$b5be: add  hl,bc]
@@ -10406,6 +10417,7 @@ resume_task_B5CD:
 	move.b	d0,d3                           	| [$b5db: ld   e,a]
 	move.b	d2,d0                           	| [$b5dc: ld   a,c]
 	and.b	#0xF8,d0                         	| [$b5dd: and  $F8]
+	* ror is ok for rra is ok there, C was just cleared above
 	ror.b	#3,d0                           	| [$b5df: rra] * 3
 	move.b	d0,d1                           	| [$b5e2: ld   c,a]
 	add.w	d1,a0                            	| [$b5e3: add  hl,bc]
@@ -10477,6 +10489,7 @@ schedule_task_to_start_B620:
 	move.b	d0,d3                           	| [$b62e: ld   e,a] A & 7 in E
 	move.b	d2,d0                           	| [$b62f: ld   a,c] restore original A
 	and.b	#0xF8,d0                         	| [$b630: and  $F8] mask it to get upper part (align on 8)
+	* ror is ok for rra is ok there, C was just cleared above
 	* roxr => ror as a X flag can be persistent and cause issues!
 	ror.b	#3,d0                           	| [$b632: rra] * 3 divide by 8
 	move.b	d0,d1                           	| [$b635: ld   c,a]
@@ -10524,6 +10537,7 @@ suspend_this_task_B65E:
 	move.b	d0,d3                           	| [$b670: ld   e,a]
 	move.b	d2,d0                           	| [$b671: ld   a,c]
 	and.b	#0xF8,d0                         	| [$b672: and  $F8]
+	* ror is ok for rra is ok there, C was just cleared above
 	* byte number
 	ror.b	#3,d0                           	| [$b674: rra] * 3
 	move.b	d0,d1                           	| [$b677: ld   c,a]
@@ -10592,6 +10606,7 @@ set_next_task_B6AE:
 	move.b	d0,d3                           	| [$b6be: ld   e,a]
 	move.b	d2,d0                           	| [$b6bf: ld   a,c]
 	and.b	#0xF8,d0                         	| [$b6c0: and  $F8]
+	* ror is ok for rra is ok there, C was just cleared above
 	ror.b	#3,d0                           	| [$b6c2: rra] * 3
 	move.b	d0,d1                           	| [$b6c5: ld   c,a]
 	add.w	d1,a0                            	| [$b6c6: add  hl,bc]
