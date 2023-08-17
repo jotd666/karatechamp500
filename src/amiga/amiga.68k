@@ -1802,7 +1802,7 @@ update_bg_tile:
 0:
 	cmp.w	#12,d2
 	bcs.b	10f
-	lsr.w	#1,d2		| same background, divide by 2
+	sub.w	#12,d2		| same background, subtract 12
 10:
 	addq.w	#1,d2		| level palettes start at 1
 	lsl.w	#5,d2		| times 32 to select proper palette
