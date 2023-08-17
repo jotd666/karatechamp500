@@ -185,17 +185,20 @@ for level_index in range(0,12):
 
 # very few colors on bonus stages need to be changed so we can always match the scenery
 # 16-color palette. So very few compromises!
-replacement_color_dict = {
+sprite_replacement_color_dict = {
 (0xF0,0x80,0x80):(0xF0,0xC0,0xC0),  # bonzai leaves but also a color in planks
 (0xA0,0xA0,0xA0):(0xB0,0xB0,0xB0)  # rock
 }
+# more for tiles
+tile_replacement_color_dict = {
+(211,2) : {(0xC0,0xC0,0xC0):(0xB0,0xB0,0xB0)}}  # point dot color 0xCCC isn't available everywhere, 0xBBB is
 
 params_ = [
 [{},[0,0xCCC]],  # 0
 [{},[0xCA3,0xCCC]], #1
 [{},[0x0C0,0xCCC]], #2
 [{0xC0:0x80C},[0xCA3,0x8F0]], #3
-[{0xC0:0x80C},[0xCA3,0xCCC]], #4
+[{0xC0:0x80C},[0xCA3,0x8F0]], #4
 [{},[0xCA3,0xCCC]], #5
 [{0xC0:0x80C},[0xCA3,0x8F0]], #6
 [{0xC0:0x80C,0xCA3:0xC80},[0x8F0,0xCCC]], #7
@@ -240,6 +243,7 @@ bg_cluts = clut_table[32:]
 
 sprite_cluts = clut_table[:32]
 
+global_missing = set()
 
 for k,chardat in enumerate(block_dict["tile"]["data"]):
     img = Image.new('RGB',(8,8))
@@ -247,12 +251,15 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
 
     for cidx,colors in enumerate(bg_cluts):
 
+        tile_rep_dict = tile_replacement_color_dict.get((k,cidx)) or {}
+
         if used_tile_cluts is None or (k in used_tile_cluts and cidx in used_tile_cluts[k]):
             d = iter(chardat)
             for i in range(8):
                 for j in range(8):
                     v = next(d)
-                    img.putpixel((j,i),colors[v])
+                    cv = colors[v]
+                    img.putpixel((j,i),tile_rep_dict.get(cv,cv))
 
 
             sd = tile_code_per_level.get(k)
@@ -262,17 +269,20 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
             else:
                 level = sd.get(cidx)
                 if level is None:
-                    level = 0
+                    level = 0   # base palette
                 else:
-                    level += 1
+                    level += 1  # level palette
 
             pal = palettes_to_try[level]
             try:
-                character_codes.append(bitplanelib.palette_image2raw(img,None,pal))
+                bdata = bitplanelib.palette_image2raw(img,None,pal)
+                character_codes.append(bdata)
             except (KeyError,bitplanelib.BitplaneException):
-                msg = "No matching palette for tile ${:x} col ${:x}, colors {} in level palette {}, palette={}, missing={}".format(k,cidx,colors,level,pal,set(colors)-set(pal))
-                if level==5:
-                    print(msg)
+                missing = set(colors)-set(pal)
+                global_missing.update(missing)
+                msg = "No matching palette for tile ${:x} col ${:x}, colors {} in level palette {}, palette={}, missing={}".format(k,cidx,colors,level,pal,missing)
+                #raise Exception(msg)
+                print(msg)
                 character_codes.append(bytes(32))
 
             if dump_tiles:
@@ -282,7 +292,8 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
             character_codes.append(None)
     character_codes_list.append(character_codes)
 
-
+if global_missing:
+    print(f"Tile globally missing colors: {global_missing}")
 ##with open(os.path.join(this_dir,"sprite_config.json")) as f:
 ##    sprite_config = {int(k):v for k,v in json.load(f).items()}
 
@@ -308,7 +319,7 @@ for k,chardat in enumerate(block_dict["sprite"]["data"]):
             for i in range(side):
                 for j in range(side):
                     v = next(d)
-                    pc = replacement_color_dict.get(colors[v],colors[v])
+                    pc = sprite_replacement_color_dict.get(colors[v],colors[v])
                     img.putpixel((j,i),pc)
 
             for pal in palettes_to_try:
