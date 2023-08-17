@@ -190,8 +190,25 @@ sprite_replacement_color_dict = {
 (0xA0,0xA0,0xA0):(0xB0,0xB0,0xB0)  # rock
 }
 # more for tiles
+grayer = {(0xC0,0xC0,0xC0):(0xB0,0xB0,0xB0)}
+greener = {(0x80,0xF0,0):(0,0xC0,0)}
+# global compromise on a kind of gray very close to the other
+# allowing us to keep 16 colors max in all configurations
 tile_replacement_color_dict = {
-(211,2) : {(0xC0,0xC0,0xC0):(0xB0,0xB0,0xB0)}}  # point dot color 0xCCC isn't available everywhere, 0xBBB is
+(211,2) : grayer,  # point dot color 0xCCC isn't available everywhere, 0xBBB is
+(0x5a6,2) : grayer,
+(0x5a4,2) : grayer,
+(0x5a3,2) : grayer,
+(0x3E,0x1F) : grayer,
+(0x5AC,0x19) : greener,
+(0x5AD,0x19) : greener,
+}
+
+for x in range(0x573,0x57b):
+    tile_replacement_color_dict[x,0x1B] = grayer
+for x in range(0x54C,0x55D):
+    tile_replacement_color_dict[x,0] = grayer
+    tile_replacement_color_dict[x,0x1F] = grayer
 
 params_ = [
 [{},[0,0xCCC]],  # 0
@@ -202,7 +219,7 @@ params_ = [
 [{},[0xCA3,0xCCC]], #5
 [{0xC0:0x80C},[0xCA3,0x8F0]], #6
 [{0xC0:0x80C,0xCA3:0xC80},[0x8F0,0xCCC]], #7
-[{},[0xCA3,0xCCC]],  #8
+[{0xBBB:0xCCC},[0xCA3,0x0C0]],  #8
 [{},[0xC0,0xCA3]],   #9
 [{0xC0:0x80C},[0xCA3,0xCCC]],  #10
 [{},[0xCA3,0xCCC]],  #11
@@ -244,6 +261,7 @@ bg_cluts = clut_table[32:]
 sprite_cluts = clut_table[:32]
 
 global_missing = set()
+levels_where_missing = set()
 
 for k,chardat in enumerate(block_dict["tile"]["data"]):
     img = Image.new('RGB',(8,8))
@@ -252,7 +270,6 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
     for cidx,colors in enumerate(bg_cluts):
 
         tile_rep_dict = tile_replacement_color_dict.get((k,cidx)) or {}
-
         if used_tile_cluts is None or (k in used_tile_cluts and cidx in used_tile_cluts[k]):
             d = iter(chardat)
             for i in range(8):
@@ -278,9 +295,11 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
                 bdata = bitplanelib.palette_image2raw(img,None,pal)
                 character_codes.append(bdata)
             except (KeyError,bitplanelib.BitplaneException):
-                missing = set(colors)-set(pal)
+                repcolors = {tile_rep_dict.get(cv,cv) for cv in colors}
+                missing = set(repcolors)-set(pal)
                 global_missing.update(missing)
-                msg = "No matching palette for tile ${:x} col ${:x}, colors {} in level palette {}, palette={}, missing={}".format(k,cidx,colors,level,pal,missing)
+                levels_where_missing.add(level)
+                msg = "No matching palette for tile ${:x} col ${:x}, colors {} in level palette {}, palette={}, missing={}".format(k,cidx,repcolors,level,pal,missing)
                 #raise Exception(msg)
                 print(msg)
                 character_codes.append(bytes(32))
@@ -293,7 +312,7 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
     character_codes_list.append(character_codes)
 
 if global_missing:
-    print(f"Tile globally missing colors: {global_missing}")
+    print(f"Tile globally missing colors: {global_missing}, on levels: {levels_where_missing}")
 ##with open(os.path.join(this_dir,"sprite_config.json")) as f:
 ##    sprite_config = {int(k):v for k,v in json.load(f).items()}
 

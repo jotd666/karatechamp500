@@ -2,9 +2,11 @@ import bitplanelib
 from PIL import Image
 
 common = set()
+base = dict()
 for i in range(1,13):
     img = Image.open("backgrounds/{:04d}.png".format(i))
     p = bitplanelib.palette_extract(img,0xf0)
+    base[i] = set(p)
     common.update(p)
 
 # common has 16 items, now we need to impose some ordering
@@ -20,4 +22,11 @@ for c in common:
         palette.append(c)
         ps.add(c)
 
+# global
 print(palette)
+# remove some
+ps.difference_update({(0xC0,0xC0,0xC0),(0xC0,0xA0,0x30)})
+
+# print unused colors from global for each
+for k,v in base.items():
+    print(k,base[k],base[k]-ps,ps-base[k])
