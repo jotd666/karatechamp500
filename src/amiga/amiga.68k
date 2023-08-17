@@ -217,20 +217,15 @@ _user:
 0:	
 	lea		program_args,a0
 
-	move.l	(A0)+,D0	| INVINCIBLE/S
+	move.l	(A0)+,D0	| ONEROUNDWINS/S
 	beq.b	1f
-	or.l	#1,cheat_flags
-	st.b	cheat_used
-1:
-	move.l	(A0)+,D0	| INFLIVES/S
-	beq.b	2f
 	or.l	#2,cheat_flags
 	st.b	cheat_used
-2:
+1:
 	move.l	(A0)+,D0	| CHEATKEYS/S
 	beq.b	2f
 	* cheat isn't used as long as no cheat key is used
-	or.l	#4,cheat_flags
+	or.l	#1,cheat_flags
 2:
 	move.l	(A0)+,D0	| STARTLEVEL/S
 	beq.b	2f
@@ -242,24 +237,7 @@ _user:
 	moveq.l	#0,d7
 
 
-	move.l	(A0)+,D0	| BAT50000/S
-	beq.b	2f
-	bset	#0,d7
-2:
-	move.l	(A0)+,D0	| QUICKMAZEDRAW/S
-	beq.b	2f
-	bset	#1,d7
-2:
 
-	move.l	(A0)+,D0	| NOINTERMISSIONS/S
-	beq.b	2f
-	bset	#2,d7
-2:
-
-	move.l	(A0)+,D0	| ALTMUSIC/S
-	beq.b	2f
-	bset	#3,d7
-2:
 
 	move.l	(A0)+,D0	| SKILL/S
 	beq.b	2f
@@ -346,11 +324,11 @@ _user:
 	move.b	d0,start_level		| 0-23 => 1-24
 0:
 
-*	move.l	cheat_flags,d0
+	move.l	cheat_flags,d0
 *	btst	#0,d0
 *	sne		invincible_flag
-*	btst	#1,cheat_flags
-*	sne		infinite_lives_flag
+	btst	#1,d0
+	sne		one_round_wins_cheat_flag
 	
 	
 	jsr	 _detect_controller_types 
@@ -2263,7 +2241,7 @@ handle_keyboard:
     bsr	toggle_pause
 0:
 	.ifdef RELEASE
-	btst	#2,cheat_flags+3
+	btst	#0,cheat_flags+3
 	beq.b	0f
 	.endif
 	* cheat keys
@@ -2347,8 +2325,7 @@ program_args_end:
 	.align	4
 read_args_string:
 	.byte	read_args_string_end-read_args_string
-	.ascii	"INVINCIBLE/S,INFLIVES/S,CHEATKEYS/S,STARTLEVEL/K/N,"
-	.ascii	"BAT50000/S,QUICKMAZEDRAW/S,NOINTERMISSIONS/S,ALTMUSIC/S"
+	.ascii	"ONEROUNDWINS/S,CHEATKEYS/S,STARTLEVEL/K/N,"
 	.ascii	",SKILL/K/N"
 read_args_string_end:
 	.align	2

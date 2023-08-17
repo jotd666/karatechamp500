@@ -2722,9 +2722,9 @@ player_management_routine_46FD:
 4766: 6F          ld   l,a
 4767: 26 00       ld   h,$00
 4769: 19          add  hl,de
-476A: 3A 42 61    ld   a,(unknown_C148)
+476A: 3A 42 61    ld   a,(nb_rounds_won_player_1_C148)
 476D: 47          ld   b,a
-476E: 3A 4D 61    ld   a,(unknown_C147)
+476E: 3A 4D 61    ld   a,(nb_rounds_won_player_2_C147)
 4771: B0          or   b
 4772: CA DC 4D    jp   z,$4776
 4775: 23          inc  hl
@@ -4075,8 +4075,8 @@ jump_table_547B:
 
 
 5529: 3E 00       ld   a,$00
-552B: 32 4D 61    ld   (unknown_C147),a
-552E: 32 42 61    ld   (unknown_C148),a
+552B: 32 4D 61    ld   (nb_rounds_won_player_2_C147),a
+552E: 32 42 61    ld   (nb_rounds_won_player_1_C148),a
 5531: 3E 0A       ld   a,$0A
 5533: CD 5D B0    call schedule_task_to_start_B057
 5536: A7          and  a
@@ -4181,7 +4181,7 @@ jump_table_547B:
 5626: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5629: FE 0A       cp   $0A
 562B: CA 92 5C    jp   z,$5638
-562E: 21 42 61    ld   hl,unknown_C148
+562E: 21 42 61    ld   hl,nb_rounds_won_player_1_C148
 5631: 34          inc  (hl)
 5632: 7E          ld   a,(hl)
 5633: FE 08       cp   $02
@@ -4249,7 +4249,7 @@ jump_table_547B:
 56CD: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 56D0: FE 05       cp   $05
 56D2: CA 7F 5C    jp   z,$56DF
-56D5: 21 4D 61    ld   hl,unknown_C147
+56D5: 21 4D 61    ld   hl,nb_rounds_won_player_2_C147
 56D8: 34          inc  (hl)
 56D9: 7E          ld   a,(hl)
 56DA: FE 08       cp   $02
@@ -4293,8 +4293,8 @@ evade_56f8:
 5730: A7          and  a
 5731: C4 D5 B0    call nz,display_error_text_B075
 5734: 3E 0C       ld   a,$06
-5736: 32 42 61    ld   (unknown_C148),a
-5739: 32 4D 61    ld   (unknown_C147),a
+5736: 32 42 61    ld   (nb_rounds_won_player_1_C148),a
+5739: 32 4D 61    ld   (nb_rounds_won_player_2_C147),a
 573C: 21 8E 60    ld   hl,periodic_counter_16bit_C02E
 573F: 56          ld   d,(hl)
 ; choose among 6 evade sequences
@@ -4302,10 +4302,10 @@ evade_56f8:
 5740: 1E 0C       ld   e,$06
 5742: CD 0C B0    call random_B006
 5745: 32 12 63    ld   (unknown_C918),a
-5748: 3A 42 61    ld   a,(unknown_C148)
+5748: 3A 42 61    ld   a,(nb_rounds_won_player_1_C148)
 574B: FE 09       cp   $03
 574D: C2 5D 5D    jp   nz,$5757
-5750: 21 4D 61    ld   hl,unknown_C147
+5750: 21 4D 61    ld   hl,nb_rounds_won_player_2_C147
 5753: 35          dec  (hl)
 5754: 23          inc  hl
 5755: 35          dec  (hl)
@@ -4348,7 +4348,7 @@ evade_56f8:
 57A0: CD 5D B0    call schedule_task_to_start_B057
 57A3: A7          and  a
 57A4: C4 D5 B0    call nz,display_error_text_B075
-57A7: 21 4D 61    ld   hl,unknown_C147
+57A7: 21 4D 61    ld   hl,nb_rounds_won_player_2_C147
 57AA: 35          dec  (hl)
 57AB: 23          inc  hl
 57AC: 35          dec  (hl)
@@ -4398,7 +4398,7 @@ evade_56f8:
 57E5: A7          and  a
 57E6: C4 D5 B0    call nz,display_error_text_B075
 57E9: CD 51 B0    call task_yield_B051
-57EC: 3A 4D 61    ld   a,(unknown_C147)
+57EC: 3A 4D 61    ld   a,(nb_rounds_won_player_2_C147)
 57EF: A7          and  a
 57F0: C2 96 5D    jp   nz,$573C
 57F3: DD 21 00 60 ld   ix,ram_start_C000
@@ -6372,7 +6372,7 @@ table_6BCA:
 6BF3: CD 93 B0    call display_text_B039
 6BF6: 21 0D 0C    ld   hl,$0607
 6BF9: 22 00 6F    ld   (temp_numeric_buffer_CF00),hl
-6BFC: 3A 42 61    ld   a,(unknown_C148)
+6BFC: 3A 42 61    ld   a,(nb_rounds_won_player_1_C148)
 6BFF: 6F          ld   l,a
 6C00: 26 32       ld   h,$98
 6C02: 22 08 6F    ld   (unknown_CF02),hl
@@ -6382,7 +6382,7 @@ table_6BCA:
 6C0E: 22 0C 6F    ld   (unknown_CF06),hl
 6C11: 21 96 32    ld   hl,table_983c
 6C14: 22 02 6F    ld   (unknown_CF08),hl
-6C17: 3A 4D 61    ld   a,(unknown_C147)
+6C17: 3A 4D 61    ld   a,(nb_rounds_won_player_2_C147)
 6C1A: 6F          ld   l,a
 6C1B: 26 30       ld   h,$90
 6C1D: 22 0A 6F    ld   (unknown_CF0A),hl
@@ -10550,16 +10550,13 @@ ACEF: 6F          ld   l,a
 ACF0: 26 00       ld   h,$00
 ; offset for the byte value in the table
 ACF2: 19          add  hl,de
-; check those mysterious C148, C147 values that look = 0
-; everywhere in the code it seems that the only thing that is done with
-; them is that they're set to 0 so the code below is useless
-; (a!=b!=0 would crank the difficulty up slightly, letting the program
-; pick the (shorter) delay value after the current one (they come in pairs)
-ACF3: 3A 42 61    ld   a,(unknown_C148)
+ACF3: 3A 42 61    ld   a,(nb_rounds_won_player_1_C148)
 ACF6: 47          ld   b,a
-ACF7: 3A 4D 61    ld   a,(unknown_C147)
+ACF7: 3A 4D 61    ld   a,(nb_rounds_won_player_2_C147)
 ACFA: B0          or   b
 ACFB: CA FF A6    jp   z,$ACFF	; a=b=0: don't increase hl (harder)
+; second round: difficulty is slightly higher, letting the program
+; pick the (shorter) delay value after the current one (they come in pairs)
 ACFE: 23          inc  hl
 ACFF: 7E          ld   a,(hl)
 AD00: 47          ld   b,a

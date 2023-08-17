@@ -167,6 +167,7 @@ rgb4_dict = {bitplanelib.round_color(p,0xF0):p for p in palette_256}
 # colors should be always at the same location
 
 tile_code_per_level = collections.defaultdict(dict)
+level_tiles = collections.defaultdict(collections.Counter)
 
 level_tiles_dir = os.path.join(this_dir,"level_tiles")
 for level_index in range(0,12):
@@ -178,6 +179,7 @@ for level_index in range(0,12):
             color_code = (clut_index>> 3) & 0x1f
             tile_code =  tile_index + ((clut_index & 7) << 8);
             tile_code_per_level[tile_code][color_code] = level_index
+            level_tiles[level_index][(hex(tile_code),hex(color_code))] += 1  # for debug
             if tile_code not in used_tile_cluts:
                 used_tile_cluts[tile_code] = set()
             used_tile_cluts[tile_code].add(color_code)
@@ -270,6 +272,7 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
     for cidx,colors in enumerate(bg_cluts):
 
         tile_rep_dict = tile_replacement_color_dict.get((k,cidx)) or {}
+
         if used_tile_cluts is None or (k in used_tile_cluts and cidx in used_tile_cluts[k]):
             d = iter(chardat)
             for i in range(8):

@@ -2108,11 +2108,12 @@ l_4743:
 	add.w	d3,d5                            	| [$4769: add  hl,de]
 	move.l	d5,a0
 	add.l	#game_mem,a0
-	move.b	unknown_C148,d0                 	| [$476a: ld   a,(unknown_C148)]
+	move.b	nb_rounds_won_player_1_C148,d0                 	| [$476a: ld   a,(nb_rounds_won_player_1_C148)]
 	move.b	d0,d1                           	| [$476d: ld   b,a]
-	move.b	unknown_C147,d0                 	| [$476e: ld   a,(unknown_C147)]
+	move.b	nb_rounds_won_player_2_C147,d0                 	| [$476e: ld   a,(nb_rounds_won_player_2_C147)]
 	or.b	d1,d0                             	| [$4771: or   b]
 	jeq	l_4776                             	| [$4772: jp   z,$4776]
+	* harder on second round vs computer
 	addq.w	#1,a0                           	| [$4775: inc  hl]
 * It's loading a from one of the
 * counter attack timer tables, but if it's > 0 then
@@ -3464,22 +3465,22 @@ l_5464:
 	
 
 jump_table_547B:
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
-	.long	l_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
+	.long	start_of_match_5529
 	.long	evade_56f8
 	.long	l_b084
 	.long	l_4d84
@@ -3553,15 +3554,15 @@ jump_table_547B:
 	.long	display_error_text_B075
 
 
-l_5529:
+start_of_match_5529:
 	.ifne	OPT_EVADE_TEST
 	jra		evade_56f8
 	.endif
-	
-	
+	* start of match
+	* zero rounds won for both players
 	clr.b	d0                               	| [$5529: ld   a,$00]
-	move.b	d0,unknown_C147                 	| [$552b: ld   (unknown_C147),a]
-	move.b	d0,unknown_C148                 	| [$552e: ld   (unknown_C148),a]
+	move.b	d0,nb_rounds_won_player_2_C147                 	| [$552b: ld   (nb_rounds_won_player_2_C147),a]
+	move.b	d0,nb_rounds_won_player_1_C148                 	| [$552e: ld   (nb_rounds_won_player_1_C148),a]
 l_5531:
 	move.b	#0x0A,d0                        	| [$5531: ld   a,$0A]
 	jbsr	schedule_task_to_start_B057       	| [$5533: call schedule_task_to_start_B057]
@@ -3686,9 +3687,11 @@ l_5614:
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5626: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	cmp.b	#0x0A,d0                         	| [$5629: cp   $0A]
 	jeq	l_5638                             	| [$562b: jp   z,$5638]
-	lea	unknown_C148,a0                	| [$562e: ld   hl,unknown_C148]
+	lea	nb_rounds_won_player_1_C148,a0                	| [$562e: ld   hl,nb_rounds_won_player_1_C148]
 	addq.b	#1,(a0)                         	| [$5631: inc  (hl)]
 	move.b	(a0),d0                         	| [$5632: ld   a,(hl)]
+	tst.b	one_round_wins_cheat_flag
+	bne.b	l_5638
 	cmp.b	#0x02,d0                         	| [$5633: cp   $02]
 	jcs	l_5531                             	| [$5635: jp   c,$5531]
 l_5638:
@@ -3761,8 +3764,10 @@ l_56bb:
 	jne	l_56ea                             	| [$56ca: jp   nz,$56EA]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$56cd: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	cmp.b	#0x05,d0                         	| [$56d0: cp   $05]
+	* CPU has won 1 round: level "won" (and game over)
 	jeq	l_56df                             	| [$56d2: jp   z,$56DF]
-	lea	unknown_C147,a0                	| [$56d5: ld   hl,unknown_C147]
+	* player 2 wins 1 round
+	lea	nb_rounds_won_player_2_C147,a0                	| [$56d5: ld   hl,nb_rounds_won_player_2_C147]
 	addq.b	#1,(a0)                         	| [$56d8: inc  (hl)]
 	move.b	(a0),d0                         	| [$56d9: ld   a,(hl)]
 	cmp.b	#0x02,d0                         	| [$56da: cp   $02]
@@ -3820,9 +3825,10 @@ l_571b:
 	beq.b	0f
 	FATAL_ERROR   5731 | [$5731: call nz,display_error_text_B075]
 0:
+	* the rounds variables are reused in evade sequence
 	move.b	#0x06,d0                        	| [$5734: ld   a,$06]
-	move.b	d0,unknown_C148                 	| [$5736: ld   (unknown_C148),a]
-	move.b	d0,unknown_C147                 	| [$5739: ld   (unknown_C147),a]
+	move.b	d0,nb_rounds_won_player_1_C148                 	| [$5736: ld   (nb_rounds_won_player_1_C148),a]
+	move.b	d0,nb_rounds_won_player_2_C147                 	| [$5739: ld   (nb_rounds_won_player_2_C147),a]
 l_573c:
 	lea	periodic_counter_16bit_C02E,a0 	| [$573c: ld   hl,periodic_counter_16bit_C02E]
 	move.b	(a0),d3                         	| [$573f: ld   d,(hl)]
@@ -3831,10 +3837,10 @@ l_573c:
 	move.b	#0x06,d4                        	| [$5740: ld   e,$06]
 	jbsr	random_B006                       	| [$5742: call random_B006]
 	move.b	d0,unknown_C918                 	| [$5745: ld   (unknown_C918),a]
-	move.b	unknown_C148,d0                 	| [$5748: ld   a,(unknown_C148)]
+	move.b	nb_rounds_won_player_1_C148,d0                 	| [$5748: ld   a,(nb_rounds_won_player_1_C148)]
 	cmp.b	#0x03,d0                         	| [$574b: cp   $03]
 	jne	l_5757                             	| [$574d: jp   nz,$5757]
-	lea	unknown_C147,a0                	| [$5750: ld   hl,unknown_C147]
+	lea	nb_rounds_won_player_2_C147,a0                	| [$5750: ld   hl,nb_rounds_won_player_2_C147]
 	subq.b	#1,(a0)+                        	| [$5753: dec  (hl)]
 									| [$5754: inc  hl]
 	subq.b	#1,(a0)                         	| [$5755: dec  (hl)]
@@ -3896,7 +3902,7 @@ l_579a:
 	FATAL_ERROR   57a4 | [$57a4: call nz,display_error_text_B075]
 0:
 l_57a7:
-	lea	unknown_C147,a0                	| [$57a7: ld   hl,unknown_C147]
+	lea	nb_rounds_won_player_2_C147,a0                	| [$57a7: ld   hl,nb_rounds_won_player_2_C147]
 	subq.b	#1,(a0)+                         	| [$57aa: dec  (hl)]
 	                           	| [$57ab: inc  hl]
 	subq.b	#1,(a0)                         	| [$57ac: dec  (hl)]
@@ -3962,7 +3968,7 @@ l_57cc:
 0:
 	jbsr	task_yield_B051                   	| [$57e9: call task_yield_B051]
 l_57ec:
-	move.b	unknown_C147,d0                 	| [$57ec: ld   a,(unknown_C147)]
+	move.b	nb_rounds_won_player_2_C147,d0                 	| [$57ec: ld   a,(nb_rounds_won_player_2_C147)]
 	tst.b	d0                               	| [$57ef: and  a]
 	jne	l_573c                             	| [$57f0: jp   nz,$573C]
 l_57f3:
@@ -5534,8 +5540,8 @@ task_6622:
 	and.b	#0x03,d0                         	| [$6652: and  $03]
 	cmp.b	#0x03,d0                         	| [$6654: cp   $03]
 	jne	l_665f                             	| [$6656: jp   nz,$665F]
-	jbsr	l_6bcf                            	| [$6659: call $6BCF]
-	jbsr	l_6bee                            	| [$665c: call $6BEE]
+	jbsr	show_flashing_2P_round_score_6bcf                            	| [$6659: call $6BCF]
+	jbsr	show_2P_round_score_6bcf                            	| [$665c: call $6BEE]
 l_665f:
 	move.b	#0x30,d0                        	| [$665f: ld   a,$30]
 	jbsr	suspend_this_task_B05A            	| [$6661: call suspend_this_task_B05A]
@@ -5935,7 +5941,7 @@ l_6959:
 	and.b	#0x03,d0                         	| [$6992: and  $03]
 	cmp.b	#0x03,d0                         	| [$6994: cp   $03]
 	jne	l_699c                             	| [$6996: jp   nz,$699C]
-	jbsr	l_6bee                            	| [$6999: call $6BEE]
+	jbsr	show_2P_round_score_6bcf                            	| [$6999: call $6BEE]
 l_699c:
 	move.b	#0x1E,d0                        	| [$699c: ld   a,$1E]
 	jbsr	suspend_this_task_B05A            	| [$699e: call suspend_this_task_B05A]
@@ -6181,11 +6187,11 @@ l_6bb1:
 	jbsr	display_multicolor_text_B03C      	| [$6bc0: call display_multicolor_text_B03C]
 	rts                                    	| [$6bc3: ret]
 
-l_6bcf:
+show_flashing_2P_round_score_6bcf:
 	move.b	#0x03,d1                        	| [$6bcf: ld   b,$03]
 l_6bd1:
 	movem.w	d1/d2,-(sp)                    	| [$6bd1: push bc]
-	jbsr	l_6bee                            	| [$6bd2: call $6BEE]
+	jbsr	show_2P_round_score_6bcf                            	| [$6bd2: call $6BEE]
 	move.b	#0x0F,d0                        	| [$6bd5: ld   a,$0F]
 	jbsr	suspend_this_task_B05A            	| [$6bd7: call suspend_this_task_B05A]
 	tst.b	d0                               	| [$6bda: and  a]
@@ -6203,31 +6209,39 @@ l_6bd1:
 	subq.b	#1,d1                           	| [...]
 	jne	l_6bd1                             	| [$6beb: djnz $6BD1]
 	rts                                    	| [$6bed: ret]
-l_6bee:
+	
+show_2P_round_score_6bcf:
 	lea	game_mem+0x6C59,a0                  	| [$6bee: ld   hl,table_6C59]
 	move.b	#0x90,d3                        	| [$6bf1: ld   d,$90]
+	* frame around round score
 	jbsr	display_text_B039                 	| [$6bf3: call display_text_B039]
+	* compose the buffer to print the 0 - 0 / 1 - 0 ... score with colors
+	* X/Y position
 	move.b	#0x06,temp_buffer_CF00+1                      	| [$6bf6: ld   hl,$0607]
 	move.b	#0x07,temp_buffer_CF00     	| [$6bf9: ld   (temp_buffer_CF00),hl]
-	move.b	unknown_C148,d0                 	| [$6bfc: ld   a,(unknown_C148)]
-	move.b	d0,d6                           	| [$6bff: ld   l,a]
+	move.b	nb_rounds_won_player_1_C148,d6                 	| [$6bfc: ld   a,(nb_rounds_won_player_1_C148)]
+	* white									| [$6bff: ld   l,a]
 	move.b	#0x98,d5                        	| [$6c00: ld   h,$98]
 	move.b	d6,temp_buffer_CF00+2                 	| [$6c02: ld   (temp_buffer_CF00+2),hl]
 	move.b	d5,temp_buffer_CF00+2+1                 	| [$6c02: ld   (temp_buffer_CF00+2),hl]
-	move.w	#0x98,address_of_current_player_move_byte_CF04+1                  	| [$6c05: ld   hl,table_983c]
-	move.w	#0x3C,address_of_current_player_move_byte_CF04                  	| [$6c05: ld   hl,table_983c]
+	* spacing
+	move.w	#0x98,temp_buffer_CF00+4+1                  	| [$6c05: ld   hl,table_983c]
+	move.w	#0x3C,temp_buffer_CF00+4                  	| [$6c05: ld   hl,table_983c]
 								| [$6c08: ld   (address_of_current_player_move_byte_CF04),hl]
-	move.b	#0x98,unknown_pointer_CF06+1                  	| [$6c0b: ld   hl,table_9826]
-	move.b	#0x26,unknown_pointer_CF06                  	| [$6c0b: ld   hl,table_9826]
+	* dash
+	move.b	#0x98,temp_buffer_CF00+6+1                  	| [$6c0b: ld   hl,table_9826]
+	move.b	#0x26,temp_buffer_CF00+6                  	| [$6c0b: ld   hl,table_9826]
 	                 	| [$6c0e: ld   (unknown_pointer_CF06),hl]
-	lea	game_mem+0x983c,a0                  	| [$6c11: ld   hl,table_983c]
+	* spacing													| [$6c11: ld   hl,$983c]
 	move.b	#0x98,temp_buffer_CF00+8+1                 	| [$6c14: ld   (temp_buffer_CF00+8),hl]
 	move.b	#0x3C,temp_buffer_CF00+8                 	| [$6c14: ld   (temp_buffer_CF00+8),hl]
-	move.b	unknown_C147,d0                 	| [$6c17: ld   a,(unknown_C147)]
-	move.b	d0,d6                           	| [$6c1a: ld   l,a]
+	move.b	nb_rounds_won_player_2_C147,d6                 	| [$6c17: ld   a,(nb_rounds_won_player_2_C147)]
+												| [$6c1a: ld   l,a]
+	* in red, P2 number of rounds won
 	move.b	#0x90,d5                        	| [$6c1b: ld   h,$90]
 	move.b	d6,temp_buffer_CF00+0xA                 	| [$6c1d: ld   (temp_buffer_CF00+0xA),hl]
 	move.b	d5,temp_buffer_CF00+0xA+1                 	| [$6c1d: ld   (temp_buffer_CF00+0xA),hl]
+	* end string
 	st.b	d0                                	| [$6c20: ld   a,$FF]
 	move.b	d0,temp_buffer_CF00+0xC                 	| [$6c22: ld   (temp_buffer_CF00+0xC),a]
 	lea	temp_buffer_CF00,a0    	| [$6c25: ld   hl,temp_buffer_CF00]
@@ -9215,16 +9229,13 @@ let_opponent_react_depending_on_skill_level_ACCE:
 * offset for the byte value in the table
 	add.w	d5,a1                            	| [$acf2: add  hl,de]
 	move.l	a1,a0		| we need a pointer on A0 in the end
-* check those mysterious C148, C147 values that look = 0
-* everywhere in the code it seems that the only thing that is done with
-* them is that they're set to 0 so the code below is useless
-* (a!=b!=0 would crank the difficulty up slightly, letting the program
-* pick the (shorter) delay value after the current one (they come in pairs)
-	move.b	unknown_C148,d0                 	| [$acf3: ld   a,(unknown_C148)]
+	move.b	nb_rounds_won_player_1_C148,d0                 	| [$acf3: ld   a,(nb_rounds_won_player_1_C148)]
 	move.b	d0,d1                           	| [$acf6: ld   b,a]
-	move.b	unknown_C147,d0                 	| [$acf7: ld   a,(unknown_C147)]
+	move.b	nb_rounds_won_player_2_C147,d0                 	| [$acf7: ld   a,(nb_rounds_won_player_2_C147)]
 	or.b	d1,d0                             	| [$acfa: or   b]
 	jeq	l_acff                             	| [$acfb: jp   z,$ACFF] a=b=0: don't increase hl (harder)
+* second round: difficulty is slightly higher, letting the program
+* pick the (shorter) delay value after the current one (they come in pairs)
 	addq.w	#1,a0                           	| [$acfe: inc  hl]
 l_acff:
 	move.b	(a0),d0                         	| [$acff: ld   a,(hl)]
@@ -11842,8 +11853,7 @@ l_e7d2:
 	move.b	(0x07,a3),d5                    	| [$e7fb: ld   h,(iy+$07)]
 	move.b	(0x08,a3),d6                    	| [$e7fe: ld   l,(iy+$08)]
 	lea	unknown_C740,a2                	| [$e801: ld   ix,unknown_C740]
-	* TEMP TEMP
-	**jbsr	display_something_ebff                            	| [$e805: call $EBFF]
+	jbsr	display_sprite_block_ebff                            	| [$e805: call $EBFF]
 	jbsr	load_iy_with_player_structure_B574	| [$e808: call load_iy_with_player_structure_B574]
 	move.b	(0x07,a3),d0                    	| [$e80b: ld   a,(iy+$07)]
 	add.b	#0x70,d0                         	| [$e80e: add  a,$70]
@@ -11882,7 +11892,7 @@ l_e848:
 	move.l	a2,-(sp)                        	| [$e849: push ix]
 	move.w	d0,-(sp)                        	| [$e84b: push af]
 	movem.w	d1/d2,-(sp)                    	| [$e84c: push bc]
-	jbsr	display_something_ebff                            	| [$e84d: call $EBFF]
+	jbsr	display_sprite_block_ebff                            	| [$e84d: call $EBFF]
 	movem.w	(sp)+,d1/d2                    	| [$e850: pop  bc]
 	move.w	(sp)+,d0                        	| [$e851: pop  af]
 	move.l	(sp)+,a2                        	| [$e852: pop  ix]
@@ -11894,7 +11904,7 @@ l_e848:
 	jbsr	load_iy_with_player_structure_B574	| [$e863: call load_iy_with_player_structure_B574]
 	move.b	(0x07,a3),d5                    	| [$e866: ld   h,(iy+$07)]
 	move.b	(0x08,a3),d6                    	| [$e869: ld   l,(iy+$08)]
-	lea	table_EA06(pc),a3                  	| [$e86c: ld   iy,table_EA06]
+	lea	game_mem+0xEA06,a3                  	| [$e86c: ld   iy,table_EA06]
 	move.b	#0x04,d0                        	| [$e870: ld   a,$04]
 	lea	unknown_C740,a2                	| [$e872: ld   ix,unknown_C740]
 l_e876:
@@ -11905,7 +11915,7 @@ l_e876:
 
 	move.l	a2,-(sp)                        	| [$e879: push ix]
 	move.w	d0,-(sp)                        	| [$e87b: push af]
-	jbsr	display_something_ebff                            	| [$e87c: call $EBFF]
+	jbsr	display_sprite_block_ebff                            	| [$e87c: call $EBFF]
 	move.b	#0x01,d0                        	| [$e87f: ld   a,$01]
 	jbsr	suspend_this_task_B65E            	| [$e881: call suspend_this_task_B65E]
 	jbsr	read_current_player_controls_BB96 	| [$e884: call read_current_player_controls_BB96]
@@ -11920,7 +11930,7 @@ l_e876:
 	move.b	(a3),d0                    	| [$e898: ld   a,(iy+$00)]
 	cmp.b	#0xFD,d0                         	| [$e89b: cp   $FD]
 	jne	l_e8a4                             	| [$e89d: jp   nz,$E8A4]
-	lea	table_EA06(pc),a3                  	| [$e8a0: ld   iy,table_EA06]
+	lea	game_mem+0xEA06,a3                  	| [$e8a0: ld   iy,table_EA06]
 l_e8a4:
 	move.b	(0x01,a3),d0                    	| [$e8a4: ld   a,(iy+$01)]
 	add.b	d5,d0                            	| [$e8a7: add  a,h]
@@ -11936,6 +11946,7 @@ l_e8a4:
 l_e8ba:
 	move.b	d1,d0                           	| [$e8ba: ld   a,b]
 	jra	l_e876                             	| [$e8bb: jp   $E876]
+	* player hit controls: trigger plank break
 l_e8be:
 	move.b	#0x80,d0                        	| [$e8be: ld   a,$80]
 	jbsr	play_sound_BBB5                   	| [$e8c0: call play_sound_BBB5]
@@ -11961,7 +11972,7 @@ l_e8be:
 	movem.w	d5/d6,-(sp)                        	| [$e8e2: push hl]
 	clr.b	d0                               	| [$e8e3: ld   a,$00]
 	lea	unknown_C740,a2                	| [$e8e5: ld   ix,unknown_C740]
-	jbsr	display_something_ebff                            	| [$e8e9: call $EBFF]
+	jbsr	display_sprite_block_ebff                            	| [$e8e9: call $EBFF]
 	move.b	#0x02,d0                        	| [$e8ec: ld   a,$02]
 	jbsr	suspend_this_task_B65E            	| [$e8ee: call suspend_this_task_B65E]
 	movem.w	(sp)+,d5/d6                        	| [$e8f1: pop  hl]
@@ -11973,7 +11984,7 @@ l_e8be:
 
 
 	movem.w	d5/d6,-(sp)                        	| [$e8fc: push hl]
-	jbsr	display_something_ebff                            	| [$e8fd: call $EBFF]
+	jbsr	display_sprite_block_ebff                            	| [$e8fd: call $EBFF]
 	move.b	#0x02,d0                        	| [$e900: ld   a,$02]
 	jbsr	suspend_this_task_B65E            	| [$e902: call suspend_this_task_B65E]
 	movem.w	(sp)+,d5/d6                        	| [$e905: pop  hl]
@@ -11984,14 +11995,14 @@ l_e8be:
 	move.b	#0x02,d0                        	| [$e90e: ld   a,$02]
 
 	movem.w	d5/d6,-(sp)                        	| [$e910: push hl]
-	jbsr	display_something_ebff                            	| [$e911: call $EBFF]
+	jbsr	display_sprite_block_ebff                            	| [$e911: call $EBFF]
 	move.b	#0x02,d0                        	| [$e914: ld   a,$02]
 	jbsr	suspend_this_task_B65E            	| [$e916: call suspend_this_task_B65E]
 	movem.w	(sp)+,d5/d6                        	| [$e919: pop  hl]
 
 	lea	unknown_C740,a2                	| [$e91a: ld   ix,unknown_C740]
 	move.b	#0x03,d0                        	| [$e91e: ld   a,$03]
-	jbsr	display_something_ebff                            	| [$e920: call $EBFF]
+	jbsr	display_sprite_block_ebff                            	| [$e920: call $EBFF]
 	move.l	(sp)+,a3                        	| [$e923: pop  iy]
 
 	move.b	(0x02,a3),d1                    	| [$e925: ld   b,(iy+$02)]
@@ -12075,122 +12086,11 @@ l_e9b0:
 	jbsr	task_yield_B5A5                   	| [$e9bf: call task_yield_B5A5]
 	illegal
 
-table_E9E2:
-	dc.l	table_eadf | $e9e2
-	dc.l	table_eaf3 | $e9e4
-	dc.l	table_eb07 | $e9e6
-	dc.l	table_eb1b | $e9e8
-	dc.l	table_eb38 | $e9ea
-	dc.l	table_eb4c | $e9ec
-	dc.l	table_eb60 | $e9ee
-	dc.l	table_eb65 | $e9f0
-	dc.l	table_eb6a | $e9f2
-	dc.l	table_eb6f | $e9f4
-	dc.l	table_eb83 | $e9f6
-	dc.l	table_eb97 | $e9f8
-	dc.l	table_ebab | $e9fa
-	dc.l	table_ebc8 | $e9fc
-	dc.l	table_ebdc | $e9fe
-	dc.l	table_ebf0 | $ea00
-	dc.l	table_ebf5 | $ea02
-	dc.l	table_ebfa | $ea04
-table_EA06:
-	dc.b	0xff,0x02,0x00,0xff,0x02,0x00,0xff,0x02 | $ea06
-	dc.b	0x00,0xff,0x02,0x00,0x00,0x02,0x00,0xff | $ea0e
-	dc.b	0x02,0x00,0xff,0x02,0x00,0x00,0x02,0x00 | $ea16
-	dc.b	0x00,0x02,0x00,0xff,0x02,0x00,0x00,0x02 | $ea1e
-	dc.b	0x00,0x00,0x02,0x00,0x00,0x02,0x00,0x00 | $ea26
-	dc.b	0x02,0x00,0x00,0x02,0x00,0x00,0x02,0x00 | $ea2e
-	dc.b	0x00,0x02,0x00,0x00,0x02,0x00,0x00,0x02 | $ea36
-	dc.b	0x00,0x00,0x02,0x01,0x00,0x02,0x01,0x00 | $ea3e
-	dc.b	0x02,0x01,0x00,0x02,0x01,0x00,0x02,0x01 | $ea46
-	dc.b	0x00,0x02,0x01,0x00,0x02,0x01,0x01,0x02 | $ea4e
-	dc.b	0x01,0x00,0x02,0x02,0x01,0x02,0x03,0x00 | $ea56
-	dc.b	0x02,0x04,0x01,0x02,0x05,0x00,0x02,0x06 | $ea5e
-	dc.b	0x01,0x02,0x07,0x01,0x02,0x08,0x01,0x02 | $ea66
-	dc.b	0x09,0x01,0x02,0x0a,0xff,0xfe,0x05,0xff | $ea6e
-	dc.b	0xfe,0x04,0xff,0xfe,0x03,0xff,0xfe,0x02 | $ea76
-	dc.b	0x00,0xfe,0x01,0xff,0xfe,0x00,0x00,0xfe | $ea7e
-	dc.b	0x00,0xff,0xfe,0x00,0x00,0xfe,0x00,0xff | $ea86
-	dc.b	0xfe,0x00,0x00,0xfe,0x00,0x00,0xfe,0x00 | $ea8e
-	dc.b	0x00,0xfe,0x00,0x00,0xfe,0x00,0x00,0xfe | $ea96
-	dc.b	0x00,0x00,0xfe,0x00,0x00,0xfe,0x00,0x00 | $ea9e
-	dc.b	0xfe,0x00,0x00,0xfe,0x00,0x00,0xfe,0x00 | $eaa6
-	dc.b	0x00,0xfe,0x00,0x00,0xfe,0x00,0x00,0xfe | $eaae
-	dc.b	0x00,0x00,0xfe,0x00,0x00,0xfe,0x00,0x00 | $eab6
-	dc.b	0xfe,0x00,0x01,0xfe,0x00,0x00,0xfe,0x00 | $eabe
-	dc.b	0x00,0xfe,0x00,0x01,0xfe,0x00,0x01,0xfe | $eac6
-	dc.b	0x00,0x00,0xfe,0x00,0x01,0xfe,0x00,0x01 | $eace
-	dc.b	0xfe,0x00,0x01,0xfe,0x00,0x01,0xfe,0x00 | $ead6
-	dc.b	0xfd | $eade
-table_eadf:
-	dc.b	0x02,0x03,0xe7,0x05,0x01,0xe8,0x05,0x01 | $eadf
-	dc.b	0xe9,0x05,0x01,0xea,0x05,0x01,0xeb,0x05 | $eae7
-	dc.b	0x01,0xec,0x05,0x01 | $eaef
-table_eaf3:
-	dc.b	0x02,0x03,0xed,0x05,0x01,0xee,0x05,0x01 | $eaf3
-	dc.b	0xef,0x05,0x01,0xf0,0x05,0x01,0xf1,0x05 | $eafb
-	dc.b	0x01,0xf2,0x05,0x01 | $eb03
-table_eb07:
-	dc.b	0x02,0x03,0xf3,0x05,0x01,0xf4,0x05,0x01 | $eb07
-	dc.b	0xf5,0x05,0x01,0xf6,0x05,0x01,0xf7,0x05 | $eb0f
-	dc.b	0x01,0xf8,0x05,0x01 | $eb17
-table_eb1b:
-	dc.b	0x03,0x03,0xf9,0x05,0x01,0xfa,0x05,0x01 | $eb1b
-	dc.b	0x00,0x00,0x01,0xfb,0x05,0x01,0xfc,0x05 | $eb23
-	dc.b	0x01,0xff,0x05,0x01,0xfd,0x05,0x01,0xfe | $eb2b
-	dc.b	0x05,0x01,0x00,0x00,0x01 | $eb33
-table_eb38:
-	dc.b	0x02,0x03,0xdb,0x05,0x01,0xdc,0x05,0x01 | $eb38
-	dc.b	0xdd,0x05,0x01,0xde,0x05,0x01,0xdf,0x05 | $eb40
-	dc.b	0x01,0xe0,0x05,0x01 | $eb48
-table_eb4c:
-	dc.b	0x02,0x03,0xe1,0x05,0x01,0xe2,0x05,0x01 | $eb4c
-	dc.b	0xe3,0x05,0x01,0xe4,0x05,0x01,0xe5,0x05 | $eb54
-	dc.b	0x01,0xe6,0x05,0x01 | $eb5c
-table_eb60:
-	dc.b	0x01,0x01,0xd8,0x05,0x0d | $eb60
-table_eb65:
-	dc.b	0x01,0x01,0xd9,0x05,0x0d | $eb65
-table_eb6a:
-	dc.b	0x01,0x01,0xda,0x05,0x0d | $eb6a
-table_eb6f:
-	dc.b	0x02,0x03,0xe8,0x05,0x82,0xe7,0x05,0x82 | $eb6f
-	dc.b	0xea,0x05,0x82,0xe9,0x05,0x82,0xec,0x05 | $eb77
-	dc.b	0x82,0xeb,0x05,0x82 | $eb7f
-table_eb83:
-	dc.b	0x02,0x03,0xee,0x05,0x82,0xed,0x05,0x82 | $eb83
-	dc.b	0xf0,0x05,0x82,0xef,0x05,0x82,0xf2,0x05 | $eb8b
-	dc.b	0x82,0xf1,0x05,0x82 | $eb93
-table_eb97:
-	dc.b	0x02,0x03,0xf4,0x05,0x82,0xf3,0x05,0x82 | $eb97
-	dc.b	0xf6,0x05,0x82,0xf5,0x05,0x82,0xf8,0x05 | $eb9f
-	dc.b	0x82,0xf7,0x05,0x82 | $eba7
-table_ebab:
-	dc.b	0x03,0x03,0x00,0x00,0x82,0xfa,0x05,0x82 | $ebab
-	dc.b	0xf9,0x05,0x82,0xff,0x05,0x82,0xfc,0x05 | $ebb3
-	dc.b	0x82,0xfb,0x05,0x82,0x00,0x00,0x82,0xfe | $ebbb
-	dc.b	0x05,0x82,0xfd,0x05,0x82 | $ebc3
-table_ebc8:
-	dc.b	0x02,0x03,0xdc,0x05,0x82,0xdb,0x05,0x82 | $ebc8
-	dc.b	0xde,0x05,0x82,0xdd,0x05,0x82,0xe0,0x05 | $ebd0
-	dc.b	0x82,0xdf,0x05,0x82 | $ebd8
-table_ebdc:
-	dc.b	0x02,0x03,0xe2,0x05,0x82,0xe1,0x05,0x82 | $ebdc
-	dc.b	0xe4,0x05,0x82,0xe3,0x05,0x82,0xe6,0x05 | $ebe4
-	dc.b	0x82,0xe5,0x05,0x82 | $ebec
-table_ebf0:
-	dc.b	0x01,0x01,0xd8,0x05,0x0d | $ebf0
-table_ebf5:
-	dc.b	0x01,0x01,0xd9,0x05,0x8d | $ebf5
-table_ebfa:
-	dc.b	0x01,0x01,0xda,0x05,0x0d | $ebfa
-	.align	2
-	
-* < D5,D6
 
-display_something_ebff:
-	lea	table_E9E2(pc),a3                  	| [$ebff: ld   iy,table_E9E2]
+* < D5,D6: coordinates
+* < D0: object type
+display_sprite_block_ebff:
+	lea	game_mem+0xE9E2,a3                  	| [$ebff: ld   iy,table_E9E2]
 	moveq	#0,d3                      	| [$ec03: ld   de,$0000] 0
 	move.b	d0,d1                           	| [$ec06: ld   b,a]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$ec07: ld   a,(players_type_human_or_cpu_flags_C02D)]
@@ -12204,12 +12104,13 @@ l_ec13:
 	move.b	d1,d0                           	| [$ec13: ld   a,b]
 	move.b	d0,d4                           	| [$ec14: ld   e,a]
 	add.w	d4,d4                            	| [$ec15: sla  e]
-	add.w	d4,d4                            	| [$ec15: sla  e]  (32 bit pointer)
 	                           	| [$ec17: rl   d]
 	add.w	d4,a3                            	| [$ec19: add  iy,de]
-	move.l	(a3),a1
-											| [$ec1b: ld   e,(iy+$00)]
-											| [$ec1e: ld   d,(iy+$01)]
+	move.b	(a3)+,d4                            | [$ec1b: ld   e,(iy+$00)]
+	move.b	(a3),d3                             | [$ec1e: ld   d,(iy+$01)]
+	bsr		change_d3_d4_to_a1
+											
+											
 	move.l	a1,a3                        	| [$ec21: push de]
 											| [$ec22: pop  iy]
 	                      	| [$ec24: ld   bc,$0002] 2
@@ -12232,8 +12133,8 @@ l_ec44:
 	movem.w	d5/d6,-(sp)                        	| [$ec46: push hl]
 l_ec47:
 	move.b	d5,d0                           	| [$ec47: ld   a,h]
-	move.b	d0,(0x00,a2)                    	| [$ec48: ld   (ix+$00),a]
-	move.b	(0x00,a3),d0                    	| [$ec4b: ld   a,(iy+$00)]
+	move.b	d0,(a2)                    	| [$ec48: ld   (ix+$00),a]
+	move.b	(a3),d0                    	| [$ec4b: ld   a,(iy+$00)]
 	move.b	d0,(0x01,a2)                    	| [$ec4e: ld   (ix+$01),a]
 	move.b	(0x02,a3),d0                    	| [$ec51: ld   a,(iy+$02)]
 	move.b	d0,(0x02,a2)                    	| [$ec54: ld   (ix+$02),a]

@@ -107,8 +107,8 @@
 	.global	unknown_C0E4
 	.global	unknown_C0E5
 	.global	unknown_C107
-	.global	unknown_C147
-	.global	unknown_C148
+	.global	nb_rounds_won_player_2_C147
+	.global	nb_rounds_won_player_1_C148
 	.global	unknown_C149
 	.global	unknown_C14A
 	.global	unknown_C14F
@@ -262,9 +262,9 @@ task_struct_C120:
 	.align	2
 task_struct_C140:
 	ds.b	7
-unknown_C147:
+nb_rounds_won_player_2_C147:
 	ds.b	1
-unknown_C148:
+nb_rounds_won_player_1_C148:
 	ds.b	1
 unknown_C149:
 	ds.b	1
