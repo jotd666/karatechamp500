@@ -1765,10 +1765,15 @@ update_bg_tile:
 	move.w	d2,current_background
 
 	ror.w	#8,d2		| swap endianness
+	cmp.w	#0x53ce,d2
+	beq.b	13f			| like level 4
 	sub.l	#0x534d,d2	| pointer on level 1
 	bne.b	12f
 	* bamboo practice: same as level 3
 	move.w	#2,d2
+	bra.b	10f
+13:
+	move.w	#3,d2
 	bra.b	10f
 12:
 	divu	#5,d2

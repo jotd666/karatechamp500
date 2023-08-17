@@ -29,4 +29,4 @@ ps.difference_update({(0xC0,0xC0,0xC0),(0xC0,0xA0,0x30)})
 
 # print unused colors from global for each
 for k,v in base.items():
-    print(k,base[k],base[k]-ps,ps-base[k])
+    print(f"level {k}\npalette: {base[k]}\nspecific palette: {base[k]-ps},unused shared: {ps-base[k]}")

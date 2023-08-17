@@ -1917,7 +1917,6 @@ l_45c9:
 l_45d0:
 	move.b	d1,d3                           	| [$45d0: ld   d,b]
 	move.b	#0x20,d4                        	| [$45d1: ld   e,$20]
-	bsr		change_d3_d4_to_d3_16
 	jbsr	multiply_de_b000                            	| [$45d3: call $B000]
 	lea	task_struct_C100,a2            	| [$45d6: ld   ix,task_struct_C100]
 	add.w	d3,a2                            	| [$45da: add  ix,de]
@@ -2211,7 +2210,7 @@ task_47d6:
 0:
 l_47f7:
 	jbsr	l_4b15                            	| [$47f7: call $4B15]
-	jbsr	move_bull_and_collision_4b5c                            	| [$47fa: call $4B5C]
+	jbsr	move_object_and_collision_4b5c                            	| [$47fa: call $4B5C]
 	cmp.b	#0xFF,d0                         	| [$47fd: cp   $FF]
 	jeq	l_48a8                             	| [$47ff: jp   z,$48A8]
 	jbsr	load_evade_object_sprite_pointer_4968                            	| [$4802: call $4968]
@@ -2234,6 +2233,7 @@ l_47f7:
 	.ifne	OPT_INVINCIBLE_EVADE
 	jra	l_4851
 	.endif
+	* evade object hits the player
 	move.l	a3,-(sp)                        	| [$481d: push iy]
 	move.b	#0x0A,d0                        	| [$481f: ld   a,$0A]
 	lea	players_type_human_or_cpu_flags_C02D,a0	| [$4821: ld   hl,players_type_human_or_cpu_flags_C02D]
@@ -2267,6 +2267,7 @@ l_482b:
 	move.l	(sp)+,a3                        	| [$484c: pop  iy]
 	jra	l_48a8                             	| [$484e: jp   $48A8]
 l_4851:
+	* evade object broken by player
 	jbsr	l_4d1c                            	| [$4851: call $4D1C]
 	move.b	#0x12,d0                        	| [$4854: ld   a,$12]
 	jbsr	play_sound_B072                   	| [$4856: call play_sound_B072]
@@ -2612,7 +2613,7 @@ l_4b15:
 	move.b	d3,(0x08,a3)                    	| [$4b36: ld   (iy+$08),d]
 	jra	l_4b4e                             	| [$4b39: jp   $4B4E]
 l_4b3c:
-	* move bull
+	* move bull/object
 	move.b	(0x06,a2),d3                    	| [$4b3c: ld   d,(ix+$06)]
 	move.b	d3,(0x07,a3)                    	| [$4b3f: ld   (iy+$07),d]
 	move.b	(0x07,a2),d3                    	| [$4b42: ld   d,(ix+$07)]
@@ -2620,14 +2621,16 @@ l_4b3c:
 	bset.b	#7,(0x08,a3)                    	| [$4b48: set  7,(iy+$08)]
 	neg.b	d0                               	| [$4b4c: neg]
 l_4b4e:
-	* increase/decrease X according to bull direction
+	* increase/decrease X according to bull/object direction
 	add.b	(0x09,a3),d0                     	| [$4b4e: add  a,(iy+$09)]
 	move.b	d0,(0x09,a3)                    	| [$4b51: ld   (iy+$09),a]
 	move.b	d2,d0                           	| [$4b54: ld   a,c]
 	add.b	(0x0a,a3),d0                     	| [$4b55: add  a,(iy+$0a)]
 	move.b	d0,(0x0a,a3)                    	| [$4b58: ld   (iy+$0a),a]
 	rts                                    	| [$4b5b: ret]
-move_bull_and_collision_4b5c:
+	
+* called to check collision between evade object or bull
+move_object_and_collision_4b5c:
 	lea	table_4B75(pc),a2                  	| [$4b5c: ld   ix,table_4B75]
 	btst.b	#7,(0x08,a3)                    	| [$4b60: bit  7,(iy+$08)]
 	jne	l_4b6b                             	| [$4b64: jp   nz,$4B6B]
@@ -3101,9 +3104,10 @@ l_513c:
 	jbsr	load_evade_object_sprite_pointer_4968	| [$5141: call load_evade_object_sprite_pointer_4968]
 	jbsr	animate_evade_object_4978                            	| [$5144: call $4978]
 	jbsr	let_player_move_4d5e                            	| [$5147: call $4D5E]
+	* evade mainloop
 l_514a:
 	jbsr	l_4b15                            	| [$514a: call $4B15]
-	jbsr	move_bull_and_collision_4b5c                            	| [$514d: call $4B5C]
+	jbsr	move_object_and_collision_4b5c                            	| [$514d: call $4B5C]
 	cmp.b	#0xFF,d0                         	| [$5150: cp   $FF]
 	jeq	l_5236                             	| [$5152: jp   z,$5236]
 	move.b	(0x12,a3),d0                    	| [$5155: ld   a,(iy+$12)]
@@ -3120,13 +3124,14 @@ l_5161:
 	move.w	(sp)+,d0                        	| [$516e: pop  af]
 	* now check return code of collision test
 	tst.b	d0                               	| [$516f: and  a]
-	jeq	l_514a                             	| [$5170: jp   z,$514A]
+	jeq	l_514a                             	| [$5170: jp   z,$514A] no collision
 	cmp.b	#0x02,d0                         	| [$5173: cp   $02]
-	jeq	l_51ae                             	| [$5175: jp   z,$51AE]
+	jeq	l_51ae                             	| [$5175: jp   z,$51AE] player breaks object
 	cmp.b	#0x01,d0                         	| [$5178: cp   $01]
 	beq.b	0f
 	FATAL_ERROR   517a | [$517a: call nz,display_error_text_B075]
 0:
+	* player is hit by the object
 	move.b	(0x12,a3),d0                    	| [$517d: ld   a,(iy+$12)]
 	tst.b	d0                               	| [$5180: and  a]
 	jne	l_514a                             	| [$5181: jp   nz,$514A]
@@ -7765,8 +7770,6 @@ l_a409:
 cpu_move_done_A410:
 	move.b	current_task_index_C028,d0   	| [$a410: ld   a,(current_task_index_C028)]
 	cmp.b	#0x09,d0                         	| [$a413: cp   $09]
-	* uncomment to block red player (deep debug)
-	*move.b	#0x0B,d0
 	jeq	l_a41c                             	| [$a417: jp   z,$A41C]
 	move.b	#0x0A,d0                        	| [$a41a: ld   a,$0A]
 	bra.b	0f
