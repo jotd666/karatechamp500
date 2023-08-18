@@ -156,8 +156,8 @@
 	.global	unknown_C908
 	.global	unknown_C909
 	.global	unknown_C914
-	.global	unknown_C918
-	.global	unknown_C919
+	.global	evade_object_index_C918
+	.global	evade_objects_remaining_C919
 	.global	unknown_C91B
 	.global	unknown_C91D
 	.global	unknown_CC3D
@@ -535,9 +535,9 @@ background_and_state_bits_C911:
 	ds.b	3
 unknown_C914:
 	ds.b	4
-unknown_C918:
+evade_object_index_C918:
 	ds.b	1
-unknown_C919:
+evade_objects_remaining_C919:
 	ds.b	1
 	.align	2
 player_1_points_C91A:

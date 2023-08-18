@@ -662,6 +662,10 @@ osd_break:
 	add.w	#0x10,d1
 	.endm
 	
+* called with game C700 memory, not C800, so no memory copy
+* and each modification done to C7xx is done only once if sprite
+* doesn't change color so it's easier to debug with memwatches
+
 osd_update_sprites:
 	*lea		test_sprites_title_xy,a0
 	move.l	a0,a6			| save sprite table in A6
@@ -784,6 +788,7 @@ osd_update_sprites:
 	bra.b	1b
 13:
 	.ifne	OPT_ENABLE_LOGGING
+	* serious issue!
 	move.w	#0x0FF,0xDFF180
 	.endif
 	bra.b	1b
@@ -1766,7 +1771,7 @@ update_bg_tile:
 
 	ror.w	#8,d2		| swap endianness
 	cmp.w	#0x53ce,d2
-	beq.b	13f			| like level 4
+	beq.b	13f			| demo: same palette as level 4
 	sub.l	#0x534d,d2	| pointer on level 1
 	bne.b	12f
 	* bamboo practice: same as level 3

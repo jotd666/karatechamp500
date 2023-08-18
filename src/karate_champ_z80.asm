@@ -2890,7 +2890,7 @@ get_current_frame_contents_478D:
 48B1: CD 81 B0    call clear_zone_B021
 48B4: CD 51 B0    call task_yield_B051
 ; evade sequence index
-48B7: 3A 12 63    ld   a,(unknown_C918)
+48B7: 3A 12 63    ld   a,(evade_object_index_C918)
 48BA: FE 0C       cp   $06
 ; not possible that it's >= 06
 48BC: D4 D5 B0    call nc,display_error_text_B075
@@ -2899,14 +2899,14 @@ get_current_frame_contents_478D:
 ; > 3, just make it symmetrical?
 48C4: D6 09       sub  $03
 48C6: FD 77 0B    ld   (iy+$0b),a
-48C9: 3A 12 63    ld   a,(unknown_C918)
+48C9: 3A 12 63    ld   a,(evade_object_index_C918)
 48CC: FE 09       cp   $03
 48CE: DA 7C 42    jp   c,$48D6
 48D1: 0E 20       ld   c,$80
 48D3: FD 71 02    ld   (iy+$08),c
 48D6: FD 36 03 00 ld   (iy+$09),$00
 48DA: 21 42 43    ld   hl,table_4948
-48DD: 3A 12 63    ld   a,(unknown_C918)
+48DD: 3A 12 63    ld   a,(evade_object_index_C918)
 48E0: FE 09       cp   $03
 48E2: DA ED 42    jp   c,$48E7
 48E5: D6 09       sub  $03
@@ -2923,7 +2923,7 @@ get_current_frame_contents_478D:
 48F9: DD 7E 09    ld   a,(ix+$03)
 48FC: 86          add  a,(hl)
 48FD: FD 77 0A    ld   (iy+$0a),a
-4900: 3A 13 63    ld   a,(unknown_C919)
+4900: 3A 13 63    ld   a,(evade_objects_remaining_C919)
 4903: FE 0D       cp   $07
 4905: D4 D5 B0    call nc,display_error_text_B075
 4908: FD 77 06    ld   (iy+$0c),a
@@ -4301,7 +4301,7 @@ evade_56f8:
 ; 3 sequences + mirrored
 5740: 1E 0C       ld   e,$06
 5742: CD 0C B0    call random_B006
-5745: 32 12 63    ld   (unknown_C918),a
+5745: 32 12 63    ld   (evade_object_index_C918),a
 5748: 3A 42 61    ld   a,(nb_rounds_won_player_1_C148)
 574B: FE 09       cp   $03
 574D: C2 5D 5D    jp   nz,$5757
@@ -4310,7 +4310,7 @@ evade_56f8:
 5754: 23          inc  hl
 5755: 35          dec  (hl)
 5756: 7E          ld   a,(hl)
-5757: 32 13 63    ld   (unknown_C919),a
+5757: 32 13 63    ld   (evade_objects_remaining_C919),a
 575A: 3A 01 60    ld   a,(unknown_C001)
 575D: E6 F0       and  $F0
 575F: 07          rlca

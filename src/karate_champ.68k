@@ -209,6 +209,21 @@
 	.align	2
 	.endif
 
+	.ifdef	RELEASE
+	.macro CHECK_DX_IN_ROM_RANGE	rn
+	.endm
+	
+	.else
+	.macro CHECK_DX_IN_ROM_RANGE	rn
+	cmp.w	#0xC000,d\rn	| ram at C000, sprites at C800
+	bcs.b	0f
+	cmp.w	#0xD800,d\rn  | end of attribute memory
+	bcc.b	0f
+	FATAL_ERROR		\rn
+0:
+	.endm
+	.endif
+
 * utility routines, code repeated a lot, and needs the same adaptation
 * allows to store a pointer into game structures and stay within 16 bit boundary
 * this forces us to keep a copy of ROM
@@ -230,10 +245,7 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address:
 	move.b	(0x\zz+1,\ay),d7                    	| [$5a93: ld   (ix+$03),h]
 	lsl.w	#8,d7
 	move.b	(0x\zz,\ay),d7                    	| [$5a90: ld   (ix+$02),l]
-	.ifndef	RELEASE
-	* check that it's in ROM range
-	bsr		check_d7_in_rom_range
-	.endif
+	CHECK_DX_IN_ROM_RANGE	7
 	add.l	#game_mem,d7
 	move.l	d7,\ax
 	rts
@@ -263,10 +275,7 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address_mask:
 	bclr	#7,d7				| [res 7,h]
 	lsl.w	#8,d7
 	move.b	(0x\zz,\ay),d7                    	| [$5a90: ld   (ix+$02),l]
-	.ifndef	RELEASE
-	* check that it's in ROM range
-	bsr		check_d7_in_rom_range
-	.endif
+	CHECK_DX_IN_ROM_RANGE	7
 	add.l	#game_mem,d7
 	move.l	d7,\ax
 	rts
@@ -297,17 +306,11 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address_mask:
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS_MASK	a1,a2,07
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS_MASK	a1,a3,07
 	LOAD_AX_FROM_AY_STRUCTURE_ZZ_ADDRESS_MASK	a2,a3,0b
+
 	
 
-check_d7_in_rom_range:
-	cmp.w	#0xC000,d7	| ram at C000, sprites at C800
-	bcs.b	0f
-	cmp.w	#0xD800,d7  | end of attribute memory
-	bcc.b	0f
-	FATAL_ERROR		0
-0:
-	rts
 
+	
 load_address_of_current_player_move_byte_CF04:
 	moveq	#0,d7
 	move.w	address_of_current_player_move_byte_CF04,d7
@@ -315,7 +318,7 @@ load_address_of_current_player_move_byte_CF04:
 	cmp.w	#0x20,d7
 	beq.b	0f
 	* sanity, can't be anything else
-	jbsr	osd_break
+	jbsr	assert_failed_blitz
 	illegal
 	illegal
 	illegal
@@ -331,7 +334,7 @@ store_address_of_current_player_move_byte_CF04:
 	cmp.w	#0x20,d7
 	beq.b	0f
 	* sanity, can't be anything else
-	jbsr	osd_break
+	jbsr	assert_failed_blitz
 	illegal
 	illegal
 0:
@@ -348,7 +351,7 @@ load_address_of_current_player_from_a3_10_to_a0:
 	cmp.w	#0x20,d7
 	beq.b	0f
 	* sanity, can't be anything else
-	jbsr	osd_break
+	jbsr	assert_failed_blitz
 	illegal
 	illegal
 	illegal
@@ -365,7 +368,7 @@ load_address_of_current_player_from_a3_10_to_a1:
 	cmp.w	#0x20,d7
 	beq.b	0f
 	* sanity, can't be anything else
-	jbsr	osd_break
+	jbsr	assert_failed_blitz
 	illegal
 	illegal
 	illegal
@@ -382,7 +385,7 @@ store_address_of_current_player_in_a3_10:
 	cmp.w	#0x20,d7
 	beq.b	0f
 	* sanity, can't be anything else
-	jbsr	osd_break
+	jbsr	assert_failed_blitz
 	illegal
 	illegal
 	illegal
@@ -395,6 +398,7 @@ load_a1_from_a0:
 	move.b	(1,a0),d7
 	lsl.w	#8,d7
 	move.b	(a0),d7
+	CHECK_DX_IN_ROM_RANGE	7
 	add.l	#game_mem,d7
 	move.l	d7,a1
 	rts
@@ -402,6 +406,8 @@ load_a1_from_a0:
 change_a0_to_d5_d6:
 	move.l	a0,d5
 	sub.l	#game_mem,d5
+	CHECK_DX_IN_ROM_RANGE	5
+	
 	move.b	d5,d6
 	lsr.w	#8,d5
 	rts
@@ -415,18 +421,23 @@ change_d5_w_to_a0:
 	swap	d5
 	clr.w	d5
 	swap	d5
+
+	CHECK_DX_IN_ROM_RANGE	5
+	
 	move.l	d5,a0	| move.w gives negative address!
 	add.l	#game_mem,a0
 	rts
 	
 change_d5_d6_to_a0:
 	bsr		change_d5_d6_to_d5_16
+	CHECK_DX_IN_ROM_RANGE	5
 	lea		game_mem,a0
 	add.l	d5,a0
 	rts
 	
 change_d3_d4_to_a1:
 	bsr		change_d3_d4_to_d3_16
+	CHECK_DX_IN_ROM_RANGE	3
 	lea		game_mem,a1
 	add.l	d3,a1
 	rts
@@ -452,6 +463,9 @@ change_d1_d2_to_d1_16:
 	lsl.w	#8,d1
 	move.b	d2,d1
 	rts
+	
+assert_failed_blitz:
+	jbra		osd_break
 	
 karate_champ_irq:
 	bra		on_periodic_interrupt_B72F
@@ -501,7 +515,7 @@ task_address_table_0020:
 	
 * stubs
 task_illegal:
-	jbsr		osd_break
+	jbsr		assert_failed_blitz
 	illegal
 	nop
 	
@@ -516,7 +530,7 @@ task_illegal:
 l_\offset:
 task_\offset:
 	move.w	#0x\offset,d0
-	jbsr		osd_break
+	jbsr		assert_failed_blitz
 	trap	#0
 	.endm
 
@@ -2208,6 +2222,7 @@ task_47d6:
 	beq.b	0f
 	FATAL_ERROR   47f4 | [$47f4: call nz,display_error_text_B075]
 0:
+* evade mainloop
 l_47f7:
 	jbsr	l_4b15                            	| [$47f7: call $4B15]
 	jbsr	move_object_and_collision_4b5c                            	| [$47fa: call $4B5C]
@@ -2271,6 +2286,8 @@ l_4851:
 	jbsr	l_4d1c                            	| [$4851: call $4D1C]
 	move.b	#0x12,d0                        	| [$4854: ld   a,$12]
 	jbsr	play_sound_B072                   	| [$4856: call play_sound_B072]
+	* loop: animate breaking object
+	.ifdef	XXXX
 l_4859:
 	jbsr	load_evade_object_sprite_pointer_4968                            	| [$4859: call $4968]
 	jbsr	animate_evade_object_4978                            	| [$485c: call $4978]
@@ -2294,6 +2311,9 @@ l_4859:
 	jeq	l_4888                             	| [$487f: jp   z,$4888]
 	jbsr	l_4b15                            	| [$4882: call $4B15]
 	jra	l_4859                             	| [$4885: jp   $4859]
+	* object break animation ends
+	.endif
+	
 l_4888:
 	move.b	current_task_index_C028,d0      	| [$4888: ld   a,(current_task_index_C028)]
 	cmp.b	#0x10,d0                         	| [$488b: cp   $10]
@@ -2312,14 +2332,13 @@ l_4888:
 	jbsr	award_score_b018                  	| [$48a3: call award_score_b018]
 	move.l	(sp)+,a3                        	| [$48a6: pop  iy]
 l_48a8:
-	move.b	(0x0e,a3),d6                    	| [$48a8: ld   l,(iy+$0e)]
-	move.b	(0x0f,a3),d5                    	| [$48ab: ld   h,(iy+$0f)]
+	bsr		load_a0_from_a3_structure_0e_address	| [$48ab: ld   l,(iy+$0e)+ld   h,(iy+$0f)]
 	move.w	#0x0010,d1                        	| [$48ae: ld   bc,$0010] 16
 	jbsr	clear_zone_B021                   	| [$48b1: call clear_zone_B021]
 	jbsr	task_yield_B051                   	| [$48b4: call task_yield_B051]
 * evade sequence index
 l_48b7:
-	move.b	unknown_C918,d0                 	| [$48b7: ld   a,(unknown_C918)]
+	move.b	evade_object_index_C918,d0                 	| [$48b7: ld   a,(evade_object_index_C918)]
 	cmp.b	#0x06,d0                         	| [$48ba: cp   $06]
 * not possible that it's >= 06
 	bcs.b	0f
@@ -2331,7 +2350,7 @@ l_48b7:
 	subq.b	#0x03,d0                        	| [$48c4: sub  $03]
 l_48c6:
 	move.b	d0,(0x0b,a3)                    	| [$48c6: ld   (iy+$0b),a]
-	move.b	unknown_C918,d0                 	| [$48c9: ld   a,(unknown_C918)]
+	move.b	evade_object_index_C918,d0                 	| [$48c9: ld   a,(evade_object_index_C918)]
 	cmp.b	#0x03,d0                         	| [$48cc: cp   $03]
 	jcs	l_48d6                             	| [$48ce: jp   c,$48D6]
 	move.b	#0x80,d2                        	| [$48d1: ld   c,$80]
@@ -2339,7 +2358,7 @@ l_48c6:
 l_48d6:
 	clr.b	(0x09,a3)                        	| [$48d6: ld   (iy+$09),$00]
 	lea	game_mem+0x4948,a0                  	| [$48da: ld   hl,table_4948]
-	move.b	unknown_C918,d0                 	| [$48dd: ld   a,(unknown_C918)]
+	move.b	evade_object_index_C918,d0                 	| [$48dd: ld   a,(evade_object_index_C918)]
 	cmp.b	#0x03,d0                         	| [$48e0: cp   $03]
 	jcs	l_48e7                             	| [$48e2: jp   c,$48E7]
 	subq.b	#0x03,d0                        	| [$48e5: sub  $03]
@@ -2357,7 +2376,7 @@ l_48e7:
 	move.b	(0x03,a2),d0                    	| [$48f9: ld   a,(ix+$03)]
 	add.b	(a0),d0                          	| [$48fc: add  a,(hl)]
 	move.b	d0,(0x0a,a3)                    	| [$48fd: ld   (iy+$0a),a]
-	move.b	unknown_C919,d0                 	| [$4900: ld   a,(unknown_C919)]
+	move.b	evade_objects_remaining_C919,d0                 	| [$4900: ld   a,(evade_objects_remaining_C919)]
 	cmp.b	#0x07,d0                         	| [$4903: cp   $07]
 	bcs.b	0f
 	FATAL_ERROR   4905 | [$4905: call nc,display_error_text_B075]
@@ -2391,6 +2410,7 @@ l_48e7:
 	rts                                    	| [$4947: ret]
 
 * > A2: pointer on sprite shadow ram C7xx for object
+* > A3: task structure
 load_evade_object_sprite_pointer_4968:
 	jbsr	load_iy_with_task_structure_B04B	| [$4968: call load_iy_with_task_structure_B04B]
 	* gives address of shadow sprite ram
@@ -2404,7 +2424,7 @@ load_evade_object_sprite_pointer_4968:
 	* sanity check
 	cmp.w	#0x100,d5
 	bcs.b	0f
-	jbsr	osd_break
+	jbsr	assert_failed_blitz
 0:
 	.endif
 	add.l	#sprite_shadow_ram_C700,d5
@@ -2417,6 +2437,7 @@ load_evade_object_sprite_pointer_4968:
 	rts                                    	| [$4977: ret]
 
 * < a2: evade sprite
+* < a3: task structure
 animate_evade_object_4978:
 	jbsr	get_current_frame_contents_478D   	| [$4978: call get_current_frame_contents_478D]
 	bsr		change_d5_d6_to_a0
@@ -2454,6 +2475,7 @@ l_499d:
 	add.b	d2,d0                            	| [$49ac: add  a,c]
 	jra	l_49b5                             	| [$49ad: jp   $49B5]
 l_49b0:
+	* was negative: make it positive
 	neg.b	d0                               	| [$49b0: neg]
 	move.b	d0,d1                           	| [$49b2: ld   b,a]
 	move.b	d2,d0                           	| [$49b3: ld   a,c]
@@ -2483,8 +2505,13 @@ l_49ca:
 	                           	| [$49db: inc  hl]
 	move.b	(a0)+,d1                         	| [$49dc: ld   b,(hl)]
 									| [$49dd: inc  hl]
+	* set evade object tile
+	move.b	d2,0x200
+	move.b	d1,0x201
+	
 	move.b	d2,(0x01,a2)                    	| [$49de: ld   (ix+$01),c]
 	rol.b	#4,d1                            	| [$49e1: rlc  b] * 4
+	* set evade object bank & color
 	move.b	d1,(0x02,a2)                    	| [$49e9: ld   (ix+$02),b]
 	move.b	(0x1d,a3),d0                    	| [$49ec: ld   a,(iy+$1d)]
 	or.b	(0x02,a2),d0                      	| [$49ef: or   (ix+$02)]
@@ -2563,7 +2590,7 @@ l_4a9a:
 	subq.b	#1,d1                           	| [...]
 	jne	l_4a9a                             	| [$4aa3: djnz $4A9A]
 l_4aa5:
-	lea	table_4AD4(pc),a2                  	| [$4aa5: ld   ix,table_4AD4]
+	lea	game_mem+0x4AD4,a2                  	| [$4aa5: ld   ix,table_4AD4]
 	move.b	(0x09,a3),d3                    	| [$4aa9: ld   d,(iy+$09)]
 	move.b	(0x0a,a3),d4                    	| [$4aac: ld   e,(iy+$0a)]
 	jbsr	is_point_in_rectangle_B042        	| [$4aaf: call is_point_in_rectangle_B042]
@@ -2573,11 +2600,11 @@ l_4aa5:
 	move.b	#0x14,d1                        	| [$4ab9: ld   b,$14]
 l_4abb:
 	move.b	(0x09,a3),d0                    	| [$4abb: ld   a,(iy+$09)]
-	move.b	(0x00,a2),d7
+	move.b	(a2),d7
 	eor.b	d7,d0                            	| [$4abe: xor  (ix+$00)]
 	and.b	#0x80,d0                         	| [$4ac1: and  $80]
 	jeq	l_4aca                             	| [$4ac3: jp   z,$4ACA]
-	clr.b	(0x00,a2)                        	| [$4ac6: ld   (ix+$00),$00]
+	clr.b	(a2)                        	| [$4ac6: ld   (ix+$00),$00]
 l_4aca:
 												| [$4aca: ld   de,$0004] 4
 	addq.w	#4,a2                            	| [$4acd: add  ix,de]
@@ -2585,17 +2612,7 @@ l_4aca:
 	jne	l_4abb                             	| [$4acf: djnz $4ABB]
 l_4ad1:
 	rts                                    	| [$4ad1: ret]
-table_4AD4:
-	dc.b	0x30,0x9f,0x00,0xff,0x00,0x00,0xe0,0x4a | $4AD4
-	dc.b	0xe3,0x4a,0xec,0x4a,0xf8,0xf8,0xff,0xf0 | $4adc
-	dc.b	0xf0,0x00,0xf0,0xf0,0x00,0x00,0x00,0xff | $4ae4
-	dc.b	0xd8,0xe0,0xe8,0xe0,0xf8,0xe0,0x08,0xe0 | $4aec
-	dc.b	0x18,0xe0,0xd8,0xf0,0xe8,0xf0,0xf8,0xf0 | $4af4
-	dc.b	0x08,0xf0,0x18,0xf0,0xd8,0x00,0xe8,0x00 | $4afc
-	dc.b	0xf8,0x00,0x08,0x00,0x18,0x00,0xd8,0x10 | $4b04
-	dc.b	0xe8,0x10,0xf8,0x10,0x08,0x10,0x18,0x10 | $4b0c
-	dc.b	0xff | $4b14
-	.align	2
+
 l_4b15:
 	bsr		load_a1_from_a3_structure_07_address_mask
 										| [$4b15: ld   c,(iy+$07)]
@@ -3104,7 +3121,7 @@ l_513c:
 	jbsr	load_evade_object_sprite_pointer_4968	| [$5141: call load_evade_object_sprite_pointer_4968]
 	jbsr	animate_evade_object_4978                            	| [$5144: call $4978]
 	jbsr	let_player_move_4d5e                            	| [$5147: call $4D5E]
-	* evade mainloop
+	* bull mainloop (verify??)
 l_514a:
 	jbsr	l_4b15                            	| [$514a: call $4B15]
 	jbsr	move_object_and_collision_4b5c                            	| [$514d: call $4B5C]
@@ -3127,6 +3144,9 @@ l_5161:
 	jeq	l_514a                             	| [$5170: jp   z,$514A] no collision
 	cmp.b	#0x02,d0                         	| [$5173: cp   $02]
 	jeq	l_51ae                             	| [$5175: jp   z,$51AE] player breaks object
+	.ifne	OPT_INVINCIBLE_EVADE
+	jra	l_51ae
+	.endif
 	cmp.b	#0x01,d0                         	| [$5178: cp   $01]
 	beq.b	0f
 	FATAL_ERROR   517a | [$517a: call nz,display_error_text_B075]
@@ -3837,21 +3857,22 @@ l_571b:
 l_573c:
 	lea	periodic_counter_16bit_C02E,a0 	| [$573c: ld   hl,periodic_counter_16bit_C02E]
 	move.b	(a0),d3                         	| [$573f: ld   d,(hl)]
-* choose among 6 evade sequences
-* 3 sequences + mirrored
+* choose among 6 evade positions
 	move.b	#0x06,d4                        	| [$5740: ld   e,$06]
 	jbsr	random_B006                       	| [$5742: call random_B006]
-	move.b	d0,unknown_C918                 	| [$5745: ld   (unknown_C918),a]
+	move.b	d0,evade_object_index_C918                 	| [$5745: ld   (evade_object_index_C918),a]
+	* C147/C148 are used to count number of objects left
 	move.b	nb_rounds_won_player_1_C148,d0                 	| [$5748: ld   a,(nb_rounds_won_player_1_C148)]
 	cmp.b	#0x03,d0                         	| [$574b: cp   $03]
 	jne	l_5757                             	| [$574d: jp   nz,$5757]
 	lea	nb_rounds_won_player_2_C147,a0                	| [$5750: ld   hl,nb_rounds_won_player_2_C147]
 	subq.b	#1,(a0)+                        	| [$5753: dec  (hl)]
 									| [$5754: inc  hl]
-	subq.b	#1,(a0)                         	| [$5755: dec  (hl)]
+	subq.b	#1,(a0)                         	| [$5755: dec  (hl)] decrease C148
 	move.b	(a0),d0                         	| [$5756: ld   a,(hl)]
 l_5757:
-	move.b	d0,unknown_C919                 	| [$5757: ld   (unknown_C919),a]
+	jbsr	osd_break
+	move.b	d0,evade_objects_remaining_C919                 	| [$5757: ld   (evade_objects_remaining_C919),a]
 	move.b	ram_start_C000+1,d0                 	| [$575a: ld   a,(unknown_C001)]
 	and.b	#0xF0,d0                         	| [$575d: and  $F0]
 	rol.b	#4,d0                            	| [$575f: rlca] * 4
@@ -10260,11 +10281,6 @@ l_b4b8:
 *
 * then called when screen changes
 	* starts the task
-*	move.l	(a3),d7		| debug
-*	cmp.w	#0x3A9C,d7
-*	bne.b	0f
-*	jbsr		osd_break
-*0:
 	jmp	(a0)                               	| [$b502: jp   (hl)]
 
 
@@ -11211,7 +11227,7 @@ l_e076:
 	entrypoint_16	ed58
 	cmp.l	#0,a0
 	bne.b	0f
-	jbsr	osd_break
+	jbsr	assert_failed_blitz
 	trap	#11
 0:
 	pea	l_e076(pc)                      	| [$e0b3: ld   de,$E076] entrypoint, return address for jump?
@@ -11252,13 +11268,13 @@ l_case_FA_e0dd:
 	entrypoint_16	e7d2
 	cmp.l	#0,a0
 	bne.b	0f
-	jbsr		osd_break
+	jbsr		assert_failed_blitz
 	trap	#12
 0:
 											| 
 	jra	(a0)                               	| [$e0e5: jp   (hl)]
 l_case_FD_e0e6:
-	jbsr		osd_break
+	jbsr		assert_failed_blitz
 	trap	#11
 	move.b	(0x01,a2),d0                    	| [$e0e6: ld   a,(ix+$01)]
 	move.b	(0x02,a2),d1                    	| [$e0e9: ld   b,(ix+$02)]
