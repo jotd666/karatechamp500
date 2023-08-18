@@ -742,7 +742,12 @@ osd_update_sprites:
 	cmp.w	#0x600,d2
 	bcc.b	13f
 
-	*     D3 is tile color "table" (0-31)
+	.ifne	OPT_ENABLE_LOGGING
+	move.w	d2,decoded_tile_index
+	move.w	d4,decoded_color_index
+	.endif
+	
+	*     D4 is tile color "table" (0-31)
 	lea		sprite_table,a0
 	add.w	d2,d2
 	add.w	d2,d2
@@ -777,11 +782,10 @@ osd_update_sprites:
 	rts
 12:
 	.ifne	OPT_ENABLE_LOGGING
-	lsr.l	#2,d2
 	* tile code
-	move.l	d2,d0
+	move.w	decoded_tile_index,d0
 	* tile color
-	move.l	d4,d1
+	move.w	decoded_color_index,d1
 	move.w	#0xF00,0xDFF180
 	.endif
 	bra.b	1b
@@ -841,7 +845,14 @@ test_sprites_intro_xy:
 	.byte	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 	.byte	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 
-
+	.ifne	OPT_ENABLE_LOGGING
+decoded_tile_index:
+	.word	0
+decoded_color_index:
+	.word	0
+	.endif
+	
+	
 * what: blits 32x16 data on bg plane, no horizontal shifting (erase)
 * args:
 * < A0: pristine background

@@ -71,23 +71,25 @@ wr_exceptions.update(range(500,513+1))
 wr_exceptions.update(range(900,916+1))
 wr_exceptions.update(range(1000,1007+1))
 for k,v in used_sprite_cluts.items():
-    if k < 1121 and k not in wr_exceptions:
+    if 0 < k < 1121 and k not in wr_exceptions:
         white_red_only_sprites.add(k)
 
 for k in white_red_only_sprites:
     used_sprite_cluts[k] = {1,2}
 
 # if sprite is used with clut 1, then it's used with clut 2 (white/red)
-parasite_sprites = set(range(1034,1098))
-parasite_sprites.update(range(21,26))
+#parasite_sprites = set(range(1034,1098))
+#parasite_sprites.update(range(21,26))
+parasite_sprites = set()
 
 used_sprite_cluts = {k:v for k,v in used_sprite_cluts.items() if k not in parasite_sprites}
 
-dump_tiles = True
+dump_tiles = False
 dump_sprites = False
 
+dump_dir = os.path.join(this_dir,"dumps")
+
 if dump_tiles or dump_sprites:
-    dump_dir = os.path.join(this_dir,"dumps")
     if not os.path.exists(dump_dir):
         os.mkdir(dump_dir)
     if dump_tiles:
@@ -171,18 +173,20 @@ level_tiles = collections.defaultdict(collections.Counter)
 
 level_tiles_dir = os.path.join(this_dir,"level_tiles")
 for level_index in range(0,12):
-    level_file = os.path.join(level_tiles_dir,f"{level_index+1:02d}.bin")
-    with open(level_file,"rb") as f:
-        tiles = f.read(0x400)
-        attributes = f.read(0x400)
-        for tile_index,clut_index in zip(tiles,attributes):
-            color_code = (clut_index>> 3) & 0x1f
-            tile_code =  tile_index + ((clut_index & 7) << 8);
-            tile_code_per_level[tile_code][color_code] = level_index
-            level_tiles[level_index][(hex(tile_code),hex(color_code))] += 1  # for debug
-            if tile_code not in used_tile_cluts:
-                used_tile_cluts[tile_code] = set()
-            used_tile_cluts[tile_code].add(color_code)
+    level_dir = os.path.join(level_tiles_dir,f"{level_index+1:02d}")
+    os.stat(level_dir)
+    for level_file in glob.glob(os.path.join(level_dir,"*.bin")):
+        with open(level_file,"rb") as f:
+            tiles = f.read(0x400)
+            attributes = f.read(0x400)
+            for tile_index,clut_index in zip(tiles,attributes):
+                color_code = (clut_index>> 3) & 0x1f
+                tile_code =  tile_index + ((clut_index & 7) << 8);
+                tile_code_per_level[tile_code][color_code] = level_index
+                level_tiles[level_index][(hex(tile_code),hex(color_code))] += 1  # for debug
+                if tile_code not in used_tile_cluts:
+                    used_tile_cluts[tile_code] = set()
+                used_tile_cluts[tile_code].add(color_code)
 
 
 # very few colors on bonus stages need to be changed so we can always match the scenery
@@ -301,7 +305,7 @@ for k,chardat in enumerate(block_dict["tile"]["data"]):
                 missing = set(repcolors)-set(pal)
                 global_missing.update(missing)
                 levels_where_missing.add(level)
-                msg = "No matching palette for tile ${:x} col ${:x}, colors {} in level palette {}, palette={}, missing={}".format(k,cidx,repcolors,level,pal,missing)
+                msg = f"No matching palette for tile ${k:x}/{k} col ${cidx:x}, colors {repcolors} in level palette {level}, palette={pal}, missing={missing}"
                 #raise Exception(msg)
                 print(msg)
                 character_codes.append(bytes(32))

@@ -92,5 +92,5 @@ for k in ["tiles","sprites"]:
 
 if used_cluts_copy != used_cluts:
     print("clut data was updated!")
-with open(rw_json+"new.json","w") as f:
+with open(rw_json,"w") as f:
    json.dump(used_cluts,f,indent=2)
