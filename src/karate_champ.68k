@@ -309,7 +309,21 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address_mask:
 
 	
 
-
+load_a0_from_a3_structure_0e_C7xx_address:
+	moveq	#0,d5
+	move.w	(0xE,a3),d5  | [$496b: ld   l,(iy+$0e)]
+	SWAP_WORD	d5		 | [$496e: ld   h,(iy+$0f)]
+	sub.w	#0xC700,d5
+	.ifndef	RELEASE
+	* sanity check
+	cmp.w	#0x100,d5
+	bcs.b	0f
+	jbsr	assert_failed_blitz
+0:
+	.endif
+	add.l	#sprite_shadow_ram_C700,d5
+	move.l	d5,a0
+	rts
 	
 load_address_of_current_player_move_byte_CF04:
 	moveq	#0,d7
@@ -2332,7 +2346,9 @@ l_4888:
 	jbsr	award_score_b018                  	| [$48a3: call award_score_b018]
 	move.l	(sp)+,a3                        	| [$48a6: pop  iy]
 l_48a8:
-	bsr		load_a0_from_a3_structure_0e_address	| [$48ab: ld   l,(iy+$0e)+ld   h,(iy+$0f)]
+	
+	bsr		load_a0_from_a3_structure_0e_C7xx_address                    	| [$48a8: ld   l,(iy+$0e)]
+													| [$48ab: ld   h,(iy+$0f)]
 	move.w	#0x0010,d1                        	| [$48ae: ld   bc,$0010] 16
 	jbsr	clear_zone_B021                   	| [$48b1: call clear_zone_B021]
 	jbsr	task_yield_B051                   	| [$48b4: call task_yield_B051]
@@ -2416,20 +2432,9 @@ load_evade_object_sprite_pointer_4968:
 	* gives address of shadow sprite ram
 	* we can't use "load_a0_from_a3_structure_0e_address" as this shadow sprite
 	* ram is not in ROM
-	moveq	#0,d5
-	move.w	(0xE,a3),d5  | [$496b: ld   l,(iy+$0e)]
-	SWAP_WORD	d5		 | [$496e: ld   h,(iy+$0f)]
-	sub.w	#0xC700,d5
-	.ifndef	RELEASE
-	* sanity check
-	cmp.w	#0x100,d5
-	bcs.b	0f
-	jbsr	assert_failed_blitz
-0:
-	.endif
-	add.l	#sprite_shadow_ram_C700,d5
-	move.l	d5,a0
+	bsr		load_a0_from_a3_structure_0e_C7xx_address
 
+	
 	* in evade, iy = 0xC300, then hl = 0xC77C
 	move.l	a0,a2                        	| [$4971: push hl]
 										| [$4972: pop  ix]
@@ -3871,7 +3876,6 @@ l_573c:
 	subq.b	#1,(a0)                         	| [$5755: dec  (hl)] decrease C148
 	move.b	(a0),d0                         	| [$5756: ld   a,(hl)]
 l_5757:
-	jbsr	osd_break
 	move.b	d0,evade_objects_remaining_C919                 	| [$5757: ld   (evade_objects_remaining_C919),a]
 	move.b	ram_start_C000+1,d0                 	| [$575a: ld   a,(unknown_C001)]
 	and.b	#0xF0,d0                         	| [$575d: and  $F0]

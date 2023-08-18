@@ -778,7 +778,6 @@ osd_update_sprites:
 12:
 	.ifne	OPT_ENABLE_LOGGING
 	lsr.l	#2,d2
-	lsr.l	#1,d4
 	* tile code
 	move.l	d2,d0
 	* tile color
@@ -790,6 +789,7 @@ osd_update_sprites:
 	.ifne	OPT_ENABLE_LOGGING
 	* serious issue!
 	move.w	#0x0FF,0xDFF180
+	move.w	#0x0FF,0xDFF184
 	.endif
 	bra.b	1b
 
