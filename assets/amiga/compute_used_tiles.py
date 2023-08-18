@@ -38,7 +38,8 @@ if os.path.exists(rw_json):
 used_cluts = {"tiles":collections.defaultdict(set), "sprites":collections.defaultdict(set)}
 for kn,tv in used_cluts_.items():
     for k,v in tv.items():
-        used_cluts[kn][int(k)] = set(v)
+        if v:
+            used_cluts[kn][int(k)] = set(v)
 
 
 used_cluts_ = None

@@ -4,6 +4,17 @@
 *** BUILD OPTIONS
 ***
 
+	.ifdef	RELEASE
+    OPT_DISABLE_BG_LAYER=0            | LEAVE AT 0!!!
+    OPT_DISABLE_SPRITES=0             | LEAVE AT 0!!!
+    OPT_START_SCORE=0                 | LEAVE AT 0!!!
+	OPT_SKIP_INTRO_SCREEN=0           | LEAVE AT 0!!!
+	OPT_SKIP_TITLE_SCREEN=0           | LEAVE AT 0!!!
+	OPT_SKIP_GAME_DEMO=0              | LEAVE AT 0!!!
+	OPT_EVADE_TEST=0                  | LEAVE AT 0!!!
+	OPT_INVINCIBLE_EVADE=0            | LEAVE AT 0!!!
+	.else
+	
     * hardware options
     OPT_DISABLE_BG_LAYER=0
     OPT_DISABLE_SPRITES=0
@@ -18,7 +29,7 @@
 	* evade test triggers an "ERROR" in the end
 	OPT_EVADE_TEST=0
 	OPT_INVINCIBLE_EVADE=1
-	
+	.endif
 	
 ***
 *** end of BUILD OPTIONS

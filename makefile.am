@@ -64,8 +64,7 @@ game_mem.o: game_mem.68k
 	$(ASM) game_mem.68k -o game_mem.o
 graphics.o: $(AMIGASRC)/graphics.68k $(PROGNAME).inc
 	$(ASM) $(AMIGASRC)/graphics.68k -o graphics.o
-kc_ram.o: kc_ram.68k
-	$(ASM) kc_ram.68k -o kc_ram.o
+
 
 
 $(WHDLOADER) : $(SOURCE)

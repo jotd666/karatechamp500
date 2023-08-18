@@ -44,7 +44,7 @@ _config
 	dc.b	"pier_hard,fuji_hard,bamboo_hard,bridge_hard,"
 	dc.b	"boat_hard,field_hard,mill_hard,city_hard,indian_hard,temple_hard,"
 	dc.b	"dojo_hard,moonlight_hard;"
-;;	dc.b    "C5:X:skip intro:0;"
+	dc.b    "C4:L:buttons layout:WinUAE,CD32;"
 	dc.b	0
 
 	IFD BARFLY

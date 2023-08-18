@@ -2436,6 +2436,7 @@ load_evade_object_sprite_pointer_4968:
 
 	
 	* in evade, iy = 0xC300, then hl = 0xC77C
+	* in bull,  iy = 0xC380, then hl = 0xC74C
 	move.l	a0,a2                        	| [$4971: push hl]
 										| [$4972: pop  ix]
 	move.b	(0x0d,a3),d2                    	| [$4974: ld   c,(iy+$0d)]
@@ -3126,7 +3127,7 @@ l_513c:
 	jbsr	load_evade_object_sprite_pointer_4968	| [$5141: call load_evade_object_sprite_pointer_4968]
 	jbsr	animate_evade_object_4978                            	| [$5144: call $4978]
 	jbsr	let_player_move_4d5e                            	| [$5147: call $4D5E]
-	* bull mainloop (verify??)
+	* bull mainloop
 l_514a:
 	jbsr	l_4b15                            	| [$514a: call $4B15]
 	jbsr	move_object_and_collision_4b5c                            	| [$514d: call $4B5C]
@@ -3156,7 +3157,7 @@ l_5161:
 	beq.b	0f
 	FATAL_ERROR   517a | [$517a: call nz,display_error_text_B075]
 0:
-	* player is hit by the object
+	* player is hit by the bull
 	move.b	(0x12,a3),d0                    	| [$517d: ld   a,(iy+$12)]
 	tst.b	d0                               	| [$5180: and  a]
 	jne	l_514a                             	| [$5181: jp   nz,$514A]
@@ -3182,9 +3183,9 @@ l_5191:
 	FATAL_ERROR   51a2 | [$51a2: call nz,display_error_text_B075]
 0:
 	move.l	(sp)+,a3                        	| [$51a5: pop  iy]
-	move.b	#0xFF,(0x12,a3)                 	| [$51a7: ld   (iy+$12),$FF]
+	st.b	(0x12,a3)                 	| [$51a7: ld   (iy+$12),$FF]
 	jra	l_514a                             	| [$51ab: jp   $514A]
-	* player breaks evade object
+	* player knocks the bull out
 l_51ae:
 	jbsr	l_4d1c                            	| [$51ae: call $4D1C]
 	move.b	#0x12,d0                        	| [$51b1: ld   a,$12]
@@ -3251,7 +3252,7 @@ l_522c:
 	jra	l_5242                             	| [$5233: jp   $5242]
 l_5236:
 	jbsr	load_evade_object_sprite_pointer_4968	| [$5236: call load_evade_object_sprite_pointer_4968]
-
+	* not really useful, ix==hl on exit
 	move.l	a2,a0                        	| [$5239: push ix]
 											| [$523b: pop  hl]
 	move.w	#0x50,d1                        	| [$523c: ld   bc,$0050] 80

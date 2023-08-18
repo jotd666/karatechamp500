@@ -27,26 +27,6 @@ SCORE_FILE_SIZE = 0x1E
 OPT_ENABLE_PROFILING = 0         | DO NOT CHANGE THIS
 OPT_ENABLE_LOGGING = 0           | DO NOT CHANGE THIS
 ONE_TICK = 1
-	* check most used options in release mode
-	* to avoid creating a version with cheats on!
-	.ifne	OPT_DISABLE_BG_LAYER
-	.error	"debug option OPT_DISABLE_BG_LAYER in release mode"
-	.endif
-	.ifne	OPT_DISABLE_SPRITES
-	.error	"debug option OPT_DISABLE_SPRITES in release mode"
-	.endif
-	.ifne	OPT_SKIP_TITLE_SCREEN
-	.error	"nonzero OPT_SKIP_TITLE_SCREEN option in release mode"
-	.endif
-	.ifne	OPT_ONLY_ONE_LIFE
-	.error	"nonzero OPT_ONLY_ONE_LIFE option in release mode"
-	.endif
-	.ifne	OPT_SKIP_GAME_DEMO
-	.error	"nonzero OPT_SKIP_GAME_DEMO option in release mode"
-	.endif
-	.ifne	OPT_START_SCORE
-	.error	"nonzero OPT_START_SCORE option in release mode"
-	.endif
 
 	.else
 OPT_ENABLE_LOGGING = 1
