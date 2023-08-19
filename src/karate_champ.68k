@@ -443,10 +443,12 @@ change_d5_w_to_a0:
 	rts
 	
 change_d5_d6_to_a0:
+	move.w	d5,-(sp)
 	bsr		change_d5_d6_to_d5_16
 	CHECK_DX_IN_ROM_RANGE	5
 	lea		game_mem,a0
 	add.l	d5,a0
+	move.w	(sp)+,d5
 	rts
 	
 change_d3_d4_to_a1:
@@ -507,7 +509,7 @@ task_address_table_0020:
 	.long	0x6491,task_6491                           	|  $0026
 	.long	0x6529,display_hit_score_task_6529                           	|  $0028
 	.long	0x7c5d,handle_1up_2up_flashing_7c5d                           	|  $002a
-	.long	0x6f89,girl_hesitating_task_6f89                           	|  $002c
+	.long	0x6f89,girl_intermission_task_6f89                           	|  $002c
 	.long	0x6622,task_6622                           	|  $002e
 	.long	0x755b,white_player_task_755b                           	|  $0030
 	.long	0x7657,red_player_task_7657                           	|  $0032
@@ -2226,7 +2228,7 @@ task_47d6:
 	jbsr	clear_player_structure_partial_b012	| [$47de: call clear_player_structure_partial_b012]
 	jbsr	l_48b7                            	| [$47e1: call $48B7]
 	jbsr	load_evade_object_sprite_pointer_4968	| [$47e4: call $4968]
-	jbsr	animate_evade_object_4978                            	| [$47e7: call $4978]
+	jbsr	animate_evade_object_or_bull_4978                            	| [$47e7: call $4978]
 
 	move.l	a3,-(sp)                        	| [$47ea: push iy]
 	move.b	#0x01,d0                        	| [$47ec: ld   a,$01]
@@ -2243,7 +2245,7 @@ l_47f7:
 	cmp.b	#0xFF,d0                         	| [$47fd: cp   $FF]
 	jeq	l_48a8                             	| [$47ff: jp   z,$48A8]
 	jbsr	load_evade_object_sprite_pointer_4968                            	| [$4802: call $4968]
-	jbsr	animate_evade_object_4978                            	| [$4805: call $4978]
+	jbsr	animate_evade_object_or_bull_4978                            	| [$4805: call $4978]
 	jbsr	evade_check_current_player_vs_object_4bfc                            	| [$4808: call $4BFC]
 	move.w	d0,-(sp)                        	| [$480b: push af]
 	jbsr	let_player_move_4d5e                            	| [$480c: call $4D5E]
@@ -2304,7 +2306,7 @@ l_4851:
 	.ifdef	XXXX
 l_4859:
 	jbsr	load_evade_object_sprite_pointer_4968                            	| [$4859: call $4968]
-	jbsr	animate_evade_object_4978                            	| [$485c: call $4978]
+	jbsr	animate_evade_object_or_bull_4978                            	| [$485c: call $4978]
 	jbsr	let_player_move_4d5e                            	| [$485f: call $4D5E]
 	tst.b	d0                               	| [$4862: and  a]
 	beq.b	0f
@@ -2444,8 +2446,9 @@ load_evade_object_sprite_pointer_4968:
 
 * < a2: evade sprite
 * < a3: task structure
-animate_evade_object_4978:
+animate_evade_object_or_bull_4978:
 	jbsr	get_current_frame_contents_478D   	| [$4978: call get_current_frame_contents_478D]
+
 	bsr		change_d5_d6_to_a0
 	move.b	(a0),d0                         	| [$497b: ld   a,(hl)]
 	and.b	#0x80,d0                         	| [$497c: and  $80]
@@ -2511,11 +2514,12 @@ l_49ca:
 	                           	| [$49db: inc  hl]
 	move.b	(a0)+,d1                         	| [$49dc: ld   b,(hl)]
 									| [$49dd: inc  hl]
-	* set evade object tile
+	* set evade/bull object tile
 	
 	move.b	d2,(0x01,a2)                    	| [$49de: ld   (ix+$01),c]
 	rol.b	#4,d1                            	| [$49e1: rlc  b] * 4
-	* set evade object bank & color
+
+	* set evade/bull object bank & color
 	move.b	d1,(0x02,a2)                    	| [$49e9: ld   (ix+$02),b]
 	move.b	(0x1d,a3),d0                    	| [$49ec: ld   a,(iy+$1d)]
 	or.b	(0x02,a2),d0                      	| [$49ef: or   (ix+$02)]
@@ -2866,6 +2870,9 @@ l_4d1c:
 	move.b	(0x00,a2),d6					| [$4d29: ld   l,(ix+$00)]
 	move.b	(0x01,a2),d5					| [$4d2c: ld   h,(ix+$01)]
 	bsr		change_d5_d6_to_a0
+	* a rare case where we need A0 and also D5/D6 untouched
+	* not preserving D5 in change_d5_d6_to_a0 resulted in a nasty bug
+	* when bull was hit by the player
 	move.l	a0,a2                        	| [$4d2f: push hl]
 											| [$4d30: pop  ix]
 	move.b	d6,(0x07,a3)                    	| [$4d32: ld   (iy+$07),l]
@@ -3123,7 +3130,7 @@ l_513c:
 	move.b	#0x14,d0                        	| [$513c: ld   a,$14]
 	jbsr	play_sound_B072                   	| [$513e: call play_sound_B072]
 	jbsr	load_evade_object_sprite_pointer_4968	| [$5141: call load_evade_object_sprite_pointer_4968]
-	jbsr	animate_evade_object_4978                            	| [$5144: call $4978]
+	jbsr	animate_evade_object_or_bull_4978                            	| [$5144: call $4978]
 	jbsr	let_player_move_4d5e                            	| [$5147: call $4D5E]
 	* bull mainloop
 l_514a:
@@ -3138,7 +3145,7 @@ l_514a:
 	jbsr	play_sound_B072                   	| [$515e: call play_sound_B072]
 l_5161:
 	jbsr	load_evade_object_sprite_pointer_4968	| [$5161: call load_evade_object_sprite_pointer_4968]
-	jbsr	animate_evade_object_4978                            	| [$5164: call $4978]
+	jbsr	animate_evade_object_or_bull_4978                            	| [$5164: call $4978]
 	jbsr	evade_check_current_player_vs_object_4bfc                            	| [$5167: call $4BFC]
 	move.w	d0,-(sp)                        	| [$516a: push af]
 	jbsr	let_player_move_4d5e                            	| [$516b: call $4D5E]
@@ -3190,7 +3197,7 @@ l_51ae:
 	jbsr	play_sound_B072                   	| [$51b3: call play_sound_B072]
 l_51b6:
 	jbsr	load_evade_object_sprite_pointer_4968	| [$51b6: call load_evade_object_sprite_pointer_4968]
-	jbsr	animate_evade_object_4978                            	| [$51b9: call $4978]
+	jbsr	animate_evade_object_or_bull_4978                            	| [$51b9: call $4978]
 	jbsr	let_player_move_4d5e                            	| [$51bc: call $4D5E]
 	bsr		load_a0_from_a3_structure_07_address_mask      	| [$51bf: ld   l,(iy+$07)]
 	                   	| [$51c2: ld   h,(iy+$08)]
@@ -4175,6 +4182,9 @@ l_58e5:
 0:
 	jbsr	task_yield_B051                   	| [$58fc: call task_yield_B051]
 l_58ff:
+	tst.b	skip_girl_intro_flag
+	jne		skip_girl_intro
+
 	move.b	#0x04,d0                        	| [$58ff: ld   a,$04]
 	jbsr	play_sound_B072                   	| [$5901: call play_sound_B072]
 	move.b	#0x06,d0                        	| [$5904: ld   a,$06]
@@ -6506,8 +6516,10 @@ l_6d8b:
 0:
 	jbsr	task_yield_B051                   	| [$6e38: call task_yield_B051]
 
-
-girl_hesitating_task_6f89:
+* part where girl looks alternately to both players
+* also where she says "my hero" and "better luck next time"
+* depending on the value of background_and_state_bits_C911
+girl_intermission_task_6f89:
 	move.b	background_and_state_bits_C911,d0	| [$6f89: ld   a,(background_and_state_bits_C911)]
 	bclr.b	#7,d0                           	| [$6f8c: res  7,a]
 	cmp.b	#0x20,d0                         	| [$6f8e: cp   $20]
@@ -6522,6 +6534,7 @@ girl_hesitating_task_6f89:
 	jcc	l_73ab                             	| [$6f9a: jp   nc,$73AB]
 	cmp.b	#0x30,d0                         	| [$6f9d: cp   $30]
 	jcc	l_71b5                             	| [$6f9f: jp   nc,$71B5]
+	* hesitates between 2 players
 	lea	computer_skill_C910,a2         	| [$6fa2: ld   ix,computer_skill_C910]
 	bsr		load_a0_from_a2_structure_02_address                    	| [$6fa6: ld   l,(ix+$02)]
 	                    	| [$6fa9: ld   h,(ix+$03)]
@@ -6756,6 +6769,7 @@ l_707a:
 	move.l	(sp)+,a3                        	| [$71ae: pop  iy]
 	move.l	(sp)+,a2                        	| [$71b0: pop  ix]
 	jra	l_707a                             	| [$71b2: jp   $707A]
+	
 l_71b5:
 	move.b	unknown_C914,d0                 	| [$71b5: ld   a,(unknown_C914)]
 	cmp.b	#0xFF,d0                         	| [$71b8: cp   $FF]
@@ -9515,10 +9529,6 @@ is_title_screen_demo_mode_B0B1:
 read_p1_controls_BBA8:
 read_p1_controls_B0B7:
 	jbsr	osd_read_inputs
-	tst.b	d0
-	beq.b	0f
-	move.b	#1,0x110
-0:
 	bra.b	rpc_bbaf
 	
 read_p2_controls_B0BA:

@@ -1,5 +1,5 @@
 *
-*	Amiga-specific portions of Pengo
+*	Amiga-specific portions of Karate Champ
 *
 * (c) JOTD 2023
 *
@@ -715,7 +715,7 @@ osd_update_sprites:
 	move.b	d3,d6
 	and.b	#0xF,d4		| color code
 	and.b	#0x60,d3
-	lsl.w	#4,d3		| sprite bank (0,1,2) * 512
+	lsl.w	#4,d3		| sprite bank (0,1,2) * 512. 3 is not a possible value!
 	and.b	#0x10,d5
 	lsl.w	#4,d5
 	add.w	d5,d2		| extended tile code
