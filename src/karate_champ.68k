@@ -2261,9 +2261,10 @@ l_47f7:
 	* D0=2: object destroyed
 	cmp.b	#0x02,d0                         	| [$4818: cp   $02]
 	jeq	l_4851                             	| [$481a: jp   z,$4851]
-	.ifne	OPT_INVINCIBLE_EVADE
-	jra	l_4851
-	.endif
+	
+	tst.b	invincible_flag
+	jne	l_4851
+	
 	* evade object hits the player
 	move.l	a3,-(sp)                        	| [$481d: push iy]
 	move.b	#0x0A,d0                        	| [$481f: ld   a,$0A]
@@ -3155,9 +3156,9 @@ l_5161:
 	jeq	l_514a                             	| [$5170: jp   z,$514A] no collision
 	cmp.b	#0x02,d0                         	| [$5173: cp   $02]
 	jeq	l_51ae                             	| [$5175: jp   z,$51AE] player breaks object
-	.ifne	OPT_INVINCIBLE_EVADE
-	jra	l_51ae
-	.endif
+	tst.b	invincible_flag
+	jne	l_51ae
+	
 	cmp.b	#0x01,d0                         	| [$5178: cp   $01]
 	beq.b	0f
 	FATAL_ERROR   517a | [$517a: call nz,display_error_text_B075]
@@ -3376,7 +3377,9 @@ l_5287:
 	bset.b	#2,(a0)                         	| [$52fe: set  2,(hl)]
 	lea	nb_credits_minus_one_C024,a0   	| [$5300: ld   hl,nb_credits_minus_one_C024]
 	move.b	(a0),d0                         	| [$5303: ld   a,(hl)]
+	CLEAR_XC_FLAGS
 	moveq	#1,d7
+	* one less credit
 	sbcd.b	d7,d0                        	| [$5304: sub  $01]
 	move.b	d0,(a0)                         	| [$5307: ld   (hl),a]
 	jbsr	clear_sprite_shadow_ram_C7xx_B01E                    	| [$5308: call $B01E]
@@ -3396,7 +3399,7 @@ l_531b:
 	btst.b	#2,d0                           	| [$5327: bit  2,a]
 	jne	l_5266                             	| [$5329: jp   nz,$5266]
 	move.b	nb_credits_minus_one_C024,d0    	| [$532c: ld   a,(nb_credits_minus_one_C024)]
-	tst.b	d0                               	| [$532f: and  a]
+											| [$532f: and  a]
 	jeq	l_531b                             	| [$5330: jp   z,$531B]
 	jbsr	check_coin_ports_B069                            	| [$5333: call $B069]
 	btst.b	#3,d0                           	| [$5336: bit  3,a]
@@ -3405,8 +3408,10 @@ l_531b:
 	lea	players_type_human_or_cpu_flags_C02D,a0	| [$533b: ld   hl,players_type_human_or_cpu_flags_C02D]
 	bset.b	#1,(a0)                         	| [$533e: set  1,(hl)]
 	bset.b	#3,(a0)                         	| [$5340: set  3,(hl)]
+	CLEAR_XC_FLAGS
 	lea	nb_credits_minus_one_C024,a0   	| [$5342: ld   hl,nb_credits_minus_one_C024]
 	move.b	(a0),d0                         	| [$5345: ld   a,(hl)]
+	* one less credit (2P needs 2 credits)
 	moveq	#1,d7
 	sbcd.b	d7,d0                        	| [$5346: sub  $01]
 	move.b	d0,(a0)                         	| [$5349: ld   (hl),a]
@@ -3827,6 +3832,8 @@ l_56bb:
 	lea	nb_rounds_won_player_2_C147,a0                	| [$56d5: ld   hl,nb_rounds_won_player_2_C147]
 	addq.b	#1,(a0)                         	| [$56d8: inc  (hl)]
 	move.b	(a0),d0                         	| [$56d9: ld   a,(hl)]
+	tst.b	one_round_wins_cheat_flag
+	bne.b	l_56df
 	cmp.b	#0x02,d0                         	| [$56da: cp   $02]
 	jcs	l_5531                             	| [$56dc: jp   c,$5531]
 l_56df:
@@ -4075,12 +4082,15 @@ l_5836:
 	move.b	dip_switches_copy_C030,d0       	| [$5840: ld   a,(dip_switches_copy_C030)]
 	btst.b	#7,d0                           	| [$5843: bit  7,a] free play
 	jeq	l_584d                             	| [$5845: jp   z,$584D]
+	* free play
 	move.b	#0x03,d0                        	| [$5848: ld   a,$03]
 	move.b	d0,nb_credits_minus_one_C024    	| [$584a: ld   (nb_credits_minus_one_C024),a]
 l_584d:
 	move.b	nb_credits_minus_one_C024,d0    	| [$584d: ld   a,(nb_credits_minus_one_C024)]
 	tst.b	d0                               	| [$5850: and  a]
 	jne	l_58ae                             	| [$5851: jp   nz,$58AE]
+	* 1 player lost in 2P mode, but no more credits
+	* prints "LOSER TO CONTINUE FIGHT ..."
 	lea	game_mem+0x7816,a0                  	| [$5854: ld   hl,table_7816]
 	move.b	#0x98,d3                        	| [$5857: ld   d,$98]
 	jbsr	display_text_B039                 	| [$5859: call display_text_B039]
@@ -4584,7 +4594,6 @@ l_5c0f:
 	jbsr	award_score_b018                  	| [$5c23: call award_score_b018]
 	* which level did we reach?
 	move.b	computer_skill_C910,d0          	| [$5c26: ld   a,(computer_skill_C910)]
-	jbsr	osd_break
 	clr.w	d1                               	| [$5c2d: ld   b,$00]
 	* times 8 to select the proper girls sprites to copy
 	add.b	d0,d0                            	| [$5c29: add  a,a]

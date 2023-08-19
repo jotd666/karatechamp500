@@ -305,12 +305,18 @@ _user:
 0:
 
 	move.l	cheat_flags,d0
-*	btst	#0,d0
-*	sne		invincible_flag
 	btst	#1,d0
 	sne		one_round_wins_cheat_flag
 	btst	#2,d0
+	sne		invincible_flag
+	
+	move.l	misc_options(pc),d0
+	btst	#0,d0
 	sne		skip_girl_intro_flag
+	btst	#1,d0
+	beq.b	0f
+	bclr	#7,dip_switches
+0:
 	
 	
 	jsr	 _detect_controller_types 
@@ -2369,6 +2375,9 @@ cheat_flags:
 start_level_option:
 		.long	0
 		.long	WHDLTAG_CUSTOM4_GET
+buttons_layout_options:
+		.long	0
+		.long	WHDLTAG_CUSTOM5_GET
 misc_options:
 		.long	0
 		.long	WHDLTAG_CUSTOM2_GET

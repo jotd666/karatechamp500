@@ -36,9 +36,9 @@ _expmem
     dc.w    _config-_base
 ;---
 _config
-	dc.b    "C1:X:cheat keys F1-F2:0;"
+	dc.b    "C1:X:cheat keys F1-F2 instant win:0;"
 	dc.b    "C1:X:human player wins in 1 round:1;"
-	dc.b    "C1:X:skip girl intermissions:2;"
+	dc.b    "C1:X:invincible in bull and evade:2;"
 	dc.b    "C2:L:difficulty:easy,medium,hard,hardest;"
 	dc.b    "C3:L:start level:pier,fuji,bamboo,bridge,"
 	dc.b	"boat,field,mill,city,indian,temple,dojo,moonlight,"
@@ -46,6 +46,8 @@ _config
 	dc.b	"boat_hard,field_hard,mill_hard,city_hard,indian_hard,temple_hard,"
 	dc.b	"dojo_hard,moonlight_hard;"
 	dc.b    "C4:L:buttons layout:WinUAE,CD32;"
+	dc.b    "C5:X:skip girl intermissions:0;"
+	dc.b    "C5:X:free play:1;"
 	dc.b	0
 
 	IFD BARFLY

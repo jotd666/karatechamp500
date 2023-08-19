@@ -72,6 +72,11 @@ for k in range(10+26+1):
 for k in range(0x25,0x30):
     used_tile_cluts[k].update({0x15,0x16})
 
+# 2P score frame (rest of tiles are logged in .json file)
+for k in range(0xE0,0xEA):
+    used_tile_cluts[k].add(0x12)
+used_tile_cluts[0xD0].add(0x12)
+
 wr_exceptions = {1023,1024,1068,0x83,0x84,0x5F}
 # don't red/white some objects lost around player red/white frames
 wr_exceptions.update(range(500,513+1))
@@ -82,6 +87,10 @@ for k,v in used_sprite_cluts.items():
     if 0 < k < 1121 and k not in wr_exceptions:
         white_red_only_sprites.add(k)
 
+# player crying
+white_red_only_sprites.update(range(0x4CE,0x4D6))
+# player breaks planks
+white_red_only_sprites.update(range(0x5DB,0x600))
 for k in white_red_only_sprites:
     used_sprite_cluts[k] = {1,2}
 
