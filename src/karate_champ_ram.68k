@@ -7,6 +7,7 @@
 	.global	fake_p1_hit_flag
 	.global	fake_p2_hit_flag
 	.global one_round_wins_cheat_flag
+	.global skip_girl_intro_flag
 	.global start_level
 	.global vb_ticks_count
 	
@@ -61,6 +62,8 @@ fake_p2_hit_flag:
 invincible_flag:
 	.byte	0
 one_round_wins_cheat_flag:
+	.byte	0
+skip_girl_intro_flag:
 	.byte	0
 start_level:
 	.byte	0

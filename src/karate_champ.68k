@@ -4150,6 +4150,8 @@ start_round_58c7:
 	beq.b	0f
 	FATAL_ERROR   58db | [$58db: call nz,display_error_text_B075]
 0:
+	tst.b	skip_girl_intro_flag
+	jne		skip_girl_intro
 	move.b	#0x06,d0                        	| [$58de: ld   a,$06]
 	jbsr	schedule_task_to_start_B057       	| [$58e0: call schedule_task_to_start_B057]
 	move.b	#0x07,d1                        	| [$58e3: ld   b,$07]
@@ -4189,6 +4191,7 @@ l_590b:
 	movem.w	(sp)+,d1/d2                    	| [$5915: pop  bc]
 	subq.b	#1,d1                           	| [...]
 	jne	l_590b                             	| [$5916: djnz $590B]
+skip_girl_intro:
 	move.b	#0x01,d0                        	| [$5918: ld   a,$01]
 	move.b	d0,d1                           	| [$591a: ld   b,a]
 	jbsr	set_next_task_B05D            	| [$591b: call set_next_task_B05D]

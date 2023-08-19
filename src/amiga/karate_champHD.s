@@ -38,6 +38,7 @@ _expmem
 _config
 	dc.b    "C1:X:cheat keys F1-F2:0;"
 	dc.b    "C1:X:human player wins in 1 round:1;"
+	dc.b    "C1:X:skip girl intro:2;"
 	dc.b    "C2:L:difficulty:easy,medium,hard,hardest;"
 	dc.b    "C3:L:start level:pier,fuji,bamboo,bridge,"
 	dc.b	"boat,field,mill,city,indian,temple,dojo,moonlight,"

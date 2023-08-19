@@ -309,6 +309,8 @@ _user:
 *	sne		invincible_flag
 	btst	#1,d0
 	sne		one_round_wins_cheat_flag
+	btst	#2,d0
+	sne		skip_girl_intro_flag
 	
 	
 	jsr	 _detect_controller_types 
