@@ -28,6 +28,7 @@
 	OPT_SKIP_GAME_DEMO=0
 	* evade test triggers an "ERROR" in the end
 	OPT_EVADE_TEST=0
+	* invincible evade+bull
 	OPT_INVINCIBLE_EVADE=1
 	.endif
 	

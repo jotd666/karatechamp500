@@ -3260,11 +3260,13 @@ l_5242:
 
 
 task_5250:
+	moveq	#0,d0
 	move.b	start_level,d0           	| [$5250: ld   a,$00]
 	lea	player_rank_C900,a2              	| [$5252: ld   ix,player_rank_C900]
 	* set background pic index (level 1)
 	* only called at bootup & after game over
-	move.b	d0,(0x00,a2)                    	| [$5256: ld   (ix+$00),a]
+	move.b	d0,(a2)                    	| [$5256: ld   (ix+$00),a]
+	
 	lea	game_mem+0x53CC,a0                  	| [$5259: ld   hl,table_53CC]
 	bsr		store_a0_in_a2_structure_02_address        	| [$525c: ld   (ix+$02),l]
 									| [$525f: ld   (ix+$03),h]
@@ -3337,12 +3339,31 @@ l_5287:
 	move.b	d0,unknown_C0DD                 	| [$52de: ld   (unknown_C0DD),a]
 	move.b	d0,unknown_C0DE                 	| [$52e1: ld   (unknown_C0DE),a]
 	move.b	d0,unknown_C0DF                 	| [$52e4: ld   (unknown_C0DF),a]
-	move.b	d0,unknown_C0E0                 	| [$52e7: ld   (unknown_C0E0),a]
+	move.b	d0,victory_flags_p1_C0E0                 	| [$52e7: ld   (victory_flags_p1_C0E0),a]
 	move.b	d0,unknown_C0E1                 	| [$52ea: ld   (unknown_C0E1),a]
 	move.b	d0,unknown_C0E2                 	| [$52ed: ld   (unknown_C0E2),a]
-	move.b	d0,unknown_C0E3                 	| [$52f0: ld   (unknown_C0E3),a]
+	move.b	d0,victory_flags_p2_C0E3                 	| [$52f0: ld   (victory_flags_p2_C0E3),a]
 	move.b	d0,unknown_C0E4                 	| [$52f3: ld   (unknown_C0E4),a]
 	move.b	d0,unknown_C0E5                 	| [$52f6: ld   (unknown_C0E5),a]
+
+	move.b	start_level,d0
+	* generate as many bits as victories to be
+	* consistent for player 1 when level select is enabled
+	beq.b	0f
+	moveq	#1,d1
+	lsl.l	d0,d1
+	subq.l	#1,d1
+	* simulate as much victories as levels for player 1
+	* (3 bytes for 24 victories max)
+	lea	victory_flags_p1_C0E0,a2
+
+	move.b	d1,(a2)+
+	lsr.l	#8,d1
+	move.b	d1,(a2)+
+	lsr.l	#8,d1
+	move.b	d1,(a2)
+0:
+	
 	lea	players_type_human_or_cpu_flags_C02D,a0	| [$52f9: ld   hl,players_type_human_or_cpu_flags_C02D]
 	bset.b	#0,(a0)                         	| [$52fc: set  0,(hl)]
 	bset.b	#2,(a0)                         	| [$52fe: set  2,(hl)]
@@ -3431,7 +3452,7 @@ l_53ee:
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5403: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	btst.b	#2,d0                           	| [$5406: bit  2,a]
 	jeq	l_540e                             	| [$5408: jp   z,$540E]
-* copy the contents of C900 to C907 (8 bytes)
+* copy the contents of C900-C907 (8 bytes) to C910
 	lea	player_rank_C900,a0              	| [$540b: ld   hl,player_rank_C900]
 l_540e:
 	lea	computer_skill_C910,a1         	| [$540e: ld   de,computer_skill_C910]
@@ -3724,8 +3745,8 @@ l_5614:
 	cmp.b	#0x02,d0                         	| [$5633: cp   $02]
 	jcs	l_5531                             	| [$5635: jp   c,$5531]
 l_5638:
-	lea	unknown_C0E0,a0                	| [$5638: ld   hl,unknown_C0E0]
-	jbsr	l_5f09                            	| [$563b: call $5F09]
+	lea	victory_flags_p1_C0E0,a0                	| [$5638: ld   hl,victory_flags_p1_C0E0]
+	jbsr	set_victory_flag_5f09                            	| [$563b: call $5F09]
 	move.b	#0x64,d0                        	| [$563e: ld   a,$64]
 	jbsr	suspend_this_task_B05A                 	| [$5640: call suspend_this_task_B05A]
 l_5643:
@@ -3802,8 +3823,8 @@ l_56bb:
 	cmp.b	#0x02,d0                         	| [$56da: cp   $02]
 	jcs	l_5531                             	| [$56dc: jp   c,$5531]
 l_56df:
-	lea	unknown_C0E3,a0                	| [$56df: ld   hl,unknown_C0E3]
-	jbsr	l_5f09                            	| [$56e2: call $5F09]
+	lea	victory_flags_p2_C0E3,a0                	| [$56df: ld   hl,victory_flags_p2_C0E3]
+	jbsr	set_victory_flag_5f09                            	| [$56e2: call $5F09]
 	move.b	#0x64,d0                        	| [$56e5: ld   a,$64]
 	jbsr	suspend_this_task_B05A                 	| [$56e7: call suspend_this_task_B05A]
 l_56ea:
@@ -4257,8 +4278,8 @@ l_599c:
 	move.b	unknown_C914,d0                 	| [$59b7: ld   a,(unknown_C914)]
 	cmp.b	#0xFF,d0                         	| [$59ba: cp   $FF]
 	jeq	l_59e6                             	| [$59bc: jp   z,$59E6]
-* increase level number too (separate counters than C0DC: C900)
-	addq.b	#1,(0x00,a2)                    	| [$59bf: inc  (ix+$00)]
+* increase level/rank number (C900) too (separate counters than C0DC: C900)
+	addq.b	#1,(a2)                    	| [$59bf: inc  (ix+$00)]
 	jra	l_5b5c                             	| [$59c2: jp   $5B5C]
 l_59c5:
 	btst.b	#3,d0                           	| [$59c5: bit  3,a]
@@ -4548,37 +4569,44 @@ l_5c0f:
 	jbsr	display_players_rank_B0B4         	| [$5c1e: call display_players_rank_B0B4]
 	clr.b	d0                               	| [$5c21: ld   a,$00]
 	jbsr	award_score_b018                  	| [$5c23: call award_score_b018]
+	* which level did we reach?
 	move.b	computer_skill_C910,d0          	| [$5c26: ld   a,(computer_skill_C910)]
+	jbsr	osd_break
 	clr.w	d1                               	| [$5c2d: ld   b,$00]
+	* times 8 to select the proper girls sprites to copy
 	add.b	d0,d0                            	| [$5c29: add  a,a]
 	add.b	d0,d0                            	| [$5c2a: add  a,a]
 	add.b	d0,d0                            	| [$5c2b: add  a,a]
 	move.b	d0,d1                           	| [$5c2c: ld   c,a]
+	* total girls table
 	lea	game_mem+0x5D27,a0                  	| [$5c2f: ld   hl,table_5D27]
 	lea	sprite_shadow_ram_C700,a1          	| [$5c32: ld   de,sprite_shadow_ram_C700]
 	jbsr	ldir                              	| [$5c35: ldir]
-	lea	unknown_C0E0,a2                	| [$5c37: ld   ix,unknown_C0E0]
+	* on 2 bytes, the 0-24 victories for the current player
+	lea	victory_flags_p1_C0E0,a2                	| [$5c37: ld   ix,victory_flags_p1_C0E0]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5c3b: ld   a,(players_type_human_or_cpu_flags_C02D)]
 	btst.b	#2,d0                           	| [$5c3e: bit  2,a]
 	jne	l_5c47                             	| [$5c40: jp   nz,$5C47]
-	lea	unknown_C0E3,a2                	| [$5c43: ld   ix,unknown_C0E3]
+	lea	victory_flags_p2_C0E3,a2                	| [$5c43: ld   ix,victory_flags_p2_C0E3]
 l_5c47:
 	lea	unknown_C701,a3                	| [$5c47: ld   iy,unknown_C701]
 	move.b	(0x00,a2),d0                    	| [$5c4b: ld   a,(ix+$00)]
 
 	move.l	a2,-(sp)                        	| [$5c4e: push ix]
 	lea	game_mem+0x5DE7,a2                  	| [$5c50: ld   ix,table_5DE7]
-	jbsr	l_5e27                            	| [$5c54: call $5E27]
+	jbsr	copy_girl_to_screen_5e27                            	| [$5c54: call $5E27]
 	move.l	(sp)+,a2                        	| [$5c57: pop  ix]
+	
 	move.b	(0x01,a2),d0                    	| [$5c59: ld   a,(ix+$01)]
 
 	move.l	a2,-(sp)                        	| [$5c5c: push ix]
 	lea	game_mem+0x5E07,a2                  	| [$5c5e: ld   ix,table_5E07]
-	jbsr	l_5e27                            	| [$5c62: call $5E27]
+	jbsr	copy_girl_to_screen_5e27                            	| [$5c62: call $5E27]
 	move.l	(sp)+,a2                        	| [$5c65: pop  ix]
+	
 	move.b	(0x02,a2),d0                    	| [$5c67: ld   a,(ix+$02)]
 	lea	game_mem+0x5DF7,a2                  	| [$5c6a: ld   ix,table_5DF7]
-	jbsr	l_5e27                            	| [$5c6e: call $5E27]
+	jbsr	copy_girl_to_screen_5e27                            	| [$5c6e: call $5E27]
 	lea	game_mem+0x5CFA,a0                  	| [$5c71: ld   hl,table_5CFA]
 	jbsr	display_multicolor_text_B03C      	| [$5c74: call display_multicolor_text_B03C]
 	clr.b	d0                               	| [$5c77: ld   a,$00]
@@ -4649,7 +4677,8 @@ l_5cdf:
 	jbsr	set_next_task_B05D                	| [$5cf4: call set_next_task_B05D]
 	jbsr	task_yield_B051                   	| [$5cf7: call task_yield_B051]
 	
-l_5e27:
+copy_girl_to_screen_5e27:
+* add 4*position of first bit of D0+1 to A2
 	move.b	#0x08,d1                        	| [$5e27: ld   b,$08]
 l_5e29:
 	lsr.b	#1,d0                            	| [$5e29: srl  a]
@@ -4662,6 +4691,7 @@ l_5e2e:
 	rts                                    	| [$5e35: ret]
 
 l_5e36:
+	* with shifted A2, get parameters and copy to screen
 	move.b	(0x00,a2),d6                    	| [$5e36: ld   l,(ix+$00)]
 	move.b	(0x01,a2),d5                    	| [$5e39: ld   h,(ix+$01)]
 	move.b	d6,(0x00,a3)                    	| [$5e3c: ld   (iy+$00),l]
@@ -4773,7 +4803,7 @@ l_5ee9:
 * called when round ends
 * <> HL
 * check level number < 8 > 10 whatever
-l_5f09:
+set_victory_flag_5f09:
 	move.b	level_number_C0DC,d0            	| [$5f09: ld   a,(level_number_C0DC)]
 	cmp.b	#0x08,d0                         	| [$5f0c: cp   $08]
 	jcs	l_5f1f                             	| [$5f0e: jp   c,$5F1F]

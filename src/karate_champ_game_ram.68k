@@ -100,10 +100,10 @@
 	.global	unknown_C0DD
 	.global	unknown_C0DE
 	.global	unknown_C0DF
-	.global	unknown_C0E0
+	.global	victory_flags_p1_C0E0
 	.global	unknown_C0E1
 	.global	unknown_C0E2
-	.global	unknown_C0E3
+	.global	victory_flags_p2_C0E3
 	.global	unknown_C0E4
 	.global	unknown_C0E5
 	.global	unknown_C107
@@ -239,13 +239,13 @@ unknown_C0DE:
 	ds.b	1
 unknown_C0DF:
 	ds.b	1
-unknown_C0E0:
+victory_flags_p1_C0E0:
 	ds.b	1
 unknown_C0E1:
 	ds.b	1
 unknown_C0E2:
 	ds.b	1
-unknown_C0E3:
+victory_flags_p2_C0E3:
 	ds.b	1
 unknown_C0E4:
 	ds.b	1

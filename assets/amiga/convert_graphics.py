@@ -54,22 +54,30 @@ else:
 
 
 # all alphanum chars can use those cluts
+# there are also special CLUTs for "KICK" chars (3rd line)
+# including frame at the bottom! 0x35->0x37
 alpha_clut = {0,
     2,
     14,
     17,
     18,
     19,
-    22}
+    21,
+    22,
+    23}
 for k in range(10+26+1):
     used_tile_cluts[k].update(alpha_clut)
 
+# special symbols in highscore table
+for k in range(0x25,0x30):
+    used_tile_cluts[k].update({0x15,0x16})
 
 wr_exceptions = {1023,1024,1068,0x83,0x84,0x5F}
 # don't red/white some objects lost around player red/white frames
 wr_exceptions.update(range(500,513+1))
 wr_exceptions.update(range(900,916+1))
 wr_exceptions.update(range(1000,1007+1))
+wr_exceptions.update(range(1049,1049+4))  # THE END sprite
 for k,v in used_sprite_cluts.items():
     if 0 < k < 1121 and k not in wr_exceptions:
         white_red_only_sprites.add(k)
@@ -79,10 +87,11 @@ for k in white_red_only_sprites:
 
 # force girls sprites with proper CLUTs (too tedious to rip manually)
 for girl_start_sprite,color in (
-(0x588,1),   # level 1 (pier)
+(0x588,2),   # level 1 (pier)
 (0x5C0,2),   # level 2
+(0x528,2),   # level 4 (bridge)
 (0x5B0,2),   # level 5
-(0x550,2),   # level 6 (field)
+(0x550,4),   # level 6 (field)
 (0x5D0,2),   # level 7 (mill)
 (0x598,1),   # level 8 (city)
 (0x5A0,2),   # level 9 (tipee)

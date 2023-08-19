@@ -3844,10 +3844,10 @@ task_5250:
 52DE: 32 77 60    ld   (unknown_C0DD),a
 52E1: 32 7E 60    ld   (unknown_C0DE),a
 52E4: 32 7F 60    ld   (unknown_C0DF),a
-52E7: 32 E0 60    ld   (unknown_C0E0),a
+52E7: 32 E0 60    ld   (victory_flags_p1_C0E0),a
 52EA: 32 E1 60    ld   (unknown_C0E1),a
 52ED: 32 E8 60    ld   (unknown_C0E2),a
-52F0: 32 E9 60    ld   (unknown_C0E3),a
+52F0: 32 E9 60    ld   (victory_flags_p2_C0E3),a
 52F3: 32 E4 60    ld   (unknown_C0E4),a
 52F6: 32 E5 60    ld   (unknown_C0E5),a
 52F9: 21 87 60    ld   hl,players_type_human_or_cpu_flags_C02D
@@ -4186,7 +4186,7 @@ jump_table_547B:
 5632: 7E          ld   a,(hl)
 5633: FE 08       cp   $02
 5635: DA 91 55    jp   c,$5531
-5638: 21 E0 60    ld   hl,unknown_C0E0
+5638: 21 E0 60    ld   hl,victory_flags_p1_C0E0
 563B: CD 03 5F    call $5F09
 563E: 3E C4       ld   a,$64
 5640: CD 5A B0    call suspend_this_task_B05A
@@ -4254,7 +4254,7 @@ jump_table_547B:
 56D9: 7E          ld   a,(hl)
 56DA: FE 08       cp   $02
 56DC: DA 91 55    jp   c,$5531
-56DF: 21 E9 60    ld   hl,unknown_C0E3
+56DF: 21 E9 60    ld   hl,victory_flags_p2_C0E3
 56E2: CD 03 5F    call $5F09
 56E5: 3E C4       ld   a,$64
 56E7: CD 5A B0    call suspend_this_task_B05A
@@ -4846,6 +4846,7 @@ init_level_params_5BA1:
 5C07: 06 01       ld   b,$01
 5C09: CD 57 B0    call set_next_task_B05D
 5C0C: CD 51 B0    call task_yield_B051
+; green background to show scored girls
 5C0F: 01 9E A0    ld   bc,$A03E
 5C12: CD 90 B0    call fill_video_and_attribute_memory_B030
 5C15: 21 9C D7    ld   hl,table_7D36
@@ -4863,11 +4864,11 @@ init_level_params_5BA1:
 5C2F: 21 8D 57    ld   hl,table_5D27
 5C32: 11 00 6D    ld   de,sprite_shadow_ram_C700
 5C35: ED B0       ldir
-5C37: DD 21 E0 60 ld   ix,unknown_C0E0
+5C37: DD 21 E0 60 ld   ix,victory_flags_p1_C0E0
 5C3B: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 5C3E: CB 57       bit  2,a
 5C40: C2 4D 56    jp   nz,$5C47
-5C43: DD 21 E9 60 ld   ix,unknown_C0E3
+5C43: DD 21 E9 60 ld   ix,victory_flags_p2_C0E3
 5C47: FD 21 01 6D ld   iy,unknown_C701
 5C4B: DD 7E 00    ld   a,(ix+$00)
 5C4E: DD E5       push ix
