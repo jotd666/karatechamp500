@@ -65,7 +65,7 @@ for k in range(10+26+1):
     used_tile_cluts[k].update(alpha_clut)
 
 
-wr_exceptions = {1023,1024,1068}
+wr_exceptions = {1023,1024,1068,0x83,0x84,0x5F}
 # don't red/white some objects lost around player red/white frames
 wr_exceptions.update(range(500,513+1))
 wr_exceptions.update(range(900,916+1))

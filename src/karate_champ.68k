@@ -2512,8 +2512,6 @@ l_49ca:
 	move.b	(a0)+,d1                         	| [$49dc: ld   b,(hl)]
 									| [$49dd: inc  hl]
 	* set evade object tile
-	move.b	d2,0x200
-	move.b	d1,0x201
 	
 	move.b	d2,(0x01,a2)                    	| [$49de: ld   (ix+$01),c]
 	rol.b	#4,d1                            	| [$49e1: rlc  b] * 4
@@ -4206,6 +4204,7 @@ l_5931:
 	jne	l_5959                             	| [$5953: jp   nz,$5959]
 	lea	game_mem+0x7884,a0                  	| [$5956: ld   hl,table_7884]
 l_5959:
+	* display "GAME OVER"
 	move.b	#0x98,d3                        	| [$5959: ld   d,$98]
 	jbsr	display_text_B039                 	| [$595b: call display_text_B039]
 	move.b	#0x50,d0                        	| [$595e: ld   a,$50]
@@ -9685,7 +9684,7 @@ l_b178:
 	rts                                    	| [$b185: ret]
 
 display_error_text_misc:
-	moveq	#0,d7
+	move.l	#0xdeadbeef,d7
 display_error_text_B075:
 display_error_text_B186:
 	move.l	(sp)+,a2                        	| [$b186: pop  ix]
@@ -11464,7 +11463,7 @@ address_table_E228:
 	.long	display_error_text_misc          	|  $e23c
 	.long	display_error_text_misc          	|  $e23e
 	.long	l_e32b                           	|  $e240
-	.long	display_error_text_misc				|  $e242 (was -1)
+	.long	-1									|  $e242 leave at -1 (called on "game over")
 	.long	display_error_text_misc          	|  $e244
 	.long	l_ec89                           	|  $e246
 	.long	l_e32b                           	|  $e248

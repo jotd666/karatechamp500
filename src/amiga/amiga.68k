@@ -1754,7 +1754,6 @@ update_bg_tile:
 	moveq	#0,d2
 	* not working!!
 
-	move.b	#0,0x200
 	move.w	level_pointer_C902,d2
 	cmp.w	current_background,d2
 	beq.b	1f
