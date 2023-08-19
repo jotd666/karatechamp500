@@ -3002,7 +3002,7 @@ l_4e22:
 	move.b	(a0),d3                         	| [$4e22: ld   d,(hl)]
 	move.b	#0x03,d4                        	| [$4e23: ld   e,$03]
 	movem.w	d1/d2,-(sp)                    	| [$4e25: push bc]
-	jbsr	random_B006                       	| [$4e26: call random_B006]
+	jbsr	random_modulus_B006                       	| [$4e26: call random_modulus_B006]
 	movem.w	(sp)+,d1/d2                    	| [$4e29: pop  bc]
 	add.b	d2,d0                            	| [$4e2a: add  a,c]
 	move.b	d0,(0x02,a2)                    	| [$4e2b: ld   (ix+$02),a]
@@ -3863,7 +3863,7 @@ l_573c:
 	move.b	(a0),d3                         	| [$573f: ld   d,(hl)]
 * choose among 6 evade positions
 	move.b	#0x06,d4                        	| [$5740: ld   e,$06]
-	jbsr	random_B006                       	| [$5742: call random_B006]
+	jbsr	random_modulus_B006                       	| [$5742: call random_modulus_B006]
 	move.b	d0,evade_object_index_C918                 	| [$5745: ld   (evade_object_index_C918),a]
 	* C147/C148 are used to count number of objects left
 	move.b	nb_rounds_won_player_1_C148,d0                 	| [$5748: ld   a,(nb_rounds_won_player_1_C148)]
@@ -4949,7 +4949,7 @@ l_6070:
 	lea	periodic_counter_16bit_C02E,a0 	| [$608a: ld   hl,periodic_counter_16bit_C02E]
 	move.b	(a0),d3                         	| [$608d: ld   d,(hl)]
 	move.b	#0x03,d4                        	| [$608e: ld   e,$03]
-	jbsr	random_B006                       	| [$6090: call random_B006]
+	jbsr	random_modulus_B006                       	| [$6090: call random_modulus_B006]
 	move.b	d0,(0x0c,a3)                    	| [$6093: ld   (iy+$0c),a]
 l_6096:
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$6096: ld   a,(players_type_human_or_cpu_flags_C02D)]
@@ -5198,15 +5198,11 @@ show_both_joysticks_positions_625e:
 	move.w	#0x0022,d1                      	| [$6264: ld   bc,$0022] 34
 	jbsr	ldir                              	| [$6267: ldir]
 	move.w	d0,-(sp)                        	| [$6269: push af]
-	* simulate 9-bit rotation rla (not so trivial!)
+	* 9-bit rotation rla
 	* $82 becomes $48
 	* $84 becomes $88
-	and.w	#0xFF,d0
-	rol.w	#5,d0                           	| [$626a: rla * 5]
-	move.w	d0,d1
-	lsr.w	#8,d1
-	lsr.w	#1,d1
-	or.b	d1,d0
+	CLEAR_XC_FLAGS
+	roxl.b	#5,d0                           	| [$626a: rla] * 5
 	and.b	#0x0F,d0                         	| [$626f: and  $0F]
 	* left joystick
 	jbsr	show_joystick_positions_6297                            	| [$6271: call $6297]
@@ -8951,14 +8947,14 @@ select_cpu_attack_AB2E:
 	
 	move.l	(a2),a0                    	| [$ab3d: ld   l,(ix+$00)]
 * get msb of 16 bit counter for randomness
-* random_B006 needs D3 and D4 (D4 is max value)
+* random_modulus_B006 needs D3 and D4 (D4 is max value)
 	move.w	periodic_counter_16bit_C02E,d3	| [$ab43: ld   de,(periodic_counter_16bit_C02E)]
 	SWAP_WORD	d3
 	move.b	(a0)+,d4                         	| [$ab47: ld   e,(hl)] pick a number 0-value of hl (not included)
 											| [$ab48: inc  hl] skip number of values
 
 	move.l	a0,-(sp)                        	| [$ab49: push hl]
-	jbsr	random_B006                       	| [$ab4a: call random_B006]
+	jbsr	random_modulus_B006                       	| [$ab4a: call random_modulus_B006]
 	move.l	(sp)+,a0                        	| [$ab4d: pop  hl]
 	clr.w	d1                               	| [$ab4e: ld   b,$00]
 	move.b	d0,d1                           	| [$ab50: ld   c,a]
@@ -9550,25 +9546,35 @@ divide_hl_by_d_b0db:
 *	rts                                    	| [$b0ed: ret]
 
 
-* random method
+* "random" method rather a simple modulus
 * < d: seed from timer
 * < e: max value (not included)
-* > a: value between 0 and e (not included)
+* > a: value between 0 and e (not included): seems like a = e mod d
 * > d
-random_B006:
-random_B0EE:
-	clr.b	d0                               	| [$b0ee: xor  a]  clears carry
-	moveq	#0x07,d1                        	| [$b0ef: ld   b,$08] b <- $08	| do it 8 times at least
-l_b0f1:
-	asl.b	#1,d3                            	| [$b0f1: sla  d] d *= 2
-	roxl.b	#1,d0                           	| [$b0f3: rl   a] a <- 1 if carry set else 0
-	cmp.b	d4,d0                            	| [$b0f5: cp   e] compare a with e
-	jcs	l_b0fc                             	| [$b0f6: jp   c,$B0FC] if e >= a skip to djnz, repeat only if a == e
-	sub.b	d4,d0                            	| [$b0f9: sub  e] a <- a-e
-	bset.b	#0,d3                           	| [$b0fa: set  0,d] d &= 1
-l_b0fc:
-	dbf	d1,l_b0f1                             	| [$b0fc: djnz $B0F1] repeat 8 times
-	rts                                    	| [$b0fe: ret]
+random_modulus_B006:
+random_modulus_B0EE:
+	* reimplementation with divu
+	move.w	#0xFF,d1
+	and.w	d1,d3
+	and.w	d1,d4
+	divu	d4,d3
+	swap	d3		| remainder
+	move.b	d3,d0
+	rts
+	
+* original transcode (also works)
+*	clr.b	d0                               	| [$b0ee: xor  a]  clears carry
+*	moveq	#0x07,d1                        	| [$b0ef: ld   b,$08] b <- $08	| do it 8 times at least
+*l_b0f1:
+*	asl.b	#1,d3                            	| [$b0f1: sla  d] d *= 2
+*	roxl.b	#1,d0                           	| [$b0f3: rl   a] a <- 1 if carry set else 0
+*	cmp.b	d4,d0                            	| [$b0f5: cp   e] compare a with e
+*	jcs	l_b0fc                             	| [$b0f6: jp   c,$B0FC] if e >= a skip to djnz, repeat only if a == e
+*	sub.b	d4,d0                            	| [$b0f9: sub  e] a <- a-e
+*	bset.b	#0,d3                           	| [$b0fa: set  0,d] d &= 1
+*l_b0fc:
+*	dbf	d1,l_b0f1                             	| [$b0fc: djnz $B0F1] repeat 8 times
+*	rts                                    	| [$b0fe: ret]
 
 * < ix: table like walk_frames_list_AA3B, jump_frames_list_AA4D... 2 value list ending with FF FF
 * < hl: frame word

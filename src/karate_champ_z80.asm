@@ -3467,7 +3467,7 @@ table_4D74:
 4E22: 56          ld   d,(hl)
 4E23: 1E 09       ld   e,$03
 4E25: C5          push bc
-4E26: CD 0C B0    call random_B006
+4E26: CD 0C B0    call random_modulus_B006
 4E29: C1          pop  bc
 4E2A: 81          add  a,c
 4E2B: DD 77 08    ld   (ix+$02),a
@@ -4300,7 +4300,7 @@ evade_56f8:
 ; choose among 6 evade sequences
 ; 3 sequences + mirrored
 5740: 1E 0C       ld   e,$06
-5742: CD 0C B0    call random_B006
+5742: CD 0C B0    call random_modulus_B006
 5745: 32 12 63    ld   (evade_object_index_C918),a
 5748: 3A 42 61    ld   a,(nb_rounds_won_player_1_C148)
 574B: FE 09       cp   $03
@@ -5251,7 +5251,7 @@ table_602E:
 608A: 21 8E 60    ld   hl,periodic_counter_16bit_C02E
 608D: 56          ld   d,(hl)
 608E: 1E 09       ld   e,$03
-6090: CD 0C B0    call random_B006
+6090: CD 0C B0    call random_modulus_B006
 6093: FD 77 06    ld   (iy+$0c),a
 6096: 3A 87 60    ld   a,(players_type_human_or_cpu_flags_C02D)
 6099: CB 5F       bit  3,a
@@ -10276,7 +10276,7 @@ AB43: ED 5B 8E 60 ld   de,(periodic_counter_16bit_C02E)
 AB47: 5E          ld   e,(hl)	; pick a number 0-value of hl (not included)
 AB48: 23          inc  hl	; skip number of values
 AB49: E5          push hl
-AB4A: CD 0C B0    call random_B006
+AB4A: CD 0C B0    call random_modulus_B006
 AB4D: E1          pop  hl
 AB4E: 06 00       ld   b,$00
 AB50: 4F          ld   c,a
@@ -10753,8 +10753,8 @@ multiply_de_B000:
 B000: C3 69 B0    jp   multiply_de_B0C3
 divide_hl_by_d_b003:
 B003: C3 7B B0    jp   divide_hl_by_d_b0db
-random_B006:
-B006: C3 EE B0    jp   random_B0EE
+random_modulus_B006:
+B006: C3 EE B0    jp   random_modulus_B0EE
 B009: C3 FF B0    jp   check_hl_in_ix_list_B0FF
 key_value_linear_search_B00C:
 B00C: C3 84 B1    jp   key_value_linear_search_B124
@@ -10893,7 +10893,7 @@ B0ED: C9          ret
 ; < e: max value (not included)
 ; > a: value between 0 and e (not included)
 ; > d
-random_B0EE:
+random_modulus_B0EE:
 B0EE: AF          xor  a	;  clears a
 B0EF: 06 02       ld   b,$08  ; b <- $08	; do it 8 times at least
 B0F1: CB 22       sla  d	; d *= 2

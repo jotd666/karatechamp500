@@ -77,6 +77,22 @@ for k,v in used_sprite_cluts.items():
 for k in white_red_only_sprites:
     used_sprite_cluts[k] = {1,2}
 
+# force girls sprites with proper CLUTs (too tedious to rip manually)
+for girl_start_sprite,color in (
+(0x588,1),   # level 1 (pier)
+(0x5C0,2),   # level 2
+(0x5B0,2),   # level 5
+(0x550,2),   # level 6 (field)
+(0x5D0,2),   # level 7 (mill)
+(0x598,1),   # level 8 (city)
+(0x5A0,2),   # level 9 (tipee)
+(0x5A8,4),   # level (??)
+(0x5C8,1),   # level 11 (dojo)
+(0x568,3),   # level 12 (moonlight)
+):
+    for i in range(girl_start_sprite,girl_start_sprite+8):
+        used_sprite_cluts[i] = {color}
+
 # if sprite is used with clut 1, then it's used with clut 2 (white/red)
 #parasite_sprites = set(range(1034,1098))
 #parasite_sprites.update(range(21,26))
