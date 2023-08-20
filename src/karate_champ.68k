@@ -2114,6 +2114,7 @@ l_4743:
 	move.b	computer_skill_C910,d0          	| [$4743: ld   a,(computer_skill_C910)]
 	cmp.b	#0x10,d0                         	| [$4746: cp   $10]
 * CMP level 16+: set maximum speed: -2 ticks per frame for all moves
+* [review_cmp_skill]
 	jcc	l_477c_bis                             	| [$474a: jp   nc,$477C] if > $10 skip (CMP level 16)
 * if not CMP, check difficulty level
 	lea	counter_attack_timer_table_AD67(pc),a0	| [$474d: ld   hl,counter_attack_timer_table_AD67]
@@ -3035,65 +3036,22 @@ l_4e22:
 	addq.b	#1,(0x01,a2)                    	| [$4e47: inc  (ix+$01)]
 	jra	l_4e1c                             	| [$4e4a: jp   $4E1C]
 l_4e4d:
-	lea	table_4E73(pc),a0                  	| [$4e4d: ld   hl,table_4E73]
+	lea	game_mem+0x4E73,a0                  	| [$4e4d: ld   hl,table_4E73]
 	move.b	#0x8A,d3                        	| [$4e50: ld   d,$8A]
 	jbsr	display_text_B039                 	| [$4e52: call display_text_B039]
-	lea	table_4F4B(pc),a0                  	| [$4e55: ld   hl,table_4F4B]
+	lea	game_mem+0x4F4B,a0                  	| [$4e55: ld   hl,table_4F4B]
 	move.b	#0x93,d3                        	| [$4e58: ld   d,$93]
 	move.b	computer_skill_C910,d0          	| [$4e5a: ld   a,(computer_skill_C910)]
 	cmp.b	#0x05,d0                         	| [$4e5d: cp   $05]
 	jcs	l_4e6f                             	| [$4e5f: jp   c,$4E6F]
-	lea	table_4F65(pc),a0                  	| [$4e62: ld   hl,table_4F65]
+	lea	game_mem+0x4F65,a0                  	| [$4e62: ld   hl,table_4F65]
 	cmp.b	#0x08,d0                         	| [$4e65: cp   $08]
 	jcs	l_4e6f                             	| [$4e67: jp   c,$4E6F]
-	lea	table_4F7F(pc),a0                  	| [$4e6a: ld   hl,table_4F7F]
+	lea	game_mem+0x4F7F,a0                  	| [$4e6a: ld   hl,table_4F7F]
 	move.b	#0x23,d3                        	| [$4e6d: ld   d,$23]
 l_4e6f:
 	jbsr	display_text_B039                 	| [$4e6f: call display_text_B039]
 	rts                                    	| [$4e72: ret]
-table_4E73:
-	dc.b	0x1a,0x00,0xf1,0xf4,0xf4,0xf4,0xfe,0x1b | table_4E73
-	dc.b	0x01,0xf1,0xf4,0xf4,0xfe,0x1c,0x02,0xf1 | $4e7b
-	dc.b	0xf4,0xfe,0x09,0x01,0xef,0xf4,0xf0,0xef | $4e83
-	dc.b	0xf0,0xfe,0x07,0x02,0xef,0xf4,0xf4,0xf4 | $4e8b
-	dc.b	0xf4,0xf4,0xf4,0xf0,0xfe,0x05,0x03,0xef | $4e93
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xfe,0x05,0x04,0xf4 | $4e9b
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xfe,0x04,0x05,0xef | $4ea3
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4 | $4eab
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xf0,0xfe,0x16,0x02 | $4eb3
-	dc.b	0xef,0xf4,0xf0,0xfe,0x15,0x03,0xef,0xf4 | $4ebb
-	dc.b	0xf4,0xf4,0xf0,0xfe,0x14,0x04,0xef,0xf4 | $4ec3
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xf0,0xfe,0x14,0x05 | $4ecb
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf2,0xfe | $4ed3
-	dc.b	0x03,0x06,0xef,0xf4,0xf4,0xf4,0xf4,0xf4 | $4edb
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4 | $4ee3
-	dc.b	0xf4,0xf0,0xef,0xf4,0xf4,0xf4,0xf4,0xf4 | $4eeb
-	dc.b	0xf4,0xf0,0xfe,0x03,0x07,0xf4,0xf4,0xf4 | $4ef3
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4 | $4efb
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4 | $4f03
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xf4,0xf0,0xfe,0x03 | $4f0b
-	dc.b	0x08,0xf1,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4 | $4f13
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4 | $4f1b
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4 | $4f23
-	dc.b	0xf4,0xf4,0xf0,0xfe,0x04,0x09,0xf1,0xf4 | $4f2b
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4 | $4f33
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf4 | $4f3b
-	dc.b	0xf4,0xf4,0xf4,0xf4,0xf4,0xf4,0xf2,0xff | $4f43
-table_4F4B:
-	dc.b	0x0a,0x03,0xa9,0xaa,0xab,0xac,0xad,0xae | table_4F4B
-	dc.b	0xaf,0xb0,0xb1,0xb2,0xfe,0x0a,0x04,0xb3 | $4f53
-	dc.b	0xb4,0xb5,0xb6,0xb7,0xb8,0xb9,0xba,0xbb | $4f5b
-	dc.b	0xbc,0xff | $4f63
-table_4F65:
-	dc.b	0x0a,0x03,0xbd,0xbe,0xbf,0xc0,0xc1,0xc2 | table_4F65
-	dc.b	0xc3,0xc4,0xc5,0xc6,0xfe,0x0a,0x04,0xc7 | $4f6d
-	dc.b	0xc8,0xc9,0xca,0xcb,0xcc,0xcd,0xce,0xcf | $4f75
-	dc.b	0x83,0xff | $4f7d
-table_4F7F:
-	dc.b	0x0a,0x03,0x00,0x01,0x02,0x03,0x04,0x05 | table_4F7F
-	dc.b	0x06,0x07,0x08,0x09,0xfe,0x0a,0x04,0x0a | $4f87
-	dc.b	0x0b,0x0c,0x0d,0x0e,0x0f,0x10,0x11,0x12 | $4f8f
-	dc.b	0x13,0xff | $4f97
 
 bull_task_50f2:
 	jbsr	load_iy_with_task_structure_B04B  	| [$50f2: call load_iy_with_task_structure_B04B]
@@ -3617,9 +3575,6 @@ jump_table_547B:
 
 
 start_of_match_5529:
-	.ifne	OPT_EVADE_TEST
-	jra		evade_56f8
-	.endif
 	* start of match
 	* zero rounds won for both players
 	clr.b	d0                               	| [$5529: ld   a,$00]
@@ -4570,7 +4525,7 @@ l_5be2:
 	rts                                    	| [$5bf3: ret]
 	
 player_game_over_5bf4:
-	move.b	computer_skill_C910,d0          	| [$5bf4: ld   a,(computer_skill_C910)]
+	tst.b	computer_skill_C910          	| [$5bf4: ld   a,(computer_skill_C910)]
 												| [$5bf7: and  a]
 	jeq	l_5c05                             	| [$5bf8: jp   z,$5C05]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$5bfb: ld   a,(players_type_human_or_cpu_flags_C02D)]
@@ -9061,26 +9016,28 @@ move_list_turning_back_AB84:
 perform_jumping_side_kick_if_level_2_AB88:
 	move.b	computer_skill_C910,d0          	| [$ab88: ld   a,(computer_skill_C910)]
 	cmp.b	#0x01,d0                         	| [$ab8b: cp   $01]
-	clr.b	d0                               	| [$ab8d: ld   a,$00]
 	jcs	l_ab98                             	| [$ab8f: jp   c,$AB98]
 * if level >= 1, perform jumping side kick, else do nothing
 	bsr  load_address_of_current_player_move_byte_CF04	| [$ab92: ld   hl,(address_of_current_player_move_byte_CF04)]
 	move.b	#0x0D,d0                        	| [$ab95: ld   a,$0D]
 	move.b	d0,(a0)                         	| [$ab97: ld   (hl),a]
+	rts
 l_ab98:
+	clr.b	d0                               	| [$ab8d: ld   a,$00]
 	rts                                    	| [$ab98: ret]
 
 * reacting to jumping side kick at close distance
 perform_foot_sweep_if_level_3_AB99:
 	move.b	computer_skill_C910,d0          	| [$ab99: ld   a,(computer_skill_C910)]
 	cmp.b	#0x02,d0                         	| [$ab9c: cp   $02]
-	clr.b	d0                               	| [$ab9e: ld   a,$00]
 	jcs	l_aba9                             	| [$aba0: jp   c,$ABA9]
 * if level >= 2 perform a foot sweep
 	bsr  load_address_of_current_player_move_byte_CF04	| [$aba3: ld   hl,(address_of_current_player_move_byte_CF04)]
 	move.b	#0x0E,d0                        	| [$aba6: ld   a,$0E]
 	move.b	d0,(a0)                         	| [$aba8: ld   (hl),a]
+	rts
 l_aba9:
+	clr.b	d0                               	| [$ab9e: ld   a,$00]
 	rts                                    	| [$aba9: ret]
 
 perform_jumping_back_kick_ABAA:
@@ -9109,7 +9066,6 @@ perform_foot_sweep_back_ABBB:
 
 * computer is jumping
 handle_cpu_land_from_jump_ABCC:
-
 	move.b	(0x08,a3),d5                    	| [$abcf: ld   h,(iy+$08)]
 	lsl.w	#8,d5
 	move.b	(0x07,a3),d5                    	| [$abcc: ld   l,(iy+$07)]
@@ -9281,7 +9237,7 @@ let_opponent_react_depending_on_skill_level_ACCE:
 	move.b	computer_skill_C910,d0          	| [$acce: ld   a,(computer_skill_C910)]
 	cmp.b	#0x10,d0                         	| [$acd1: cp   $10]
 	jcc	l_ad16                             	| [$acd5: jp   nc,$AD16] if level >= $10, skip the routine altogether
-
+* [review_cmp_skill]
 * this is called when skill level is < 16 (under high level of champ)
 * game checks difficulty level at that point
 * (in CMP high mode it doesn't matter)
@@ -9424,7 +9380,8 @@ counter_attack_timer_table_AD67:
 * $20 values per entry, number of frames to wait for opponent response
 * just before cpu attacks (when an attack has been decided)
 * first value matches skill 0, and so on. The values go in pair,
-* a mysterious C148/C147 memory location allows to pick the second item,
+* round 2 C148/C147 memory location allows to pick the second item, making
+* difficulty slightly harder in round 2
 * otherwise each skill level shifts 2 by 2. And after level 16, it's maxed out
 * to -2 ($FE) for animation and 0 for reaction time
 l_ad6f:

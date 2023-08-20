@@ -727,15 +727,22 @@ osd_update_sprites:
 	add.w	d5,d2		| extended tile code
 	add.w	d3,d2		| add bank offset to tile code
 	* now D2 is tile code (0-1535)
+	*     D4 is tile color "table" (0-31)
+	
 	cmp.w	#0x600,d2
 	bcc.b	13f
-
+		
 	.ifne	OPT_ENABLE_LOGGING
 	move.w	d2,decoded_tile_index
 	move.w	d4,decoded_color_index
 	.endif
 	
-	*     D4 is tile color "table" (0-31)
+	lea		red_white_sprites,a0
+	tst.b	(a0,d2.w)
+	beq.b	400f		| normal sprite
+	* red or white: special processing to save memory TODO
+	nop
+400:
 	lea		sprite_table,a0
 	add.w	d2,d2
 	add.w	d2,d2
