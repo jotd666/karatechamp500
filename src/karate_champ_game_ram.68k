@@ -111,7 +111,7 @@
 	.global	nb_rounds_won_player_1_C148
 	.global	unknown_C149
 	.global	unknown_C14A
-	.global	unknown_C14F
+	.global	skip_practice_requested_C14F
 	.global	unknown_C168
 	.global	unknown_C1E7
 	.global	unknown_C1E8
@@ -270,7 +270,7 @@ unknown_C149:
 	ds.b	1
 unknown_C14A:
 	ds.b	5
-unknown_C14F:
+skip_practice_requested_C14F:
 	ds.b	17
 	.align	2
 task_struct_C160:

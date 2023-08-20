@@ -542,15 +542,6 @@ task_illegal:
 	lea		l_\offset(pc),a0
 0:
 	.endm
-.macro		taskstub	offset
-l_\offset:
-task_\offset:
-	move.w	#0x\offset,d0
-	jbsr		assert_failed_blitz
-	trap	#0
-	.endm
-
-
 	  
   
  
@@ -3348,7 +3339,7 @@ l_5287:
 	jbsr	fill_video_and_attribute_memory_B030                    	| [$5313: call $B030]
 	move.b	#0x80,d0                        	| [$5316: ld   a,$80]
 	jbsr	play_sound_B072                   	| [$5318: call play_sound_B072]
-	* check for 1P or 2P press
+	* check for 1P or 2P press loop
 l_531b:
 	jbsr	enable_interrupts_b0c0                            	| [$531b: call enable_interrupts_b0c0]
 	jbsr	display_start_message_7b92                           	| [$531e: call $7B92]
@@ -3357,12 +3348,42 @@ l_531b:
 	* check 1P start
 	btst.b	#2,d0                           	| [$5327: bit  2,a]
 	jne	l_5266                             	| [$5329: jp   nz,$5266]
+	.ifdef	__amiga__
+	* amiga: check if any 1P button is pressed (not left joystick)
+	jbsr		osd_read_inputs
+	not.b	d0
+	and.b	#0xF0,d0
+	jne	l_5266	
+	.endif
 	move.b	nb_credits_minus_one_C024,d0    	| [$532c: ld   a,(nb_credits_minus_one_C024)]
 											| [$532f: and  a]
 	jeq	l_531b                             	| [$5330: jp   z,$531B]
+
+	.ifdef	__amiga__
+	* amiga: check if any 2P button is pressed
+	* if that's the case, fake a credit then restart a 2P mode
+	jbsr		osd_read_inputs
+	lsr.w	#8,d0
+	not.b	d0
+	and.b	#0xF0,d0
+	beq.b	0f
+
+	* artificially add one credit
+	CLEAR_XC_FLAGS
+	lea	nb_credits_minus_one_C024,a0   	| [$5342: ld   hl,nb_credits_minus_one_C024]
+	move.b	(a0),d0                         	| [$5345: ld   a,(hl)]
+	* one more credit
+	moveq	#1,d7
+	abcd	d7,d0                        	| [$5346: sub  $01]
+	move.b	d0,(a0)                         	| [$5349: ld   (hl),a]
+	bra.b	resume_2p
+0:
+	.endif
+
 	jbsr	check_coin_ports_B069                            	| [$5333: call $B069]
 	btst.b	#3,d0                           	| [$5336: bit  3,a]
 	jeq	l_531b                             	| [$5338: jp   z,$531B]
+resume_2p:
 * set 2 player mode
 	lea	players_type_human_or_cpu_flags_C02D,a0	| [$533b: ld   hl,players_type_human_or_cpu_flags_C02D]
 	bset.b	#1,(a0)                         	| [$533e: set  1,(hl)]
@@ -3372,7 +3393,7 @@ l_531b:
 	move.b	(a0),d0                         	| [$5345: ld   a,(hl)]
 	* one less credit (2P needs 2 credits)
 	moveq	#1,d7
-	sbcd.b	d7,d0                        	| [$5346: sub  $01]
+	sbcd	d7,d0                        	| [$5346: sub  $01]
 	move.b	d0,(a0)                         	| [$5349: ld   (hl),a]
 	jra	l_5266                             	| [$534a: jp   $5266]
 
@@ -4827,7 +4848,7 @@ practice_screen_5f2a:
 	jbsr	display_text_B039                 	| [$5f58: call display_text_B039]
 	jbsr	check_coin_ports_B069             	| [$5f5b: call check_coin_ports_B069]
 	and.b	#0x0C,d0                         	| [$5f5e: and  $0C]
-	move.b	d0,unknown_C14F                 	| [$5f60: ld   (unknown_C14F),a]
+	move.b	d0,skip_practice_requested_C14F                 	| [$5f60: ld   (skip_practice_requested_C14F),a]
 	move.b	#0x46,d1                        	| [$5f63: ld   b,$46]
 	* loop which checks for player start button pressed
 	* to skip practice
@@ -4840,11 +4861,11 @@ l_5f65:
 	FATAL_ERROR   5f6c | [$5f6c: call nz,display_error_text_B075]
 0:
 	jbsr	check_coin_ports_B069             	| [$5f6f: call check_coin_ports_B069]
-	* a good idea would be to also check fire button
+	* a good idea would be to also check fire button on amiga
 	and.b	#0x0C,d0                         	| [$5f72: and  $0C]
 	movem.w	(sp)+,d1/d2                    	| [$5f74: pop  bc]
 	jne	l_5ff8                             	| [$5f75: jp   nz,$5FF8]
-	move.b	d0,unknown_C14F                 	| [$5f78: ld   (unknown_C14F),a]
+	move.b	d0,skip_practice_requested_C14F                 	| [$5f78: ld   (skip_practice_requested_C14F),a]
 l_5f7b:
 	subq.b	#1,d1                           	| [...]
 	jne	l_5f65                             	| [$5f7b: djnz $5F65]
@@ -4888,7 +4909,7 @@ l_5f7b:
 0:
 	jbsr	check_coin_ports_B069             	| [$5fb2: call check_coin_ports_B069]
 	and.b	#0x0C,d0                         	| [$5fb5: and  $0C]
-	move.b	d0,unknown_C14F                 	| [$5fb7: ld   (unknown_C14F),a]
+	move.b	d0,skip_practice_requested_C14F                 	| [$5fb7: ld   (skip_practice_requested_C14F),a]
 l_5fba:
 	move.b	#0x03,d0                        	| [$5fba: ld   a,$03]
 * within this B05A call the computer performs the current technique
@@ -4900,7 +4921,7 @@ l_5fba:
 	jbsr	check_coin_ports_B069             	| [$5fc3: call check_coin_ports_B069]
 	and.b	#0x0C,d0                         	| [$5fc6: and  $0C]
 	jne	l_6002                             	| [$5fc8: jp   nz,$6002]
-	move.b	d0,unknown_C14F                 	| [$5fcb: ld   (unknown_C14F),a]
+	move.b	d0,skip_practice_requested_C14F                 	| [$5fcb: ld   (skip_practice_requested_C14F),a]
 	jra	l_5fba                             	| [$5fce: jp   $5FBA]
 l_5fd1:
 	move.b	#0x64,d0                        	| [$5fd1: ld   a,$64]
@@ -4928,13 +4949,13 @@ l_5fea:
 0:
 	jbsr	task_yield_B051                   	| [$5ff5: call task_yield_B051]
 l_5ff8:
-	move.b	unknown_C14F,d0                 	| [$5ff8: ld   a,(unknown_C14F)]
-	tst.b	d0                               	| [$5ffb: and  a]
+	move.b	skip_practice_requested_C14F,d0                 	| [$5ff8: ld   a,(skip_practice_requested_C14F)]
+	                               	| [$5ffb: and  a]
 	jeq	l_5fea                             	| [$5ffc: jp   z,$5FEA]
 	jra	l_5f7b                             	| [$5fff: jp   $5F7B]
 l_6002:
-	move.b	unknown_C14F,d0                 	| [$6002: ld   a,(unknown_C14F)]
-	tst.b	d0                               	| [$6005: and  a]
+	move.b	skip_practice_requested_C14F,d0                 	| [$6002: ld   a,(skip_practice_requested_C14F)]
+	                               	| [$6005: and  a]
 	jeq	l_5fea                             	| [$6006: jp   z,$5FEA]
 	jra	l_5fba                             	| [$6009: jp   $5FBA]
 
@@ -11294,8 +11315,7 @@ l_case_FA_e0dd:
 											| 
 	jra	(a0)                               	| [$e0e5: jp   (hl)]
 l_case_FD_e0e6:
-	jbsr		assert_failed_blitz
-	trap	#11
+	* seems not reached even after all kinds of tests
 	move.b	(0x01,a2),d0                    	| [$e0e6: ld   a,(ix+$01)]
 	move.b	(0x02,a2),d1                    	| [$e0e9: ld   b,(ix+$02)]
 

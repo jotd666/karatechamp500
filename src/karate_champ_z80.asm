@@ -5124,7 +5124,7 @@ practice_screen_5f2a:
 5F58: CD 93 B0    call display_text_B039
 5F5B: CD C3 B0    call check_coin_ports_B069
 5F5E: E6 06       and  $0C
-5F60: 32 4F 61    ld   (unknown_C14F),a
+5F60: 32 4F 61    ld   (skip_practice_requested_C14F),a
 5F63: 06 4C       ld   b,$46
 5F65: C5          push bc
 5F66: 3E 09       ld   a,$03
@@ -5135,7 +5135,7 @@ practice_screen_5f2a:
 5F72: E6 06       and  $0C
 5F74: C1          pop  bc
 5F75: C2 F2 5F    jp   nz,$5FF8
-5F78: 32 4F 61    ld   (unknown_C14F),a
+5F78: 32 4F 61    ld   (skip_practice_requested_C14F),a
 5F7B: 10 E2       djnz $5F65
 5F7D: 01 19 0C    ld   bc,$0613
 5F80: 11 97 A0    ld   de,$a03d
@@ -5161,7 +5161,7 @@ practice_screen_5f2a:
 5FAF: C4 D5 B0    call nz,display_error_text_B075
 5FB2: CD C3 B0    call check_coin_ports_B069
 5FB5: E6 06       and  $0C
-5FB7: 32 4F 61    ld   (unknown_C14F),a
+5FB7: 32 4F 61    ld   (skip_practice_requested_C14F),a
 5FBA: 3E 09       ld   a,$03
 ; within this B05A call the computer performs the current technique
 ; animation
@@ -5171,7 +5171,7 @@ practice_screen_5f2a:
 5FC3: CD C3 B0    call check_coin_ports_B069
 5FC6: E6 06       and  $0C
 5FC8: C2 08 C0    jp   nz,$6002
-5FCB: 32 4F 61    ld   (unknown_C14F),a
+5FCB: 32 4F 61    ld   (skip_practice_requested_C14F),a
 5FCE: C3 BA 5F    jp   $5FBA
 5FD1: 3E C4       ld   a,$64
 5FD3: CD 5A B0    call suspend_this_task_B05A
@@ -5190,11 +5190,11 @@ practice_screen_5f2a:
 5FF1: A7          and  a
 5FF2: C4 D5 B0    call nz,display_error_text_B075
 5FF5: CD 51 B0    call task_yield_B051
-5FF8: 3A 4F 61    ld   a,(unknown_C14F)
+5FF8: 3A 4F 61    ld   a,(skip_practice_requested_C14F)
 5FFB: A7          and  a
 5FFC: CA EA 5F    jp   z,$5FEA
 5FFF: C3 DB 5F    jp   $5F7B
-6002: 3A 4F 61    ld   a,(unknown_C14F)
+6002: 3A 4F 61    ld   a,(skip_practice_requested_C14F)
 6005: A7          and  a
 6006: CA EA 5F    jp   z,$5FEA
 6009: C3 BA 5F    jp   $5FBA
