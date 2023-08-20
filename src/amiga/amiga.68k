@@ -286,7 +286,7 @@ _user:
 .no_forbid:
 	
 	move.l	dip_switch_difficulty(pc),d0
-	lsl.b	#3,d0		| to match what game expects
+	lsl.b	#4,d0		| to match what game expects
 	
 	not.b	d0		| active low
 	move.b	d0,dip_switches
@@ -745,9 +745,12 @@ osd_update_sprites:
 	move.l	(a0,d2.w),d5		| offset for color table
 	jeq		12f					| not found
 	
-	lea		red_white_sprites,a1
-	tst.b	(a1,d3.w)
+	lea		special_color_sprites,a1
+	move.b	(a1,d3.w),d3
+	bpl.b	401f        | only 1 color config
+	cmp.b	#-2,d3
 	beq.b	400f		| normal sprite
+	* red or white: special processing to save memory
 	* can be offset 1 (white) or 2 (red) subtract 1
 	subq	#1,d4
 	* now can only be 0 or 1, no other color config is allowed
@@ -761,12 +764,18 @@ osd_update_sprites:
 	illegal
 399:
 	.endif
-	* red or white: special processing to save memory
+	bra.b	400f
+401:
+	* only one color: color table only has one entry
+	move.l	d5,a0				| absolute pointer on color table for this sprite
+	move.w	(a0),d5
+	bra.b	402f
 400:
 	move.l	d5,a0				| absolute pointer on color table for this sprite
 	add.w	d4,d4
 	
 	move.w	(a0,d4.w),d5		| offset for bitplane list
+402:
 	beq.b	12f					| not found
 	add.w	d5,a0
 	* check orientation, add 2 if mirror

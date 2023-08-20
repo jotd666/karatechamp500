@@ -30,7 +30,10 @@ for nm in no_mirror_list:
         no_mirror_sprites.update(range(s,e+1))
 
 
-white_red_only_sprites = set()
+# default: -2: several color configs
+#          -1: only red & white color configs (player)
+#          >=0: single color config
+special_color_sprites = [254]*0x600
 
 rw_json = os.path.join(this_dir,"used_tiles_and_sprites.json")
 if os.path.exists(rw_json):
@@ -43,7 +46,8 @@ if os.path.exists(rw_json):
 
 
     # add score points in 2 colors too
-    white_red_only_sprites.update(range(1009,1019))
+    for i in range(1009,1019):
+        special_color_sprites[i] = 255
 
     used_tile_cluts = collections.defaultdict(set)
     used_tile_cluts.update(used_tile_cluts_)
@@ -85,14 +89,18 @@ wr_exceptions.update(range(1000,1007+1))
 wr_exceptions.update(range(1049,1049+4))  # THE END sprite
 for k,v in used_sprite_cluts.items():
     if 0 < k < 1121 and k not in wr_exceptions:
-        white_red_only_sprites.add(k)
+        special_color_sprites[k] = 255
 
 # player crying
-white_red_only_sprites.update(range(0x4CE,0x4D6))
+for i in range(0x4CE,0x4D6):
+    special_color_sprites[i] = 255
 # player breaks planks
-white_red_only_sprites.update(range(0x5DB,0x600))
-for k in white_red_only_sprites:
-    used_sprite_cluts[k] = {1,2}
+for i in range(0x5DB,0x600):
+    special_color_sprites[i] = 255
+
+for k,v in enumerate(special_color_sprites):
+    if v==255:
+        used_sprite_cluts[k] = {1,2}
 
 # force girls sprites with proper CLUTs (too tedious to rip manually)
 for girl_start_sprite,color in (
@@ -411,7 +419,7 @@ nb_bitplanes = 4+1
 # 16*16 on 4 bitplanes with 16 bits blit padding
 chunk_size = 16*4
 with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
-    for x in ["red_white_sprites","character_table","sprite_table"]:
+    for x in ["special_color_sprites","character_table","sprite_table"]:
         f.write(f"\t.global\t{x}\n")
 
 
@@ -457,17 +465,24 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
     plane_cache_id = 0
     for sprite_index in range(NB_POSSIBLE_SPRITES):
         sprite = sprites.get(sprite_index)
-        is_red_white = sprite_index in white_red_only_sprites
+        # color table can be packed in 2 cases: either 2 colors red/white or one
+        packed_color_table = special_color_sprites[sprite_index] == 255
         if sprite:
             name = sprite_names[sprite_index]
             f.write(f"{name}:\n")
             data = sprite["data"]
 
+            # count, see if we have only 1 block
+            nb_blocks = sum(bool(blocks) for blocks in data)
+            if nb_blocks == 1:
+                packed_color_table = True
+                special_color_sprites[sprite_index] = next(i for i,blocks in enumerate(data) if blocks)
+
             # we have to reference bitplanes here or 0 if nothing to draw, just erase
             for i,blocks in enumerate(data):
                 if blocks:
                     f.write(f"\t.word\t{name}_{i}-{name}\n")
-                elif not is_red_white:
+                elif not packed_color_table:
                     f.write("\t.word\t0\n")
 
             for i,blocks in enumerate(data):
@@ -499,9 +514,8 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
                                 plane_name = "0x0"
                             f.write(f"\t.long   {plane_name}\n")
 
-    red_white_block = [bool(i in white_red_only_sprites) for i in range(0,0x600)]
-    f.write("* table of sprites that can only be white or red (players, scores) \nred_white_sprites:")
-    bitplanelib.dump_asm_bytes(red_white_block,f,mit_format=True)
+    f.write("* table of sprites that can only be white or red (players, scores) \nspecial_color_sprites:")
+    bitplanelib.dump_asm_bytes(special_color_sprites,f,mit_format=True)
 
     f.write("\n\t.section\t.datachip\n")
     for plane,plane_name in sorted(bitplane_cache.items(),key=lambda d:d[1]):

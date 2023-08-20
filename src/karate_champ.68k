@@ -2123,27 +2123,28 @@ l_4743:
 	and.b	#0x06,d0                         	| [$4759: and  $06]
 * difficulty level 00 easy, 02 medium, 04 hard, 06 hardest to pick one of the 4 tables
 	clr.w	d3                               	| [$475c: ld   d,$00]
+	add.b	d0,d0		                        | implemented as a 32-bit pointer here so double offset
 	move.b	d0,d3                           	| [$475b: ld   e,a]
 	add.w	d3,a0                            	| [$475e: add  hl,de]
-	move.b	(a0)+,d4                         	| [$475f: ld   e,(hl)]
+	move.l	(a0),a0                         	| [$475f: ld   e,(hl)]
 											| [$4760: inc  hl]
-	move.b	(a0),d3                         	| [$4761: ld   d,(hl)] de points on the timer table
+											| [$4761: ld   d,(hl)] A0 points on the timer table
+	* now we have the table for the dip switch setting, fetch the value according to
+	* - computer skill
+	* - round number (harder on round 2)
+	moveq	#0,d0										
 	move.b	computer_skill_C910,d0          	| [$4762: ld   a,(computer_skill_C910)]
-	add.b	d0,d0                            	| [$4765: add  a,a]
-	move.b	d0,d6                           	| [$4766: ld   l,a]
-	clr.b	d5                               	| [$4767: ld   h,$00]
-	bsr		change_d3_d4_to_d3_16
-	bsr		change_d5_d6_to_d5_16
-	
-	add.w	d3,d5                            	| [$4769: add  hl,de]
-	move.l	d5,a0
-	add.l	#game_mem,a0
+	add.b	d0,d0                            	| [$4765: add  a,a] select value pair
+												| [$4766: ld   l,a]
+												| [$4767: ld   h,$00]
+
+	add.w	d0,a0                            	| [$4769: add  hl,de]
 	move.b	nb_rounds_won_player_1_C148,d0                 	| [$476a: ld   a,(nb_rounds_won_player_1_C148)]
 	move.b	d0,d1                           	| [$476d: ld   b,a]
 	move.b	nb_rounds_won_player_2_C147,d0                 	| [$476e: ld   a,(nb_rounds_won_player_2_C147)]
 	or.b	d1,d0                             	| [$4771: or   b]
 	jeq	l_4776                             	| [$4772: jp   z,$4776]
-	* harder on second round vs computer
+	* harder on second round vs computer, select second value in the pair
 	addq.w	#1,a0                           	| [$4775: inc  hl]
 * It's loading a from one of the
 * counter attack timer tables, but if it's > 0 then
