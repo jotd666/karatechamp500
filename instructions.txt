@@ -15,25 +15,21 @@ Command line arguments (no whdload, but 1.3 compatible)
 
 Usage:
 
-pengo INVINCIBLE/S,INFLIVES/S,CHEATKEYS/S,STARTLEVEL/K/N,
-BAT50000/S,QUICKMAZEDRAW/S,NOINTERMISSIONS/S,ALTMUSIC/S,
-SKILL/K/N,STARTLIVES/K/N
+karate_champ INVINCIBLE/S,CHEATKEYS/S,STARTLEVEL/K/N,NOINTERMISSIONS/S
+SKILL/K/N
 
 Cheats:
 
 INVINCIBLE: invincible
-INFLIVES: infinite lives
-CHEATKEYS: function keys cheat: F1: diamond align, F2: complete level, F3: snobee chicken
-STARTLEVEL: from 1 to 16
-BAT50000: bonus life at 50000 instead of 30000
+ONEROUNDWINS: only one round is needed to win match for human players too
+CHEATKEYS: function keys cheat: F1: player 1 instant win, F2: player 2 instant win
+STARTLEVEL: from 1 to 24
 
 Options/dipswitches:
 
-QUICKMAZEDRAW: fast maze path drawing
-NOINTERMISSIONS: no small acts every other level
+NOINTERMISSIONS: no girls acts at start & end of winning level
 ALTMUSIC: for people allergic to popcorn, music of set 2 has been recreated
 SKILL: 0-3 (3: hardest)
-STARTLIVES: 2-5 (default 3)
 
 
 Hiscores save:

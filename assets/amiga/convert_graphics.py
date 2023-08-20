@@ -457,6 +457,7 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
     plane_cache_id = 0
     for sprite_index in range(NB_POSSIBLE_SPRITES):
         sprite = sprites.get(sprite_index)
+        is_red_white = sprite_index in white_red_only_sprites
         if sprite:
             name = sprite_names[sprite_index]
             f.write(f"{name}:\n")
@@ -466,7 +467,7 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
             for i,blocks in enumerate(data):
                 if blocks:
                     f.write(f"\t.word\t{name}_{i}-{name}\n")
-                else:
+                elif not is_red_white:
                     f.write("\t.word\t0\n")
 
             for i,blocks in enumerate(data):

@@ -730,25 +730,39 @@ osd_update_sprites:
 	*     D4 is tile color "table" (0-31)
 	
 	cmp.w	#0x600,d2
-	bcc.b	13f
+	jcc		13f
 		
 	.ifne	OPT_ENABLE_LOGGING
 	move.w	d2,decoded_tile_index
 	move.w	d4,decoded_color_index
 	.endif
 	
-	lea		red_white_sprites,a0
-	tst.b	(a0,d2.w)
-	beq.b	400f		| normal sprite
-	* red or white: special processing to save memory TODO
-	nop
-400:
+	
+	move.w	d2,d3
 	lea		sprite_table,a0
 	add.w	d2,d2
 	add.w	d2,d2
-	moveq	#0,d5
 	move.l	(a0,d2.w),d5		| offset for color table
-	beq.b	12f					| not found
+	jeq		12f					| not found
+	
+	lea		red_white_sprites,a1
+	tst.b	(a1,d3.w)
+	beq.b	400f		| normal sprite
+	* can be offset 1 (white) or 2 (red) subtract 1
+	subq	#1,d4
+	* now can only be 0 or 1, no other color config is allowed
+	* (this saves a lot of pointers)
+	.ifndef	RELEASE
+	bpl.b	399f
+	cmp.w	#1,d4
+	beq.b	399f
+	illegal
+	illegal
+	illegal
+399:
+	.endif
+	* red or white: special processing to save memory
+400:
 	move.l	d5,a0				| absolute pointer on color table for this sprite
 	add.w	d4,d4
 	
@@ -2340,7 +2354,7 @@ program_args_end:
 	.align	4
 read_args_string:
 	.byte	read_args_string_end-read_args_string
-	.ascii	"ONEROUNDWINS/S,CHEATKEYS/S,STARTLEVEL/K/N,"
+	.ascii	"ONEROUNDWINS/S,INVINCIBLE/S,CHEATKEYS/S,STARTLEVEL/K/N,"
 	.ascii	",SKILL/K/N"
 read_args_string_end:
 	.align	2

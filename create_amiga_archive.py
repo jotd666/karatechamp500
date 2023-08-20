@@ -16,7 +16,7 @@ with zipfile.ZipFile(os.path.join(progdir,"KarateChamp2000_HD.zip"),"w",compress
     for file in ["readme.md","instructions.txt",gamename,f"{gamename}.slave"]:
         zf.write(os.path.join(progdir,file),arcname=file)
 
-    #zf.write(os.path.join(progdir,"assets","amiga","Pengo.info"),"Pengo.info")
+    zf.write(os.path.join(progdir,"assets","amiga","Pengo.info"),"KarateChamp.info")
     #zf.write(os.path.join(progdir,"assets","amiga","boxart.png"),"boxart.png")
 
 # pack the file for floppy
