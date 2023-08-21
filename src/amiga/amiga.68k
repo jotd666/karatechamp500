@@ -684,6 +684,7 @@ osd_update_sprites:
 	moveq	#0,d1
 	* sprite Y (amiga X)
 	move.b	(a6),d0
+	addq	#8,d0		| make up for shift
 	move.b	d0,(a4)+
 	* sprite X (amiga Y)
 	move.b	(3,a6),d1

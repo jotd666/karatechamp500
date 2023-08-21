@@ -11486,7 +11486,7 @@ l_e218:
 	move.l	d0,a0
 	jra	(a0)                               	| [$e227: jp   (hl)]
 address_table_E228:
-	.long	l_e32b                           	|  $e228
+	.long	text_display_e32b                           	|  $e228
 	.long	display_error_text_misc          	|  $e22a
 	.long	display_error_text_misc          	|  $e22c
 	.long	l_e44f                           	|  $e22e
@@ -11498,12 +11498,12 @@ address_table_E228:
 	.long	l_e930                           	|  $e23a
 	.long	display_error_text_misc          	|  $e23c
 	.long	display_error_text_misc          	|  $e23e
-	.long	l_e32b                           	|  $e240
+	.long	text_display_e32b                           	|  $e240
 	.long	-1									|  $e242 leave at -1 (called on "game over")
 	.long	display_error_text_misc          	|  $e244
 	.long	l_ec89                           	|  $e246
-	.long	l_e32b                           	|  $e248
-	.long	l_e32b                           	|  $e24a
+	.long	text_display_e32b                           	|  $e248
+	.long	text_display_e32b                           	|  $e24a
 address_table_E24C:
 	.word	0xe25e                           	|  0
 	.word	0xB186          	|  $e24e  bogus (display error text!)
@@ -11516,7 +11516,7 @@ address_table_E24C:
 	.word	0xe270                           	|  $e25c
 
 
-l_e32b:
+text_display_e32b:
 	move.b	#0x20,d1                        	| [$e32b: ld   b,$20]
 l_e32d:
 	movem.w	d1/d2,-(sp)                    	| [$e32d: push bc]
@@ -11589,7 +11589,7 @@ space_text_E423:
 	dc.b	0x88,0x3c,0x88,0xff | $e44b
 
 l_e44f:
-	jbsr	clear_score_text_FDC4             	| [$e44f: call clear_score_text_FDC4]
+	jbsr	display_DEMO_text_FDC4             	| [$e44f: call display_DEMO_text_FDC4]
 	lea	unknown_C730,a3                	| [$e452: ld   iy,unknown_C730]
 	move.b	#0x68,d5
 	move.b	#0x85,d6                      	| [$e456: ld   hl,$6885] immediate
@@ -11884,9 +11884,9 @@ l_e7b9:
 	jbsr	set_next_task_B6AE            	| [$e7cc: call set_next_task_B6AE]
 	jbsr	task_yield_B5A5                   	| [$e7cf: call task_yield_B5A5]
 
-* breaking planks?
+break_planks_bonus_e7d2:
 l_e7d2:
-	jbsr	clear_score_text_FDC4             	| [$e7d2: call clear_score_text_FDC4]
+	jbsr	display_DEMO_text_FDC4             	| [$e7d2: call display_DEMO_text_FDC4]
 	jbsr	display_players_rank_FD44         	| [$e7d5: call display_players_rank_FD44]
 	* play main theme music
 	move.b	#0x01,d0                        	| [$e7d8: ld   a,$01]
@@ -11911,6 +11911,7 @@ l_e7d2:
 	clr.b	d0                               	| [$e7f9: ld   a,$00]
 	move.b	(0x07,a3),d5                    	| [$e7fb: ld   h,(iy+$07)]
 	move.b	(0x08,a3),d6                    	| [$e7fe: ld   l,(iy+$08)]
+	* HL = $289C, A = 0
 	lea	unknown_C740,a2                	| [$e801: ld   ix,unknown_C740]
 	jbsr	display_sprite_block_ebff                            	| [$e805: call $EBFF]
 	jbsr	load_iy_with_player_structure_B574	| [$e808: call load_iy_with_player_structure_B574]
@@ -11939,11 +11940,14 @@ l_e82d:
 	lsr.b	#3,d5                            	| [$e82f: srl  h] * 3
 	lsr.b	#3,d6                            	| [$e833: srl  l] * 3
 	move.b	background_and_state_bits_C911,d0	| [$e839: ld   a,(background_and_state_bits_C911)]
-	jbsr	draw_something_f9e4                            	| [$e83c: call $F9E4]
+	* draw table where planks lie
+	jbsr	draw_tiled_object_f9e4                            	| [$e83c: call $F9E4]
 	movem.w	(sp)+,d5/d6                        	| [$e83f: pop  hl]
+	* 10 planks (sprites) to display
 	move.b	#0x0A,d1                        	| [$e840: ld   b,$0A]
 	move.b	#0x06,d0                        	| [$e842: ld   a,$06]
 	lea	unknown_C768,a2                	| [$e844: ld   ix,unknown_C768]
+	* coords HL = 98AC
 l_e848:
 
 	movem.w	d5/d6,-(sp)                        	| [$e848: push hl]
@@ -11951,12 +11955,14 @@ l_e848:
 	move.l	a2,-(sp)                        	| [$e849: push ix]
 	move.w	d0,-(sp)                        	| [$e84b: push af]
 	movem.w	d1/d2,-(sp)                    	| [$e84c: push bc]
-	jbsr	display_sprite_block_ebff                            	| [$e84d: call $EBFF]
+	* plank
+	jbsr	display_sprite_block_ebff         	| [$e84d: call $EBFF]
 	movem.w	(sp)+,d1/d2                    	| [$e850: pop  bc]
 	move.w	(sp)+,d0                        	| [$e851: pop  af]
 	move.l	(sp)+,a2                        	| [$e852: pop  ix]
 	movem.w	(sp)+,d5/d6                        	| [$e854: pop  hl]
 	addq.w	#4,a2                           	| [$e855: inc  ix] * 4
+	* next X for next plank
 	addq.b	#4,d5                           	| [$e85d: inc  h] * 4
 	subq.b	#1,d1                           	| [...]
 	jne	l_e848                             	| [$e861: djnz $E848]
@@ -11966,15 +11972,16 @@ l_e848:
 	lea	game_mem+0xEA06,a3                  	| [$e86c: ld   iy,table_EA06]
 	move.b	#0x04,d0                        	| [$e870: ld   a,$04]
 	lea	unknown_C740,a2                	| [$e872: ld   ix,unknown_C740]
+	* loop where player bounces back & forth
 l_e876:
-
 	movem.w	d5/d6,-(sp)                        	| [$e876: push hl]
 
 	move.l	a3,-(sp)                        	| [$e877: push iy]
 
 	move.l	a2,-(sp)                        	| [$e879: push ix]
 	move.w	d0,-(sp)                        	| [$e87b: push af]
-	jbsr	display_sprite_block_ebff                            	| [$e87c: call $EBFF]
+	* display player
+	jbsr	display_sprite_block_ebff         	| [$e87c: call $EBFF]
 	move.b	#0x01,d0                        	| [$e87f: ld   a,$01]
 	jbsr	suspend_this_task_B65E            	| [$e881: call suspend_this_task_B65E]
 	jbsr	read_current_player_controls_BB96 	| [$e884: call read_current_player_controls_BB96]
@@ -12342,13 +12349,13 @@ l_ed5a:
 	move.b	#0x0A,d5
 	move.b	#0x05,d6                      	| [$ed5b: ld   hl,$0A05]
 	move.b	#0x04,d0                        	| [$ed5e: ld   a,$04]
-	jbsr	draw_something_f9e4                            	| [$ed60: call $F9E4]
+	jbsr	draw_tiled_object_f9e4                            	| [$ed60: call $F9E4]
 	move.b	#0x40,d0                        	| [$ed63: ld   a,$40]
 	jbsr	suspend_this_task_B65E            	| [$ed65: call suspend_this_task_B65E]
 	move.b	#0x0A,d5
 	move.b	#0x05,d6                      	| [$ed68: ld   hl,$0A05] immediate
 	move.b	#0x05,d0                        	| [$ed6b: ld   a,$05]
-	jbsr	draw_something_f9e4                            	| [$ed6d: call $F9E4]
+	jbsr	draw_tiled_object_f9e4                            	| [$ed6d: call $F9E4]
 	move.b	#0x40,d0                        	| [$ed70: ld   a,$40]
 	jbsr	suspend_this_task_B65E            	| [$ed72: call suspend_this_task_B65E]
 	movem.w	(sp)+,d1/d2                    	| [$ed75: pop  bc]
@@ -13255,7 +13262,8 @@ l_f782:
 	jne	l_f77f                             	| [$f7c1: djnz $F77F]
 	rts                                    	| [$f7c3: ret]
 
-draw_something_f9e4:
+* < D0: object to draw (tiles)
+draw_tiled_object_f9e4:
 	lea	game_mem+0xFA28,a3                  	| [$f9e4: ld   iy,table_FA28]
 	clr.w	d3                               	| [$f9e8: ld   d,$00]
 	move.b	d0,d3                           	| [$f9ea: ld   e,a]
@@ -13364,10 +13372,12 @@ position_table_FDA3:
 	dc.b	0x19 | $fdc3
 	.align	2
 	
-clear_score_text_FDC4:
+* writes "DEMO" (break planks) or whatever
+display_DEMO_text_FDC4:
 	lea	space_text_FDE1(pc),a0             	| [$fdc4: ld   hl,space_text_FDE1]
 	jra	l_fddd                             	| [$fdc7: jp   $FDDD]
 
+* seems not reached?
 	move.b	background_and_state_bits_C911,d0	| [$fdca: ld   a,(background_and_state_bits_C911)]
 	btst.b	#7,d0                           	| [$fdcd: bit  7,a]
 	jne	l_fddd                             	| [$fdcf: jp   nz,$FDDD]

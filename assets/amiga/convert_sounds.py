@@ -18,7 +18,7 @@ src_dir = os.path.join(this_dir,"../../src/amiga")
 outfile = os.path.join(src_dir,"sounds.68k")
 sndfile = os.path.join(src_dir,"sound_entries.68k")
 
-hq_sample_rate = 11050
+hq_sample_rate = 14000
 
 
 START_FIGHT_MUSIC = 0
@@ -45,7 +45,7 @@ sound_dict = {
 "FULL_POINT_SND"             :{"index":0x27,"channel":3,"loops":False,"sample_rate":hq_sample_rate},
 "HALF_POINT_SND"             :{"index":0x26,"channel":3,"loops":False,"sample_rate":hq_sample_rate},
 #"BULL_SND"             :{"index":0x10,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
-"FALL_SND"             :{"index":0x10,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"FALL_SND"             :{"index":0x10,"channel":2,"loops":False,"sample_rate":hq_sample_rate},
 "EVADE_SND"             :{"index":0x13,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "BEGIN_SND"             :{"index":0x25,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "CREDIT_SND"               :{"index":0x20,"channel":0,"sample_rate":hq_sample_rate},
