@@ -17,9 +17,7 @@
 * carry: manual, using D7 (push/pop af has no portable equivalent as SR is privileged on 68020+)
 *
 *
-* Karate Champ VS 2. Reverse-engineering attempt by JOTD, focusing on 2 points:
-* - CPU A.I.
-* - animations
+* Karate Champ VS 2. Reverse-engineering by JOTD:
 *
 * CF02: time when entering highscore (BCD)
 *
@@ -2297,7 +2295,6 @@ l_4851:
 	move.b	#0x12,d0                        	| [$4854: ld   a,$12]
 	jbsr	play_sound_B072                   	| [$4856: call play_sound_B072]
 	* loop: animate breaking object
-	.ifdef	XXXX
 l_4859:
 	jbsr	load_evade_object_sprite_pointer_4968                            	| [$4859: call $4968]
 	jbsr	animate_evade_object_or_bull_4978                            	| [$485c: call $4978]
@@ -2322,7 +2319,6 @@ l_4859:
 	jbsr	l_4b15                            	| [$4882: call $4B15]
 	jra	l_4859                             	| [$4885: jp   $4859]
 	* object break animation ends
-	.endif
 	
 l_4888:
 	move.b	current_task_index_C028,d0      	| [$4888: ld   a,(current_task_index_C028)]
@@ -13158,7 +13154,9 @@ l_f6ac:
 	jbsr	display_text_B357                 	| [$f6b1: call display_text_B357]
 	clr.b	d0                               	| [$f6b4: xor  a]
 	move.b	d0,temp_buffer_CF00+3                 	| [$f6b5: ld   (temp_buffer_CF00+3),a]
-	move.b	#0x30,d0                        	| [$f6b8: ld   a,$30]
+	* increasing hiscore timer so we can enjoy the music fully like
+	* in first version of Karate Champ
+	move.b	#0x60,d0                        	| [$f6b8: ld   a,$30]
 	move.b	d0,temp_buffer_CF00+2                 	| [$f6ba: ld   (temp_buffer_CF00+2),a]
 	clr.b	d0                               	| [$f6bd: xor  a]
 	move.b	d0,temp_buffer_CF00+5                 	| [$f6be: ld   (temp_buffer_CF00+5),a]
