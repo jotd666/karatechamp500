@@ -41,6 +41,9 @@ OPT_ENABLE_DOUBLE_BUFFERING_BG = 1
 
 _custom = 0xDFF000
 
+LAYOUT_WINUAE = 0
+LAYOUT_CD32 = 1
+LAYOUT_2JOYS = 2
 
 NB_PLAYFIELD_PLANES = 4
 TOTAL_NB_COLORS = 16   | 8+8+16
@@ -197,35 +200,51 @@ _user:
 0:	
 	lea		program_args,a0
 
+
+	move.l	(A0)+,D0	| BONUSCHEAT/S
+	beq.b	1f
+	or.l	#4,cheat_flags
+	st.b	cheat_used
+1:
+	move.l	(A0)+,D0	| CHEATKEYS/S
+	beq.b	1f
+	* cheat isn't used as long as no cheat key is used
+	or.l	#1,cheat_flags
+1:
 	move.l	(A0)+,D0	| ONEROUNDWINS/S
 	beq.b	1f
 	or.l	#2,cheat_flags
 	st.b	cheat_used
 1:
-	move.l	(A0)+,D0	| CHEATKEYS/S
-	beq.b	2f
-	* cheat isn't used as long as no cheat key is used
-	or.l	#1,cheat_flags
-2:
 	move.l	(A0)+,D0	| STARTLEVEL/S
-	beq.b	2f
+	beq.b	1f
 	bsr		bcpl_string_to_int
 	subq	#1,d0
 	move.l	d0,start_level_option
 
-2:
+1:
 	moveq.l	#0,d7
 
+	move.l	(A0)+,D0	| NOINTERMISSIONS/S
+	beq.b	1f
+	bset	#0,d7
+1:
+	move.l	(A0)+,D0	| FREEPLAY/S
+	beq.b	1f
+	bset	#1,d7
+1:
+	move.l	d7,misc_options
 
-
-
-	move.l	(A0)+,D0	| SKILL/S
+	move.l	(A0)+,D0	| SKILL/K/N
 	beq.b	2f
 	bsr		bcpl_string_to_int
 	move.l	d0,dip_switch_difficulty
 2:
-	
-	move.l	d7,misc_options
+	move.l	(A0)+,D0	| CONTROLS/K/N
+	beq.b	2f
+	bsr		bcpl_string_to_int
+	move.l	d0,buttons_layout_options
+2:
 	
 	bsr		store_system
 	
@@ -284,9 +303,27 @@ _user:
 	move.l	#-1,184(A0)	| pr_WindowPtr: no more system requesters (insert volume, write protected...)
 
 .no_forbid:
-	
+	* buttons
+	move.l	buttons_layout_options(pc),d0
+	cmp.l	#LAYOUT_WINUAE,d0
+	beq.b	2f
+	cmp.l	#LAYOUT_CD32,d0
+	bne.b	1f
+1:
+	move.l	#JPB_BTN_YEL,button_up
+	move.l	#JPB_BTN_RED,button_down
+	move.l	#JPB_BTN_BLU,button_right
+	move.l	#JPB_BTN_GRN,button_left
+	bra.b	2f
+	cmp.l	#LAYOUT_2JOYS,d0
+	bne.b	2f
+	st.b	two_joystick_layout
+2:
+
 	move.l	dip_switch_difficulty(pc),d0
 	lsl.b	#4,d0		| to match what game expects
+	
+	bset	#6,d0		| enable attract sounds
 	
 	not.b	d0		| active low
 	move.b	d0,dip_switches
@@ -1254,16 +1291,15 @@ alloc_sprite:
 	
 
 	
-osd_sound_enable:	
-	rts
-osd_sound_disable:	
-	rts
 osd_sound_start:
-	
 	movem.l	d0/d1/a0/a6,-(a7)
 
 	and.w	#0xFF,d0
-
+	tst.b	d0
+	bpl.b	0f
+	bsr		osd_sound_stop
+	bra.b	1f
+0:
 
 	lea		_custom,a6
 	
@@ -1295,12 +1331,7 @@ osd_sound_start:
 	bra.b	1b
 	* music
 4:
-	* don't play if game not in play
-	* could have been handled at generic pengo.68k level
-	* but it's way simpler here. I suppose than the real game
-	* just turns music volume off to get away with it
-*	tst.b	game_playing_8817
-*	beq.b	1b
+
 	
 	* don't play if already playing
 	* (music_tick value is not important for looped tunes
@@ -2050,7 +2081,7 @@ osd_read_dipswitches:
 osd_read_inputs:
 	bsr		handle_keyboard
 	moveq	#-1,d0
-	movem.l	a0/d1,-(a7)
+	movem.l	a0/d1/d2,-(a7)
 	* misc control keys
 	lea		keyboard_table(pc),a0
 	tst.b	(5,a0)		| "5" key like in MAME
@@ -2065,10 +2096,14 @@ osd_read_inputs:
 	beq.b	0f
 	bclr	#2+16,d0
 0:
+	tst.b	two_joystick_layout
+	bne.b	10f		| 2P controls off / 2P mode off
+	
 	tst.b	(2,a0)		| "2" key like in MAME
 	beq.b	0f
 	bclr	#3+16,d0
 0:
+	moveq	#0,d2
 	move.l	_joypad_state_p2(pc),d1
 	jbsr		check_joy
 
@@ -2080,12 +2115,13 @@ osd_read_inputs:
 	beq.b	0f
 	bclr	#16+3,d0
 0:
+10:
 
 	lsl.w	#8,d0
+
 	st		d0
 	move.l	_joypad_state_p1(pc),d1
-	jbsr		check_joy
-	
+
 	btst	#JPB_BTN_REVERSE,d1
 	beq.b	0f
 	bclr	#16,d0
@@ -2095,7 +2131,9 @@ osd_read_inputs:
 	bclr	#16+2,d0
 0:
 
-	movem.l	(a7)+,a0/d1
+	jbsr		check_joy
+	
+	movem.l	(a7)+,a0/d1/d2
 	rts
 
 
@@ -2193,24 +2231,52 @@ check_joy:
 	beq.b	0f
 	bclr	#3,d0
 0:
-	btst	#JPB_BTN_YEL,d1		| left
+	tst.b	two_joystick_layout
+	bne.b	1f
+	
+	move.b	button_left(pc),d2
+	btst	d2,d1		| left
 	beq.b	0f
 	bclr	#4,d0
 0:
-	btst	#JPB_BTN_RED,d1		| right
+	move.b	button_right(pc),d2
+	btst	d2,d1		| right
 	beq.b	0f
 	bclr	#5,d0
 0:
-	btst	#JPB_BTN_BLU,d1		| up
+	move.b	button_up(pc),d2
+	btst	d2,d1		| up
 	beq.b	0f
 	bclr	#6,d0
 0:
-	btst	#JPB_BTN_GRN,d1		| down
+	move.b	button_down(pc),d2
+	btst	d2,d1		| down
 	beq.b	0f
 	bclr	#7,d0
 0:
 	rts
-		
+1:
+	move.l	_joypad_state_p2(pc),d1
+	btst	#JPB_BTN_RIGHT,d1
+	beq.b	0f
+	bclr	#5,d0
+0:
+	btst	#JPB_BTN_LEFT,d1
+	beq.b	0f
+	bclr	#4,d0
+0:
+	btst	#JPB_BTN_UP,d1
+	beq.b	0f
+	bclr	#6,d0
+0:
+	btst	#JPB_BTN_DOWN,d1
+	beq.b	0f
+	bclr	#7,d0
+0:
+
+	rts
+			
+	
 osd_read_high_scores:
 	movem.l	d0-d7/a0-a6,-(a7)
 	move.l	a0,a4
@@ -2383,8 +2449,8 @@ program_args_end:
 	.align	4
 read_args_string:
 	.byte	read_args_string_end-read_args_string
-	.ascii	"ONEROUNDWINS/S,INVINCIBLE/S,CHEATKEYS/S,STARTLEVEL/K/N,"
-	.ascii	",SKILL/K/N"
+	.ascii	"BONUSCHEAT/S,CHEATKEYS/S,ONEROUNDWINS/S,STARTLEVEL/K/N,"
+	.ascii	"NOINTERMISSIONS/S,FREEPLAY/S,SKILL/K/N,CONTROLS/K/N"
 read_args_string_end:
 	.align	2
 
@@ -2545,7 +2611,17 @@ _end_of_ng_code:
 palette:
 	.include "palette.68k"
 
-
+button_up:
+	dc.b	JPB_BTN_BLU
+button_down:
+	dc.b	JPB_BTN_GRN
+button_right:
+	dc.b	JPB_BTN_RED
+button_left:
+	dc.b	JPB_BTN_YEL
+two_joystick_layout:
+	dc.b	0
+	.align	2
 	
 	
 	* on amiga, this file is included in karate_champ.68k file

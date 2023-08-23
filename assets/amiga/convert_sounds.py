@@ -26,7 +26,7 @@ LOSE_FIGHT_MUSIC = 1
 WIN_FIGHT_MUSIC = 2
 MAIN_THEME_MUSIC = 3
 
-music_vol = 24
+music_vol = 12
 
 EMPTY_SND = "EMPTY_SND"
 sound_dict = {

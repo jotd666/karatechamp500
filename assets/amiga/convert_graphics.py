@@ -72,6 +72,7 @@ alpha_clut = {0,
 for k in range(10+26+1):
     used_tile_cluts[k].update(alpha_clut)
 
+
 # special symbols in highscore table
 for k in range(0x25,0x30):
     used_tile_cluts[k].update({0x15,0x16})
@@ -126,7 +127,7 @@ parasite_sprites = set()
 
 used_sprite_cluts = {k:v for k,v in used_sprite_cluts.items() if k not in parasite_sprites}
 
-dump_tiles = False
+dump_tiles = True
 dump_sprites = False
 
 dump_dir = os.path.join(this_dir,"dumps")
@@ -230,6 +231,11 @@ for level_index in range(0,12):
                     used_tile_cluts[tile_code] = set()
                 used_tile_cluts[tile_code].add(color_code)
 
+# hardcode the letter cluts of plank breaking stage. No need to add more memory footprint
+# for a color configuration not used elsewhere
+for k in [ord(a)-55 for a in "PERFECT20CHALLENGESTAGE"]:
+    used_tile_cluts[k].add(20)
+    tile_code_per_level[k][20] = 2
 
 # very few colors on bonus stages need to be changed so we can always match the scenery
 # 16-color palette. So very few compromises!

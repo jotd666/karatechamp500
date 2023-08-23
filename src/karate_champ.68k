@@ -12742,6 +12742,8 @@ l_f355:
 	move.b	d0,(0x02,a2)                    	| [$f364: ld   (ix+$02),a]
 	move.b	computer_skill_C910,d0          	| [$f367: ld   a,(computer_skill_C910)]
 	move.b	d0,(0x11,a2)                    	| [$f36a: ld   (ix+$11),a]
+	* store pointer on current player struct for highscore
+	jbsr	osd_break
 	move.l	a2,unknown_pointer_CF06                 	| [$f36d: ld   (unknown_pointer_CF06),ix]
 	move.w	#0x0006,d1                      	| [$f371: ld   bc,$0006] 6
 	add.w	d1,a2                            	| [$f374: add  ix,bc]
@@ -13026,6 +13028,7 @@ l_f584:
 	add.w	d1,d6                            	| [$f59c: add  iy,bc]
 	move.b	#0xA8,d0                 	| [$f59e: ld   (iy+$00),$A8]
 	jbsr	osd_w_colorram
+	* has stored C040 or C060 (P1 or P2)
 	move.l	unknown_pointer_CF06,a3             	| [$f5a2: ld   iy,(unknown_pointer_CF06)]
 	move.b	temp_buffer_CF00+5,d0                 	| [$f5a6: ld   a,(temp_buffer_CF00+5)]
 	cmp.b	#0x03,d0                         	| [$f5a9: cp   $03]
@@ -13155,7 +13158,8 @@ l_f6ac:
 	clr.b	d0                               	| [$f6b4: xor  a]
 	move.b	d0,temp_buffer_CF00+3                 	| [$f6b5: ld   (temp_buffer_CF00+3),a]
 	* increasing hiscore timer so we can enjoy the music fully like
-	* in first version of Karate Champ
+	* in first version of Karate Champ, faithfully remade by
+	* the talented no9
 	move.b	#0x60,d0                        	| [$f6b8: ld   a,$30]
 	move.b	d0,temp_buffer_CF00+2                 	| [$f6ba: ld   (temp_buffer_CF00+2),a]
 	clr.b	d0                               	| [$f6bd: xor  a]
