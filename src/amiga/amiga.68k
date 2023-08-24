@@ -1292,11 +1292,14 @@ alloc_sprite:
 
 	
 osd_sound_start:
+	move.b	d0,0x210
+	
 	movem.l	d0/d1/a0/a6,-(a7)
 
 	and.w	#0xFF,d0
 	tst.b	d0
 	bpl.b	0f
+	* 0x80 means stop sound
 	bsr		osd_sound_stop
 	bra.b	1f
 0:
@@ -1346,7 +1349,12 @@ osd_sound_start:
 	beq.b	1b		| same track, skip
 
     movem.l d0-a6,-(a7)
+	* only stop sound if music already playing
+	* (no sound stop order issued by game)
+	tst.b	music_playing
+	beq.b	0f
 	bsr		osd_sound_stop
+0:
     lea _custom,a6
  	movem.l	d0/a0,-(a7)
     lea	karate_champ_tunes,a0
@@ -1822,23 +1830,51 @@ osd_w_colorram:
 update_bg_tile:
 	* get current level
 	moveq	#0,d2
-	* not working!!
 
 	move.w	level_pointer_C902,d2
+	ror.w	#8,d2		| swap endianness
 	cmp.w	current_background,d2
-	beq.b	1f
+	jeq	1f
+
+	* current background has changed. We use that
+	* to change palette according to level, but there
+	* are exceptions as the game doesn't work that way,
+	* it doesn't really change the palette but rather use
+	* assorted tiles for each background, which allows more or
+	* less to remain to 16 colors max!
+	*
+	* when losing on level > 1, the game shows the girls
+	* "earned" by previous fights. Then game shows previous
+	* background with player crying. This confuses my system
+	* D2 = 0x53C6 on girls bonus
+	* D2 = 0x53C7 on every lose screen
+	* so when encountering 53C6 we must store the last
+	* valid background and restore it when encountering
+	* 53C7, those are 2 particular cases
+	
+	cmp.w	#0x53C6,d2
+	bne.b	0f
+
+	* girl: save last background
+	move.w	current_background,last_level_background
+0:
+	cmp.w	#0x53C7,d2
+	bne.b	0f
+	* fuck this ID, restore old level background for
+	* proper palette
+	move.w	last_level_background(pc),d2
+0:
 	move.w	d2,current_background
 
-	ror.w	#8,d2		| swap endianness
 	cmp.w	#0x53ce,d2
 	beq.b	13f			| demo: same palette as level 4
 	sub.l	#0x534d,d2	| pointer on level 1
 	bne.b	12f
 	* bamboo practice: same as level 3
-	move.w	#2,d2
+	moveq	#2,d2
 	bra.b	10f
 13:
-	move.w	#3,d2
+	moveq	#3,d2
 	bra.b	10f
 12:
 	divu	#5,d2
@@ -2573,6 +2609,8 @@ bg_displayed_screen_ptr:
 	.long	bg_screen_data_1
 	.endif
 current_background:
+	.word	0xFF
+last_level_background:
 	.word	0xFF
 
 
