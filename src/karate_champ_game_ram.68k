@@ -559,7 +559,8 @@ stack_top_CF00:
 temp_buffer_CF00:
 	ds.b	4
 address_of_current_player_move_byte_CF04:
-	ds.b	2
+	ds.b	0x2	| rest of the memory is used by temp_buffer_CF00
+* CF06.W is used sometimes to store a pointer
 unknown_pointer_CF06:
-	ds.l	1	
-	ds.b	0xFA		| rest of the memory is used by temp_buffer_CF00
+	ds.b	0xFA
+

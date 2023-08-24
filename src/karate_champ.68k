@@ -5441,8 +5441,8 @@ l_6500:
 	move.b	d6,temp_buffer_CF00     	| [$6500: ld   (temp_buffer_CF00),hl]
 	move.b	d5,temp_buffer_CF00+1     	| [$6500: ld   (temp_buffer_CF00),hl]
 	st.b	d0                                	| [$6503: ld   a,$FF]
-	* end the string... using an area also used as a pointer WTF!
-	move.b	d0,unknown_pointer_CF06                 	| [$6505: ld   (unknown_pointer_CF06),a]
+	* end the string... 
+	move.b	d0,temp_buffer_CF00+6                 	| [$6505: ld   (temp_buffer_CF00+6),a]
 	* now convert timer to displayable characters
 	* only LSB is useful
 	move.b	match_timer_C167,d0             	| [$6508: ld   a,(match_timer_C167)]
@@ -6282,7 +6282,7 @@ show_2P_round_score_6bcf:
 	* dash
 	move.b	#0x98,temp_buffer_CF00+6+1                  	| [$6c0b: ld   hl,table_9826]
 	move.b	#0x26,temp_buffer_CF00+6                  	| [$6c0b: ld   hl,table_9826]
-	                 	| [$6c0e: ld   (unknown_pointer_CF06),hl]
+	                 	| [$6c0e: ld   (temp_buffer_CF00+6),hl]
 	* spacing													| [$6c11: ld   hl,$983c]
 	move.b	#0x98,temp_buffer_CF00+8+1                 	| [$6c14: ld   (temp_buffer_CF00+8),hl]
 	move.b	#0x3C,temp_buffer_CF00+8                 	| [$6c14: ld   (temp_buffer_CF00+8),hl]
@@ -12750,9 +12750,15 @@ l_f355:
 	move.b	d0,(0x02,a2)                    	| [$f364: ld   (ix+$02),a]
 	move.b	computer_skill_C910,d0          	| [$f367: ld   a,(computer_skill_C910)]
 	move.b	d0,(0x11,a2)                    	| [$f36a: ld   (ix+$11),a]
-	* store pointer on current player struct for highscore
-	jbsr	osd_break
-	move.l	a2,unknown_pointer_CF06                 	| [$f36d: ld   (unknown_pointer_CF06),ix]
+	* store pointer on some struct for highscore
+	move.l	a2,d7
+	* checked with player 1 or player 2, it always ends up
+	* to C040 but it could change (always based on C040)
+	* since we have to store the value on 2 bytes
+	* and it could represent some contiguous address, we
+	* have to store it as an offset from C040.
+	sub.l	#unknown_C040,d7
+	move.w	d7,unknown_pointer_CF06                 	| [$f36d: ld   (unknown_pointer_CF06),ix]
 	move.w	#0x0006,d1                      	| [$f371: ld   bc,$0006] 6
 	add.w	d1,a2                            	| [$f374: add  ix,bc]
 	move.b	#0x3C,(0x00,a2)                 	| [$f376: ld   (ix+$00),$3C]
@@ -12979,8 +12985,9 @@ l_f501:
 	add.w	d3,d6                            	| [$f53c: add  hl,de]
 	move.b	#0xB0,d0                      	| [$f53d: ld   (hl),$B0]
 	jbsr		osd_w_colorram
+	move.w	unknown_pointer_CF06,a0    	
+	add.l	#unknown_C040,a0			|	[$f53f: ld   hl,(unknown_pointer_CF06)]
 
-	move.l	unknown_pointer_CF06,a0             	| [$f53f: ld   hl,(unknown_pointer_CF06)]
 	move.b	temp_buffer_CF00+5,d0                 	| [$f542: ld   a,(temp_buffer_CF00+5)]
 	asl.b	#1,d0                            	| [$f545: sla  a]
 	addq.b	#0x06,d0                        	| [$f547: add  a,$06]
@@ -13036,8 +13043,9 @@ l_f584:
 	add.w	d1,d6                            	| [$f59c: add  iy,bc]
 	move.b	#0xA8,d0                 	| [$f59e: ld   (iy+$00),$A8]
 	jbsr	osd_w_colorram
-	* has stored C040 or C060 (P1 or P2)
-	move.l	unknown_pointer_CF06,a3             	| [$f5a2: ld   iy,(unknown_pointer_CF06)]
+	* has stored C040 or maybe C040+a few bytes
+	move.w	unknown_pointer_CF06,a3             	| [$f5a2: ld   iy,(unknown_pointer_CF06)]
+	add.l	#unknown_C040,a3
 	move.b	temp_buffer_CF00+5,d0                 	| [$f5a6: ld   a,(temp_buffer_CF00+5)]
 	cmp.b	#0x03,d0                         	| [$f5a9: cp   $03]
 	jne	l_f5af                             	| [$f5ab: jp   nz,$F5AF]
