@@ -31,7 +31,7 @@ music_vol = 12
 EMPTY_SND = "EMPTY_SND"
 sound_dict = {
 "INTRO_TUNE_SND"              :{"index":1,"pattern":MAIN_THEME_MUSIC,"loops":True,"volume":music_vol},
-"LOSE_TUNE_SND"              :{"index":2,"pattern":LOSE_FIGHT_MUSIC,"loops":False,"volume":music_vol},
+"LOSE_TUNE_SND"              :{"index":2,"pattern":LOSE_FIGHT_MUSIC,"loops":False,"ticks":188,"volume":music_vol},
 "START_TUNE_SND"              :{"index":3,"pattern":START_FIGHT_MUSIC,"loops":False,"volume":music_vol},
 "WIN_TUNE_SND"             :{"index":0x04,"pattern":WIN_FIGHT_MUSIC,"loops":False,"volume":music_vol},
 "BLOW_SND"               :{"index":0x11,"channel":0,"sample_rate":hq_sample_rate},
@@ -44,7 +44,7 @@ sound_dict = {
 "JUDGE_SND"             :{"index":0x28,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "FULL_POINT_SND"             :{"index":0x27,"channel":3,"loops":False,"sample_rate":hq_sample_rate},
 "HALF_POINT_SND"             :{"index":0x26,"channel":3,"loops":False,"sample_rate":hq_sample_rate},
-#"BULL_SND"             :{"index":0x10,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
+"BULL_SND"             :{"index":0x14,"channel":3,"loops":False,"sample_rate":hq_sample_rate},
 "FALL_SND"             :{"index":0x10,"channel":2,"loops":False,"sample_rate":hq_sample_rate},
 "EVADE_SND"             :{"index":0x13,"channel":0,"loops":False,"sample_rate":hq_sample_rate},
 "BEGIN_SND"             :{"index":0x25,"channel":0,"loops":False,"sample_rate":hq_sample_rate},

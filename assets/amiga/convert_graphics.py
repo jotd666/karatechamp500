@@ -233,7 +233,7 @@ for level_index in range(0,12):
 
 # hardcode the letter cluts of plank breaking stage. No need to add more memory footprint
 # for a color configuration not used elsewhere
-for k in [ord(a)-55 for a in "PERFECT20CHALLENGESTAGE"]:
+for k in [ord(a)-55 for a in "PERFECTCHALLENGESTAGE"]+[0,2]:
     used_tile_cluts[k].add(20)
     tile_code_per_level[k][20] = 2
 
@@ -257,8 +257,7 @@ tile_replacement_color_dict = {
 (0x5AD,0x19) : greener
 }
 
-for x in range(0x573,0x57b):
-    tile_replacement_color_dict[x,0x1B] = grayer
+
 for x in range(0x54C,0x55D):
     tile_replacement_color_dict[x,0] = grayer
     tile_replacement_color_dict[x,0x1F] = grayer
@@ -272,7 +271,7 @@ params_ = [
 [{},[0xCA3,0xCCC]], #5
 [{0xC0:0x80C},[0xCA3,0x8F0]], #6
 [{0xC0:0x80C,0xCA3:0xC80},[0x8F0,0xCCC]], #7
-[{0x0C0:0xC80},[0xCA3,0xCCC]],  #8
+[{0x0C0:0xC80,0xC0:0x80C},[0xCA3,0xCCC]],  #8 wasteful 2 identical colors, but some tiles are shared!
 [{},[0xC0,0xCA3]],   #9
 [{0xC0:0x80C},[0xCA3,0xCCC]],  #10
 [{},[0xCA3,0xCCC]],  #11

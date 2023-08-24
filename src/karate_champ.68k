@@ -12079,6 +12079,11 @@ l_e930:
 	move.b	d0,d1                           	| [$e939: ld   b,a]
 	movem.w	d1/d2,-(sp)                    	| [$e93a: push bc]
 	lea	unknown_C768,a3                	| [$e93b: ld   iy,unknown_C768]
+	tst.b	invincible_flag
+	beq.b	0f
+	move.b	#10,d1		| 10 planks everytime
+	move.b	d1,d0
+0:
 	tst.b	d0                               	| [$e93f: and  a]
 	jeq	l_e96d                             	| [$e940: jp   z,$E96D]
 l_e943:
@@ -12107,8 +12112,11 @@ l_e96d:
 	jbsr	display_multicolor_text_B391      	| [$e975: call display_multicolor_text_B391]
 	movem.w	(sp)+,d1/d2                    	| [$e978: pop  bc]
 	move.b	d1,d0                           	| [$e979: ld   a,b]
-	cmp.b	#0x0A,d0                         	| [$e97a: cp   $0A]
+	tst.b	invincible_flag
+	bne.b	0f
+	cmp.b	#0x0A,d0                         	| [$e97a: cp   $0A] 10 planks broken?
 	jne	l_e992                             	| [$e97c: jp   nz,$E992]
+0:
 	lea	perfect_text_E62B(pc),a0           	| [$e97f: ld   hl,perfect_text_E62B]
 	jbsr	display_multicolor_text_B391      	| [$e982: call display_multicolor_text_B391]
 	move.b	#0x0F,d0                        	| [$e985: ld   a,$0F]

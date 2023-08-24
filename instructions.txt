@@ -38,7 +38,7 @@ SKILL/K/N,CONTROLS/K/N
 
 Cheats:
 
-BONUSCHEAT: invincible during bull & evade phases
+BONUSCHEAT: invincible during bull & evade phases, perfect plank break
 ONEROUNDWINS: only one round is needed to win match for human players too
 CHEATKEYS: function keys cheat: F1: player 1 instant win, F2: player 2 instant win
 STARTLEVEL: from 1 to 24
