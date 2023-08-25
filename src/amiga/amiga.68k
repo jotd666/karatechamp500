@@ -16,6 +16,8 @@ AFB_68020 = 1
 NO68020 = 1
 
 
+DYNAMIC_COPPER_ROWS = 228
+
 SCREEN_ADDRESS = 0xD000
 
 
@@ -1915,6 +1917,20 @@ update_bg_tile:
 	sub.w	#12,d2		| same background, subtract 12
 10:
 	addq.w	#1,d2		| level palettes start at 1
+	cmp.b	#12,d2		| moonlight stage
+	bne.b	111f
+	* special case: dynamic copperlist change
+	* score points wrong color, can be fixed with simple dynamic color change
+    * as this color is not used in those lines!!!
+	movem.w	d0-d2,-(a7)
+	lea		color_line_copper+(2*16)+4,a0
+	move.w	#color+24,(a0)+
+	move.w	#0xFC0,(a0)
+	lea		color_line_copper+(6*16)+4,a0
+	move.w	#color+24,(a0)+
+	move.w	#0x0C0,(a0)
+	movem.w	(a7)+,d0-d2
+111:
 	lsl.w	#5,d2		| times 32 to select proper palette
 11:
 	lea		palette(pc),a0
@@ -2755,8 +2771,9 @@ bg_bitplanes:
 	DECL_4_BITPLANES	0
 copperlist_colors:
 	DECL_16_COLORS	0
-sprite_cols:
-	DECL_16_COLORS	16
+	* upper 16-31 colors aren't used, sprites aren't used
+*sprite_cols:
+*	DECL_16_COLORS	16
 sprites:
     * #0
     .word    sprpt+0,0
@@ -2785,8 +2802,14 @@ sprites:
 
 	.set    beampos,0x1C01
 color_line_copper:
+	.rept	DYNAMIC_COPPER_ROWS/8
 	.word	beampos,0xFFFE
-	*.set    beampos,beampos+0x100
+	* allows to issue 3 copper instructions per 8 rows
+	.word	0x1FE,0
+	.word	0x1FE,0
+	.word	0x1FE,0
+	.set    beampos,beampos+0x800
+	.endr
 
 
 	* pal limit
@@ -2809,6 +2832,8 @@ color_row_29:
 	* in the next datachip sections
 	.align	8
 	
+	
+
 		.section .bsschip
 
 bg_screen_backbuffer_data:
