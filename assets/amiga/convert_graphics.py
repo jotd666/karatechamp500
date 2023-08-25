@@ -78,7 +78,7 @@ for k in range(0x25,0x30):
     used_tile_cluts[k].update({0x15,0x16})
 
 # 2P score frame (rest of tiles are logged in .json file)
-for k in range(0xE0,0xEA):
+for k in range(0xE0,0xEA+1):
     used_tile_cluts[k].add(0x12)
 used_tile_cluts[0xD0].add(0x12)
 
@@ -431,12 +431,12 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
     f.write("character_table:\n")
     for i,c in enumerate(character_codes_list):
         # c is the list of the same character with 31 different cluts
-        if c is not None:
+        if any(c):
             f.write(f"\t.long\tchar_{i}\n")
         else:
             f.write("\t.long\t0\n")
     for i,c in enumerate(character_codes_list):
-        if c is not None:
+        if any(c):
             f.write(f"char_{i}:\n")
             # this is a table
             for j,cc in enumerate(c):

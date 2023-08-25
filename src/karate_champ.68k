@@ -6276,8 +6276,8 @@ show_2P_round_score_6bcf:
 	move.b	d6,temp_buffer_CF00+2                 	| [$6c02: ld   (temp_buffer_CF00+2),hl]
 	move.b	d5,temp_buffer_CF00+2+1                 	| [$6c02: ld   (temp_buffer_CF00+2),hl]
 	* spacing
-	move.w	#0x98,temp_buffer_CF00+4+1                  	| [$6c05: ld   hl,table_983c]
-	move.w	#0x3C,temp_buffer_CF00+4                  	| [$6c05: ld   hl,table_983c]
+	move.b	#0x98,temp_buffer_CF00+4+1                  	| [$6c05: ld   hl,table_983c]
+	move.b	#0x3C,temp_buffer_CF00+4                  	| [$6c05: ld   hl,table_983c]
 								| [$6c08: ld   (address_of_current_player_move_byte_CF04),hl]
 	* dash
 	move.b	#0x98,temp_buffer_CF00+6+1                  	| [$6c0b: ld   hl,table_9826]
@@ -11069,8 +11069,10 @@ init_ram_BB41:
 	*jbsr	clear_zone_B2BD                   	| [$bb53: call clear_zone_B2BD]
 * init ram with some startup values
 	jbsr	init_highscores_F6E5                    	| [$bb57: call init_highscores_F6E5]
-	move.b	#0x02,d0                        	| [$bb5a: ld   a,$02]
-	move.b	d0,high_score_C0C0                 	| [$bb5c: ld   (high_score_C0C0),a]
+	* set highscore to 20000, not needed and would be wrong
+	* when loading highscore from disk
+	*move.b	#0x02,d0                        	| [$bb5a: ld   a,$02]
+	*move.b	d0,high_score_C0C0                 	| [$bb5c: ld   (high_score_C0C0),a]
 	jbsr	get_dip_switches_BB92             	| [$bb5f: call get_dip_switches_BB92]
 	move.b	d0,dip_switches_copy_C030       	| [$bb62: ld   (dip_switches_copy_C030),a]
 	clr.b	d0                               	| [$bb65: xor  a]
@@ -12064,6 +12066,8 @@ l_e8be:
 
 	lea	unknown_C740,a2                	| [$e91a: ld   ix,unknown_C740]
 	move.b	#0x03,d0                        	| [$e91e: ld   a,$03]
+	* this displays the character extending his feet and
+	* trying to break planks
 	jbsr	display_sprite_block_ebff                            	| [$e920: call $EBFF]
 	move.l	(sp)+,a3                        	| [$e923: pop  iy]
 
@@ -13176,9 +13180,11 @@ l_f6ac:
 	jbsr	display_text_B357                 	| [$f6b1: call display_text_B357]
 	clr.b	d0                               	| [$f6b4: xor  a]
 	move.b	d0,temp_buffer_CF00+3                 	| [$f6b5: ld   (temp_buffer_CF00+3),a]
-	* increasing hiscore timer so we can enjoy the music fully like
+	* increasing hiscore timer like in non-vs version
+	* so we can enjoy the music fully like
 	* in first version of Karate Champ, faithfully remade by
-	* the talented no9
+	* the talented no9 (vs version shortened timer from 60 to 30 and
+	* the end of the music could not be heard anymore anywhere in the game!)
 	move.b	#0x40,d0                        	| [$f6b8: ld   a,$30]
 	move.b	d0,temp_buffer_CF00+2                 	| [$f6ba: ld   (temp_buffer_CF00+2),a]
 	clr.b	d0                               	| [$f6bd: xor  a]

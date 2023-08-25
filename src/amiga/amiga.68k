@@ -2449,8 +2449,10 @@ osd_read_high_scores:
 * < A0: score buffer
 osd_write_high_scores:
 	movem.l	d0-d7/a0-a6,-(a7)
+	.ifdef	RELEASE
 	tst.b	cheat_used		| don't save score if cheat on
 	bne.b	1f
+	.endif
 	move.l	_resload(pc),d0
 	beq.b	0f
 	move.l	d0,a2
@@ -2524,11 +2526,7 @@ handle_keyboard:
 	st.b	fake_p2_hit_flag
 	move.b	#2,match_timer_C167
 	move.w	#0xF00,_custom+color
-0:
-	cmp.b	#0x52,d0	| F3 key
-	bne.b	0f
-	st.b	cheat_used
-*	st.b	snobee_chicken_flag
+
 0:
 	.ifndef	RELEASE
 	cmp.b	#0x58,d0	| F9 key
