@@ -13176,7 +13176,7 @@ l_f6ac:
 	* increasing hiscore timer so we can enjoy the music fully like
 	* in first version of Karate Champ, faithfully remade by
 	* the talented no9
-	move.b	#0x60,d0                        	| [$f6b8: ld   a,$30]
+	move.b	#0x40,d0                        	| [$f6b8: ld   a,$30]
 	move.b	d0,temp_buffer_CF00+2                 	| [$f6ba: ld   (temp_buffer_CF00+2),a]
 	clr.b	d0                               	| [$f6bd: xor  a]
 	move.b	d0,temp_buffer_CF00+5                 	| [$f6be: ld   (temp_buffer_CF00+5),a]

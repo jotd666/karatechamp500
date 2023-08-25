@@ -1879,7 +1879,7 @@ update_bg_tile:
 	* girl: save last background
 	move.w	current_background,last_level_background
 	move.w	d2,current_background
-	bra.b	13f
+	bra.b	14f
 0:
 	cmp.w	#0x53C7,d2
 	bne.b	0f
@@ -1898,6 +1898,9 @@ update_bg_tile:
 	bra.b	10f
 13:
 	moveq	#3,d2
+	bra.b	10f
+14:
+	moveq	#13,d2		| extra palette, "girls"
 	bra.b	10f
 12:
 	divu	#5,d2
