@@ -89,7 +89,7 @@
 	.global	unknown_C031
 	.global	unknown_C032
 	.global	unknown_C038
-	.global	unknown_C040
+	.global	high_scores_buffer_C040
 	.global	unknown_C099
 	.global	unknown_C0AB
 	.global	high_score_C0C0
@@ -164,7 +164,7 @@
 	.global	unknown_CD21
 	.global	temp_buffer_CF00
 	.global	address_of_current_player_move_byte_CF04
-	.global	unknown_pointer_CF06
+	.global	highscore_insertion_pointer_CF06
 
 	.global stack_bottom_C400
 	.global stack_top_CF00
@@ -215,7 +215,7 @@ unknown_C032:
 	ds.b	6
 unknown_C038:
 	ds.b	8
-unknown_C040:
+high_scores_buffer_C040:
 	ds.b	89
 unknown_C099:
 	ds.b	18
@@ -561,6 +561,6 @@ temp_buffer_CF00:
 address_of_current_player_move_byte_CF04:
 	ds.b	0x2	| rest of the memory is used by temp_buffer_CF00
 * CF06.W is used sometimes to store a pointer
-unknown_pointer_CF06:
+highscore_insertion_pointer_CF06:
 	ds.b	0xFA
 

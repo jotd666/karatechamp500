@@ -5665,7 +5665,7 @@ table_6473:
 64FD: 21 0F 05    ld   hl,$050F
 6500: 22 00 6F    ld   (temp_numeric_buffer_CF00),hl
 6503: 3E FF       ld   a,$FF
-6505: 32 0C 6F    ld   (unknown_CF06),a
+6505: 32 0C 6F    ld   (highscore_insertion_pointer_CF06),a
 6508: 3A CD 61    ld   a,(match_timer_C167)
 650B: 47          ld   b,a
 650C: E6 0F       and  $0F
@@ -6380,7 +6380,7 @@ table_6BCA:
 6C05: 21 96 32    ld   hl,table_983c
 6C08: 22 04 6F    ld   (address_of_current_player_move_byte_CF04),hl
 6C0B: 21 8C 32    ld   hl,table_9826
-6C0E: 22 0C 6F    ld   (unknown_CF06),hl
+6C0E: 22 0C 6F    ld   (highscore_insertion_pointer_CF06),hl
 6C11: 21 96 32    ld   hl,table_983c
 6C14: 22 02 6F    ld   (unknown_CF08),hl
 6C17: 3A 4D 61    ld   a,(nb_rounds_won_player_2_C147)
@@ -12267,7 +12267,7 @@ BB50: 01 00 10    ld   bc,$1000			; immediate value
 BB53: CD B7 B8    call clear_zone_B2BD
 BB56: D5          push de
 ; init ram with some startup values
-BB57: CD E5 FC    call init_C040_F6E5
+BB57: CD E5 FC    call init_highscores_F6E5
 BB5A: 3E 08       ld   a,$02
 BB5C: 32 60 60    ld   (high_score_C0C0),a
 BB5F: CD 38 BB    call get_dip_switches_BB92
@@ -14076,7 +14076,7 @@ F361: FD 7E 08    ld   a,(iy+$02)
 F364: DD 77 08    ld   (ix+$02),a
 F367: 3A 10 63    ld   a,(computer_skill_C910)
 F36A: DD 77 11    ld   (ix+$11),a
-F36D: DD 22 0C 6F ld   (unknown_CF06),ix
+F36D: DD 22 0C 6F ld   (highscore_insertion_pointer_CF06),ix
 F371: 01 0C 00    ld   bc,$0006
 F374: DD 09       add  ix,bc
 F376: DD 36 00 96 ld   (ix+$00),$3C
@@ -14135,6 +14135,7 @@ F3EF: 19          add  hl,de
 F3F0: 70          ld   (hl),b
 F3F1: C9          ret
 F3F2: C9          ret
+highscore_entry_f3f3:
 F3F3: 3E 01       ld   a,$01
 F3F5: CD 5E BC    call suspend_this_task_B65E
 F3F8: 3A 09 6F    ld   a,(unknown_CF03)
@@ -14282,7 +14283,7 @@ F537: 36 96       ld   (hl),$3C
 F539: 11 00 04    ld   de,$0400
 F53C: 19          add  hl,de
 F53D: 36 B0       ld   (hl),$B0
-F53F: 2A 0C 6F    ld   hl,(unknown_CF06)
+F53F: 2A 0C 6F    ld   hl,(highscore_insertion_pointer_CF06)
 F542: 3A 05 6F    ld   a,(unknown_CF05)
 F545: CB 27       sla  a
 F547: C6 0C       add  a,$06
@@ -14330,7 +14331,7 @@ F596: FD 77 00    ld   (iy+$00),a
 F599: 01 00 04    ld   bc,$0400
 F59C: FD 09       add  iy,bc
 F59E: FD 36 00 A2 ld   (iy+$00),$A8
-F5A2: FD 2A 0C 6F ld   iy,(unknown_CF06)
+F5A2: FD 2A 0C 6F ld   iy,(highscore_insertion_pointer_CF06)
 F5A6: 3A 05 6F    ld   a,(unknown_CF05)
 F5A9: FE 09       cp   $03
 F5AB: C2 AF F5    jp   nz,$F5AF
@@ -14456,7 +14457,7 @@ F6DD: 06 01       ld   b,$01
 F6DF: CD AE BC    call set_next_task_B6AE
 F6E2: CD A5 B5    call task_yield_B5A5
 ; copy contents of ROM in $C040
-init_C040_F6E5:
+init_highscores_F6E5:
 F6E5: 01 C6 00    ld   bc,$006C
 F6E8: 21 F1 FC    ld   hl,table_F6F1
 F6EB: 11 40 60    ld   de,unknown_C040

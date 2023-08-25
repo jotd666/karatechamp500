@@ -11068,7 +11068,7 @@ init_ram_BB41:
 	*move.w	#0x1000,d1                      	| [$bb50: ld   bc,$1000] immediate value
 	*jbsr	clear_zone_B2BD                   	| [$bb53: call clear_zone_B2BD]
 * init ram with some startup values
-	jbsr	init_C040_F6E5                    	| [$bb57: call init_C040_F6E5]
+	jbsr	init_highscores_F6E5                    	| [$bb57: call init_highscores_F6E5]
 	move.b	#0x02,d0                        	| [$bb5a: ld   a,$02]
 	move.b	d0,high_score_C0C0                 	| [$bb5c: ld   (high_score_C0C0),a]
 	jbsr	get_dip_switches_BB92             	| [$bb5f: call get_dip_switches_BB92]
@@ -12574,7 +12574,9 @@ display_hiscores_F1AE:
 	lea	point_rank_name_text_EF7D(pc),a0   	| [$f1ae: ld   hl,point_rank_name_text_EF7D]
 	jbsr	display_multicolor_text_B391      	| [$f1b1: call display_multicolor_text_B391]
 	move.b	#0x06,d1                        	| [$f1b4: ld   b,$06]
-	lea	unknown_C040,a3                	| [$f1b6: ld   iy,unknown_C040]
+	* highscore entry is 0x12 bytes long
+	* => C040 to C0AC
+	lea	high_scores_buffer_C040,a3                	| [$f1b6: ld   iy,high_scores_buffer_C040]
 	lea	temp_buffer_CF00+8,a2                	| [$f1ba: ld   ix,temp_buffer_CF00+8]
 	move.b	#0x07,(0x00,a2)                 	| [$f1be: ld   (ix+$00),$07]
 	move.b	#0x0F,(0x01,a2)                 	| [$f1c2: ld   (ix+$01),$0F]
@@ -12619,7 +12621,7 @@ l_f210:
 	subq.b	#1,d1                           	| [...]
 	jne	l_f1ca                             	| [$f228: djnz $F1CA]
 	move.b	#0x06,d1                        	| [$f22a: ld   b,$06]
-	lea	unknown_C040,a3                	| [$f22c: ld   iy,unknown_C040]
+	lea	high_scores_buffer_C040,a3                	| [$f22c: ld   iy,high_scores_buffer_C040]
 	lea	temp_buffer_CF00+8,a2                	| [$f230: ld   ix,temp_buffer_CF00+8]
 	move.b	#0x0F,(0x00,a2)                 	| [$f234: ld   (ix+$00),$0F]
 	move.b	#0x0F,(0x01,a2)                 	| [$f238: ld   (ix+$01),$0F]
@@ -12655,7 +12657,7 @@ l_f27b:
 	subq.b	#1,d1                           	| [...]
 	jne	l_f23c                             	| [$f294: djnz $F23C]
 	move.b	#0x06,d1                        	| [$f296: ld   b,$06]
-	lea	unknown_C040,a3                	| [$f298: ld   iy,unknown_C040]
+	lea	high_scores_buffer_C040,a3                	| [$f298: ld   iy,high_scores_buffer_C040]
 	lea	temp_buffer_CF00+8,a2                	| [$f29c: ld   ix,temp_buffer_CF00+8]
 	move.b	#0x17,(0x00,a2)                 	| [$f2a0: ld   (ix+$00),$17]
 	move.b	#0x0F,(0x01,a2)                 	| [$f2a4: ld   (ix+$01),$0F]
@@ -12690,7 +12692,7 @@ l_f2ae:
 	rts                                    	| [$f2ef: ret]
 l_f2f0:
 	move.b	#0x06,d1                        	| [$f2f0: ld   b,$06]
-	lea	unknown_C040,a2                	| [$f2f2: ld   ix,unknown_C040]
+	lea	high_scores_buffer_C040,a2                	| [$f2f2: ld   ix,high_scores_buffer_C040]
 	move.w	#0x0012,d3                      	| [$f2f6: ld   de,$0012] 18
 	lea	player_1_score_C0C8,a3                	| [$f2f9: ld   iy,player_1_score_C0C8]
 	move.b	players_type_human_or_cpu_flags_C02D,d0	| [$f2fd: ld   a,(players_type_human_or_cpu_flags_C02D)]
@@ -12757,8 +12759,8 @@ l_f355:
 	* since we have to store the value on 2 bytes
 	* and it could represent some contiguous address, we
 	* have to store it as an offset from C040.
-	sub.l	#unknown_C040,d7
-	move.w	d7,unknown_pointer_CF06                 	| [$f36d: ld   (unknown_pointer_CF06),ix]
+	sub.l	#high_scores_buffer_C040,d7
+	move.w	d7,highscore_insertion_pointer_CF06                 	| [$f36d: ld   (highscore_insertion_pointer_CF06),ix]
 	move.w	#0x0006,d1                      	| [$f371: ld   bc,$0006] 6
 	add.w	d1,a2                            	| [$f374: add  ix,bc]
 	move.b	#0x3C,(0x00,a2)                 	| [$f376: ld   (ix+$00),$3C]
@@ -12820,16 +12822,15 @@ l_f3e6:
 	move.w  #0xFFE0,d3                      	| [$f3ec: ld   de,$FFE0] immediate -32
 	add.w	d3,d6                            	| [$f3ef: add  hl,de]
 	move.b	d1,d0	                         	| [$f3f0: ld   (hl),b]
-	jbsr		osd_w_colorram
-	rts                                    	| [$f3f1: ret]
-	rts                                    	| [$f3f2: ret]
-l_f3f3:
+	jbra		osd_w_colorram
+
+highscore_entry_f3f3:
 	move.b	#0x01,d0                        	| [$f3f3: ld   a,$01]
 	jbsr	suspend_this_task_B65E            	| [$f3f5: call suspend_this_task_B65E]
+	* decrease highscore timer
 	move.b	temp_buffer_CF00+3,d0                 	| [$f3f8: ld   a,(temp_buffer_CF00+3)]
 	moveq	#1,d7
 	sbcd.b	d7,d0                        	| [$f3fb: sub  $01]
-* part needs rewriting
 	move.b	d0,temp_buffer_CF00+3                 	| [$f3fe: ld   (temp_buffer_CF00+3),a]
 	move.b	temp_buffer_CF00+2,d0                 	| [$f401: ld   a,(temp_buffer_CF00+2)]
 	clr.b	d7
@@ -12862,13 +12863,14 @@ l_f3f3:
 	or.b	(a0),d0                           	| [$f43c: or   (hl)]
 												| [$f43d: cp   $00]
 	jne	l_f444                             	| [$f43f: jp   nz,$F444]
+	* timeout
 	subq.b	#1,d0                           	| [$f442: dec  a]
 	rts                                    	| [$f443: ret]
 l_f444:
 	* high score screen read controls
 	jbsr	read_current_player_controls_BB96 	| [$f444: call read_current_player_controls_BB96]
 	tst.b	d0                               	| [$f447: and  a]
-	jeq	l_f3f3                             	| [$f448: jp   z,$F3F3]
+	jeq	highscore_entry_f3f3                             	| [$f448: jp   z,$F3F3]
 	move.w	d0,-(sp)                        	| [$f44b: push af]
 	clr.b	d0                               	| [$f44c: ld   a,$00]
 	jbsr	l_f39f                            	| [$f44e: call $F39F]
@@ -12985,8 +12987,8 @@ l_f501:
 	add.w	d3,d6                            	| [$f53c: add  hl,de]
 	move.b	#0xB0,d0                      	| [$f53d: ld   (hl),$B0]
 	jbsr		osd_w_colorram
-	move.w	unknown_pointer_CF06,a0    	
-	add.l	#unknown_C040,a0			|	[$f53f: ld   hl,(unknown_pointer_CF06)]
+	move.w	highscore_insertion_pointer_CF06,a0    	
+	add.l	#high_scores_buffer_C040,a0			|	[$f53f: ld   hl,(highscore_insertion_pointer_CF06)]
 
 	move.b	temp_buffer_CF00+5,d0                 	| [$f542: ld   a,(temp_buffer_CF00+5)]
 	asl.b	#1,d0                            	| [$f545: sla  a]
@@ -13044,8 +13046,9 @@ l_f584:
 	move.b	#0xA8,d0                 	| [$f59e: ld   (iy+$00),$A8]
 	jbsr	osd_w_colorram
 	* has stored C040 or maybe C040+a few bytes
-	move.w	unknown_pointer_CF06,a3             	| [$f5a2: ld   iy,(unknown_pointer_CF06)]
-	add.l	#unknown_C040,a3
+	* (the highscore table insertion position)
+	move.w	highscore_insertion_pointer_CF06,a3             	| [$f5a2: ld   iy,(highscore_insertion_pointer_CF06)]
+	add.l	#high_scores_buffer_C040,a3
 	move.b	temp_buffer_CF00+5,d0                 	| [$f5a6: ld   a,(temp_buffer_CF00+5)]
 	cmp.b	#0x03,d0                         	| [$f5a9: cp   $03]
 	jne	l_f5af                             	| [$f5ab: jp   nz,$F5AF]
@@ -13125,9 +13128,9 @@ l_f620:
 l_f62c:
 	subq.b	#1,d1                           	| [...]
 	jne	l_f5d2                             	| [$f62c: djnz $F5D2]
-	jra	l_f3f3                             	| [$f62e: jp   $F3F3]
+	jra	highscore_entry_f3f3                             	| [$f62e: jp   $F3F3]
 
-
+* high score entry
 l_f631:
 	move.b	#0x01,d0                        	| [$f631: ld   a,$01]
 	jbsr	play_sound_BBB5                   	| [$f633: call play_sound_BBB5]
@@ -13186,7 +13189,12 @@ l_f6ac:
 	move.b	d0,temp_buffer_CF00+1                 	| [$f6c8: ld   (temp_buffer_CF00+1),a]
 	move.b	#0x01,d0                        	| [$f6cb: ld   a,$01]
 	jbsr	l_f39f                            	| [$f6cd: call $F39F]
-	jbsr	l_f3f3                            	| [$f6d0: call $F3F3]
+	jbsr	highscore_entry_f3f3                            	| [$f6d0: call $F3F3]
+
+	* this is a good time to write highscores
+	lea		high_scores_buffer_C040,a0
+	jbsr	osd_write_high_scores
+
 	jbsr	display_hiscores_F1AE             	| [$f6d3: call display_hiscores_F1AE]
 	move.b	#0x30,d0                        	| [$f6d6: ld   a,$30]
 	jbsr	suspend_this_task_B65E            	| [$f6d8: call suspend_this_task_B65E]
@@ -13195,12 +13203,23 @@ l_f6ac:
 	jbsr	set_next_task_B6AE            	| [$f6df: call set_next_task_B6AE]
 	jbsr	task_yield_B5A5                   	| [$f6e2: call task_yield_B5A5]
 	
-* copy contents of ROM in $C040
-init_C040_F6E5:
+* copy contents of ROM in $C040 to init highscores
+init_highscores_F6E5:
 	move.w	#0x006C,d1                      	| [$f6e5: ld   bc,$006C] 108
 	lea	table_F6F1(pc),a0                  	| [$f6e8: ld   hl,table_F6F1]
-	lea	unknown_C040,a1                	| [$f6eb: ld   de,unknown_C040]
+	lea	high_scores_buffer_C040,a1                	| [$f6eb: ld   de,high_scores_buffer_C040]
 	jbsr	ldir                              	| [$f6ee: ldir]
+
+	lea	high_scores_buffer_C040,a1                	| [$f6eb: ld   de,high_scores_buffer_C040]
+	* load high scores
+	move.l	a1,a0
+	jbsr	osd_read_high_scores
+	* copy highest score into highscore
+	lea	high_score_C0C0,a0
+	move.b	(a1)+,(a0)+
+	move.b	(a1)+,(a0)+
+	move.b	(a1)+,(a0)+
+
 	rts                                    	| [$f6f0: ret]
 table_F6F1:
 	dc.b	0x02,0x00,0x00,0x00,0x00,0x00,0x13,0xb0 | table_F6F1

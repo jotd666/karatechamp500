@@ -16,12 +16,12 @@ AFB_68020 = 1
 NO68020 = 1
 
 
-DYNAMIC_COPPER_ROWS = 228
+DYNAMIC_COPPER_ROWS = 228/8
 
 SCREEN_ADDRESS = 0xD000
 
 
-SCORE_FILE_SIZE = 0x1E
+SCORE_FILE_SIZE = 0x6C
 
 
 
@@ -1841,6 +1841,61 @@ osd_w_colorram:
 	rts
 
 
+reset_dynamic_colors:
+	movem.l	a0/d2-d3,-(a7)
+	lea	color_line_copper+4,a0
+	move.w	#DYNAMIC_COPPER_ROWS-1,d3
+	move.w	#0x1FE,d2
+0:
+	move.w	d2,(a0)
+	addq.w	#4,a0
+	move.w	d2,(a0)
+	addq.w	#4,a0
+	move.w	d2,(a0)
+	addq.w	#8,a0
+	dbf		d3,0b
+	
+	lea		color_row_29+4,a0
+	move.w	d2,(a0)
+	addq.w	#4,a0
+	move.w	d2,(a0)
+	addq.w	#4,a0
+	move.w	d2,(a0)
+
+	movem.l	(a7)+,a0/d2-d3
+	rts
+
+handle_level_12_dynamic_color:
+	* special hardcoded case for "moonlight" level 12
+	* score points wrong color, can be fixed with simple dynamic color change
+    * as this color is not used in those lines
+	movem.w	d0-d2,-(a7)
+	lea		color_line_copper+(2*16)+4,a0
+	move.w	#color+24,(a0)+		| color 12
+	move.w	#0xFC0,(a0)
+	* then restore the original color
+	lea		color_line_copper+(6*16)+4,a0
+	move.w	#color+24,(a0)+
+	move.w	#0x0C0,(a0)
+	movem.w	(a7)+,d0-d2
+	rts
+
+handle_plank_level_dynamic_color:
+	movem.w	d0-d2,-(a7)
+	* at row 29 of tiles, force color to green
+	lea		color_row_29+4,a0
+	move.w	#color+16,(a0)+		| color 8
+	move.w	#0xC0,(a0)
+	* color will reset itself at copperlist reload
+	* (there aren't any tiles below that position that
+	* are affected by the color change, maybe that there aren't
+	* tiles anywhere affected in that level, but if we change
+	* the color globally, there are conflicts with some tiles that
+	* are shared between levels. It works perfect with dynamic change
+	* hack so it's already very good)
+	movem.w	(a7)+,d0-d2
+	rts
+	
 * d6: screen offset
 * d0: tile code
 * d1: attribute
@@ -1859,6 +1914,7 @@ update_bg_tile:
 	cmp.w	current_background,d2
 	jeq	1f
 
+
 	* current background has changed. We use that
 	* to change palette according to level, but there
 	* are exceptions as the game doesn't work that way,
@@ -1866,6 +1922,10 @@ update_bg_tile:
 	* assorted tiles for each background, which allows more or
 	* less to remain to 16 colors max!
 	*
+	* first thing: reset all copper color changes during display
+	*
+	bsr		reset_dynamic_colors
+
 	* when losing on level > 1, the game shows the girls
 	* "earned" by previous fights. Then game shows previous
 	* background with player crying. This confuses my system
@@ -1919,18 +1979,22 @@ update_bg_tile:
 	addq.w	#1,d2		| level palettes start at 1
 	cmp.b	#12,d2		| moonlight stage
 	bne.b	111f
-	* special case: dynamic copperlist change
-	* score points wrong color, can be fixed with simple dynamic color change
-    * as this color is not used in those lines!!!
-	movem.w	d0-d2,-(a7)
-	lea		color_line_copper+(2*16)+4,a0
-	move.w	#color+24,(a0)+
-	move.w	#0xFC0,(a0)
-	lea		color_line_copper+(6*16)+4,a0
-	move.w	#color+24,(a0)+
-	move.w	#0x0C0,(a0)
-	movem.w	(a7)+,d0-d2
+	bsr		handle_level_12_dynamic_color
 111:
+	* check stages where there are planks to break
+	* change "CHALLENGE STAGE / PERFECT 2000" rows
+	* font color to green dynamically
+	cmp.b	#5,d2
+	beq.b	1111f
+	cmp.b	#8,d2
+	beq.b	1111f
+	cmp.b	#11,d2
+	beq.b	1111f
+	cmp.b	#2,d2
+	bne.b	112f
+1111:
+	bsr		handle_plank_level_dynamic_color
+112:
 	lsl.w	#5,d2		| times 32 to select proper palette
 11:
 	lea		palette(pc),a0
@@ -2357,7 +2421,6 @@ check_joy:
 	
 osd_read_high_scores:
 	movem.l	d0-d7/a0-a6,-(a7)
-	move.l	a0,a4
 	move.l	_resload(pc),d0
 	beq.b	0f
 	move.l	d0,a2
@@ -2368,18 +2431,13 @@ osd_read_high_scores:
 	beq.b	1f
 	bsr		get_hiscore_name
 	move.l	a3,a1
-	jsr		resload_LoadFile(a2)
-	* set highest score entry
-    move.b    (a3)+,(a4)+
-    move.b    (a3)+,(a4)+
-    move.b    (a3)+,(a4)+		
+	jsr		resload_LoadFile(a2)	
 	bra.b	1f
 0:
 	tst.b	highscore_loaded
 	beq.b	1f
 	* from DOS: just copy buffer
 	lea		high_score_buffer(pc),a1
-	* set highest score entry
 	move.w	#SCORE_FILE_SIZE-1,d0
 0:
     move.b    (a1)+,(a4)+
@@ -2388,6 +2446,7 @@ osd_read_high_scores:
 	movem.l	(a7)+,d0-d7/a0-a6
 	rts
 	
+* < A0: score buffer
 osd_write_high_scores:
 	movem.l	d0-d7/a0-a6,-(a7)
 	tst.b	cheat_used		| don't save score if cheat on
@@ -2802,7 +2861,7 @@ sprites:
 
 	.set    beampos,0x1C01
 color_line_copper:
-	.rept	DYNAMIC_COPPER_ROWS/8
+	.rept	DYNAMIC_COPPER_ROWS
 	.word	beampos,0xFFFE
 	* allows to issue 3 copper instructions per 8 rows
 	.word	0x1FE,0
@@ -2819,9 +2878,11 @@ color_line_copper:
 	.set    beampos,0x0401
     .word   beampos,0xFFFE	
 	
-color_row_29:
-	
+color_row_29:	
 	.set    beampos,0x1401
+	.word	0x1FE,0
+	.word	0x1FE,0
+	.word	0x1FE,0
 	
  	.word	beampos,0xFFFE   | wait before interrupt, avoid losing last bobs lines
     .word	 intreq,0x8010
