@@ -141,19 +141,14 @@ w\@:
 		*.global osd_calibrate_display		| for debug
 		.global osd_w_videoram
 		.global osd_w_colorram
-		.global osd_r_videoram
-		.global osd_r_colorram
 		.global osd_update_sprites
 		.global osd_read_dipswitches
-		.global osd_small_wait
 		.global osd_read_inputs
 		.global osd_read_high_scores
 		.global osd_write_high_scores
-		.global osd_get_sync_period
 		.global osd_sound_start
 		.global osd_sound_stop
-		.global osd_sound_enable
-		.global osd_sound_disable
+
 
 
 	
@@ -308,15 +303,15 @@ _user:
 	* buttons
 	move.l	buttons_layout_options(pc),d0
 	cmp.l	#LAYOUT_WINUAE,d0
-	beq.b	2f
+	beq.b	2f		| default: everything properly configured
 	cmp.l	#LAYOUT_CD32,d0
 	bne.b	1f
-1:
-	move.l	#JPB_BTN_YEL,button_up
-	move.l	#JPB_BTN_RED,button_down
-	move.l	#JPB_BTN_BLU,button_right
-	move.l	#JPB_BTN_GRN,button_left
+	move.b	#JPB_BTN_YEL,button_up
+	move.b	#JPB_BTN_RED,button_down
+	move.b	#JPB_BTN_BLU,button_right
+	move.b	#JPB_BTN_GRN,button_left
 	bra.b	2f
+1:
 	cmp.l	#LAYOUT_2JOYS,d0
 	bne.b	2f
 	st.b	two_joystick_layout
@@ -1793,6 +1788,12 @@ osd_r_colorram:
 * should preserve all registers
 
 osd_w_videoram:
+	* disable interrupts to avoid glitches if interrupt
+	* switches screen buffers while printing char
+	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
+	bsr		osd_disable_vblank_interrupt
+	.endif
+
      .ifeq OPT_DISABLE_BG_LAYER
 	movem.l	d0-d3/d6/a0-a3,-(a7)
 	
@@ -1816,6 +1817,12 @@ osd_w_videoram:
 0:
 	movem.l	(a7)+,d0-d3/d6/a0-a3
     .endif | OPT_DISABLE_BG_LAYER
+	
+	* enable interrupts
+	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
+	bsr		osd_enable_vblank_interrupt
+	.endif
+	
 	rts
 
 * d6=screen address (preserved), d0=attribute (preserved)
@@ -1823,6 +1830,11 @@ osd_w_videoram:
 * should preserve all registers
 
 osd_w_colorram:
+	* disable interrupts to avoid glitches if interrupt
+	* switches screen buffers while printing char
+	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
+	bsr		osd_disable_vblank_interrupt
+	.endif
    .ifeq OPT_DISABLE_BG_LAYER
 	movem.l	d0-d3/d6/a0-a3,-(a7)
 	sub.w	#SCREEN_ADDRESS+0x400,d6
@@ -1845,6 +1857,10 @@ osd_w_colorram:
 0:
 	movem.l	(a7)+,d0-d3/d6/a0-a3
     .endif | OPT_DISABLE_BG_LAYER
+	* enable interrupts back
+	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
+	bsr		osd_enable_vblank_interrupt
+	.endif
 	rts
 
 
@@ -1936,15 +1952,18 @@ update_bg_tile:
 	* when losing on level > 1, the game shows the girls
 	* "earned" by previous fights. Then game shows previous
 	* background with player crying. This confuses my system
-	* D2 = 0x53C6 on girls bonus
+	* D2 = 0x53C6 on girls bonus (last level: 0x53CA)
 	* D2 = 0x53C7 on every lose screen
+	* D2 = 0x53C9 on win screen for last level
 	* so when encountering 53C6 we must store the last
 	* valid background and restore it when encountering
 	* 53C7, those are 2 particular cases
 	
+	cmp.w	#0x53CA,d2
+	beq.b	10f
 	cmp.w	#0x53C6,d2
 	bne.b	0f
-
+10:
 	* girl: save last background
 	move.w	current_background,last_level_background
 	move.w	d2,current_background
@@ -1958,6 +1977,9 @@ update_bg_tile:
 0:
 	move.w	d2,current_background
 
+	cmp.w	#0x53C9,d2
+	beq.b	15f
+
 	cmp.w	#0x53ce,d2
 	beq.b	13f			| demo: same palette as level 4
 	sub.l	#0x534d,d2	| pointer on level 1
@@ -1970,6 +1992,9 @@ update_bg_tile:
 	bra.b	10f
 14:
 	moveq	#13,d2		| extra palette, "girls"
+	bra.b	10f
+15:
+	moveq	#11,d2		| moonlight level (won)
 	bra.b	10f
 12:
 	divu	#5,d2
@@ -2046,7 +2071,6 @@ update_bg_tile:
 	addq.w	#2,d3
 
 	lea		mulNB_BYTES_PER_ROW_table(pc),a0
-
 	
 	move.l	bg_drawed_screen_ptr(pc),a1
 	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
@@ -2067,22 +2091,25 @@ update_bg_tile:
 
 	moveq	#NB_PLAYFIELD_PLANES-1,d3
 
+	* mask out unrelated bits for attribute
+	and.w	#0x1F,d1
 	* optimization when a well-known
-	* empty character is passed (standard charset)
-	**cmp.w	#0x20,d0	| empty character
-	**jeq	1f
-	
+	* empty character with black config is passed
+	cmp.b	#0x3C,d0	| empty character
+	jne	3f
+	cmp.b	#0xE,d1
+	jeq	1f			| black empty => clear
+3:
 	lea		character_table,a0
 	add.w	d0,d0
 	add.w	d0,d0
 	move.l	(a0,d0.w),d0
-	jeq	1f
+	jeq	1f				| clear
 	move.l	d0,a0		| pointer on clut table
 	* now we use d1 (attribute) to get byte displacement on relative pointer
 	* (this sounds complex but allows to save 60k+ memory vs the direct word
 	* relative pointer previous solution. Access to tiles is less time critical
 	* so it's acceptable)
-	and.w	#0x1F,d1
 	move.b	(a0,d1.w),d1
 	add.w	d1,a0
 	cmp.l	d0,a0
@@ -2231,6 +2258,7 @@ osd_read_inputs:
 	bsr		handle_keyboard
 	moveq	#-1,d0
 	movem.l	a0/d1/d2,-(a7)
+	moveq	#0,d2
 	* misc control keys
 	lea		keyboard_table(pc),a0
 	tst.b	(5,a0)		| "5" key like in MAME
@@ -2252,7 +2280,6 @@ osd_read_inputs:
 	beq.b	0f
 	bclr	#3+16,d0
 0:
-	moveq	#0,d2
 	move.l	_joypad_state_p2(pc),d1
 	jbsr		check_joy
 
@@ -2264,7 +2291,6 @@ osd_read_inputs:
 	beq.b	0f
 	bclr	#16+3,d0
 0:
-10:
 
 	lsl.w	#8,d0
 
@@ -2284,8 +2310,17 @@ osd_read_inputs:
 	
 	movem.l	(a7)+,a0/d1/d2
 	rts
+	
+	* one player, 2 joys
+10:
+	st		d0
+	move.l	_joypad_state_p1(pc),d1
+	jbsr		check_joy
+	
+	movem.l	(a7)+,a0/d1/d2
+	rts
 
-
+	
 	.ifdef	ZZZZZ
 	tst.b	(0x4F,a0)		| "<-" key
 	beq.b	0f
@@ -2383,12 +2418,12 @@ check_joy:
 	tst.b	two_joystick_layout
 	bne.b	1f
 	
-	move.b	button_left(pc),d2
+	move.b	button_right(pc),d2
 	btst	d2,d1		| left
 	beq.b	0f
 	bclr	#4,d0
 0:
-	move.b	button_right(pc),d2
+	move.b	button_left(pc),d2
 	btst	d2,d1		| right
 	beq.b	0f
 	bclr	#5,d0
@@ -2408,11 +2443,11 @@ check_joy:
 	move.l	_joypad_state_p2(pc),d1
 	btst	#JPB_BTN_RIGHT,d1
 	beq.b	0f
-	bclr	#5,d0
+	bclr	#4,d0
 0:
 	btst	#JPB_BTN_LEFT,d1
 	beq.b	0f
-	bclr	#4,d0
+	bclr	#5,d0
 0:
 	btst	#JPB_BTN_UP,d1
 	beq.b	0f
@@ -2765,9 +2800,9 @@ button_up:
 button_down:
 	dc.b	JPB_BTN_GRN
 button_right:
-	dc.b	JPB_BTN_RED
-button_left:
 	dc.b	JPB_BTN_YEL
+button_left:
+	dc.b	JPB_BTN_RED
 two_joystick_layout:
 	dc.b	0
 	.align	2
