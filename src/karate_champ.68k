@@ -283,6 +283,11 @@ load_\ax\()_from_\ay\()_structure_\zz\()_address_mask:
 	rol.w	#8,\reg
 	.endm
 
+	.macro	LOAD_WORD	src,reg
+	move.b	\src+1,\reg
+	lsl.w	#8,\reg
+	move.b	\src,\reg
+	.endm
 
 	STORE_AX_IN_AY_STRUCTURE_ZZ_ADDRESS	a0,a3,02
 	STORE_AX_IN_AY_STRUCTURE_ZZ_ADDRESS	a0,a2,02
@@ -7841,12 +7846,12 @@ l_a41c:
 
 update_players_struct_C2xx_A428:
 	jbsr	disable_interrupts_B0BD           	| [$a428: call disable_interrupts_B0BD] calls disable_interrupts_BBE2 ???
-	move.b	unknown_C247,d3             	| [$a42b: ld   de,(unknown_C247)] load animation/position of player 1
-	move.w	unknown_C249,d5             	| [$a42f: ld   hl,(unknown_C249)] load xy for player 1
+	LOAD_WORD	unknown_C247,d3             	| [$a42b: ld   de,(unknown_C247)] load animation/position of player 1
+	LOAD_WORD	unknown_C249,d5             	| [$a42f: ld   hl,(unknown_C249)] load xy for player 1
 	exg		d3,d4  | EXX exchanges BC, DE, and HL with shadow registers with BC', DE', and HL'.
 	exg		d5,d6
-	move.w	unknown_C267,d3             	| [$a433: ld   de,(unknown_C267)] load animation/position of player 2
-	move.w	unknown_C269,d5             	| [$a437: ld   hl,(unknown_C269)] load xy for player 2
+	LOAD_WORD	unknown_C267,d3             	| [$a433: ld   de,(unknown_C267)] load animation/position of player 2
+	LOAD_WORD	unknown_C269,d5             	| [$a437: ld   hl,(unknown_C269)] load xy for player 2
 	move.b	current_task_index_C028,d0   	| [$a43a: ld   a,(current_task_index_C028)]
 	cmp.b	#0x09,d0                         	| [$a43d: cp   $09]
 	jeq	l_a443                             	| [$a43f: jp   z,$A443]
@@ -7854,25 +7859,21 @@ update_players_struct_C2xx_A428:
 	exg		d5,d6	| depending on the configuration (which is the human opponent), swap values
 * frame ID (16 bit) in e and d
 l_a443:
-	* now move D3.W and D5.W properly (respecting original endianness damn)
+	* now move D3.W and D5.W properly (respecting original endianness)
 	* and preserving D3 & D5 values!
-	SWAP_WORD	d3
 	move.b	d3,(0x07,a3)                    	| [$a443: ld   (iy+$07),e]
 	SWAP_WORD	d3								| second swap restores original D3 value
 	move.b	d3,(0x08,a3)                    	| [$a446: ld   (iy+$08),d]
 * l: x coord (player 1: $C209) min $20
-	SWAP_WORD	d5
 	move.b	d5,(0x09,a3)                    	| [$a449: ld   (iy+$09),l]
 	SWAP_WORD	d5
 	move.b	d5,(0x0a,a3)                    	| [$a44c: ld   (iy+$0a),h]
 	exg		d3,d4
 	exg		d5,d6
 ** copy coords to opponent structure
-	SWAP_WORD	d3
 	move.b	d3,(0x0b,a3)                    	| [$a450: ld   (iy+$0b),e]
 	SWAP_WORD	d3	
 	move.b	d3,(0x0c,a3)                    	| [$a453: ld   (iy+$0c),d]
-	SWAP_WORD	d5
 	move.b	d5,(0x0d,a3)                    	| [$a456: ld   (iy+$0d),l]
 	SWAP_WORD	d5
 	move.b	d5,(0x0e,a3)                    	| [$a459: ld   (iy+$0e),h]

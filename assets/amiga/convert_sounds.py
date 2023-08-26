@@ -18,7 +18,7 @@ src_dir = os.path.join(this_dir,"../../src/amiga")
 outfile = os.path.join(src_dir,"sounds.68k")
 sndfile = os.path.join(src_dir,"sound_entries.68k")
 
-hq_sample_rate = 11025
+hq_sample_rate = 14000
 
 
 START_FIGHT_MUSIC = 0
