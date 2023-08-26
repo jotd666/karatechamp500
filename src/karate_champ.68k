@@ -493,8 +493,6 @@ karate_champ_reset:
 l_0000:
 	lea		ram_start_C000,a0
 	jra	startup_B045                       	| [jp   startup_B045]
-l_0003:
-	jra	display_player_sprite_4153                             	| [$0003: jp   $4153]
 	
 	
 	
@@ -1261,8 +1259,8 @@ l_40dc:
 	bsr		load_a0_from_a3_structure_07_address_mask                    	| [$40f2: ld   l,(iy+$07)]
 												| [$40f5: ld   h,(iy+$08)]
 												| [$40f8: res  7,h]
-	move.w	#0x0008,d3                      	| [$40fa: ld   de,$0008] 8
-	add.w	d3,a0                            	| [$40fd: add  hl,de]
+												| [$40fa: ld   de,$0008] 8
+	addq.w	#8,a0                            	| [$40fd: add  hl,de]
 	move.b	(a0),d0                         	| [$40fe: ld   a,(hl)]
 	bclr.b	#7,d0                           	| [$40ff: res  7,a]
 	move.l	(sp)+,a3                        	| [$4101: pop  iy]
@@ -1279,8 +1277,8 @@ l_40dc:
 	bsr		load_a0_from_a3_structure_07_address_mask  | [$411c: ld   l,(iy+$07)]
 												| [$411f: ld   h,(iy+$08)]
 												| [$4122: res  7,h]
-	move.w	#0x0004,d3                      	| [$4124: ld   de,$0004] 4
-	add.w	d3,a0                            	| [$4127: add  hl,de]
+												| [$4124: ld   de,$0004] 4
+	addq.w	#4,a0                            	| [$4127: add  hl,de]
 	move.b	(a0),d0                         	| [$4128: ld   a,(hl)]
 	btst.b	#7,d0                           	| [$4129: bit  7,a]
 	jne	l_4132                             	| [$412b: jp   nz,$4132]
@@ -1306,7 +1304,7 @@ l_4152:
 
 * < A3: C240 or C260 depending on player
 * < A1: C71C or C74C depending on player (sprite shadow RAM)
-
+l_0003:
 display_player_sprite_4153:
 	* given player struct in A3, return D5/D6 current frame
 	jbsr	get_current_frame_contents_478D   	| [$4153: call get_current_frame_contents_478D]
@@ -1401,6 +1399,11 @@ l_41e9:
 	* M: if > 8 then facing left
 	*    rest of bits: sprite bank 0,1,2
 	* L: 1: white, 2: red
+	
+	* make the whole character update coherent, avoids errors
+	* when decoding the sprites in vblank
+	jbsr		osd_disable_vblank_interrupt
+	
 	move.l	a2,-(sp)                        	| [$41e9: push ix]
 	addq.w	#2,a2                           	| [$41eb: inc  ix] * 2
 	* same attribute for all 4 sprite block
@@ -1409,57 +1412,58 @@ l_41e9:
 	addq.w	#1,a0                           	| [$41f4: inc  hl]
 	btst.b	#7,(0x08,a3)                    	| [$41f5: bit  7,(iy+$08)]
 	jne	l_420d                             	| [$41f9: jp   nz,$420D]
-	move.b	#0x0C,d1                        	| [$41fc: ld   b,$0C]
-	move.w	#0x0004,d3                      	| [$41fe: ld   de,$0004] 4
+	move.w	#0x0C-1,d1                        	| [$41fc: ld   b,$0C]
+	moveq	#0x0004,d3                      	| [$41fe: ld   de,$0004] 4
 	* set code for all 12 sprites, facing right
 l_4201:
-	move.b	(a0)+,d0                         	| [$4201: ld   a,(hl)]
-	move.b	d0,(0x01,a2)                    	| [$4202: ld   (ix+$01),a]
+	move.b	(a0)+,(0x01,a2)                         	| [$4201: ld   a,(hl)]
+	                    	| [$4202: ld   (ix+$01),a]
 	                           	| [$4205: inc  hl]
 	add.w	d3,a2                            	| [$4206: add  ix,de]
-	subq.b	#1,d1                           	| [...]
-	jne	l_4201                             	| [$4208: djnz $4201]
+	dbf	d1,l_4201                             	| [$4208: djnz $4201]
 	jra	l_4248                             	| [$420a: jp   $4248]
 	* set code for all 12 sprites, facing left
 	* more complex because of mirrored X but basically
 	* same 12-sprite code set
 l_420d:
-	move.b	(a0)+,d3                         	| [$420d: ld   d,(hl)]
-	move.b	d3,(0x0d,a2)                    	| [$420e: ld   (ix+$0d),d]
+	move.b	(a0)+,(0x0d,a2)                         	| [$420d: ld   d,(hl)]
+								| [$420e: ld   (ix+$0d),d]
 	                           	| [$4211: inc  hl]
-	move.b	(a0)+,d3                         	| [$4212: ld   d,(hl)]
-	move.b	d3,(0x09,a2)                    	| [$4213: ld   (ix+$09),d]
+	move.b	(a0)+,(0x09,a2)                         	| [$4212: ld   d,(hl)]
+	                   	| [$4213: ld   (ix+$09),d]
 	                           	| [$4216: inc  hl]
-	move.b	(a0)+,d3                         	| [$4217: ld   d,(hl)]
-	move.b	d3,(0x05,a2)                    	| [$4218: ld   (ix+$05),d]
+	move.b	(a0)+,(0x05,a2)                         	| [$4217: ld   d,(hl)]
+	                   	| [$4218: ld   (ix+$05),d]
 	                           	| [$421b: inc  hl]
-	move.b	(a0)+,d3                         	| [$421c: ld   d,(hl)]
-	move.b	d3,(0x01,a2)                    	| [$421d: ld   (ix+$01),d]
+	move.b	(a0)+,(0x01,a2)                         	| [$421c: ld   d,(hl)]
+	                    	| [$421d: ld   (ix+$01),d]
 	                           	| [$4220: inc  hl]
-	move.b	(a0)+,d3                         	| [$4221: ld   d,(hl)]
-	move.b	d3,(0x1d,a2)                    	| [$4222: ld   (ix+$1d),d]
+	move.b	(a0)+,(0x1d,a2)                         	| [$4221: ld   d,(hl)]
+	                    	| [$4222: ld   (ix+$1d),d]
 	                           	| [$4225: inc  hl]
-	move.b	(a0)+,d3                         	| [$4226: ld   d,(hl)]
-	move.b	d3,(0x19,a2)                    	| [$4227: ld   (ix+$19),d]
+	move.b	(a0)+,(0x19,a2)                         	| [$4226: ld   d,(hl)]
+	                    	| [$4227: ld   (ix+$19),d]
 	                           	| [$422a: inc  hl]
-	move.b	(a0)+,d3                         	| [$422b: ld   d,(hl)]
-	move.b	d3,(0x15,a2)                    	| [$422c: ld   (ix+$15),d]
+	move.b	(a0)+,(0x15,a2)                         	| [$422b: ld   d,(hl)]
+	                    	| [$422c: ld   (ix+$15),d]
 	                           	| [$422f: inc  hl]
-	move.b	(a0)+,d3                         	| [$4230: ld   d,(hl)]
-	move.b	d3,(0x11,a2)                    	| [$4231: ld   (ix+$11),d]
+	move.b	(a0)+,(0x11,a2)                         	| [$4230: ld   d,(hl)]
+	                    	| [$4231: ld   (ix+$11),d]
 	                           	| [$4234: inc  hl]
-	move.b	(a0)+,d3                         	| [$4235: ld   d,(hl)]
-	move.b	d3,(0x2d,a2)                    	| [$4236: ld   (ix+$2d),d]
+	move.b	(a0)+,(0x2d,a2)                         	| [$4235: ld   d,(hl)]
+	                    	| [$4236: ld   (ix+$2d),d]
 	                           	| [$4239: inc  hl]
-	move.b	(a0)+,d3                         	| [$423a: ld   d,(hl)]
-	move.b	d3,(0x29,a2)                    	| [$423b: ld   (ix+$29),d]
+	move.b	(a0)+,(0x29,a2)                         	| [$423a: ld   d,(hl)]
+	                    	| [$423b: ld   (ix+$29),d]
 	                           	| [$423e: inc  hl]
-	move.b	(a0)+,d3                         	| [$423f: ld   d,(hl)]
-	move.b	d3,(0x25,a2)                    	| [$4240: ld   (ix+$25),d]
+	move.b	(a0)+,(0x25,a2)                         	| [$423f: ld   d,(hl)]
+	                    	| [$4240: ld   (ix+$25),d]
 	                           	| [$4243: inc  hl]
-	move.b	(a0),d3                         	| [$4244: ld   d,(hl)]
-	move.b	d3,(0x21,a2)                    	| [$4245: ld   (ix+$21),d]
+	move.b	(a0),(0x21,a2)                         	| [$4244: ld   d,(hl)]
+	                    	| [$4245: ld   (ix+$21),d]
 l_4248:
+	* enable interrupts again and exit
+	jra		osd_enable_vblank_interrupt
 	rts                                    	| [$4248: ret]
 
 * < A2 address to write to
@@ -7837,7 +7841,7 @@ l_a41c:
 
 update_players_struct_C2xx_A428:
 	jbsr	disable_interrupts_B0BD           	| [$a428: call disable_interrupts_B0BD] calls disable_interrupts_BBE2 ???
-	move.w	unknown_C247,d3             	| [$a42b: ld   de,(unknown_C247)] load animation/position of player 1
+	move.b	unknown_C247,d3             	| [$a42b: ld   de,(unknown_C247)] load animation/position of player 1
 	move.w	unknown_C249,d5             	| [$a42f: ld   hl,(unknown_C249)] load xy for player 1
 	exg		d3,d4  | EXX exchanges BC, DE, and HL with shadow registers with BC', DE', and HL'.
 	exg		d5,d6
@@ -13264,9 +13268,13 @@ animate_guided_character_B0A2:
 										| [$f772: pop  iy]
 										| [$f774: ld   bc,$0002]
 										| [$f777: add  iy,bc]
-	* get previous_ data
+	* get previous data (nb rows & columns for sprite block)
 	move.b	(-1,a3),d1                   	| [$f779: ld   b,(iy-$01)]
 	move.b	(-2,a3),d2                   	| [$f77c: ld   c,(iy-$02)]
+	
+	* update without vblank interrupt to avoid errors
+	jbsr		osd_disable_vblank_interrupt
+	
 l_f77f:
 	movem.w	d1/d2,-(sp)                    	| [$f77f: push bc]
 	move.b	d2,d1                           	| [$f780: ld   b,c]
@@ -13303,6 +13311,8 @@ l_f782:
 	movem.w	(sp)+,d1/d2                    	| [$f7c0: pop  bc]
 	subq.b	#1,d1                           	| [...]
 	jne	l_f77f                             	| [$f7c1: djnz $F77F]
+	jbra	osd_enable_vblank_interrupt
+
 	rts                                    	| [$f7c3: ret]
 
 * < D0: object to draw (tiles)

@@ -12,11 +12,11 @@ subprocess.check_call(cmd_prefix+["clean"],cwd=os.path.join(progdir,"src"))
 
 subprocess.check_call(cmd_prefix+["RELEASE_BUILD=1"],cwd=os.path.join(progdir,"src"))
 # create archive
-with zipfile.ZipFile(os.path.join(progdir,"KarateChamp2000_HD.zip"),"w",compression=zipfile.ZIP_DEFLATED) as zf:
+with zipfile.ZipFile(os.path.join(progdir,"KarateChamp500_HD.zip"),"w",compression=zipfile.ZIP_DEFLATED) as zf:
     for file in ["readme.md","instructions.txt",gamename,f"{gamename}.slave"]:
         zf.write(os.path.join(progdir,file),arcname=file)
 
-    zf.write(os.path.join(progdir,"assets","amiga","Pengo.info"),"KarateChamp.info")
+    zf.write(os.path.join(progdir,"assets","amiga","KarateChamp.info"),"KarateChamp.info")
     #zf.write(os.path.join(progdir,"assets","amiga","boxart.png"),"boxart.png")
 
 # pack the file for floppy
