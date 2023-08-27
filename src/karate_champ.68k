@@ -157,11 +157,9 @@
 *   on the skill level, computer waits a while with the move frozen
 *   (including jumping moves, which looks a bit weird). In champion level
 *   from level 16, there is no wait at all.
-* - blocking moves: maintaned as long as the opponent is performing
+* - blocking moves: maintained as long as the opponent is performing
 *   an attack move with a matching attack height
 
-* I should get more info about current_task_index_C028 what does the values mean (09,0A...)
-* probably related to animation frames not to A.I. so less interesting
 
 * VS Version Info:
 * ---------------
@@ -2112,7 +2110,6 @@ l_4743:
 	move.b	computer_skill_C910,d0          	| [$4743: ld   a,(computer_skill_C910)]
 	cmp.b	#0x10,d0                         	| [$4746: cp   $10]
 * CMP level 16+: set maximum speed: -2 ticks per frame for all moves
-* [review_cmp_skill]
 	jcc	l_477c_bis                             	| [$474a: jp   nc,$477C] if > $10 skip (CMP level 16)
 * if not CMP, check difficulty level
 	lea	counter_attack_timer_table_AD67(pc),a0	| [$474d: ld   hl,counter_attack_timer_table_AD67]
@@ -3877,7 +3874,8 @@ l_571b:
 	move.b	d0,nb_rounds_won_player_2_C147                 	| [$5739: ld   (nb_rounds_won_player_2_C147),a]
 l_573c:
 	lea	periodic_counter_16bit_C02E,a0 	| [$573c: ld   hl,periodic_counter_16bit_C02E]
-	move.b	(a0),d3                         	| [$573f: ld   d,(hl)]
+	* read LSB to get randomness!
+	move.b	(1,a0),d3                         	| [$573f: ld   d,(hl)]
 * choose among 6 evade positions
 	move.b	#0x06,d4                        	| [$5740: ld   e,$06]
 	jbsr	random_modulus_B006                       	| [$5742: call random_modulus_B006]
@@ -4991,7 +4989,8 @@ l_6070:
 	clr.b	d0                               	| [$6085: ld   a,$00]
 	move.b	d0,(0x0b,a3)                    	| [$6087: ld   (iy+$0b),a]
 	lea	periodic_counter_16bit_C02E,a0 	| [$608a: ld   hl,periodic_counter_16bit_C02E]
-	move.b	(a0),d3                         	| [$608d: ld   d,(hl)]
+	* read LSB to get real randomness
+	move.b	(1,a0),d3                         	| [$608d: ld   d,(hl)]
 	move.b	#0x03,d4                        	| [$608e: ld   e,$03]
 	jbsr	random_modulus_B006                       	| [$6090: call random_modulus_B006]
 	move.b	d0,(0x0c,a3)                    	| [$6093: ld   (iy+$0c),a]
@@ -6065,7 +6064,7 @@ l_69a8:
 	jcs	l_67ea                             	| [$69dd: jp   c,$67EA]
 	jcc	l_67b8                             	| [$69e0: jp   nc,$67B8]
 l_69e3:
-	move.b	periodic_counter_16bit_C02E,d0  	| [$69e3: ld   a,(periodic_counter_16bit_C02E)]
+	move.b	periodic_counter_16bit_C02E+1,d0  	| [$69e3: ld   a,(periodic_counter_16bit_C02E)]
 	btst.b	#3,d0                           	| [$69e6: bit  3,a]
 	jne	l_67ea                             	| [$69e8: jp   nz,$67EA]
 	jra	l_67b8                             	| [$69eb: jp   $67B8]
@@ -8329,7 +8328,7 @@ cpu_move_forward_towards_enemy_A71D:
 
 * called by a jp (hl) when distance between players is "medium" (C26C 0 -> 1)
 attack_once_out_of_16_frames_else_walk_A725:
-	move.b	periodic_counter_16bit_C02E,d0  	| [$a725: ld   a,(periodic_counter_16bit_C02E)]
+	move.b	periodic_counter_16bit_C02E+1,d0  	| [$a725: ld   a,(periodic_counter_16bit_C02E)]
 	and.b	#0x0F,d0                         	| [$a728: and  $0F]
 * periodic counter: decide an attack each 1/4s roughly
 * (actually if reaches that point with the counter aligned on 16, not
@@ -8355,7 +8354,7 @@ cpu_avoids_low_attack_if_facing_else_maybe_attacks_A73F:
 	btst.b	#7,(0x0f,a3)                    	| [$a73f: bit  7,(iy+$0f)]
 	jeq	l_a75d                             	| [$a743: jp   z,$A75D]
 * not facing each other
-	move.b	periodic_counter_16bit_C02E,d0  	| [$a746: ld   a,(periodic_counter_16bit_C02E)]
+	move.b	periodic_counter_16bit_C02E+1,d0  	| [$a746: ld   a,(periodic_counter_16bit_C02E)]
 	and.b	#0x01,d0                         	| [$a749: and  $01]
 * 50% chance attack
 	jeq	l_a755                             	| [$a74b: jp   z,$A755]
@@ -8400,7 +8399,7 @@ cpu_maybe_attacks_if_facing_else_avoids_low_attack_A786:
 	btst.b	#7,(0x0f,a3)                    	| [$a786: bit  7,(iy+$0f)]
 	jne	l_a7a4                             	| [$a78a: jp   nz,$A7A4]
 * facing each other
-	move.b	periodic_counter_16bit_C02E,d0  	| [$a78d: ld   a,(periodic_counter_16bit_C02E)]
+	move.b	periodic_counter_16bit_C02E+1,d0  	| [$a78d: ld   a,(periodic_counter_16bit_C02E)]
 * 50% chance, (but by checking bit 1, so not the same value as below)
 	btst.b	#1,d0                           	| [$a790: bit  1,a]
 	jeq	l_a79c                             	| [$a792: jp   z,$A79C]
@@ -8418,7 +8417,7 @@ l_a79c:
 l_a7a4:
 	jbsr	opponent_starting_low_attack_AAFD 	| [$a7a4: call opponent_starting_low_attack_AAFD]
 	jeq	l_a7ba                             	| [$a7a7: jp   z,$A7BA]
-	move.b	periodic_counter_16bit_C02E,d0  	| [$a7aa: ld   a,(periodic_counter_16bit_C02E)]
+	move.b	periodic_counter_16bit_C02E+1,d0  	| [$a7aa: ld   a,(periodic_counter_16bit_C02E)]
 	btst.b	#0,d0                           	| [$a7ad: bit  0,a] 50% chance
 	jne	l_a7ba                             	| [$a7af: jp   nz,$A7BA]
 	jbsr   load_address_of_current_player_move_byte_CF04	| [$a7b2: ld   hl,(address_of_current_player_move_byte_CF04)]
@@ -8501,7 +8500,7 @@ l_a821:
 * react to foot sweep/low kick
 	jbsr   load_address_of_current_player_move_byte_CF04	| [$a828: ld   hl,(address_of_current_player_move_byte_CF04)]
 	move.b	#0x03,(a0)                      	| [$a82b: ld   (hl),$03] evasive jump
-	move.b	periodic_counter_16bit_C02E,d0  	| [$a82d: ld   a,(periodic_counter_16bit_C02E)]
+	move.b	periodic_counter_16bit_C02E+1,d0  	| [$a82d: ld   a,(periodic_counter_16bit_C02E)]
 	and.b	#0x03,d0                         	| [$a830: and  $03]
 	jeq	l_a858                             	| [$a832: jp   z,$A858]
 	jra	l_a846                             	| [$a835: jp   $A846]
@@ -8544,7 +8543,7 @@ cpu_react_to_low_attack_or_perform_attack_A85B:
 	jbsr   load_address_of_current_player_move_byte_CF04	| [$a869: ld   hl,(address_of_current_player_move_byte_CF04)]
 * avoid low attack by jump 50% of the time
 	move.b	#0x03,(a0)                      	| [$a86c: ld   (hl),$03]
-	move.b	periodic_counter_16bit_C02E,d0  	| [$a86e: ld   a,(periodic_counter_16bit_C02E)]
+	move.b	periodic_counter_16bit_C02E+1,d0  	| [$a86e: ld   a,(periodic_counter_16bit_C02E)]
 	btst.b	#0,d0                           	| [$a871: bit  0,a]
 	jne	l_a890                             	| [$a873: jp   nz,$A890]
 * else move back/block if player attacks
@@ -8562,6 +8561,7 @@ l_a87b:
 * facing each other... pick an attack
 l_a886:
 	jbsr	select_cpu_attack_AB2E            	| [$a886: call select_cpu_attack_AB2E]
+	tst.b	d0			| added for clarity/most calls do a test (not that one!)
 	bne.b	0f
 	FATAL_ERROR   abf9 | [$abf9: call nz,display_error_text_B075]
 0:
@@ -8575,7 +8575,7 @@ cpu_small_chance_of_low_kick_else_walk_A893:
 	jbsr   load_address_of_current_player_move_byte_CF04	| [$a893: ld   hl,(address_of_current_player_move_byte_CF04)]
 * decide a low kick once out of 8 ticks (12% chance of low kick)
 	move.b	#0x14,(a0)                      	| [$a896: ld   (hl),$14]
-	move.b	periodic_counter_16bit_C02E,d0  	| [$a898: ld   a,(periodic_counter_16bit_C02E)]
+	move.b	periodic_counter_16bit_C02E+1,d0  	| [$a898: ld   a,(periodic_counter_16bit_C02E)]
 	and.b	#0x07,d0                         	| [$a89b: and  $07]
 	jeq	l_a8a5                             	| [$a89d: jp   z,$A8A5]
 * just walk
@@ -8607,7 +8607,7 @@ high_attack_if_forward_sommersault_or_walk_A8AB:
 	jra	l_a8e5                             	| [$a8cc: jp   $A8E5]
 * odds: lunge (0 - 25%), jumping kick (2,3 - 50%), round kick (1 - 25%)
 l_a8cf:
-	move.b	periodic_counter_16bit_C02E,d0  	| [$a8cf: ld   a,(periodic_counter_16bit_C02E)]
+	move.b	periodic_counter_16bit_C02E+1,d0  	| [$a8cf: ld   a,(periodic_counter_16bit_C02E)]
 	move.b	#0x10,(a0)                      	| [$a8d2: ld   (hl),$10] rear+up lunge punch
 	and.b	#0x03,d0                         	| [$a8d4: and  $03]
 	jeq	l_a8e2                             	| [$a8d6: jp   z,$A8E2]
@@ -8733,7 +8733,7 @@ l_a995:
 * opponent is starting low attack
 	jbsr   load_address_of_current_player_move_byte_CF04	| [$a99c: ld   hl,(address_of_current_player_move_byte_CF04)]
 	move.b	#0x03,(a0)                      	| [$a99f: ld   (hl),$03] jump to avoid low attack
-	move.b	periodic_counter_16bit_C02E,d0  	| [$a9a1: ld   a,(periodic_counter_16bit_C02E)]
+	move.b	periodic_counter_16bit_C02E+1,d0  	| [$a9a1: ld   a,(periodic_counter_16bit_C02E)]
 	and.b	#0x03,d0                         	| [$a9a4: and  $03]
 	jeq	l_a9d0                             	| [$a9a6: jp   z,$A9D0] 25% chance: jump to avoid low attack
 	jra	l_a9c1                             	| [$a9a9: jp   $A9C1] 75% chance: turn back (and maybe get hit)
@@ -8750,11 +8750,12 @@ l_a9ac:
 * attack that cannot connect, like low kick...
 l_a9bb:
 	jbsr	select_cpu_attack_AB2E            	| [$a9bb: call select_cpu_attack_AB2E]
+	tst.b	d0			| added for clarity
 	jne	l_a9d3                             	| [$a9be: jp   nz,$A9D3]
 l_a9c1:
 	jbsr   load_address_of_current_player_move_byte_CF04	| [$a9c1: ld   hl,(address_of_current_player_move_byte_CF04)]
 	move.b	#0x07,(a0)                      	| [$a9c4: ld   (hl),$07]
-	move.b	periodic_counter_16bit_C02E,d0  	| [$a9c6: ld   a,(periodic_counter_16bit_C02E)]
+	move.b	periodic_counter_16bit_C02E+1,d0  	| [$a9c6: ld   a,(periodic_counter_16bit_C02E)]
 	btst.b	#0,d0                           	| [$a9c9: bit  0,a]
 	jeq	l_a9d0                             	| [$a9cb: jp   z,$A9D0]
 * turn back or walk forward (50% chance)
@@ -8775,7 +8776,7 @@ cpu_complex_reaction_to_rear_attack_A9D6:
 * or turn back (25% chance)
 	jbsr   load_address_of_current_player_move_byte_CF04	| [$a9e4: ld   hl,(address_of_current_player_move_byte_CF04)]
 	move.b	#0x03,(a0)                      	| [$a9e7: ld   (hl),$03]
-	move.b	periodic_counter_16bit_C02E,d0  	| [$a9e9: ld   a,(periodic_counter_16bit_C02E)]
+	move.b	periodic_counter_16bit_C02E+1,d0  	| [$a9e9: ld   a,(periodic_counter_16bit_C02E)]
 	and.b	#0x03,d0                         	| [$a9ec: and  $03]
 	jeq	l_aa0a                             	| [$a9ee: jp   z,$AA0A]
 	jra	l_aa05                             	| [$a9f1: jp   $AA05]
@@ -8989,12 +8990,17 @@ select_cpu_attack_AB2E:
 	move.b	d0,d1                           	| [$ab38: ld   c,a]
 	add.w	d1,d1
 	add.w	d1,a2                            	| [$ab3b: add  ix,bc]
+	.ifndef		RELEASE
+	cmp.l	#end_master_cpu_move_table_AB58,a2
+	bcs.b	0f
+	FATAL_ERROR		ab3d		| added for sanity check
+0:
+	.endif
 	
 	move.l	(a2),a0                    	| [$ab3d: ld   l,(ix+$00)]
 * get msb of 16 bit counter for randomness
 * random_modulus_B006 needs D3 and D4 (D4 is max value)
-	move.w	periodic_counter_16bit_C02E,d3	| [$ab43: ld   de,(periodic_counter_16bit_C02E)]
-	SWAP_WORD	d3
+	move.b	periodic_counter_16bit_C02E+1,d3	| [$ab43: ld   de,(periodic_counter_16bit_C02E)]
 	move.b	(a0)+,d4                         	| [$ab47: ld   e,(hl)] pick a number 0-value of hl (not included)
 											| [$ab48: inc  hl] skip number of values
 
@@ -9009,6 +9015,13 @@ select_cpu_attack_AB2E:
 	bsr		load_address_of_current_player_move_byte_CF04	| [$ab53: ld   hl,(address_of_current_player_move_byte_CF04)]
 * gives attack order to the CPU
 * only attack moves (not walk moves) are given here
+
+	* adding debug code in case CPU behaves incorrectly
+	.ifndef	RELEASE
+	move.b	d0,0x200	| TEMP
+	.endif
+	
+	
 	move.b	d0,(a0)                         	| [$ab56: ld   (hl),a]
 	rts                                    	| [$ab57: ret]
 
@@ -9024,6 +9037,7 @@ master_cpu_move_table_AB58:
 	.long	move_list_facing_close_range_AB7B	|  close-range, cpu faces opponent
 	.long	move_list_turning_back_AB84      	|  mid-range, cpu has its back turned on opponent
 	.long	move_list_turning_back_AB84      	|  close-range, cpu has its back turned on opponent (same as above)
+end_master_cpu_move_table_AB58:
 
 * move list starts by number of moves (for random pick)
 * not the same move indexes as above, move indexes are listed at start of
@@ -9039,7 +9053,7 @@ move_list_facing_mid_range_AB70:
 	dc.b	0x11,0x13,0x14 | $ab78
  * front kick, back round, lungemedium, jsk, round, lunge, revpunch, lowkick
 move_list_facing_close_range_AB7B:
- * small reverse, back round, lungemediumj sk,...
+ * small reverse, back round, lungemedium sk,...
 	dc.b	0x08,0x0a,0x0b,0x0c,0x0d,0x0f,0x10,0x13 | move_list_facing_close_range_AB7B
 	dc.b	0x14 | $ab83
  * list of only reverse attacks (mostly defensive, cpu turns its back on the opponent)
@@ -9271,7 +9285,6 @@ let_opponent_react_depending_on_skill_level_ACCE:
 	move.b	computer_skill_C910,d0          	| [$acce: ld   a,(computer_skill_C910)]
 	cmp.b	#0x10,d0                         	| [$acd1: cp   $10]
 	jcc	l_ad16                             	| [$acd5: jp   nc,$AD16] if level >= $10, skip the routine altogether
-* [review_cmp_skill]
 * this is called when skill level is < 16 (under high level of champ)
 * game checks difficulty level at that point
 * (in CMP high mode it doesn't matter)
@@ -9471,8 +9484,6 @@ l_ae1f:
 
 	
 
-table_linear_search_B00F:
-	jra	table_linear_search_B148           	| [$b00f: jp   table_linear_search_B148]
 
 clear_player_structure_partial_b012:
 	jra	clear_player_structure_partial_b15c	| [$b012: jp   clear_player_structure_partial_b15c]
@@ -9523,8 +9534,6 @@ task_b09f:
 
 
 
-is_title_screen_demo_mode_B0B1:
-	jra	is_title_screen_demo_mode_B27E     	| [$b0b1: jp   is_title_screen_demo_mode_B27E]
 
 read_p1_controls_BBA8:
 read_p1_controls_B0B7:
@@ -9562,6 +9571,7 @@ divide_hl_by_d_b0db:
 	* we're using DIVU, much faster
 	bsr		change_d5_d6_to_d5_16
 	and.w	#0xFF,d3
+	| d5 MSW is zero so divu will work properly
 	divu	d3,d5
 	swap	d5
 	move.b	d5,d0		| remainder must be on 8 bits...
@@ -9597,8 +9607,10 @@ divide_hl_by_d_b0db:
 random_modulus_B006:
 random_modulus_B0EE:
 	* reimplementation with divu
-	move.w	#0xFF,d1
-	and.w	d1,d3
+	move.l	#0xFF,d1
+	| source of divu is long! better zero MSW or bugs occur
+	| like picking the wrong attack in select_cpu_attack_AB2E
+	and.l	d1,d3	
 	and.w	d1,d4
 	divu	d4,d3
 	swap	d3		| remainder
@@ -9683,9 +9695,9 @@ l_b147:
 * < ix: pointer on table (ends with $FF)
 * < a: value to look for
 * > a = 0 if not found, else a is unchanged
-
+table_linear_search_B00F:
 table_linear_search_B148:
-	move.b	(0x00,a2),d1                    	| [$b148: ld   b,(ix+$00)]
+	move.b	(a2),d1                    	| [$b148: ld   b,(ix+$00)]
 * (clever way to test b against $FF without changing a probably)
 	addq.b	#1,d1                           	| [$b14b: inc  b]
 	jeq	l_b15a                             	| [$b14c: jp   z,$B15A] table ends by $FF: if 0 => end
@@ -9883,6 +9895,7 @@ l_b27b:
 	move.l	(sp)+,a3                        	| [$b27b: pop  iy]
 	rts                                    	| [$b27d: ret]
 
+is_title_screen_demo_mode_B0B1:
 is_title_screen_demo_mode_B27E:
 	move.b	background_and_state_bits_C911,d0	| [$b27e: ld   a,(background_and_state_bits_C911)]
 	bclr.b	#7,d0                           	| [$b281: res  7,a]
@@ -12035,13 +12048,14 @@ l_e8be:
 	move.w	(sp)+,d0                        	| [$e8c8: pop  af]
 	move.l	(sp)+,a2                        	| [$e8c9: pop  ix]
 	move.l	(sp)+,a3                        	| [$e8cb: pop  iy]
-	move.l	(sp)+,a0                        	| [$e8cd: pop  hl]
-	* push again, but will pop with exchanged a0/a3
+	movem.w	(sp)+,d5/d6                        	| [$e8cd: pop  hl]
+	
 	move.l	a3,-(sp)                        	| [$e8ce: push iy]
-	move.l	a0,-(sp)                        	| [$e8d0: push hl]
+	* was not necessary to save HL
+	**move.l	a0,-(sp)                        	| [$e8d0: push hl]
 	jbsr	load_iy_with_player_structure_B574	| [$e8d1: call load_iy_with_player_structure_B574]
 	move.b	(0x08,a3),d0                    	| [$e8d4: ld   a,(iy+$08)]
-	move.l	(sp)+,a0                        	| [$e8d7: pop  hl]
+	**move.l	(sp)+,a0                        	| [$e8d7: pop  hl]
 	move.l	(sp)+,a3                        	| [$e8d8: pop  iy]
 	move.b	d0,d6                           	| [$e8da: ld   l,a]
 	move.b	#0x22,d0                        	| [$e8db: ld   a,$22]
