@@ -513,9 +513,13 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
                                 plane_cache_id += 1
                                 bitplane_cache[plane] = plane_name
 
-                            if j==nb_bitplanes-1 and not any(plane):
+                            #if j==nb_bitplanes-1 and not any(plane):
+                            if not any(plane):
                                 # mask plane: make it zero if all zeroes, so game code
                                 # detects it and skips the tile altogether
+                                # other planes: change blit mode, use only mask as source
+                                #
+                                # both optimizations allow much faster blit operations
                                 plane_name = "0x0"
                             f.write(f"\t.long   {plane_name}\n")
 

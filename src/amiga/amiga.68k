@@ -1009,11 +1009,7 @@ blit_16x_bob:
 	moveq	#0,d1	| draw from Y=0
 10:
 	move.l	bg_drawed_screen_ptr(pc),a1
-	lea		blit_planes_cookie_cut_16x(pc),a5
-	*btst	#2,d2
-	*beq.b	0f
-	*lea		blit_planes_cookie_cut_16x_flipped(pc),a5	
-*0:
+
 	moveq	#NB_PLAYFIELD_PLANES-1,d5
 	moveq	#-1,d2
 	move.l	a0,a4		| pointers on planes
@@ -1021,29 +1017,11 @@ blit_16x_bob:
 	move.l	a4,a0     | next plane list	
 	move.l	a1,a2
 	move.w	d6,d2	| y offset for source planes
-	jsr		(a5)
+	jbsr	blit_planes_cookie_cut_16x
 2:
 	movem.l	(a7)+,d2-d6/a0-a5
 	rts
-* what: blits 16x16 data on one plane, cookie cut, flip
-* args:
-* < A0: data (16x16)
-* < A1: plane  (40 rows)
-* < A2: background (40 rows) to mix with cookie cut
-* < A3: source mask for cookie cut (16x16)
-* < D0: X
-* < D1: Y
-* < D2: source y-offset
-* < D3: height
-* trashes: a lot!
-**blit_planes_cookie_cut_16x_flipped:
-**    lea _custom,A5
-**	move.w	d2,d5
-**	move.w	d3,d4
-**	neg.w	d4
-**	moveq	#4,d3		| 4 planes
-**    moveq  #4,d2       | 16 pixels + 2 shift bytes
-**    jra blit_planes_any_internal_cookie_cut
+
 * what: blits 16x16 data on one plane, cookie cut
 * args:
 * < A0: data (16x16)
@@ -1173,9 +1151,9 @@ start_process_1_plane:
 	bra.b	61f
 60:
 	* source is 0: just apply mask (less bandwidth lost) and change bltcon
-	move.l	#0x0BCA0000,d3
-	or.l	d6,d3
-	move.l	d3,bltcon0(a5)	| sets con0 and con1: C-A->D cookie cut, B fixed
+	move.l	#0x0BCA0000,d1
+	or.l	d6,d1
+	move.l	d1,bltcon0(a5)	| sets con0 and con1: C-A->D cookie cut, B fixed
  	clr.w	bltbdat(a5)	|B word is zero
 	rts
 61:
@@ -1183,117 +1161,6 @@ start_process_1_plane:
 	move.l	d7,bltcon0(a5)	| sets con0 and con1: C-A+B->D cookie cut full
 	move.l	a4,bltbpt(a5)	|source graphic top left corner
 	rts
-	
-* < D0: sprite X
-* < D1: sprite Y
-* < D2: sprite code & flags
-* < D3: sprite color (clut index)
-* > D6: allocated sprite index
-alloc_sprite:
-	* first pass: find a free sprite next to a sprite with
-	* same clut
-	lea		host_sprites(pc),a2
-	moveq	#0,d6
-0:
-	cmp.b	(SPRITE_CLUT,a2),d3
-	bne.b	10f
-	* allocated (else would be -1/invalid) + same clut
-	* check even/odd index
-	btst	#0,d6
-	beq.b	1f
-	* odd: check if previous entry is free
-	tst.b	(SPRITE_X-SPRITE_SIZEOF,a2)
-	beq.b	8f
-	tst.b	(SPRITE_Y-SPRITE_SIZEOF,a2)
-	bne.b	10f
-8:
-	* previous entry is free, same clut: we can use that
-	* entry, no color conflict
-	lea		(-SPRITE_SIZEOF,a2),a2
-9:
-	move.b	d0,(a2)+		| X
-	move.b	d1,(a2)+		| Y
-	move.b	d2,(a2)+		| code
-	move.b	d3,(a2)+		| clut
-	rts						| done
-1:
-	* even: check if next entry is free
-	tst.b	(SPRITE_X+SPRITE_SIZEOF,a2)
-	beq.b	2f
-	tst.b	(SPRITE_Y+SPRITE_SIZEOF,a2)
-	bne.b	10f
-2:
-	* next entry is free, same clut: we can use that
-	* entry, no color conflict
-	lea		(SPRITE_SIZEOF,a2),a2
-	bra.b	9b
-10:
-	* next entry
-	addq.w	#SPRITE_SIZEOF,a2
-	addq	#1,d6
-	cmp.w	#NB_HOST_SPRITES,d6
-	bne.b	0b
-	* second pass if first pass failed (could not match
-	* a pair with one occupied slot with compatible clut,
-	* which happens when there are very few sprites
-	* displayed): we have to find 2 consecutive free slots
-
-	lea		host_sprites(pc),a2
-	moveq	#0,d6
-11:
-	* we consider that a sprite is not allocated
-	* if one of the coordinates is zero (real game
-	* doesn't care and sets X to 255, and Y to 0 at times
-	tst.b	(SPRITE_Y,a2)
-	beq.b	12f
-	tst.b	(SPRITE_X,a2)
-	bne.b	20f
-12:
-	* not allocated: test odd sprite
-	tst.b	(SPRITE_Y+SPRITE_SIZEOF,a2)
-	jeq	9b
-	tst.b	(SPRITE_X+SPRITE_SIZEOF,a2)
-	jeq	9b		| ok, both slots are free, allocate the first one
-20:
-	* next sprite pair
-	lea		(2*SPRITE_SIZEOF,a2),a2
-	addq	#2,d6
-	cmp.w	#NB_HOST_SPRITES,d6
-	bne.b	11b
-	
-	* third pass: last chance/emergency: there ARE free slots
-	* (since only 6 sprites on the target) but maybe too many
-	* different cluts so we can't find a suitable slot. In that
-	* case, pick the first free slot, we'll handle the color changes
-	* with a dynamic copperlist, let's hope that it works out
-	* (only happens in demo screens)
-	*
-	* the strategy globally works because during game, all 4 enemies
-	* share the same palette. Pengo uses another one, and ice block
-	* another one too. Blinking stunned enemies can be a problem
-	* because of the extra blue color
-	*
-	lea		host_sprites(pc),a2
-	moveq	#0,d6
-21:
-	tst.b	(SPRITE_X,a2)
-	beq.b	9b		| ok, a slot is free, allocate it
-	tst.b	(SPRITE_Y,a2)
-	beq.b	9b		| ok, a slot is free, allocate it
-30:
-	* next sprite
-	lea		(SPRITE_SIZEOF,a2),a2
-	addq	#1,d6
-	cmp.w	#NB_HOST_SPRITES,d6
-	bne.b	21b
-	* just cannot happen
-	* if we reach that point there's a big problem
-	blitz
-	illegal
-	illegal
-	illegal
-	rts
-	
 
 	
 osd_sound_start:

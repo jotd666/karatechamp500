@@ -5073,8 +5073,9 @@ l_6117:
 	movem.w	(sp)+,d1/d2                    	| [$6121: pop  bc]
 	subq.b	#1,d1                           	| [$6122: dec  b]
 	jeq	l_6153                             	| [$6123: jp   z,$6153]
-	* see if practice moves match
-	lea	player_2_struct_C260,a3        	| [$6126: ld   iy,player_2_struct_C260]
+	* see if practice moves match. Note: In 2P game, no points are awarded,
+	* this is also true in the original game
+	lea	player_2_struct_C260,a3        	| [$6126: ld   iy,player_2_struct_C260] computer
 	lea	player_1_struct_C240,a2        	| [$612a: ld   ix,player_1_struct_C240]
 	move.b	(0x07,a3),d5                    	| [$612e: ld   l,(iy+$07)]
 	lsl.w	#8,d5
