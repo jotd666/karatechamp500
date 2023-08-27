@@ -4856,7 +4856,7 @@ practice_screen_5f2a:
 	move.b	d0,skip_practice_requested_C14F                 	| [$5f60: ld   (skip_practice_requested_C14F),a]
 	move.b	#0x46,d1                        	| [$5f63: ld   b,$46]
 	* loop which checks for player start button pressed
-	* to skip practice
+	* to skip practice, practice not starting yet
 l_5f65:
 	movem.w	d1/d2,-(sp)                    	| [$5f65: push bc]
 	move.b	#0x03,d0                        	| [$5f66: ld   a,$03]
@@ -4865,8 +4865,18 @@ l_5f65:
 	beq.b	0f
 	FATAL_ERROR   5f6c | [$5f6c: call nz,display_error_text_B075]
 0:
-	jbsr	check_coin_ports_B069             	| [$5f6f: call check_coin_ports_B069]
 	* a good idea would be to also check fire button on amiga
+	* only valid during the time the message is displayed
+	.ifdef	__amiga__
+	jbsr	osd_read_inputs
+	not.b	d0
+	and.b	#0xF0,d0		| any button/2nd joy input
+	beq.b	0f
+	clr.b	skip_practice_requested_C14F
+	jra		l_5ff8
+0:
+	.endif
+	jbsr	check_coin_ports_B069             	| [$5f6f: call check_coin_ports_B069]
 	and.b	#0x0C,d0                         	| [$5f72: and  $0C]
 	movem.w	(sp)+,d1/d2                    	| [$5f74: pop  bc]
 	jne	l_5ff8                             	| [$5f75: jp   nz,$5FF8]
@@ -4954,12 +4964,12 @@ l_5fea:
 0:
 	jbsr	task_yield_B051                   	| [$5ff5: call task_yield_B051]
 l_5ff8:
-	move.b	skip_practice_requested_C14F,d0                 	| [$5ff8: ld   a,(skip_practice_requested_C14F)]
+	tst.b	skip_practice_requested_C14F                 	| [$5ff8: ld   a,(skip_practice_requested_C14F)]
 	                               	| [$5ffb: and  a]
 	jeq	l_5fea                             	| [$5ffc: jp   z,$5FEA]
 	jra	l_5f7b                             	| [$5fff: jp   $5F7B]
 l_6002:
-	move.b	skip_practice_requested_C14F,d0                 	| [$6002: ld   a,(skip_practice_requested_C14F)]
+	tst.b	skip_practice_requested_C14F                 	| [$6002: ld   a,(skip_practice_requested_C14F)]
 	                               	| [$6005: and  a]
 	jeq	l_5fea                             	| [$6006: jp   z,$5FEA]
 	jra	l_5fba                             	| [$6009: jp   $5FBA]
