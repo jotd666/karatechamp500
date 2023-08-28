@@ -17,7 +17,7 @@ with zipfile.ZipFile(os.path.join(progdir,"KarateChamp500_HD.zip"),"w",compressi
         zf.write(os.path.join(progdir,file),arcname=file)
 
     zf.write(os.path.join(progdir,"assets","amiga","KarateChamp.info"),"KarateChamp.info")
-    #zf.write(os.path.join(progdir,"assets","amiga","boxart.png"),"boxart.png")
+    zf.write(os.path.join(progdir,"assets","amiga","boxart.png"),"boxart.png")
 
 # pack the file for floppy
 subprocess.check_output(["cranker_windows.exe","-f",os.path.join(progdir,gamename),"-o",os.path.join(progdir,f"{gamename}.rnc")])

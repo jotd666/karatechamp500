@@ -27,6 +27,7 @@ This is a transcode from the original arcade game Z80 to 68K assembly.
 - no9: remade amiga tunes
 - phx: ptplayer sound/music replay Amiga code
 - DamienD: floppy menu
+- mrv2k: amiga boxart
 - blastar: NGFX SoundBuilder (Neo Geo sound tool)
 - SEGA: original game :)
 
