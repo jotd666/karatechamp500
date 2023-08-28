@@ -48,6 +48,7 @@ _config
 	dc.b    "C4:L:controls:WinUAE joypad,CD32 joypad,2 joysticks;"
 	dc.b    "C5:X:skip girl intermissions:0;"
 	dc.b    "C5:X:free play:1;"
+	dc.b    "C5:X:limit to 25 FPS:2;"
 	dc.b	0
 
 	IFD BARFLY

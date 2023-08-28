@@ -9799,7 +9799,7 @@ l_b1c4:
 	jeq	l_b1da                             	| [$b1ce: jp   z,$B1DA]
 	move.w	(sp),d0                        	| [$b1d1: pop  af]
 	                        	| [$b1d2: push af]
-	tst.b	d0                   	| [$b1d3: and  a]
+								| [$b1d3: and  a]
 	
 	beq.b	0f
 	FATAL_ERROR   b1d4 | [$b1d4: call nz,display_error_text_B186]
@@ -12672,7 +12672,9 @@ l_f23c:
 	jcs	l_f27b                             	| [$f259: jp   c,$F27B]
 	move.b	#0x01,(0x02,a2)                 	| [$f25c: ld   (ix+$02),$01]
 	clr.b	(0x03,a2)                        	| [$f260: ld   (ix+$03),$00]
+	cmp.b	#0x0A,d0                         	| [$f257: cp   $0A]
 	jeq	l_f27b                             	| [$f264: jp   z,$F27B]
+	* compare rank > 10 display CHAMP instead
 	move.b	#0x0C,(0x02,a2)                 	| [$f267: ld   (ix+$02),$0C]
 	move.b	#0x11,(0x03,a2)                 	| [$f26b: ld   (ix+$03),$11]
 	move.b	#0x0A,(0x04,a2)                 	| [$f26f: ld   (ix+$04),$0A]
@@ -13180,6 +13182,7 @@ l_f64a:
 	addq.w	#4,a2                           	| [$f64e: inc  ix] * 4
 	subq.b	#1,d1                           	| [...]
 	jne	l_f64a                             	| [$f656: djnz $F64A]
+	* display name registration ... time and virtual keyboard
 	lea	name_registration_time_str_EDD1(pc),a0                  	| [$f658: ld   hl,name_registration_time_str_EDD1]
 	jbsr	display_multicolor_text_B391      	| [$f65b: call display_multicolor_text_B391]
 	jbsr	display_hiscores_F1AE             	| [$f65e: call display_hiscores_F1AE]
@@ -13198,6 +13201,7 @@ l_f64a:
 	jcs	l_f6ac                             	| [$f68a: jp   c,$F6AC]
 	move.b	#0x01,(0x02,a2)                 	| [$f68d: ld   (ix+$02),$01]
 	clr.b	(0x03,a2)                        	| [$f691: ld   (ix+$03),$00]
+	cmp.b	#0x0A,d0                         	| [$f688: cp   $0A]
 	jeq	l_f6ac                             	| [$f695: jp   z,$F6AC]
 	move.b	#0x0C,(0x02,a2)                 	| [$f698: ld   (ix+$02),$0C]
 	move.b	#0x11,(0x03,a2)                 	| [$f69c: ld   (ix+$03),$11]
@@ -13215,7 +13219,7 @@ l_f6ac:
 	* in first version of Karate Champ, faithfully remade by
 	* the talented no9 (vs version shortened timer from 60 to 30 and
 	* the end of the music could not be heard anymore anywhere in the game!)
-	move.b	#0x40,d0                        	| [$f6b8: ld   a,$30]
+	move.b	#0x60,d0                        	| [$f6b8: ld   a,$30]
 	move.b	d0,temp_buffer_CF00+2                 	| [$f6ba: ld   (temp_buffer_CF00+2),a]
 	clr.b	d0                               	| [$f6bd: xor  a]
 	move.b	d0,temp_buffer_CF00+5                 	| [$f6be: ld   (temp_buffer_CF00+5),a]
@@ -13404,8 +13408,8 @@ display_players_rank_FD44:
 	move.b	#0x90,d3                        	| [$fd61: ld   d,$90]
 	lea	unknown_C908,a0                	| [$fd63: ld   hl,unknown_C908]
 l_fd66:
-	jbsr	display_player_rank_FD6A          	| [$fd66: call display_player_rank_FD6A]
-	rts                                    	| [$fd69: ret]
+	jra	display_player_rank_FD6A          	| [$fd66: call display_player_rank_FD6A]
+	                                    	| [$fd69: ret]
 
 display_player_rank_FD6A:
 	*movem.w	d3/d4,-(sp)                    	| [$fd6a: push de]

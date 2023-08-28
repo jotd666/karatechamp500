@@ -230,6 +230,14 @@ _user:
 	beq.b	1f
 	bset	#1,d7
 1:
+	move.l	(A0)+,D0	| LIMIT25/S
+	beq.b	1f
+	bset	#2,d7
+	bra.b	2f
+1:
+	* not set: autodetect speed
+	bsr		detect_slow_amiga	
+2:
 	move.l	d7,misc_options
 
 	move.l	(A0)+,D0	| SKILL/K/N
@@ -351,6 +359,9 @@ _user:
 	beq.b	0f
 	bclr	#7,dip_switches
 0:
+	btst	#2,d0
+	sne		half_frame_rate_flag
+	seq		must_update_sprites
 	
 	
 	jsr	 _detect_controller_types 
@@ -572,7 +583,28 @@ demo_game:
 		jmp			karate_champ_reset					| pass control to the pengo core
 		
 
+detect_slow_amiga:
+	lea	_custom,a2
+	move.w	#0x4000,(intena,a2)
+0:
+	btst	#5,(intreqr+1,a2)
+	beq.b	0b
 	
+	move.w	#0x3FFF,(intreq,a2)
+	move.l	#0,d0
+0:
+	add.l	#1,d0
+	btst	#5,(intreqr+1,a2)
+	beq.b	0b
+	
+	move.w	#0xC000,(intena,a2)
+	move.l	d0,vbl_ticks
+	
+	cmp.l	#0x1000,d0
+	bcc		0f
+	bset	#2,d7
+0:
+	rts	
 				
 _vblank:
     movem.l d0-d7/a0-a6,-(a7)
@@ -637,6 +669,8 @@ _vblank:
 
 	jbsr		karate_champ_irq
 	.ifne  OPT_ENABLE_DOUBLE_BUFFERING_BG
+	tst.b	must_update_sprites
+	beq.b	23f
 	bsr		switch_screen_buffers
 	.endif
 23:
@@ -690,6 +724,12 @@ osd_break:
 * doesn't change color so it's easier to debug with memwatches
 
 osd_update_sprites:
+	tst.b	half_frame_rate_flag
+	beq.b	0f
+	eor.b	#1,must_update_sprites
+	bne.b	0f
+	rts
+0:
 	*lea		test_sprites_title_xy,a0
 	move.l	a0,a6			| save sprite table in A6
 	move.w	#NB_TARGET_SPRITES-1,d7
@@ -2442,7 +2482,7 @@ program_args_end:
 read_args_string:
 	.byte	read_args_string_end-read_args_string
 	.ascii	"BONUSCHEAT/S,CHEATKEYS/S,ONEROUNDWINS/S,STARTLEVEL/K/N,"
-	.ascii	"NOINTERMISSIONS/S,FREEPLAY/S,SKILL/K/N,CONTROLS/K/N"
+	.ascii	"NOINTERMISSIONS/S,FREEPLAY/S,LIMIT25/S,SKILL/K/N,CONTROLS/K/N"
 read_args_string_end:
 	.align	2
 
@@ -2542,6 +2582,8 @@ intro_music_counter:
 	.word	0
 vbl_counter:
 	.word	0
+vbl_ticks:
+	.long	0
 _resload:
 	.long	0
 _joypad_state_p1:
@@ -2620,6 +2662,10 @@ button_left:
 	dc.b	JPB_BTN_RED
 two_joystick_layout:
 	dc.b	0
+half_frame_rate_flag:
+	dc.b	0
+must_update_sprites:
+	dc.b	0
 	.align	2
 	
 	
@@ -2679,7 +2725,7 @@ blank_sprite:
 	
 	* main copperlist
 copperlist:
-    *.word   0x1801,0xFFFE	
+    .word   0x1801,0xFFFE	
 
 bg_bitplanes:
 	DECL_4_BITPLANES	0
