@@ -1846,15 +1846,30 @@ handle_plank_level_dynamic_color:
 	movem.w	d0-d2,-(a7)
 	* at row 29 of tiles, force color to green
 	lea		color_row_29+4,a0
-	move.w	#color+16,(a0)+		| color 8
+	move.w	#color+8*2,(a0)+		| color 8
 	move.w	#0xC0,(a0)
-	* color will reset itself at copperlist reload
+	
+	* colors will reset themselves at copperlist reload
 	* (there aren't any tiles below that position that
 	* are affected by the color change, maybe that there aren't
 	* tiles anywhere affected in that level, but if we change
 	* the color globally, there are conflicts with some tiles that
 	* are shared between levels. It works perfect with dynamic change
 	* hack so it's already very good)
+	movem.w	(a7)+,d0-d2
+	rts
+	
+	* level 8 needs more hacking: 3 colors are incorrect (table & planks)
+handle_plank_level_dynamic_color_level_8:
+	movem.w	d0-d2,-(a7)
+	* restore original table & planks colors
+	lea		color_line_copper+(20*16)+4,a0
+	move.w	#color+10*2,(a0)+
+	move.w	#0xC80,(a0)+
+	move.w	#color+11*2,(a0)+
+	move.w	#0xCCC,(a0)+
+	move.w	#color+8*2,(a0)+
+	move.w	#0x80c,(a0)+
 	movem.w	(a7)+,d0-d2
 	rts
 	
@@ -1956,14 +1971,16 @@ update_bg_tile:
 	* change "CHALLENGE STAGE / PERFECT 2000" rows
 	* font color to green dynamically
 	cmp.b	#5,d2
-	beq.b	1111f
+	beq.b	1112f
 	cmp.b	#8,d2
 	beq.b	1111f
 	cmp.b	#11,d2
-	beq.b	1111f
+	beq.b	1112f
 	cmp.b	#2,d2
 	bne.b	112f
 1111:
+	bsr		handle_plank_level_dynamic_color_level_8
+1112:
 	bsr		handle_plank_level_dynamic_color
 112:
 	lsl.w	#5,d2		| times 32 to select proper palette
