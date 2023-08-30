@@ -8,3 +8,6 @@ copy readme.md instructions.txt df0:
 ;delete $game.rnc
 delete df0:$game.high
 
+; also archive with lha
+lha a -r KarateChamp_VS_HD.lha ${game}_HD
+

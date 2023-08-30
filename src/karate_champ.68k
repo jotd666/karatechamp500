@@ -3769,7 +3769,8 @@ l_5650:
 l_5678:
 	move.b	match_timer_C167,d0             	| [$5678: ld   a,(match_timer_C167)]
 	moveq	#1,d7
-	sbcd.b	d7,d0                        	| [$567b: sub  $01]	move.b	d0,match_timer_C167             	| [$567e: ld   (match_timer_C167),a]
+	sbcd.b	d7,d0                        	| [$567b: sub  $01]
+	move.b	d0,match_timer_C167             	| [$567e: ld   (match_timer_C167),a]
 	jbsr	display_remaining_round_time_64fb                            	| [$5681: call $64FB]
 	move.b	#0x08,d0                        	| [$5684: ld   a,$08]
 	jbsr	play_sound_B072                   	| [$5686: call play_sound_B072]
@@ -4088,7 +4089,7 @@ l_5863:
 	btst.b	#2,d0                           	| [$586d: bit  2,a]
 	jne	l_58b9                             	| [$586f: jp   nz,$58B9]
 	move.b	nb_credits_minus_one_C024,d0    	| [$5872: ld   a,(nb_credits_minus_one_C024)]
-	tst.b	d0                               	| [$5875: and  a]
+											| [$5875: and  a]
 	jne	l_58ae                             	| [$5876: jp   nz,$58AE]
 	subq.b	#1,d1                           	| [...]
 	jne	l_5863                             	| [$5879: djnz $5863]
@@ -4118,6 +4119,7 @@ l_5863:
 l_58ae:
 	lea	nb_credits_minus_one_C024,a0   	| [$58ae: ld   hl,nb_credits_minus_one_C024]
 	subq.b	#1,(a0)                         	| [$58b1: dec  (hl)]
+	* set 2 human players
 	lea	players_type_human_or_cpu_flags_C02D,a0	| [$58b2: ld   hl,players_type_human_or_cpu_flags_C02D]
 	bset.b	#2,(a0)                         	| [$58b5: set  2,(hl)]
 	bset.b	#3,(a0)                         	| [$58b7: set  3,(hl)]
@@ -9798,8 +9800,9 @@ l_b1c4:
 	cmp.b	#0x0B,d0                         	| [$b1cc: cp   $0B]
 	jeq	l_b1da                             	| [$b1ce: jp   z,$B1DA]
 	move.w	(sp),d0                        	| [$b1d1: pop  af]
-	                        	| [$b1d2: push af]
-								| [$b1d3: and  a]
+	* flags apply to byte, not word         	| [$b1d2: push af]
+	* so we cannot remove the "tst" instruction!
+	tst.b	d0					| [$b1d3: and  a]
 	
 	beq.b	0f
 	FATAL_ERROR   b1d4 | [$b1d4: call nz,display_error_text_B186]

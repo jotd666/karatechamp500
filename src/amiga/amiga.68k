@@ -291,19 +291,6 @@ _user:
 .no_floppy:
 
 .startup:
-* compute 8-byte aligned bitplanes
-	move.l	#bg_screen_data_1,d0
-	and.b	#0xF8,d0
-	addq	#8,d0
-	move.l	d0,bg_screen_data_1_ptr
-	move.l	d0,bg_drawed_screen_ptr
-	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
-	move.l	#bg_screen_data_2,d0
-	.endif
-	and.b	#0xF8,d0
-	addq	#8,d0
-	move.l	d0,bg_screen_data_2_ptr
-	move.l	d0,bg_displayed_screen_ptr
 	
 
 
@@ -1359,8 +1346,8 @@ switch_screen_buffers:
 	lea		bg_drawed_screen_ptr(pc),a0
 	lea		bg_displayed_screen_ptr(pc),a4
 	lea		previous_sprites_ptr(pc),a6
-	move.l		bg_screen_data_1_ptr(pc),a1
-	move.l		bg_screen_data_2_ptr(pc),a5
+	lea		bg_screen_data_1,a1
+	lea		bg_screen_data_2,a5
 	lea		previous_sprites_1,a2
 	lea		previous_sprites_2,a3
 	* also switch previous state memory
@@ -1544,8 +1531,8 @@ platform_init:
 	.endif
 	
 	* restrict borders: we don't see bobs on the borders!
-    move.w #0x1499,diwstrt(a5)
-    move.w #0x2479,diwstop(a5)
+    move.w #0x1C99,diwstrt(a5)
+    move.w #0x3881-8,diwstop(a5)
     move.w #0x0038,ddfstrt(a5)
     move.w #0x00D0,ddfstop(a5)
     move.w #0x4200,bplcon0(a5) | 4 bitplanes
@@ -1554,27 +1541,14 @@ platform_init:
     move.w #0x0C00,bplcon3(a5)     | no AGA specificities, default ECS
     move.w #0x0011,bplcon4(a5)     | ECS default for sprite colors
 	
-	* enable fmode / change modulo of AGA
-	move.w 4(a5),d0
-	and.w #0x6F00,d0                      | 0110111100000000
-	cmp.w #0x2200,d0                      | 0010001000000000
-	beq.b aga_amiga                  
-	cmp.w #0x2300,d0                      | 0010001100000000
-	beq.b aga_amiga
-	* ECS amiga
+    move.w #0,fmode(a5)			
 	
+    move.w #0,bplcon1(a5)    | foreground tiles
 	move.w	#0,d0
- 	bra.b	continue_init
-aga_amiga:
-    move.w #3,fmode(a5)			
-	move.w	#-8,d0
-continue_init:
     move.w d0,bpl1mod(a5)
     move.w d0,bpl2mod(a5)
 	
 
-    move.w #0,bplcon1(a5)    | foreground tiles
-	moveq	#0,d0
 	move.w d0,bltamod(a5)		|A modulo=bytes to skip between lines
 	move.w d0,bltbmod(a5)		|B modulo=bytes to skip between lines
     move.l  #-1,bltafwm(a5)	| no mask on first & last word
@@ -1978,6 +1952,7 @@ update_bg_tile:
 	beq.b	1112f
 	cmp.b	#2,d2
 	bne.b	112f
+	bra.b	1112f
 1111:
 	bsr		handle_plank_level_dynamic_color_level_8
 1112:
@@ -2648,17 +2623,13 @@ _gfxbase:
 _dosbase:
 	.long	0
 bg_drawed_screen_ptr:
-	.long	0		| bg_screen_data_1
+	.long	bg_screen_data_1
 bg_displayed_screen_ptr:
 	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
-	.long	0		| bg_screen_data_2
+	.long	bg_screen_data_2
 	.else
-	.long	0		| bg_screen_data_1
+	.long	bg_screen_data_1
 	.endif
-bg_screen_data_1_ptr:
-	.long	0
-bg_screen_data_2_ptr:
-	.long	0
 	
 current_background:
 	.word	0xFF
@@ -2744,7 +2715,7 @@ sprite_log_table:
 
 
 	.section	.datachip
-	.align		8
+	
 .macro	DECL_4_BITPLANES	bpoff_start
 	.set	bpoff,\bpoff_start
 	.rept	NB_PLAYFIELD_PLANES
@@ -2779,6 +2750,7 @@ blank_sprite:
 	
 	* main copperlist
 copperlist:
+    .word   0x1801,0xFFFE	
 
 bg_bitplanes:
 	DECL_4_BITPLANES	0
