@@ -50,7 +50,7 @@ LAYOUT_2JOYS = 2
 NB_PLAYFIELD_PLANES = 4
 TOTAL_NB_COLORS = 16   | 8+8+16
 NB_BYTES_PER_ROW = 40
-NB_LINES = 288
+NB_LINES = 272
 Y_MAX = NB_LINES
 NB_PLAYFIELD_LINES = NB_LINES
 
@@ -1532,7 +1532,7 @@ platform_init:
 	
 	* restrict borders: we don't see bobs on the borders!
     move.w #0x1C99,diwstrt(a5)
-    move.w #0x3881-8,diwstop(a5)
+    move.w #0x2C81-8,diwstop(a5)
     move.w #0x0038,ddfstrt(a5)
     move.w #0x00D0,ddfstop(a5)
     move.w #0x4200,bplcon0(a5) | 4 bitplanes
