@@ -22,9 +22,11 @@ joystick or joypad in port 1 or keyboard
    
 * misc:
 
-- 5 key or fire button (during non-playing parts) to insert a coin
-- 1 key or up (during non-playing parts) to start a 1P game
-- 2 key or down (during non-playing parts) to start a 2P game
+- 5 key or joy1 up/down (during non-playing parts) to insert a coin
+  or continue 2P game (continue screen)
+- 1 key or joy1 fire (during non-playing parts) to start a 1P game
+  or give up current 2P game (continue screen)
+- 2 key or joy2 fire (during non-playing parts) to start a 2P game
 - P key or play button to pause the game
 - ESC key to quit & save high-scores (when run from amigaDOS)
 
