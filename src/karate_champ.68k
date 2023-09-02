@@ -4086,8 +4086,28 @@ l_5863:
 	jbsr	check_coin_ports_B069             	| [$5869: call check_coin_ports_B069]
 
 	movem.w	(sp)+,d1/d2                    	| [$586c: pop  bc]
+	* bit set: winner pressed 1P button: 2 player game given up
 	btst.b	#2,d0                           	| [$586d: bit  2,a]
 	jne	l_58b9                             	| [$586f: jp   nz,$58B9]
+	* amiga: check player 1 fire
+	.ifdef	__amiga__
+	jbsr	osd_read_inputs
+	not.b	d0
+	move.w	d0,-(a7)
+	and.b	#0xF0,d0		| any button/2nd joy input
+	movem.w	(a7)+,d0
+	jne	l_58b9
+	* test up or down (insert coin)
+	btst	#2,d0
+	bne.b	0f
+	btst	#3,d0
+	beq.b	1f
+0:
+	* insert coin
+	addq.b	#1,nb_credits_minus_one_C024
+1:
+	.endif
+	
 	move.b	nb_credits_minus_one_C024,d0    	| [$5872: ld   a,(nb_credits_minus_one_C024)]
 											| [$5875: and  a]
 	jne	l_58ae                             	| [$5876: jp   nz,$58AE]

@@ -1837,7 +1837,7 @@ handle_plank_level_dynamic_color:
 handle_plank_level_dynamic_color_level_8:
 	movem.w	d0-d2,-(a7)
 	* restore original table & planks colors
-	lea		color_line_copper+(20*16)+4,a0
+	lea		color_line_copper+(21*16)+4,a0
 	move.w	#color+10*2,(a0)+
 	move.w	#0xC80,(a0)+
 	move.w	#color+11*2,(a0)+
