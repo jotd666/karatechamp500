@@ -11,7 +11,7 @@ _base	SLAVE_HEADER					; ws_security + ws_id
     IFD CHIP_ONLY
 	dc.l	$200000					; ws_basememsize
     ELSE
-	dc.l	$100000					; ws_expmem
+	dc.l	$E0000					; ws_expmem
     ENDC
 	dc.l	0					; ws_execinstall
 	dc.w	start-_base		; ws_gameloader
