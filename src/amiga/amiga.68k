@@ -2536,8 +2536,7 @@ highscore_needs_saving:
 	.byte	0
 highscore_loaded:
 	.byte	0
-flip_flop:
-	.byte	0
+
 	.align	2
 
 host_sprites:
