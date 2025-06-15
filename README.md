@@ -1,35 +1,22 @@
-# Karate Champ (68K)
+# Karate Champ VS (68K)
 
 This is a transcode from the original arcade game Z80 to 68K assembly.
-
-
-### PROGRESS:
-
-#### TRANSCODE
-
+It is multi-platform in theory. ATM only amiga version exists.
 
 #### AMIGA
 
 - fully playable with sound
-- minor bugs
-- missing features
-
-#### NEO GEO
-
-
-### FEATURES:
 
 #### CREDITS:
 
 - Jean-Francois Fabre (aka jotd): Z80 reverse engineering, Z80 to 68k transcode, Amiga code and assets
-- Mark McDougall (aka tcdev): Neo Geo code and graphical asset rips, invaluable
+- Mark McDougall (aka tcdev): graphical asset rips, invaluable
   help about how the graphics are displayed.
 - no9: remade amiga tunes
 - phx: ptplayer sound/music replay Amiga code
 - DamienD: floppy menu
 - mrv2k: amiga boxart
-- blastar: NGFX SoundBuilder (Neo Geo sound tool)
-- SEGA: original game :)
+- Data East: original game :)
 
 #### SPECIAL THANKS:
 
@@ -66,29 +53,4 @@ This is a transcode from the original arcade game Z80 to 68K assembly.
 - To update sounds, use "convert_sounds.py"
   python script (audio) to create sound*.68k files.
 
-### NEO GEO:
-
-#### Prerequesites:
-
-- Windows
-- NeoDev kit (Fabrice Martinez, Jeff Kurtz, et al)  
-  https://wiki.neogeodev.org/index.php?title=Development_tools
-
-#### Build process:
-
-- install NeoDev and set path accordingly
-- clone repository
-- make -f makefile.ng OUTPUT={cart|cd}
-  - (OUTPUT defaults to cart)
-  
-#### Install process (MAME):
-
-- make -f makefile.ng OUTPUT={cart|cd} MAMEDIR={mamedir} install
-  - (mamedir defaults to '.')
-- paste kchampvs.xml into MAME's hash/neogeo.xml file
-
-#### To run in MAME:
-
-- cart : 'mame neogeo pengo'
-- cd : 'mame neocdz -cdrom roms/neocdz/kchampvs.iso'
   

@@ -4,6 +4,45 @@ from PIL import Image,ImageOps
 
 import collections
 
+# 0: ignore
+# 1: 16x16 size
+# 2: 32x16 size
+# 3: 48x16 size
+sprite_validity = [0]*0x600
+
+group_sprite_pairs = {1,3,5,7,9,14,16,18,26,42,44,46,48,50,52,54,56,58,65,67,69,71,73,75,80,82,85,88,
+90,92, # could be grouped by 4
+96,98,100,102,104,106,108,112,
+114,116, # could be grouped by 4
+120,125,127,129,133,
+135,137,142,144,146,148,150,152,154,156,162,164,166,171,173,175,177,179,181,183,
+194,202,204,221,244,249,254,257,262,
+264,266, # could be grouped by 4
+269,276,295,306,308,313,315,318,320,322,324,326,328,330,335,338,340,342,344,346,
+348,350,354,362,364,369,371,373,375,377,379,384,386,394,396,401,403,405,407,409,
+411,413,415,417,419,427,435,437,439,441,443,448,450,452,454,456,458,460,462,464,
+466,468,475,480,488,490,492,494,496,498,518,520,528,530,532,534,536,538,543,545,550,552,554,
+556,569,571,576,578,590,592,595,600,602,604,606,611,613,615,617,619,622,624,626,628,
+633,625,637,639,641,643,645,647,649,651,653,655,657,659,661,663,668,671,673,675,677,679,
+681,683,685,687,689,691,696,698,700,712,714,716,718,720,722,724,726,728,730,732,734,738,
+741,761,763,765,769,771,773,775,777,779,781,790,792,796,
+783,785,804,806,821,823,831,
+840,842,
+853,
+861,863,
+929,932,969,971,973,1025,1029,1031,1105,1107,1109,1111,1113,1115,1117,1119,1121,1123,1230,
+1232,1234,1236,1499,1501,1503,1505,1507,1509,1511,1513,1515,1517,1519,1521,1523,1525,1527,
+905,907,909,911,913,915,1271,1276,1281,1283,1285,1287,1291,1293,1304,
+1049,1051,1154,1529,1146
+}
+group_sprite_triplets = {11,27,30,33,36,39,77,122,139,158,168,185,188,191,199,206,
+209,212,215,218,223,226,229,232,241,246,251,
+196,259,271,278,282,285,289,292,297,300,303,310,332,356,359,366,381,388,391,398,
+421,424,429,432,445,472,477,482,485,522,525,540,547,557,560,563,573,587,597,608,
+630,665,693,702,708,709,736,787,798,801,825,828,834,837,844,847,855,858,
+1268,1273,1238,1137,1142,1130,1133,
+}
+
 
 def ensure_empty(d):
     if os.path.exists(d):
@@ -128,7 +167,7 @@ parasite_sprites = set()
 used_sprite_cluts = {k:v for k,v in used_sprite_cluts.items() if k not in parasite_sprites}
 
 dump_tiles = True
-dump_sprites = False
+dump_sprites = True
 
 dump_dir = os.path.join(this_dir,"dumps")
 
@@ -376,9 +415,28 @@ sprites = collections.defaultdict(dict)
 side = 16
 transparent = (202,0,202)
 
+def fill_image(img,chardat,colors,x_offset=0):
+    d = iter(chardat)
+    for i in range(side):
+        for j in range(side):
+            v = next(d)
+            pc = sprite_replacement_color_dict.get(colors[v],colors[v])
+            img.putpixel((j+x_offset,i),pc)
 
-for k,chardat in enumerate(block_dict["sprite"]["data"]):
-    img = Image.new('RGB',(side,side))
+sprite_array = block_dict["sprite"]["data"]
+
+avoid_single_tile = set()
+
+for k,chardat in enumerate(sprite_array):
+    # if tile is in the group list, change size
+    nb_tiles = 1
+    if k in group_sprite_pairs:
+        nb_tiles = 2
+    elif k in group_sprite_triplets:
+        nb_tiles = 3
+
+    width = side*nb_tiles
+    img = Image.new('RGB',(width,side))
 
     sprite_codes = list()
 
@@ -386,13 +444,17 @@ for k,chardat in enumerate(block_dict["sprite"]["data"]):
         if colors[0]==(0,0,0):      # if first color of clut is black it means transparent
             colors[0] = transparent
 
-        if not used_sprite_cluts or (k in used_sprite_cluts and cidx in used_sprite_cluts[k]):
-            d = iter(chardat)
-            for i in range(side):
-                for j in range(side):
-                    v = next(d)
-                    pc = sprite_replacement_color_dict.get(colors[v],colors[v])
-                    img.putpixel((j,i),pc)
+        if k not in avoid_single_tile and (not used_sprite_cluts or (k in used_sprite_cluts and cidx in used_sprite_cluts[k])):
+            k1 = k
+            sprite_validity[k] = nb_tiles
+
+            for x_offset in range(nb_tiles):
+                fill_image(img,sprite_array[k1],colors,x_offset*side)
+                if x_offset != 0:
+                    # note down that we don't have to dump this tile individually as it's already included
+                    # in the tile group
+                    avoid_single_tile.add(k1)
+                k1 += 1
 
             for pal in palettes_to_try:
                 try:
@@ -422,9 +484,8 @@ bitplane_cache = dict()
 nb_bitplanes = 4+1
 
 # 16*16 on 4 bitplanes with 16 bits blit padding
-chunk_size = 16*4
 with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
-    for x in ["special_color_sprites","character_table","sprite_table"]:
+    for x in ["special_color_sprites","character_table","sprite_table","sprite_validity"]:
         f.write(f"\t.global\t{x}\n")
 
 
@@ -483,6 +544,9 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
                 packed_color_table = True
                 special_color_sprites[sprite_index] = next(i for i,blocks in enumerate(data) if blocks)
 
+            sz = sprite_validity[sprite_index]
+            chunk_size = [0,4,6,8][sz]*16
+
             # we have to reference bitplanes here or 0 if nothing to draw, just erase
             for i,blocks in enumerate(data):
                 if blocks:
@@ -525,6 +589,9 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
 
     f.write("* table of sprites that can only be white or red (players, scores) \nspecial_color_sprites:")
     bitplanelib.dump_asm_bytes(special_color_sprites,f,mit_format=True)
+
+    f.write("* table of sprites to display 16x16, 32x16, 48x16 or ignore altogether\nsprite_validity:")
+    bitplanelib.dump_asm_bytes(sprite_validity,f,mit_format=True)
 
     f.write("\n\t.section\t.datachip\n")
     for plane,plane_name in sorted(bitplane_cache.items(),key=lambda d:d[1]):
