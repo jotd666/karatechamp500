@@ -755,8 +755,10 @@ osd_update_sprites:
 	
 	CONVERT_XY
 	lea		bg_screen_backbuffer_data,a0	| source, no sprites, only tiles
+	move.w	(a4),d2			| blit width
 	bsr		blit_16x_background
 1:
+	addq	#2,a4
 	dbf		d7,0b
 	
 	move.w	#NB_TARGET_SPRITES-1,d7
@@ -769,11 +771,11 @@ osd_update_sprites:
 	move.b	(a6),d0
 	addq	#8,d0		| make up for shift
 	* save X in previous values array
-	move.b	d0,(a4)+
+	move.b	d0,(a4)
 	* sprite X (amiga Y)
 	move.b	(3,a6),d1
 	* save Y in previous values array
-	move.b	d1,(a4)+
+	move.b	d1,(1,a4)
 	tst.b	d0
 	jne		10f
 	tst.b	d1
@@ -803,8 +805,8 @@ osd_update_sprites:
 	move.b	(2,a6),d3
 	
 	* save tile & attributes in previous
-	move.b	d2,(a4)+
-	move.b	d3,(a4)+
+	move.b	d2,(2,a4)
+	move.b	d3,(3,a4)
 	* dispatch the value into several registers
 	move.b	d3,d5
 	move.b	d3,d4
@@ -830,7 +832,7 @@ osd_update_sprites:
 	* now check if sprite belongs to a sprite group
 	lea		sprite_validity,a0
 	tst.b	(a0,d2.w)
-	jeq		1f				| cancelled tile, part of a group
+	jeq		2f				| cancelled tile, part of a group
 	
 	move.w	d2,d3
 	lea		sprite_table,a0
@@ -906,9 +908,12 @@ osd_update_sprites:
 	* get coordinates (D0 is already loaded as X)
 	CONVERT_XY
 	
-	* get proper blitter routine
 
+	* get proper erase size
 	add.w	d2,d2
+	lea		width_table(pc),a2
+	move.w (a2,d2.w),(4,a4)
+	* get proper blitter routine
 	add.w	d2,d2
 	lea		blitter_routine_table(pc),a2
 	move.l	(a2,d2.w),a2
@@ -918,16 +923,16 @@ osd_update_sprites:
 
 	jsr		(a2)		| call blitter function
 1:
+111:
 	addq.w	#4,a6
+	addq.w	#6,a4
 	dbf		d7,0b
 	rts
-111:
-	addq.w	#2,a4
-	bra.b	1b
 2:
 	* blank tile, tell background restore routine that there's no need
 	* to restore anything
-	clr.w	(-2,a4)
+	clr.w	(a4)
+	addq.w	#6,a4
 	addq.w	#4,a6
 	dbf		d7,0b
 	rts
@@ -949,6 +954,12 @@ osd_update_sprites:
 	.endif
 	bra.b	1b
 
+width_table:
+	.word	2
+	.word	4
+	.word	6
+	.word	8
+	
 blitter_routine_table:
 	.long	crash
 	.long	blit_16x16_bob
@@ -958,13 +969,6 @@ crash:
 	illegal
 	move.b	d0,d0
 	
-nope:
-	rts
-	
-	.long	0				| not possible
-	.long	blit_16x16_bob
-	.long	blit_32x16_bob
-	.long	blit_48x16_bob
 	
 	.ifndef	RELEASE
 ** test sprites for title screen (2 guys fighting)
@@ -1027,6 +1031,7 @@ decoded_color_index:
 * < A0: pristine background
 * < D0: X (rounded to smaller 8-multiple)
 * < D1: Y
+* < D2: width
 
 * trashes: D0-D1
 
@@ -1046,7 +1051,6 @@ blit_16x_background:
 	
 	moveq	#16,d4		| height
     move.l  #0x09f00000,d3    | A->D copy, ascending mode
-	moveq	#4,d2			| 32 bits blit
 	move.w	#NB_BYTES_PER_ROW,d1		| blit modulo
 
     sub.w   d2,d1       | blit modulo
@@ -2680,9 +2684,9 @@ keyboard_table:
 previous_sprites_ptr:
 	dc.l	previous_sprites_1
 previous_sprites_1:
-	ds.l	NB_TARGET_SPRITES
+	.skip	NB_TARGET_SPRITES*6
 previous_sprites_2:
-	ds.l	NB_TARGET_SPRITES
+	.skip	NB_TARGET_SPRITES*6
 	
 pause_flag:
 	dc.w	0
