@@ -9,6 +9,7 @@ import collections
 # 2: 32x16 size
 # 3: 48x16 size
 sprite_validity = [0]*0x600
+blit_pad = False
 
 group_sprite_pairs = {1,3,5,7,9,14,16,18,26,42,44,46,48,50,52,54,56,58,65,67,69,71,73,75,80,
 82,84,88,
@@ -460,11 +461,11 @@ for k,chardat in enumerate(sprite_array):
 
             for pal in palettes_to_try:
                 try:
-                    left = bitplanelib.palette_image2raw(img,None,pal,blit_pad=True,generate_mask=True,mask_color=transparent)
+                    left = bitplanelib.palette_image2raw(img,None,pal,blit_pad=blit_pad,generate_mask=True,mask_color=transparent)
                     if k in no_mirror_sprites:
                         right = left
                     else:
-                        right = bitplanelib.palette_image2raw(ImageOps.mirror(img),None,pal,blit_pad=True,generate_mask=True,mask_color=transparent)
+                        right = bitplanelib.palette_image2raw(ImageOps.mirror(img),None,pal,blit_pad=blit_pad,generate_mask=True,mask_color=transparent)
                     sprite_codes.append([left,right])
                     break
                 except bitplanelib.BitplaneException:
@@ -547,7 +548,7 @@ with open(os.path.join(src_dir,"graphics.68k"),"w") as f:
                 special_color_sprites[sprite_index] = next(i for i,blocks in enumerate(data) if blocks)
 
             sz = sprite_validity[sprite_index]
-            chunk_size = [0,4,6,8][sz]*16
+            chunk_size = [0,2,4,6][sz]*16
 
             # we have to reference bitplanes here or 0 if nothing to draw, just erase
             for i,blocks in enumerate(data):

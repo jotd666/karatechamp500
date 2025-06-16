@@ -1063,7 +1063,8 @@ blit_16x_background:
 
     * now just wait for blitter ready to write all registers
 	WAIT_BLIT
-    
+    move.l  #-1,bltafwm(a5)
+   
     * blitter registers set
 
 	move.l d3,bltcon0(a5)	| sets con0 and con1
@@ -1242,7 +1243,7 @@ blit_planes_any_internal_cookie_cut:
     lsr.w   #1,d2
     add.w   d2,d4       | blit height
     * always the same settings (ATM)
-	moveq	#0,d2
+	moveq	#-2,d2
 	add.w	d5,a3			| apply y offset to mask too (y offset looks wrong)
 	
     * now just wait for blitter ready to write all registers
@@ -1253,7 +1254,8 @@ blit_planes_any_internal_cookie_cut:
 	move.w d2,bltamod(a5)		|A modulo=bytes to skip between lines
 	move.w d2,bltbmod(a5)		|B modulo=bytes to skip between lines
 	move.l d7,bltcon0(a5)	    | sets con0 and con1: full cookie cut 2 sources & 1 mask
-	
+	moveq	#0,d2
+    move.w  d2,bltalwm(a5)
     move.w  d0,bltcmod(a5)	|C modulo
     move.w  d0,bltdmod(a5)	|D modulo
 					
@@ -1301,13 +1303,22 @@ start_process_1_plane:
 \name\()_table:
 	.set	shift,0
 	.rept	16
-	.long	(shift<<28)+(shift<<12)+\value
+	.long	(shift<<28)+(shift<<12)+(\value<<16)
 	.set	shift,shift+1
 	.endr
 	.endm
 	
-	GEN_MINTERM_TABLE	cookie_cut_blit,0x0FCA0000
-	GEN_MINTERM_TABLE	cookie_cut_mask_blit,0x0BCA0000
+	.macro	GEN_MINTERM_TABLE_2	name,value
+\name\()_table:
+	.set	shift,0
+	.rept	16
+	.long	(shift<<28)+(\value<<16)
+	.set	shift,shift+1
+	.endr
+	.endm
+	
+	GEN_MINTERM_TABLE	cookie_cut_blit,0x0FCA
+	GEN_MINTERM_TABLE_2	cookie_cut_mask_blit,0x0BCA
 	
 osd_sound_start:
 	
