@@ -770,12 +770,8 @@ osd_update_sprites:
 	* sprite Y (amiga X)
 	move.b	(a6),d0
 	addq	#8,d0		| make up for shift
-	* save X in previous values array
-	move.b	d0,(a4)
 	* sprite X (amiga Y)
 	move.b	(3,a6),d1
-	* save Y in previous values array
-	move.b	d1,(1,a4)
 	tst.b	d0
 	jne		10f
 	tst.b	d1
@@ -902,6 +898,10 @@ osd_update_sprites:
 4:
 	tst.l	(NB_PLAYFIELD_PLANES*4,a0)
 	beq.b	2f
+	* save X in previous values array
+	move.b	d0,(a4)
+	* save Y in previous values array
+	move.b	d1,(1,a4)
 	
 	
 	* now A0 is a pointer on a list of 4 16x16 bitplanes + mask
@@ -1039,8 +1039,9 @@ blit_16x_background:
 	movem.l	d2-d6/a0-a5,-(a7)
 	lea		_custom,a5
 	move.l	bg_drawed_screen_ptr(pc),a1
-	* adjust offset X: X//8
-	lsr.w	#3,d0
+	* adjust offset X: X//8 but rounded
+	lsr.w	#4,d0
+	add.w	d0,d0
 	lea		mulNB_BYTES_PER_ROW_table(pc),a4
 	add.w	d1,d1
 	* add Y offset: Y*40
@@ -1087,6 +1088,42 @@ blit_16x_background:
 	movem.l	(a7)+,d2-d6/a0-a5
 	rts
 
+	.macro	BLIT_START
+	movem.l	d2-d6/a0-a5,-(a7)
+	* first check if Y is positive
+	moveq	#0,d6	| bitmap offset
+	tst		d1
+	bpl.b	10f
+	* Y is negative, handle the Y-clipping 
+	* or completely zap the blit
+	add.w	d1,d3
+	bmi.b	2f
+	beq.b	2f		| no need to blit if height <= 0
+	* compute offset to add to bitmap
+	neg		d1    | make it positive
+	.endm
+	
+	.macro	BLIT_END	size
+	moveq	#0,d1	| draw from Y=0
+10:
+	move.l	bg_drawed_screen_ptr(pc),a1
+
+	move.l	a0,a4		| pointers on planes
+	move.l	(NB_PLAYFIELD_PLANES*4,a4),a3		| mask is the last plane
+	move.l	a4,a0     | next plane list	
+	move.l	a1,a2
+	move.w	d6,d2	| y offset for source planes
+    lea _custom,A5
+	move.w	d2,d5
+	move.w	d3,d4
+	moveq	#NB_PLAYFIELD_PLANES,d3		| 4 planes
+    moveq  #\size,d2       | 16 pixels + 2 shift bytes
+	jbsr	blit_planes_any_internal_cookie_cut
+2:
+	movem.l	(a7)+,d2-d6/a0-a5
+	rts	
+	.endm
+	
 * what: blits 16x?? data on bg plane, cookie cut
 * args:
 * < A0: data (16 pixels wide, 4+1 planes, all planes pointers can be zero,
@@ -1098,112 +1135,29 @@ blit_16x_background:
 * trashes: D0-D1
 
 blit_16x16_bob:
-	movem.l	d2-d6/a0-a5,-(a7)
-	* first check if Y is positive
-	moveq	#0,d6	| bitmap offset
-	tst		d1
-	bpl.b	10f
-	* Y is negative, handle the Y-clipping 
-	* or completely zap the blit
-	add.w	d1,d3
-	bmi.b	2f
-	beq.b	2f		| no need to blit if height <= 0
-	* compute offset to add to bitmap
-	neg		d1    | make it positive
+	BLIT_START
 	* add a 4-byte offset per line
 	move.w	d1,d6
 	add.w	d6,d6
 	add.w	d6,d6
-	moveq	#0,d1	| draw from Y=0
-10:
-	move.l	bg_drawed_screen_ptr(pc),a1
-
-	move.l	a0,a4		| pointers on planes
-	move.l	(NB_PLAYFIELD_PLANES*4,a4),a3		| mask is the last plane
-	move.l	a4,a0     | next plane list	
-	move.l	a1,a2
-	move.w	d6,d2	| y offset for source planes
-    lea _custom,A5
-	move.w	d2,d5
-	move.w	d3,d4
-	moveq	#4,d3		| 4 planes
-    moveq  #4,d2       | 16 pixels + 2 shift bytes
-	jbsr	blit_planes_any_internal_cookie_cut
-2:
-	movem.l	(a7)+,d2-d6/a0-a5
-	rts
+	BLIT_END	4
 	
 blit_32x16_bob:
-	movem.l	d2-d6/a0-a5,-(a7)
-	* first check if Y is positive
-	moveq	#0,d6	| bitmap offset
-	tst		d1
-	bpl.b	10f
-	* Y is negative, handle the Y-clipping 
-	* or completely zap the blit
-	add.w	d1,d3
-	bmi.b	2f
-	beq.b	2f		| no need to blit if height <= 0
-	* compute offset to add to bitmap
-	neg		d1    | make it positive
+	BLIT_START
 	* add a 6-byte offset per line (times 6)
 	move.w	d1,d6
 	add.w	d6,d6
 	add.w	d1,d6
 	add.w	d6,d6
-	moveq	#0,d1	| draw from Y=0
-10:
-	move.l	bg_drawed_screen_ptr(pc),a1
-
-	move.l	a0,a4		| pointers on planes
-	move.l	(NB_PLAYFIELD_PLANES*4,a4),a3		| mask is the last plane
-	move.l	a4,a0     | next plane list	
-	move.l	a1,a2
-	move.w	d6,d2	| y offset for source planes
-    lea _custom,A5
-	move.w	d2,d5
-	move.w	d3,d4
-	moveq	#4,d3		| 4 planes
-    moveq  #6,d2       | 32 pixels + 2 shift bytes
-	jbsr	blit_planes_any_internal_cookie_cut
-2:
-	movem.l	(a7)+,d2-d6/a0-a5
-	rts
+	BLIT_END	6
 	
 blit_48x16_bob:
-	movem.l	d2-d6/a0-a5,-(a7)
-	* first check if Y is positive
-	moveq	#0,d6	| bitmap offset
-	tst		d1
-	bpl.b	10f
-	* Y is negative, handle the Y-clipping 
-	* or completely zap the blit
-	add.w	d1,d3
-	bmi.b	2f
-	beq.b	2f		| no need to blit if height <= 0
-	* compute offset to add to bitmap
-	neg		d1    | make it positive
+	BLIT_START
 	* add a 8-byte offset per line
 	move.w	d1,d6
 	lsl.w	#3,d6
-	moveq	#0,d1	| draw from Y=0
-10:
-	move.l	bg_drawed_screen_ptr(pc),a1
+	BLIT_END	8
 
-	move.l	a0,a4		| pointers on planes
-	move.l	(NB_PLAYFIELD_PLANES*4,a4),a3		| mask is the last plane
-	move.l	a4,a0     | next plane list	
-	move.l	a1,a2
-	move.w	d6,d2	| y offset for source planes
-    lea _custom,A5
-	move.w	d2,d5
-	move.w	d3,d4
-	moveq	#4,d3		| 4 planes
-    moveq  #8,d2       | 48 pixels + 2 shift bytes
-	jbsr	blit_planes_any_internal_cookie_cut
-2:
-	movem.l	(a7)+,d2-d6/a0-a5
-	rts
 
 * what: blits 16x? data on one plane, cookie cut
 * args:

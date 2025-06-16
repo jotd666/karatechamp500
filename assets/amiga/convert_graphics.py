@@ -43,7 +43,8 @@ group_sprite_triplets = {11,27,30,33,36,39,77,122,139,158,168,185,188,191,199,20
 630,665,693,702,708,709,736,787,798,801,825,828,834,837,844,847,855,858,
 1268,1273,1238,1137,1142,1130,1133,
 }
-
+group_sprite_triplets.clear()
+group_sprite_pairs.clear()
 
 def ensure_empty(d):
     if os.path.exists(d):
