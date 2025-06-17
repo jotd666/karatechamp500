@@ -5,6 +5,7 @@ It is multi-platform in theory. ATM only amiga version exists.
 
 #### AMIGA
 
+- requires any OCS amiga with 1MB of memory
 - fully playable with sound
 
 #### CREDITS:

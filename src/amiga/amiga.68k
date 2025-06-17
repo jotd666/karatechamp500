@@ -766,16 +766,14 @@ osd_update_sprites:
 	* for each sprite
 0:
 	moveq	#0,d0
-	moveq	#0,d1
 	* sprite Y (amiga X)
 	move.b	(a6),d0
-	addq	#8,d0		| make up for shift
+	jeq		111f		| X is zero: skip
+	moveq	#0,d1
 	* sprite X (amiga Y)
 	move.b	(3,a6),d1
-	tst.b	d0
-	jne		10f
 	tst.b	d1
-	jeq		111f		| both X & Y are zero: skip
+	jeq		111f		| Y is zero: skip
 10:
 	.ifne	OPT_ENABLE_LOGGING
 	move.l	#sprite_shadow_ram_C700,0x108
@@ -788,6 +786,7 @@ osd_update_sprites:
 	st.b	(a1,d2.l)
 	.endif
 	
+	addq	#8,d0		| make up for shift
 
 	* tile index
 
@@ -1653,6 +1652,7 @@ platform_init:
 	.endif
 	
 	* restrict borders: we don't see bobs on the borders!
+ 	*         VVHH
     move.w #0x1C99,diwstrt(a5)
     move.w #0x2C81-8,diwstop(a5)
     move.w #0x0038,ddfstrt(a5)
@@ -2286,6 +2286,7 @@ osd_read_inputs:
 	beq.b	0f
 	bclr	#2+16,d0		| start 1P
 0:
+	* can't start 2P mode if two joystick layout is on
 	tst.b	two_joystick_layout
 	bne.b	1f
 	move.l	_joypad_state_p2(pc),d1
