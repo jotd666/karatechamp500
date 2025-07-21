@@ -31,7 +31,7 @@ music_vol = 12
 EMPTY_SND = "EMPTY_SND"
 sound_dict = {
 "INTRO_TUNE_SND"              :{"index":1,"pattern":MAIN_THEME_MUSIC,"loops":True,"volume":music_vol},
-"LOSE_TUNE_SND"              :{"index":2,"pattern":LOSE_FIGHT_MUSIC,"loops":False,"ticks":188,"volume":music_vol},
+"LOSE_TUNE_SND"              :{"index":2,"pattern":LOSE_FIGHT_MUSIC,"volume":music_vol},
 "START_TUNE_SND"              :{"index":3,"pattern":START_FIGHT_MUSIC,"loops":False,"volume":music_vol},
 "WIN_TUNE_SND"             :{"index":0x04,"pattern":WIN_FIGHT_MUSIC,"loops":False,"volume":music_vol},
 "BLOW_SND"               :{"index":0x11,"channel":0,"sample_rate":hq_sample_rate},
@@ -113,13 +113,13 @@ with open(sndfile,"w") as fst,open(outfile,"w") as fw:
         if channel is None:
             # if music loops, ticks are set to 1 so sound orders only can happen once (else music is started 50 times per second!!)
 
-            sound_table_set_1[sound_index] = "\t.word\t{},{},{}\n\t.byte\t{},{}".format(2,details["pattern"],details.get("ticks",0),details["volume"],int(details["loops"]))
+            sound_table_set_1[sound_index] = "\t.word\t{},{},{}\n\t.byte\t{},{}".format(2,details["pattern"],0,details["volume"],0)
         else:
             wav_name = os.path.basename(wav_entry).lower()[:-4]
             wav_file = os.path.join(sound_dir,wav_name+".wav")
 
             def get_sox_cmd(sr,output):
-                return [sox,"--volume","1.0",wav_file,"--channels","1","-D","--bits","8","-r",str(sr),"--encoding","signed-integer",output]
+                return [sox,"--volume","1.2",wav_file,"--channels","1","-D","--bits","8","-r",str(sr),"--encoding","signed-integer",output]
 
 
             used_sampling_rate = details["sample_rate"]

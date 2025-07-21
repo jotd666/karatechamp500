@@ -623,6 +623,8 @@ _vblank:
 	jsr	_read_joystick
 	move.l	d0,_joypad_state_p1
 	
+
+
 	* CD32 "play" is disabled but it's free to read
 	* 3rd button on a Sega 3-button so 3rd button is pause
 	btst	#JPB_BTN_PLAY,d0
@@ -631,14 +633,6 @@ _vblank:
 	bne.b	0f
 	bsr		toggle_pause
 0:
-	* here music doesn't loop. We have to stop it when it ends
-	move.w	music_tick(pc),d1
-	beq.b	13f
-	subq.w	#1,d1
-	move.w	d1,music_tick
-	bne.b	13f
-	bsr		osd_sound_stop
-13:
 
 	moveq	#0,d0
 	jsr	_read_joystick
@@ -692,8 +686,28 @@ _vblank:
     rte
 	
 osd_break:
-	blitz
-	rts
+
+osd_break:
+	* sends a WinUAE command to enter WinUAE debugger
+	.ifndef	RELEASE
+	move.l	D0,-(a7)
+	pea     0.w
+	* Normally it would point to where the result of the command is written, but since the last parameter (first pushed)
+	* indicating the number of bytes to write is 0, nothing is written.
+	pea     0.w	
+	pea     1003f-1002f
+	pea     1002f(pc)
+	pea     -1.w
+	pea     82.w
+	jsr     0xf0ff60
+	lea     24(sp),sp
+	move.l	(a7)+,d0
+	.endif
+    rts
+		
+1002: .asciz    "AKS_ENTERDEBUGGER 1"
+1003:
+        .align	2
 
 *osd_calibrate_display:
 *	movem.l	a0/d0-d1,-(a7)
@@ -1400,11 +1414,8 @@ osd_sound_start:
 
     * set master volume a little less loud if needed
 	move.b	(6,a0,d0.w),music_volume
-	move.b	(7,a0,d0.w),music_loops
 	move.w	(2,a0,d0.w),music_pattern	| pattern number in .mod file
-	move.w	(4,a0,d0.w),d2
-	move.w	d2,music_duration
-	move.w	d2,music_tick
+
 
     moveq	#0,d0
 	move.b	music_volume(pc),d0
@@ -1442,10 +1453,9 @@ osd_sound_stop:
 	movem.l	d0/a0/a6,-(a7)
 	lea		_custom,a6
 	move.b	#-1,music_track_start_number
-    clr.w   music_tick   | not playing anymore
 	clr.b	music_playing
     jsr		_mt_end
-0:
+
 	movem.l	(a7)+,d0/a0/a6
 	rts
 	
@@ -2658,13 +2668,10 @@ pause_flag:
 	dc.w	0
 
 	* sound variables
-music_duration:
-	.word	0
+
 music_track_start_number:
-	.word	0
+	.word	-1
 music_pattern:
-	.word	0
-music_tick:
 	.word	0
 intro_music_counter:
 	.word	0

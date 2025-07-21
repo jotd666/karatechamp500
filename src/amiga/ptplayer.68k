@@ -3077,7 +3077,6 @@ mt_tremoctrl:
 mt_e8:
 * cmd E 8 x (x = trigger value)
 * d0 = x
-
 	move.b	d0,mt_E8Trigger(a4)
 	rts
 
@@ -3938,6 +3937,7 @@ mt_PattDelTime2:
 	ds.b	1
 
 	.ifeq	MINIMAL
+	flflfl
 mt_SilCntValid:
 	ds.b	1
 mt_MasterVolTab:
