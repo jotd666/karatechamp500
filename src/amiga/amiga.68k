@@ -2286,7 +2286,7 @@ osd_read_inputs:
 	bclr	#2+16,d0
 0:
 	move.b	background_and_state_bits_C911,d2
-	bpl.b	0f
+	jpl	1f
 	* game not running: can insert coin & start game without special
 	* joypad buttons
 	move.l	_joypad_state_p1(pc),d1
