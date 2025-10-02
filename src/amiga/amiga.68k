@@ -31,7 +31,7 @@ OPT_ENABLE_LOGGING = 0           | DO NOT CHANGE THIS
 ONE_TICK = 1
 
 	.else
-OPT_ENABLE_LOGGING = 0
+OPT_ENABLE_LOGGING = 1
 OPT_ENABLE_PROFILING = 0
 * set to higher values than 1 to speed game up
 ONE_TICK = 1
@@ -737,6 +737,11 @@ osd_break:
 	add.w	#0x10,d1
 	.endm
 	
+SPRITE_Y = 0
+SPRITE_CODE = 1
+SPRITE_ATTR = 2
+SPRITE_X = 3
+
 * called with game C700 memory, not C800, so no memory copy
 * and each modification done to C7xx is done only once if sprite
 * doesn't change color so it's easier to debug with memwatches
@@ -781,11 +786,11 @@ osd_update_sprites:
 0:
 	moveq	#0,d0
 	* sprite Y (amiga X)
-	move.b	(a6),d0
+	move.b	(SPRITE_Y,a6),d0
 	jeq		111f		| X is zero: skip
 	moveq	#0,d1
 	* sprite X (amiga Y)
-	move.b	(3,a6),d1
+	move.b	(SPRITE_X,a6),d1
 	tst.b	d1
 	jeq		111f		| Y is zero: skip
 10:
@@ -794,9 +799,9 @@ osd_update_sprites:
 	lea		sprite_log_table,a1
 	move.l	a1,0x100
 	moveq	#0,d2
-	move.b	(1,a6),d2
+	move.b	(SPRITE_CODE,a6),d2
 	lsl.w	#8,d2
-	move.b	(2,a6),d2
+	move.b	(SPRITE_ATTR,a6),d2
 	st.b	(a1,d2.l)
 	.endif
 	
@@ -804,14 +809,15 @@ osd_update_sprites:
 
 	* tile index
 
+
 	moveq	#0,d2
 	moveq	#0,d3
 	moveq	#0,d4
 	moveq	#0,d5
 	* tile code
-	move.b	(1,a6),d2
+	move.b	(SPRITE_CODE,a6),d2
 	* tile color & attributes
-	move.b	(2,a6),d3
+	move.b	(SPRITE_ATTR,a6),d3
 	
 	* save tile & attributes in previous
 	move.b	d2,(2,a4)
@@ -819,7 +825,7 @@ osd_update_sprites:
 	* dispatch the value into several registers
 	move.b	d3,d5
 	move.b	d3,d4
-	move.b	d3,d6
+	move.b	d3,d6		| save for attributes in D6
 	and.b	#0xF,d4		| color code
 	and.b	#0x60,d3
 	lsl.w	#4,d3		| sprite bank (0,1,2) * 512. 3 is not a possible value!
@@ -893,7 +899,7 @@ osd_update_sprites:
 	
 	* check orientation, add 2 if mirror
 	btst	#7,d6
-	beq.b	3f
+	jeq	3f
 	add.w	(2,a0),a0				| make pointer absolute
 	* but if mirror, we have to subtract 16 or 32 to X if
 	* belongs to sprite group
