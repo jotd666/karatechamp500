@@ -24,7 +24,26 @@ SCREEN_ADDRESS = 0xD000
 SCORE_FILE_SIZE = 0x6C
 
 
+	.ifdef	RELEASE
+	.macro	BREAKPOINT comment
+	.endm
 
+	.else
+	* amiga specific
+	.macro	BREAKPOINT comment
+	move.l	a0,-(a7)
+	lea		comment\@(pc),a0
+	jbsr	osd_break
+	move.l	(a7)+,a0
+	jra		next\@
+comment\@:
+	.asciz	"\comment"
+	.align	2
+next\@:
+	.endm
+
+	.endif
+	
 	.ifdef	RELEASE
 OPT_ENABLE_PROFILING = 0         | DO NOT CHANGE THIS
 OPT_ENABLE_LOGGING = 0           | DO NOT CHANGE THIS
@@ -131,7 +150,7 @@ w\@:
 
 	  .global _user
 		.global _player_start
-		.global _demo_end
+
 
 * osd layer		
 		.global osd_enable_vblank_interrupt
@@ -583,8 +602,19 @@ demo_game:
 		*sne		infinite_lives_flag
 		
 0:	
+	moveq	#0,d7
+	lea		mulNB_BYTES_PER_ROW_table(pc),a1
+	lea		tile_xy_address_table,a0
+1:
+	move.w	d7,d6
+	jbsr	compute_tile_xy
+	move.w	d3,(a0)+
+	addq	#1,d7
+	cmp.w	#0x400,d7
+	jne		1b
 
-		jmp			karate_champ_reset					| pass control to the pengo core
+
+	jmp			karate_champ_reset					| pass control to the pengo core
 		
 
 detect_slow_amiga:
@@ -1984,6 +2014,28 @@ handle_plank_level_dynamic_color_level_8:
 	move.w	#0x80c,(a0)+
 	movem.w	(a7)+,d0-d2
 	rts
+
+
+get_tile_xy:	
+	lea		tile_xy_address_table,a0
+	add.w	d6,d6
+	move.w	(a0,d6.w),d3
+	rts
+	
+compute_tile_xy:
+	move.w	d6,d3
+	lsr.w	#5,d6		| this is X
+	neg.w	d6
+	add.w	#32,d6
+	and.w	#0x1F,d3	| this is Y
+	addq.w	#2,d3
+	
+	add.w	d3,d3
+	move.w	(a1,d3.w),d3
+	lsl.w	#3,d3		| times 8
+	add.w	d6,d3		| global offset
+	
+	rts
 	
 * d6: screen offset
 * d0: tile code
@@ -2132,14 +2184,8 @@ update_bg_tile:
 	lsr.b	#3,d1
 	and.b	#0x1F,d1	| proper color code
 
-	move.w	d6,d3
-	lsr.w	#5,d6		| this is X
-	neg.w	d6
-	add.w	#32,d6
-	and.w	#0x1F,d3	| this is Y
-	addq.w	#2,d3
+	jbsr	get_tile_xy
 
-	lea		mulNB_BYTES_PER_ROW_table(pc),a0
 	
 	move.l	bg_drawed_screen_ptr(pc),a1
 	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
@@ -2147,10 +2193,6 @@ update_bg_tile:
 	.endif
 	* D3 = Y
 
-	add.w	d3,d3
-	move.w	(a0,d3.w),d3
-	lsl.w	#3,d3		| times 8
-	add.w	d6,d3		| global offset
 	add.w	d3,a1
 	lea		bg_screen_backbuffer_data,a2
 	add.w	d3,a2
@@ -2773,17 +2815,14 @@ must_update_sprites:
 	dc.b	0
 	.align	2
 	
-	
-	* on amiga, this file is included in karate_champ.68k file
-	* so the assembler can optimize by using PC-relative addressing
-	* whenever possible (and it does)
-	.ifndef	RELEASE
-	* easier to debug game to have memory aligned on 0x10000
-	.ifeq	OPT_ENABLE_LOGGING
-	.align	0x10000
-
-	.else  |	OPT_ENABLE_LOGGING
 	.section	.bss
+tile_xy_address_table:
+	.skip	0x800
+	
+	.ifndef	RELEASE
+
+
+	.ifne	OPT_ENABLE_LOGGING
 tile_log_table:
 	* a lot of combinations aren't used (fortunately!)
 	ds.b	0x10000
